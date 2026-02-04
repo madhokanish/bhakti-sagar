@@ -98,6 +98,41 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
       }
     ]
   };
+  const faqItems = [
+    {
+      q: `What is ${titleDisplay}?`,
+      a: `${titleDisplay} is a devotional aarti sung during prayer to honor the deity.`
+    },
+    {
+      q: `Is ${titleDisplay} available in English?`,
+      a: `Yes, you can read ${titleDisplay} in English letters (transliteration) and in Hindi.`
+    },
+    {
+      q: `When is ${titleDisplay} usually sung?`,
+      a: `It is commonly sung during daily pooja, temple visits, and festivals related to the deity.`
+    },
+    {
+      q: `How do I perform this aarti?`,
+      a: `Light a diya, offer flowers or prasad, and sing the aarti with devotion.`
+    },
+    {
+      q: `Can I understand the meaning of each line?`,
+      a: `Yes, use the AI Insight panel for a summary or line-by-line meaning.`
+    },
+    {
+      q: `Does this page include a video?`,
+      a: `Yes, when available you can watch the aarti video alongside the lyrics.`
+    }
+  ];
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqItems.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: { "@type": "Answer", text: item.a }
+    }))
+  };
 
   return (
     <div className="container py-12">
@@ -142,6 +177,17 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
               </p>
             </div>
           </div>
+          <div className="mt-8 rounded-2xl border border-sagar-amber/20 bg-white/70 p-6 shadow-sagar-soft">
+            <h3 className="text-lg font-serif text-sagar-ink">FAQ</h3>
+            <div className="mt-4 space-y-4 text-sm text-sagar-ink/70">
+              {faqItems.map((item) => (
+                <div key={item.q}>
+                  <p className="font-semibold text-sagar-ink">{item.q}</p>
+                  <p className="mt-1">{item.a}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
         <aside className="space-y-4 lg:sticky lg:top-24">
           <MeaningPanel title={aarti.title.english || aarti.title.hindi} lyrics={aarti.lyrics.english.length ? aarti.lyrics.english : aarti.lyrics.hindi} />
@@ -177,6 +223,10 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
     </div>
   );

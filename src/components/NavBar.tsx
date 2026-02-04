@@ -11,6 +11,8 @@ export default function NavBar() {
             <Link href="/aartis" className="hover:text-sagar-saffron">Aartis</Link>
             <Link href="/categories" className="hover:text-sagar-saffron">Categories</Link>
             <Link href="/pooja" className="hover:text-sagar-saffron">Pooja</Link>
+            <Link href="/deity" className="hover:text-sagar-saffron">Deities</Link>
+            <Link href="/festival" className="hover:text-sagar-saffron">Festivals</Link>
             <Link href="/about" className="hover:text-sagar-saffron">About</Link>
           </nav>
         </div>
@@ -18,6 +20,8 @@ export default function NavBar() {
           <Link href="/aartis" className="hover:text-sagar-saffron">Aartis</Link>
           <Link href="/categories" className="hover:text-sagar-saffron">Categories</Link>
           <Link href="/pooja" className="hover:text-sagar-saffron">Pooja</Link>
+          <Link href="/deity" className="hover:text-sagar-saffron">Deities</Link>
+          <Link href="/festival" className="hover:text-sagar-saffron">Festivals</Link>
           <Link href="/about" className="hover:text-sagar-saffron">About</Link>
         </nav>
         <form action="/aartis" className="flex w-full max-w-md items-center gap-2 rounded-full border border-sagar-amber/30 bg-white px-4 py-2 shadow-sagar-soft md:w-auto">

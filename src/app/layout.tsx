@@ -5,7 +5,6 @@ import { Analytics } from "@vercel/analytics/next";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import { siteConfig } from "@/lib/seo";
-import { Analytics } from "@vercel/analytics/react";
 
 const serif = Fraunces({
   subsets: ["latin"],
@@ -59,7 +58,6 @@ export default function RootLayout({
           <NavBar />
           <main className="pb-12">{children}</main>
           <Footer />
-          <Analytics />
         </div>
         <Analytics />
       </body>

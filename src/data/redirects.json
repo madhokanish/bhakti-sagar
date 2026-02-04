@@ -1,0 +1,98 @@
+[
+  {
+    "source": "/aartis/aarti-01-annapurna",
+    "destination": "/aartis/shri-annapurna-ji-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-02-ekadashi",
+    "destination": "/aartis/shri-ekadashi-mata-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-03-kali",
+    "destination": "/aartis/shri-kali-mata-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-05-krishna",
+    "destination": "/aartis/shri-krishna-ji-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-06-ganga",
+    "destination": "/aartis/shri-ganga-ji-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-07-ganesha",
+    "destination": "/aartis/ganesh-ji-ki-aarti"
+  },
+  {
+    "source": "/aartis/aarti-08-gayatri",
+    "destination": "/aartis/shri-gayatri-mata-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-09-chitragupt",
+    "destination": "/aartis/shri-chitragupt-ji-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-10-tulsi",
+    "destination": "/aartis/shri-tulsi-ji-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-11-durga",
+    "destination": "/aartis/shri-durga-ji-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-12-parvati",
+    "destination": "/aartis/shri-parvati-ji-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-13-brihaspati",
+    "destination": "/aartis/shri-brihaspati-dev-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-14-vishnu",
+    "destination": "/aartis/shri-hari-vishnu-ji-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-16-ram",
+    "destination": "/aartis/shri-ramchandra-ji-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-18-lakshmi",
+    "destination": "/aartis/shri-lakshmi-ji-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-19-lalita",
+    "destination": "/aartis/shri-lalita-mata-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-20-vaishno",
+    "destination": "/aartis/shri-vaishno-devi-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-21-shani",
+    "destination": "/aartis/shri-shani-dev-ji-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-22-shiva",
+    "destination": "/aartis/shri-shiv-ji-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-23-santoshi",
+    "destination": "/aartis/shri-santoshi-mata-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-24-vishnu",
+    "destination": "/aartis/shri-satyanarayan-ji-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-25-saraswati",
+    "destination": "/aartis/shri-saraswati-ji-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-26-sita",
+    "destination": "/aartis/shri-sita-ji-ki-aarati"
+  },
+  {
+    "source": "/aartis/aarti-27-surya",
+    "destination": "/aartis/shri-surya-dev-ki-aarati"
+  }
+]

@@ -3,9 +3,9 @@ import AartiLyricsPanel from "@/components/AartiLyricsPanel";
 import MeaningPanel from "@/components/MeaningPanel";
 import ShareButton from "@/components/ShareButton";
 import { getAartiBySlug, getAartis, getCategories } from "@/lib/data";
-import { getYouTubeEmbedUrl } from "@/lib/youtube";
+import { getYouTubeEmbedUrl, getYouTubeId } from "@/lib/youtube";
 import type { Metadata } from "next";
-import { toDescription, toTitle } from "@/lib/seo";
+import { siteConfig, toDescription, toTitle } from "@/lib/seo";
 
 export function generateStaticParams() {
   return getAartis().map((aarti) => ({ slug: aarti.slug }));
@@ -21,10 +21,28 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   const title = aarti.title.english || aarti.title.hindi;
   const description = `Read the lyrics and meaning of ${title} in English and Hindi.`;
   return {
-    title: toTitle(title),
-    description: toDescription(description),
+    title: toTitle(`${title} Lyrics (English) | Aarti Video | Meaning`),
+    description: toDescription(
+      `Read ${title} lyrics in English letters, meaning, and watch the aarti video. Easy to read and mobile friendly.`
+    ),
     alternates: {
-      canonical: `/aartis/${aarti.slug}`
+      canonical: `https://bhakti-sagar.com/aartis/${aarti.slug}`
+    },
+    openGraph: {
+      title: toTitle(`${title} Lyrics (English) | Aarti Video | Meaning`),
+      description: toDescription(
+        `Read ${title} lyrics in English letters, meaning, and watch the aarti video. Easy to read and mobile friendly.`
+      ),
+      url: `https://bhakti-sagar.com/aartis/${aarti.slug}`,
+      images: [{ url: siteConfig.ogImage }]
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: toTitle(`${title} Lyrics (English) | Aarti Video | Meaning`),
+      description: toDescription(
+        `Read ${title} lyrics in English letters, meaning, and watch the aarti video. Easy to read and mobile friendly.`
+      ),
+      images: [siteConfig.ogImage]
     }
   };
 }
@@ -38,13 +56,47 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
   const category = getCategories().find((item) => item.slug === aarti.category);
   const embedUrl = getYouTubeEmbedUrl(aarti.youtubeUrl);
   const titleDisplay = aarti.title.english || aarti.title.hindi;
-  const jsonLd = {
+  const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "CreativeWork",
     name: titleDisplay,
     description: `Lyrics and meaning for ${titleDisplay}.`,
     inLanguage: ["en", "hi"],
-    url: `/aartis/${aarti.slug}`
+    url: `https://bhakti-sagar.com/aartis/${aarti.slug}`
+  };
+  const videoId = getYouTubeId(aarti.youtubeUrl);
+  if (videoId) {
+    jsonLd.associatedMedia = {
+      "@type": "VideoObject",
+      name: `${titleDisplay} Aarti`,
+      url: aarti.youtubeUrl,
+      embedUrl: `https://www.youtube.com/embed/${videoId}`,
+      thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+    };
+  }
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: "https://bhakti-sagar.com/"
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Aartis",
+        item: "https://bhakti-sagar.com/aartis"
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: titleDisplay,
+        item: `https://bhakti-sagar.com/aartis/${aarti.slug}`
+      }
+    ]
   };
 
   return (
@@ -68,7 +120,28 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.4fr_0.6fr] lg:items-start">
         <div className="rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-card">
+          <div className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/60 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">Quick intro</p>
+            <p className="mt-2 text-sm text-sagar-ink/70">
+              Read the lyrics of {titleDisplay} in English and Hindi, and use AI Insight to understand the meaning
+              line by line.
+            </p>
+          </div>
           <AartiLyricsPanel title={aarti.title} lyrics={aarti.lyrics} />
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-4 shadow-sagar-soft">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-sagar-rose">When to do this aarti</h3>
+              <p className="mt-2 text-sm text-sagar-ink/70">
+                Often sung during daily prayer, temple visits, and festival poojas dedicated to {titleDisplay}.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-4 shadow-sagar-soft">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-sagar-rose">How to do aarti</h3>
+              <p className="mt-2 text-sm text-sagar-ink/70">
+                Light a diya, offer flowers or prasad, and sing the aarti with devotion while circling the lamp.
+              </p>
+            </div>
+          </div>
         </div>
         <aside className="space-y-4 lg:sticky lg:top-24">
           <MeaningPanel title={aarti.title.english || aarti.title.hindi} lyrics={aarti.lyrics.english.length ? aarti.lyrics.english : aarti.lyrics.hindi} />
@@ -80,8 +153,10 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
                 <div className="aspect-video overflow-hidden rounded-2xl bg-sagar-cream/70">
                   <iframe
                     src={embedUrl}
-                    title={titleDisplay}
+                    title={`${titleDisplay} Aarti Video`}
                     className="h-full w-full"
+                    loading="lazy"
+                    referrerPolicy="strict-origin-when-cross-origin"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   />
@@ -98,6 +173,10 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
     </div>
   );

@@ -29,6 +29,16 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
   }
 
   const aartis = getAartisByCategory(category.slug);
+  const itemListJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: aartis.map((aarti, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: aarti.title.english || aarti.title.hindi,
+      url: `https://bhakti-sagar.com/aartis/${aarti.slug}`
+    }))
+  };
 
   return (
     <div className="container py-12">
@@ -41,6 +51,10 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
           <AartiCard key={aarti.id} aarti={aarti} />
         ))}
       </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 export const siteConfig = {
   name: "Bhakti Sagar",
-  description: "A calm, devotional home for aartis and bhajans in English and Hindi.",
+  description:
+    "Read popular aartis and pooja content with easy Hindi-in-English lyrics, meaning, and YouTube videos. Fast, clean, and mobile friendly.",
   url: "https://bhakti-sagar.com",
   ogImage: "/brand/bhakti-sagar-logo.png"
 };

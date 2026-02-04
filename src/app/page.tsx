@@ -5,6 +5,7 @@ import AIBadge from "@/components/AIBadge";
 import { getCategories, getTopAartis } from "@/lib/data";
 import { toDescription, toTitle } from "@/lib/seo";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: toTitle("Aarti & Bhajan Collection"),
@@ -16,6 +17,55 @@ export const metadata: Metadata = {
 export default function HomePage() {
   const topAartis = getTopAartis();
   const categories = getCategories();
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Bhakti Sagar",
+    url: "https://bhakti-sagar.com",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: "https://bhakti-sagar.com/aartis?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  };
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "What is an aarti?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Aarti is a devotional hymn sung with a lamp or diya at the end of prayer to offer light and gratitude."
+        }
+      },
+      {
+        "@type": "Question",
+        name: "How do I choose an aarti?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Choose by deity or intent. Bhakti Sagar lets you browse by deity and read lyrics in English and Hindi."
+        }
+      },
+      {
+        "@type": "Question",
+        name: "What is a bhajan?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Bhajans are devotional songs of praise. Bhakti Sagar is expanding its bhajan collection alongside aartis."
+        }
+      },
+      {
+        "@type": "Question",
+        name: "What is a simple pooja flow?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Light a diya, offer flowers or prasad, chant a mantra, and sing an aarti with devotion."
+        }
+      }
+    ]
+  };
 
   return (
     <div className="container">
@@ -93,6 +143,50 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      <section className="py-8">
+        <h2 className="section-title">Common questions</h2>
+        <div className="mt-6 grid gap-6 md:grid-cols-2">
+          <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-6 shadow-sagar-soft">
+            <h3 className="text-lg font-serif text-sagar-ink">What is an aarti?</h3>
+            <p className="mt-2 text-sm text-sagar-ink/70">
+              Aarti is a devotional hymn sung with a lamp or diya at the end of prayer to offer light and gratitude.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-6 shadow-sagar-soft">
+            <h3 className="text-lg font-serif text-sagar-ink">How do I choose an aarti?</h3>
+            <p className="mt-2 text-sm text-sagar-ink/70">
+              Choose by deity or intent. Bhakti Sagar lets you browse by deity and read lyrics in English and Hindi.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-6 shadow-sagar-soft">
+            <h3 className="text-lg font-serif text-sagar-ink">What is a bhajan?</h3>
+            <p className="mt-2 text-sm text-sagar-ink/70">
+              Bhajans are devotional songs of praise. We are expanding the bhajan collection alongside aartis.
+            </p>
+            <Link href="/bhajan" className="mt-3 inline-block text-xs font-semibold uppercase tracking-wide text-sagar-saffron">
+              Learn about bhajans
+            </Link>
+          </div>
+          <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-6 shadow-sagar-soft">
+            <h3 className="text-lg font-serif text-sagar-ink">What is a simple pooja flow?</h3>
+            <p className="mt-2 text-sm text-sagar-ink/70">
+              Light a diya, offer flowers or prasad, chant a mantra, and sing an aarti with devotion.
+            </p>
+            <Link href="/pooja" className="mt-3 inline-block text-xs font-semibold uppercase tracking-wide text-sagar-saffron">
+              Read the pooja guide
+            </Link>
+          </div>
+        </div>
+      </section>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
     </div>
   );
 }

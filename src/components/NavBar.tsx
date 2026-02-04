@@ -10,12 +10,14 @@ export default function NavBar() {
           <nav className="hidden items-center gap-6 text-sm font-semibold text-sagar-ink/80 md:flex">
             <Link href="/aartis" className="hover:text-sagar-saffron">Aartis</Link>
             <Link href="/categories" className="hover:text-sagar-saffron">Categories</Link>
+            <Link href="/pooja" className="hover:text-sagar-saffron">Pooja</Link>
             <Link href="/about" className="hover:text-sagar-saffron">About</Link>
           </nav>
         </div>
         <nav className="flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.2em] text-sagar-ink/70 md:hidden">
           <Link href="/aartis" className="hover:text-sagar-saffron">Aartis</Link>
           <Link href="/categories" className="hover:text-sagar-saffron">Categories</Link>
+          <Link href="/pooja" className="hover:text-sagar-saffron">Pooja</Link>
           <Link href="/about" className="hover:text-sagar-saffron">About</Link>
         </nav>
         <form action="/aartis" className="flex w-full max-w-md items-center gap-2 rounded-full border border-sagar-amber/30 bg-white px-4 py-2 shadow-sagar-soft md:w-auto">

@@ -36,8 +36,21 @@ export default function LineExplain({ title, line, canUse, onUse }: LineExplainP
       });
 
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data?.error || "Unable to load explanation.");
+        let message = "Unable to load explanation.";
+        try {
+          const data = await response.json();
+          if (data?.error) {
+            message = String(data.error);
+          }
+        } catch {
+          try {
+            const text = await response.text();
+            if (text) message = text;
+          } catch {
+            // ignore
+          }
+        }
+        throw new Error(message);
       }
 
       const data = (await response.json()) as { answer: string };

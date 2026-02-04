@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import MeaningPanel from "@/components/MeaningPanel";
+import LineExplain from "@/components/LineExplain";
 
 type LyricsSet = {
   english: string[];
@@ -23,6 +23,7 @@ export default function AartiLyricsPanel({
   lyrics: LyricsSet;
 }) {
   const [language, setLanguage] = useState<Language>("english");
+  const [explainCount, setExplainCount] = useState(0);
 
   const englishAvailable = lyrics.english.length > 0;
   const hindiAvailable = lyrics.hindi.length > 0;
@@ -78,9 +79,17 @@ export default function AartiLyricsPanel({
         </div>
       )}
 
-      <div className="space-y-3 text-lg leading-relaxed text-sagar-ink/80">
+      <div className="space-y-4 text-lg leading-relaxed text-sagar-ink/80">
         {activeLyrics.map((line, index) => (
-          <p key={`${line}-${index}`}>{line}</p>
+          <div key={`${line}-${index}`}>
+            <p>{line}</p>
+            <LineExplain
+              title={title.english || title.hindi}
+              line={line}
+              canUse={explainCount < 3}
+              onUse={() => setExplainCount((prev) => prev + 1)}
+            />
+          </div>
         ))}
       </div>
     </div>

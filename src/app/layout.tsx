@@ -1,7 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Fraunces, Source_Sans_3 } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import { siteConfig } from "@/lib/seo";

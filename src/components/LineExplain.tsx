@@ -65,7 +65,7 @@ export default function LineExplain({ title, line, canUse, onUse }: LineExplainP
   }
 
   return (
-    <div className="mt-2">
+    <div className="relative">
       <button
         onClick={explainLine}
         className="rounded-full border border-sagar-amber/40 px-3 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/60 hover:text-sagar-ink hover:shadow-[0_0_12px_rgba(229,106,32,0.35)]"
@@ -74,18 +74,20 @@ export default function LineExplain({ title, line, canUse, onUse }: LineExplainP
         Explain this line
       </button>
 
-      <div className="mt-2">
-        {loading && (
-          <div className="space-y-2">
-            <div className="h-2 w-32 animate-pulse rounded-full bg-sagar-amber/20" />
-            <div className="h-2 w-full animate-pulse rounded-full bg-sagar-amber/20" />
-          </div>
-        )}
-        {!loading && error && <p className="text-xs text-sagar-rose">{error}</p>}
-        {!loading && !error && answer && (
-          <p className="text-xs leading-relaxed text-sagar-ink/70">{answer}</p>
-        )}
-      </div>
+      {(loading || error || answer) && (
+        <div className="absolute right-0 top-8 z-10 w-64 rounded-xl border border-sagar-amber/30 bg-white p-3 text-xs shadow-sagar-soft">
+          {loading && (
+            <div className="space-y-2">
+              <div className="h-2 w-32 animate-pulse rounded-full bg-sagar-amber/20" />
+              <div className="h-2 w-full animate-pulse rounded-full bg-sagar-amber/20" />
+            </div>
+          )}
+          {!loading && error && <p className="text-sagar-rose">{error}</p>}
+          {!loading && !error && answer && (
+            <p className="leading-relaxed text-sagar-ink/70">{answer}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

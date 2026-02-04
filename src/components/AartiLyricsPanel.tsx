@@ -81,7 +81,7 @@ export default function AartiLyricsPanel({
 
       <div className="space-y-4 text-lg leading-relaxed text-sagar-ink/80">
         {activeLyrics.map((line, index) => (
-          <div key={`${line}-${index}`}>
+          <div key={`${line}-${index}`} className="grid grid-cols-[1fr_auto] items-start gap-3">
             <p>{line}</p>
             <LineExplain
               title={title.english || title.hindi}

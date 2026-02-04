@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --bg-start: #fff0d6;
+  --bg-mid: #ffe1b5;
+  --bg-end: #fff7ee;
+}
+
+body {
+  @apply bg-sagar-sand text-sagar-ink font-sans;
+  background:
+    radial-gradient(circle at top, rgba(246, 200, 95, 0.4), transparent 55%),
+    radial-gradient(circle at 20% 20%, rgba(212, 75, 42, 0.25), transparent 50%),
+    linear-gradient(160deg, var(--bg-start), var(--bg-mid) 45%, var(--bg-end) 100%);
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(229, 122, 31, 0.3);
+}
+
+h1, h2, h3, h4 {
+  @apply font-serif text-sagar-ink;
+}
+
+.container {
+  @apply mx-auto w-full max-w-6xl px-6;
+}
+
+.section-title {
+  @apply text-2xl md:text-3xl font-serif tracking-tight;
+}

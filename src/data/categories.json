@@ -1,0 +1,74 @@
+[
+  {
+    "id": "cat-ganesha",
+    "name": "Ganesha",
+    "slug": "ganesha",
+    "description": "Aartis devoted to Vighnaharta for auspicious beginnings.",
+    "imageUrl": "/category/ganesha.jpg",
+    "imageCredit": "User provided (AI-generated)"
+  },
+  {
+    "id": "cat-vishnu",
+    "name": "Vishnu",
+    "slug": "vishnu",
+    "description": "Aartis honoring Shri Vishnu and his avatars.",
+    "imageUrl": "/category/vishnu.jpg",
+    "imageCredit": "User provided (AI-generated)"
+  },
+  {
+    "id": "cat-shiva",
+    "name": "Shiva",
+    "slug": "shiva",
+    "description": "Hymns for Mahadev and the cosmic dance.",
+    "imageUrl": "/category/shiva.jpg",
+    "imageCredit": "User provided (AI-generated)"
+  },
+  {
+    "id": "cat-shakti",
+    "name": "Durga / Shakti",
+    "slug": "shakti",
+    "description": "Prayers to the Divine Mother in her many forms.",
+    "imageUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Unknown%20(Indian)%20-%20Legend%20of%20Durga%20-%2073.296.48B%20-%20Detroit%20Institute%20of%20Arts.jpg",
+    "imageCredit": "Wikimedia Commons – Legend of Durga (public domain)"
+  },
+  {
+    "id": "cat-krishna",
+    "name": "Krishna",
+    "slug": "krishna",
+    "description": "Bhajans celebrating Shri Krishna and his leelas.",
+    "imageUrl": "/category/krishna.jpg",
+    "imageCredit": "User provided (AI-generated)"
+  },
+  {
+    "id": "cat-hanuman",
+    "name": "Hanuman",
+    "slug": "hanuman",
+    "description": "Aartis for devotion, strength, and protection.",
+    "imageUrl": "/category/hanuman.jpg",
+    "imageCredit": "User provided (AI-generated)"
+  },
+  {
+    "id": "cat-lakshmi",
+    "name": "Lakshmi",
+    "slug": "lakshmi",
+    "description": "Prayers for grace, prosperity, and abundance.",
+    "imageUrl": "/category/lakshmi.jpg",
+    "imageCredit": "User provided (AI-generated)"
+  },
+  {
+    "id": "cat-saraswati",
+    "name": "Saraswati",
+    "slug": "saraswati",
+    "description": "Hymns for wisdom, learning, and the arts.",
+    "imageUrl": "/category/saraswati.jpg",
+    "imageCredit": "User provided (AI-generated)"
+  },
+  {
+    "id": "cat-other",
+    "name": "Others",
+    "slug": "other",
+    "description": "Aartis for other deities and sacred energies.",
+    "imageUrl": "/category/other.webp",
+    "imageCredit": "User provided (AI-generated)"
+  }
+]

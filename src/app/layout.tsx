@@ -4,6 +4,7 @@ import { Fraunces, Source_Sans_3 } from "next/font/google";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import { siteConfig } from "@/lib/seo";
+import { Analytics } from "@vercel/analytics/react";
 
 const serif = Fraunces({
   subsets: ["latin"],
@@ -57,6 +58,7 @@ export default function RootLayout({
           <NavBar />
           <main className="pb-12">{children}</main>
           <Footer />
+          <Analytics />
         </div>
       </body>
     </html>

@@ -46,12 +46,26 @@ export default function RootLayout({
           />
           <Analytics />
         </div>
+        <Script
+          id="Cookiebot"
+          src="https://consent.cookiebot.com/uc.js"
+          data-cbid="0ce4deed-b126-425c-81fe-4bdbc49013fd"
+          data-blockingmode="auto"
+          type="text/javascript"
+          strategy="beforeInteractive"
+        />
         <Script src="https://www.googletagmanager.com/gtag/js?id=G-9H0MCC74YW" strategy="afterInteractive" />
         <Script id="ga4-init" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
+            gtag('consent', 'default', {
+              ad_storage: 'denied',
+              analytics_storage: 'denied',
+              ad_user_data: 'denied',
+              ad_personalization: 'denied'
+            });
             gtag('config', 'G-9H0MCC74YW');
           `}
         </Script>

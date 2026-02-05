@@ -154,7 +154,7 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
         Sing along with the lyrics and open the meaning panel for a gentle explanation.
       </p>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1.4fr_0.6fr] lg:items-start">
+      <div className="mt-8 grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
         <div className="rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-card">
           <AartiLyricsPanel title={aarti.title} lyrics={aarti.lyrics} />
           <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -183,9 +183,7 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
             </div>
           </div>
         </div>
-        <aside className="space-y-4 lg:sticky lg:top-24">
-          <AskAIPanel title={titleDisplay} lyrics={aarti.lyrics.english.length ? aarti.lyrics.english : aarti.lyrics.hindi} />
-          <MeaningPanel title={titleDisplay} lyrics={aarti.lyrics.english.length ? aarti.lyrics.english : aarti.lyrics.hindi} />
+        <aside className="space-y-4 lg:sticky lg:top-20">
           <div className="rounded-3xl border border-sagar-amber/20 bg-white/80 p-4 shadow-sagar-soft">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">Video</p>
             <h2 className="mt-2 text-lg font-serif text-sagar-ink">Listen & sing along</h2>
@@ -209,6 +207,8 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
               )}
             </div>
           </div>
+          <AskAIPanel title={titleDisplay} lyrics={aarti.lyrics.english.length ? aarti.lyrics.english : aarti.lyrics.hindi} />
+          <MeaningPanel title={titleDisplay} lyrics={aarti.lyrics.english.length ? aarti.lyrics.english : aarti.lyrics.hindi} />
         </aside>
       </div>
       <script

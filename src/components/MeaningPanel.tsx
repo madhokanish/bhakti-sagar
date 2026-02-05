@@ -1,28 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import AIBadge from "@/components/AIBadge";
 
-type MeaningResponse =
-  | { summary: string }
-  | { meanings: string[] };
-
-type Mode = "summary" | "line";
+type MeaningResponse = { summary: string };
 
 export default function MeaningPanel({ title, lyrics }: { title: string; lyrics: string[] }) {
-  const [mode, setMode] = useState<Mode>("summary");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
-  const [meanings, setMeanings] = useState<string[] | null>(null);
 
-  const activeContent = useMemo(() => {
-    if (mode === "summary") return summary;
-    return meanings;
-  }, [mode, summary, meanings]);
-
-  async function fetchMeaning(nextMode: Mode) {
-    setMode(nextMode);
+  async function fetchMeaning() {
     setError(null);
     setLoading(true);
     try {
@@ -32,7 +20,7 @@ export default function MeaningPanel({ title, lyrics }: { title: string; lyrics:
         body: JSON.stringify({
           title,
           lyrics,
-          mode: nextMode
+          mode: "summary"
         })
       });
 
@@ -50,12 +38,7 @@ export default function MeaningPanel({ title, lyrics }: { title: string; lyrics:
       }
 
       const data = (await response.json()) as MeaningResponse;
-      if (nextMode === "summary" && "summary" in data) {
-        setSummary(data.summary);
-      }
-      if (nextMode === "line" && "meanings" in data) {
-        setMeanings(data.meanings);
-      }
+      if ("summary" in data) setSummary(data.summary);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load meaning.");
     } finally {
@@ -79,25 +62,7 @@ export default function MeaningPanel({ title, lyrics }: { title: string; lyrics:
             </span>
             AI Insight
           </span>
-          <h3 className="text-xl font-serif text-sagar-ink">Understand the prayer in easy words</h3>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => fetchMeaning("summary")}
-            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
-              mode === "summary" ? "bg-sagar-saffron text-white" : "border border-sagar-saffron/40 text-sagar-saffron"
-            }`}
-          >
-            Summary
-          </button>
-          <button
-            onClick={() => fetchMeaning("line")}
-            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
-              mode === "line" ? "bg-sagar-saffron text-white" : "border border-sagar-saffron/40 text-sagar-saffron"
-            }`}
-          >
-            Line-by-line
-          </button>
+          <h3 className="text-xl font-serif text-sagar-ink">Understand the aarti</h3>
         </div>
       </div>
 
@@ -110,24 +75,19 @@ export default function MeaningPanel({ title, lyrics }: { title: string; lyrics:
           </div>
         )}
         {!loading && error && <p className="text-sm text-sagar-rose">{error}</p>}
-        {!loading && !error && !activeContent && (
-          <p className="text-sm text-sagar-ink/60">Choose an option to read the meaning.</p>
-        )}
-        {!loading && !error && mode === "summary" && typeof activeContent === "string" && (
-          <p className="text-sm leading-relaxed text-sagar-ink/80">{activeContent}</p>
-        )}
-        {!loading && !error && mode === "line" && Array.isArray(activeContent) && (
-          <div className="space-y-3">
-            {lyrics.map((line, index) => (
-              <div key={`${line}-${index}`} className="rounded-xl bg-white/70 p-3">
-                <p className="text-xs uppercase tracking-[0.2em] text-sagar-rose">Line {index + 1}</p>
-                <p className="mt-2 text-sm font-semibold text-sagar-ink">{line}</p>
-                <p className="mt-2 text-sm text-sagar-ink/70">
-                  {activeContent[index] || "Meaning will appear here."}
-                </p>
-              </div>
-            ))}
+        {!loading && !error && !summary && (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-sagar-ink/60">Get a short, simple meaning of the aarti.</p>
+            <button
+              onClick={fetchMeaning}
+              className="w-fit rounded-full bg-sagar-saffron px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white"
+            >
+              Explain in simple words
+            </button>
           </div>
+        )}
+        {!loading && !error && summary && (
+          <p className="text-sm leading-relaxed text-sagar-ink/80">{summary}</p>
         )}
       </div>
     </section>

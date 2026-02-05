@@ -6,6 +6,7 @@ import PrintButton from "@/components/PrintButton";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import MobileContentsDrawer from "@/components/MobileContentsDrawer";
 import AartiUtilityBar from "@/components/AartiUtilityBar";
+import CompactShareButton from "@/components/CompactShareButton";
 import { getAartiBySlug, getAartis, getAartisByCategory, getCategories } from "@/lib/data";
 import { festivals } from "@/lib/content";
 import { getYouTubeEmbedUrl, getYouTubeId } from "@/lib/youtube";
@@ -132,16 +133,21 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
         </div>
       </div>
 
-      <h1 className="mt-3 text-3xl font-serif text-sagar-ink sm:text-4xl md:text-5xl">{titleDisplay}</h1>
+      <div className="mt-3 flex items-start justify-between gap-4">
+        <h1 className="text-3xl font-serif text-sagar-ink sm:text-4xl md:text-5xl">{titleDisplay}</h1>
+        <div className="mt-1 lg:hidden">
+          <CompactShareButton title={titleDisplay} />
+        </div>
+      </div>
       {subtitle && (
-        <p className="mt-2 text-lg text-sagar-ink/70">{subtitle}</p>
+        <p className="mt-1 text-base text-sagar-ink/70">{subtitle}</p>
       )}
       <div className="mt-2 text-xs text-sagar-ink/60">
         <span>{category?.name ?? "Aarti"}</span>
         <span className="mx-2">•</span>
         <span>{lang === "hi" ? "Hindi" : "English"}</span>
       </div>
-      <div className="mt-4 lg:hidden">
+      <div className="mt-3 lg:hidden">
         <AartiUtilityBar title={titleDisplay} />
       </div>
 
@@ -275,45 +281,6 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
           <div className="mt-4 text-xs text-sagar-ink/60">
             <p>Last updated: Feb 5, 2026</p>
             <p>Reviewed by: {author?.name ?? "Bhakti Sagar"}</p>
-          </div>
-        </details>
-      </div>
-      <div className="mt-6 space-y-4 lg:hidden">
-        <details id="meaning" className="rounded-2xl border border-sagar-amber/20 bg-white/80 p-4">
-          <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">Video</summary>
-          <div className="mt-4">
-            {embedUrl ? (
-              <div className="aspect-video overflow-hidden rounded-2xl bg-sagar-cream/70">
-                <iframe
-                  src={embedUrl}
-                  title={`${titleDisplay} Aarti Video`}
-                  className="h-full w-full"
-                  loading="lazy"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            ) : (
-              <div className="flex aspect-video items-center justify-center rounded-2xl border border-dashed border-sagar-amber/40 bg-sagar-cream/60">
-                <p className="text-sm text-sagar-ink/60">Add a YouTube URL to show the video.</p>
-              </div>
-            )}
-          </div>
-        </details>
-        <details className="rounded-2xl border border-sagar-amber/20 bg-white/80 p-4">
-          <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">AI Summary</summary>
-          <div className="mt-4">
-            <MeaningPanel
-              title={titleDisplay}
-              lyrics={
-                lang === "hi" && aarti.lyrics.hindi.length
-                  ? aarti.lyrics.hindi
-                  : aarti.lyrics.english.length
-                  ? aarti.lyrics.english
-                  : aarti.lyrics.hindi
-              }
-            />
           </div>
         </details>
       </div>

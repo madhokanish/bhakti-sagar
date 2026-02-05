@@ -62,32 +62,32 @@ export default function AartiUtilityBar({ title }: { title: string }) {
   const textLabel = useMemo(() => (textSize === "large" ? "Aa−" : "Aa+"), [textSize]);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-sagar-ink/60">
+    <div className="flex flex-wrap items-center gap-2 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-sagar-ink/60">
       <button
         type="button"
         onClick={handleShare}
-        className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 hover:text-sagar-ink"
+        className="rounded-full border border-sagar-amber/30 bg-white px-3 py-1.5 hover:text-sagar-ink"
       >
         {copied ? "Copied" : "Share"}
       </button>
       <button
         type="button"
         onClick={handleCopy}
-        className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 hover:text-sagar-ink"
+        className="rounded-full border border-sagar-amber/30 bg-white px-3 py-1.5 hover:text-sagar-ink"
       >
         Copy
       </button>
       <button
         type="button"
         onClick={handleBookmark}
-        className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 hover:text-sagar-ink"
+        className="rounded-full border border-sagar-amber/30 bg-white px-3 py-1.5 hover:text-sagar-ink"
       >
         {saved ? "Saved" : "Save"}
       </button>
       <button
         type="button"
         onClick={() => setTextSize(textSize === "large" ? "base" : "large")}
-        className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 hover:text-sagar-ink"
+        className="rounded-full border border-sagar-amber/30 bg-white px-3 py-1.5 hover:text-sagar-ink"
       >
         {textLabel}
       </button>

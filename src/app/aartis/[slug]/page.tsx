@@ -5,6 +5,7 @@ import ShareButton from "@/components/ShareButton";
 import PrintButton from "@/components/PrintButton";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import MobileContentsDrawer from "@/components/MobileContentsDrawer";
+import AartiUtilityBar from "@/components/AartiUtilityBar";
 import { getAartiBySlug, getAartis, getAartisByCategory, getCategories } from "@/lib/data";
 import { festivals } from "@/lib/content";
 import { getYouTubeEmbedUrl, getYouTubeId } from "@/lib/youtube";
@@ -119,7 +120,7 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
 
   return (
     <div className="container py-12">
-      <div className="flex flex-wrap items-center justify-between gap-4 text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">
         <div className="flex flex-wrap items-center gap-3">
           <span>{category?.name ?? "Aarti"}</span>
           <span className="h-1 w-1 rounded-full bg-sagar-rose" />
@@ -131,15 +132,20 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
         </div>
       </div>
 
-      <h1 className="mt-4 text-4xl font-serif text-sagar-ink md:text-5xl">{titleDisplay}</h1>
+      <h1 className="mt-3 text-3xl font-serif text-sagar-ink sm:text-4xl md:text-5xl">{titleDisplay}</h1>
       {subtitle && (
         <p className="mt-2 text-lg text-sagar-ink/70">{subtitle}</p>
       )}
-      <p className="mt-2 hidden max-w-2xl text-sm text-sagar-ink/70 sm:block">
-        Sing along with the lyrics and open the meaning panel for a gentle explanation.
-      </p>
+      <div className="mt-2 text-xs text-sagar-ink/60">
+        <span>{category?.name ?? "Aarti"}</span>
+        <span className="mx-2">•</span>
+        <span>{lang === "hi" ? "Hindi" : "English"}</span>
+      </div>
+      <div className="mt-4 lg:hidden">
+        <AartiUtilityBar title={titleDisplay} />
+      </div>
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
+      <div className="mt-5 grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
         <div className="rounded-3xl border border-sagar-amber/20 bg-white p-6 shadow-none lg:shadow-sagar-card">
           <div className="hidden rounded-2xl border border-sagar-amber/20 bg-sagar-cream/50 p-4 lg:block">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">On this page</p>

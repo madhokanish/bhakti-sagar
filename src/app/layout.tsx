@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import { buildMetadata, getRequestLanguage, siteConfig } from "@/lib/seo";
 import { Analytics } from "@vercel/analytics/react";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/schema";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -45,6 +46,15 @@ export default function RootLayout({
           />
           <Analytics />
         </div>
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-9H0MCC74YW" strategy="afterInteractive" />
+        <Script id="ga4-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-9H0MCC74YW');
+          `}
+        </Script>
       </body>
     </html>
   );

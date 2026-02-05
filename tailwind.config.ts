@@ -20,8 +20,8 @@ const config: Config = {
         "sagar-crimson": "#8E1E1A"
       },
       fontFamily: {
-        serif: ["var(--font-serif)", "serif"],
-        sans: ["var(--font-sans)", "sans-serif"]
+        serif: ["ui-serif", "Georgia", "Times New Roman", "serif"],
+        sans: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "sans-serif"]
       },
       boxShadow: {
         "sagar-card": "0 24px 48px -24px rgba(44, 26, 18, 0.45)",

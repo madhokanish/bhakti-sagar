@@ -7,6 +7,7 @@ import { buildMetadata, getRequestLanguage } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import DailyAIInsight from "@/components/DailyAIInsight";
+import MobileQuickNav from "@/components/MobileQuickNav";
 
 export const metadata: Metadata = {
   ...buildMetadata({
@@ -66,8 +67,48 @@ export default function HomePage() {
 
   return (
     <div className="container">
-      <section className="grid gap-8 py-10 md:grid-cols-[1.1fr_0.9fr] md:items-center md:py-16">
-        <div>
+      <section className="grid gap-8 py-6 md:grid-cols-[1.1fr_0.9fr] md:items-center md:py-16">
+        <div className="md:hidden">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sagar-rose">Bhakti Sagar</p>
+          <h1 className="mt-2 text-3xl font-serif text-sagar-ink">
+            Aartis, bhajans, and daily devotion.
+          </h1>
+          <p className="mt-2 text-sm text-sagar-ink/70">
+            Start with a top aarti.
+          </p>
+        </div>
+
+        <div className="md:hidden">
+          <div className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">Top Aartis</p>
+            <div className="mt-4 space-y-3">
+              {topAartis.slice(0, 3).map((aarti) => {
+                const title =
+                  lang === "hi"
+                    ? aarti.title.hindi || aarti.title.english
+                    : aarti.title.english || aarti.title.hindi;
+                return (
+                  <a
+                    key={aarti.id}
+                    href={`/aartis/${aarti.slug}`}
+                    className="flex items-center justify-between rounded-2xl border border-sagar-amber/10 bg-sagar-cream/70 px-4 py-3 text-sm text-sagar-ink/80"
+                  >
+                    <span>{title}</span>
+                    <span className="text-[0.6rem] uppercase tracking-[0.2em] text-sagar-rose">Open</span>
+                  </a>
+                );
+              })}
+              <a
+                href="/aartis"
+                className="block rounded-2xl border border-sagar-saffron/30 px-4 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-sagar-saffron"
+              >
+                View all aartis
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div className="hidden md:block">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sagar-rose">Bhakti Sagar</p>
           <h1 className="mt-4 text-4xl font-serif text-sagar-ink md:text-5xl">
             A calm home for aarti, bhajan, and daily devotion.
@@ -94,7 +135,8 @@ export default function HomePage() {
             </a>
           </div>
         </div>
-        <div className="rounded-3xl border border-sagar-amber/20 bg-white p-6 shadow-none lg:shadow-sagar-card">
+
+        <div className="hidden md:block rounded-3xl border border-sagar-amber/20 bg-white p-6 shadow-none lg:shadow-sagar-card">
           <div className="flex flex-col gap-4">
             <div className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/60 p-3">
               <div className="relative aspect-video overflow-hidden rounded-xl bg-white">
@@ -119,15 +161,15 @@ export default function HomePage() {
                       ? aarti.title.hindi || aarti.title.english
                       : aarti.title.english || aarti.title.hindi;
                   return (
-                  <a
-                    key={aarti.id}
-                    href={`/aartis/${aarti.slug}`}
-                    className="flex items-center justify-between rounded-2xl border border-sagar-amber/10 bg-sagar-cream/70 px-4 py-3 hover:border-sagar-saffron/50"
-                  >
-                    <span>{title}</span>
-                    <span className="text-xs uppercase tracking-[0.2em] text-sagar-rose">View</span>
-                  </a>
-                );
+                    <a
+                      key={aarti.id}
+                      href={`/aartis/${aarti.slug}`}
+                      className="flex items-center justify-between rounded-2xl border border-sagar-amber/10 bg-sagar-cream/70 px-4 py-3 hover:border-sagar-saffron/50"
+                    >
+                      <span>{title}</span>
+                      <span className="text-xs uppercase tracking-[0.2em] text-sagar-rose">View</span>
+                    </a>
+                  );
                 })}
               </div>
             </div>
@@ -213,6 +255,16 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+
+      <details className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white p-6 md:hidden">
+        <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">About Bhakti Sagar</summary>
+        <div className="mt-3 text-sm text-sagar-ink/70">
+          Bhakti Sagar is a calm space for aartis, bhajans, and daily devotion. Read lyrics in English and Hindi and
+          use AI Insight for simple meanings.
+        </div>
+      </details>
+
+      <MobileQuickNav />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}

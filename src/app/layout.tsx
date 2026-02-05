@@ -54,18 +54,16 @@ export default function RootLayout({
           type="text/javascript"
           strategy="beforeInteractive"
         />
-        <Script src="https://www.googletagmanager.com/gtag/js?id=G-9H0MCC74YW" strategy="afterInteractive" />
-        <Script id="ga4-init" strategy="afterInteractive">
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-9H0MCC74YW"
+          strategy="afterInteractive"
+          data-cookieconsent="statistics"
+        />
+        <Script id="ga4-init" strategy="afterInteractive" data-cookieconsent="statistics">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('consent', 'default', {
-              ad_storage: 'denied',
-              analytics_storage: 'denied',
-              ad_user_data: 'denied',
-              ad_personalization: 'denied'
-            });
             gtag('config', 'G-9H0MCC74YW');
           `}
         </Script>

@@ -25,7 +25,7 @@ export default function LineExplain({ title, line, canUse, onUse }: LineExplainP
     setError(null);
     setAnswer(null);
     try {
-      const response = await fetch("/api/ask", {
+      const response = await fetch("/api/ai-ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

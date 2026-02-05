@@ -79,6 +79,19 @@ export default function HomePage() {
         </div>
 
         <div className="md:hidden">
+          <div className="mb-4 rounded-2xl border border-sagar-amber/20 bg-sagar-cream/60 p-3">
+            <div className="relative aspect-video overflow-hidden rounded-xl bg-white">
+              <Image
+                src="/brand/bhakti-sagar-logo.png"
+                alt="Bhakti Sagar banner"
+                fill
+                className="object-cover"
+                style={{ objectPosition: "50% 50%" }}
+                sizes="100vw"
+                priority
+              />
+            </div>
+          </div>
           <div className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">Top Aartis</p>
             <div className="mt-4 space-y-3">

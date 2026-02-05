@@ -60,13 +60,23 @@ export default function LineMeaning({ title, line }: { title: string; line: stri
 
   return (
     <div className="border-b border-sagar-amber/10 pb-4 last:border-b-0">
-      <button
-        type="button"
-        onClick={handleToggle}
-        className="w-full text-left text-sagar-ink/90"
-      >
-        {line}
-      </button>
+      <div className="flex items-start gap-2">
+        <button
+          type="button"
+          onClick={handleToggle}
+          className="flex-1 text-left text-sagar-ink/90"
+        >
+          {line}
+        </button>
+        <button
+          type="button"
+          onClick={handleToggle}
+          aria-label="Explain this line"
+          className="mt-1 flex h-6 w-6 items-center justify-center rounded-full border border-sagar-amber/30 text-[0.6rem] text-sagar-ink/60"
+        >
+          ?
+        </button>
+      </div>
       {expanded && (
         <div className="mt-2 text-sm text-sagar-saffron">
           {loading && <span className="text-sagar-ink/60">Loading meaning…</span>}

@@ -23,7 +23,6 @@ export default function AartiLyricsPanel({
   lyrics: LyricsSet;
 }) {
   const [language, setLanguage] = useState<Language>("english");
-  const [explainCount, setExplainCount] = useState(0);
 
   const englishAvailable = lyrics.english.length > 0;
   const hindiAvailable = lyrics.hindi.length > 0;
@@ -86,8 +85,8 @@ export default function AartiLyricsPanel({
             <LineExplain
               title={title.english || title.hindi}
               line={line}
-              canUse={explainCount < 3}
-              onUse={() => setExplainCount((prev) => prev + 1)}
+              canUse
+              onUse={() => {}}
             />
           </div>
         ))}

@@ -19,8 +19,20 @@ export default function LineExplain({ title, line, canUse, onUse }: LineExplainP
   const shortAnswer = useMemo(() => {
     if (!answer) return null;
     const cleaned = answer.replace(/\s+/g, " ").trim();
-    const stopIndex = cleaned.search(/[.!?]/);
-    let lineText = stopIndex > 0 ? cleaned.slice(0, stopIndex + 1) : cleaned;
+    let lineText = cleaned;
+    const patterns = [
+      /^the line\s+["“][^"”]+["”]\s*(means|expresses|suggests|describes|shows|highlights|signifies)\s*/i,
+      /^this line\s*(means|expresses|suggests|describes|shows|highlights|signifies)\s*/i,
+      /^["“][^"”]+["”]\s*(means|expresses|suggests|describes|shows|highlights|signifies)\s*/i
+    ];
+    for (const pattern of patterns) {
+      if (pattern.test(lineText)) {
+        lineText = lineText.replace(pattern, "");
+        break;
+      }
+    }
+    const stopIndex = lineText.search(/[.!?]/);
+    if (stopIndex > 0) lineText = lineText.slice(0, stopIndex + 1);
     if (lineText.length > 160) lineText = `${lineText.slice(0, 160).trim()}…`;
     return lineText;
   }, [answer]);
@@ -101,7 +113,7 @@ export default function LineExplain({ title, line, canUse, onUse }: LineExplainP
           )}
           {!loading && error && <p className="mt-2 text-sagar-rose">{error}</p>}
           {!loading && !error && shortAnswer && (
-            <p className="mt-2 text-sagar-ink/60 italic">{shortAnswer}</p>
+            <p className="mt-2 text-sagar-saffron italic">{shortAnswer}</p>
           )}
         </div>
       )}

@@ -169,6 +169,30 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
               initialLanguage={lang === "hi" ? "hindi" : "english"}
             />
           </div>
+          <div className="mt-6 lg:hidden">
+            <details className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
+              <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">Video</summary>
+              <div className="mt-4">
+                {embedUrl ? (
+                  <div className="aspect-video overflow-hidden rounded-2xl bg-sagar-cream/70">
+                    <iframe
+                      src={embedUrl}
+                      title={`${titleDisplay} Aarti Video`}
+                      className="h-full w-full"
+                      loading="lazy"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                ) : (
+                  <div className="flex aspect-video items-center justify-center rounded-2xl border border-dashed border-sagar-amber/40 bg-sagar-cream/60">
+                    <p className="text-sm text-sagar-ink/60">Add a YouTube URL to show the video.</p>
+                  </div>
+                )}
+              </div>
+            </details>
+          </div>
           <div id="how-to" className="mt-8 grid gap-4 md:grid-cols-2 scroll-mt-24">
             <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-4 shadow-sagar-soft">
               <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-sagar-rose">When to do this aarti</h3>
@@ -234,28 +258,6 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
         </aside>
       </div>
       <div className="mt-6 space-y-4 lg:hidden">
-        <details className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
-          <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">Video</summary>
-          <div className="mt-4">
-            {embedUrl ? (
-              <div className="aspect-video overflow-hidden rounded-2xl bg-sagar-cream/70">
-                <iframe
-                  src={embedUrl}
-                  title={`${titleDisplay} Aarti Video`}
-                  className="h-full w-full"
-                  loading="lazy"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            ) : (
-              <div className="flex aspect-video items-center justify-center rounded-2xl border border-dashed border-sagar-amber/40 bg-sagar-cream/60">
-                <p className="text-sm text-sagar-ink/60">Add a YouTube URL to show the video.</p>
-              </div>
-            )}
-          </div>
-        </details>
         <details id="meaning" className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
           <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">AI Summary</summary>
           <div className="mt-4">

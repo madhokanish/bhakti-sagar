@@ -28,7 +28,7 @@ export default function CompactShareButton({ title }: { title: string }) {
     >
       <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
         <path
-          d="M18 8a3 3 0 0 0-2.62 1.54l-6.15-3.08a3 3 0 1 0 0 2.08l6.15 3.08A3 3 0 1 0 18 8zm0 10a1 1 0 1 1 0-2 1 1 0 0 1 0 2zM6 13a1 1 0 1 1 0-2 1 1 0 0 1 0 2zM18 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"
+          d="M18 16a2 2 0 1 0-1.91-2.59l-7.2-3.6a2 2 0 1 0 0 1.18l7.2 3.6A2 2 0 0 0 18 16zM6 12a2 2 0 1 1 1.91-2.59l7.2-3.6A2 2 0 1 1 16 4a2 2 0 0 1 .09.59l-7.2 3.6A2 2 0 0 1 6 12z"
           fill="currentColor"
         />
       </svg>

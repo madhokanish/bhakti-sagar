@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { toDescription, toTitle } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
 import { chalisas } from "@/lib/content";
+import { breadcrumbJsonLd } from "@/lib/schema";
 
 export function generateStaticParams() {
   return chalisas.map((chalisa) => ({ slug: chalisa.slug }));
@@ -10,13 +11,17 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const chalisa = chalisas.find((item) => item.slug === params.slug);
   if (!chalisa) {
-    return { title: toTitle("Chalisa") };
+    return buildMetadata({
+      title: "Chalisa",
+      description: "Chalisa prayers for daily devotion.",
+      pathname: `/chalisa/${params.slug}`
+    });
   }
-  return {
-    title: toTitle(chalisa.name),
-    description: toDescription(chalisa.description),
-    alternates: { canonical: `https://bhakti-sagar.com/chalisa/${chalisa.slug}` }
-  };
+  return buildMetadata({
+    title: `${chalisa.name} Lyrics | Meaning`,
+    description: chalisa.description,
+    pathname: `/chalisa/${chalisa.slug}`
+  });
 }
 
 export default function ChalisaPage({ params }: { params: { slug: string } }) {
@@ -35,6 +40,14 @@ export default function ChalisaPage({ params }: { params: { slug: string } }) {
           This page will include the full chalisa text and meaning. We will expand it soon.
         </p>
       </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd([
+          { name: "Home", url: "https://bhakti-sagar.com/" },
+          { name: "Chalisa", url: "https://bhakti-sagar.com/chalisa" },
+          { name: chalisa.name, url: `https://bhakti-sagar.com/chalisa/${chalisa.slug}` }
+        ])) }}
+      />
     </div>
   );
 }

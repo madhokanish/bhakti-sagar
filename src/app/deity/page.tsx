@@ -1,11 +1,15 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { toDescription, toTitle } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
 import { deityHubs } from "@/lib/content";
+import { breadcrumbJsonLd } from "@/lib/schema";
 
 export const metadata: Metadata = {
-  title: toTitle("Deities"),
-  description: toDescription("Browse aartis by deity in English and Hindi.")
+  ...buildMetadata({
+    title: "Deities",
+    description: "Browse aartis by deity in English and Hindi.",
+    pathname: "/deity"
+  })
 };
 
 export default function DeityIndexPage() {
@@ -29,6 +33,13 @@ export default function DeityIndexPage() {
           </Link>
         ))}
       </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd([
+          { name: "Home", url: "https://bhakti-sagar.com/" },
+          { name: "Deity", url: "https://bhakti-sagar.com/deity" }
+        ])) }}
+      />
     </div>
   );
 }

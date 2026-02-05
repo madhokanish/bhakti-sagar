@@ -1,11 +1,15 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { toDescription, toTitle } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
 import { festivals } from "@/lib/content";
+import { breadcrumbJsonLd } from "@/lib/schema";
 
 export const metadata: Metadata = {
-  title: toTitle("Festivals"),
-  description: toDescription("Browse aartis for festivals and holy days.")
+  ...buildMetadata({
+    title: "Festivals",
+    description: "Browse aartis for festivals and holy days.",
+    pathname: "/festival"
+  })
 };
 
 export default function FestivalIndexPage() {
@@ -29,6 +33,13 @@ export default function FestivalIndexPage() {
           </Link>
         ))}
       </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd([
+          { name: "Home", url: "https://bhakti-sagar.com/" },
+          { name: "Festivals", url: "https://bhakti-sagar.com/festival" }
+        ])) }}
+      />
     </div>
   );
 }

@@ -3,16 +3,18 @@ import AartiCard from "@/components/AartiCard";
 import CategoryCard from "@/components/CategoryCard";
 import AIBadge from "@/components/AIBadge";
 import { getCategories, getTopAartis } from "@/lib/data";
-import { toDescription, toTitle } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import DailyAIInsight from "@/components/DailyAIInsight";
 
 export const metadata: Metadata = {
-  title: toTitle("Aarti & Bhajan Collection"),
-  description: toDescription(
-    "Explore top aartis and bhajans with lyrics in English and Hindi. Discover devotional hymns by deity on Bhakti Sagar."
-  )
+  ...buildMetadata({
+    title: "Aarti, Bhajan, Mantra & Pooja Vidhi",
+    description:
+      "Read aartis, chalisas, stotras, mantras and pooja guides with easy lyrics, meaning, and videos. Explore by deity and festival.",
+    pathname: "/"
+  })
 };
 
 export default function HomePage() {
@@ -22,17 +24,6 @@ export default function HomePage() {
     Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % topAartis.length
   );
   const dailyAarti = topAartis[dayIndex];
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "Bhakti Sagar",
-    url: "https://bhakti-sagar.com",
-    potentialAction: {
-      "@type": "SearchAction",
-      target: "https://bhakti-sagar.com/aartis?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    }
-  };
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -194,10 +185,30 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+
+      <section className="py-8">
+        <h2 className="section-title">Explore more devotion</h2>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            href="/stotras"
+            className="rounded-full border border-sagar-amber/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70 hover:text-sagar-saffron"
+          >
+            Stotras
+          </Link>
+          <Link
+            href="/vrat-katha"
+            className="rounded-full border border-sagar-amber/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70 hover:text-sagar-saffron"
+          >
+            Vrat Katha
+          </Link>
+          <Link
+            href="/pooja-vidhi"
+            className="rounded-full border border-sagar-amber/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70 hover:text-sagar-saffron"
+          >
+            Pooja Vidhi
+          </Link>
+        </div>
+      </section>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}

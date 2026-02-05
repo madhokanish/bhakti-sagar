@@ -33,3 +33,26 @@ h1, h2, h3, h4 {
 .section-title {
   @apply text-2xl md:text-3xl font-serif tracking-tight;
 }
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  header,
+  footer,
+  nav,
+  button {
+    display: none !important;
+  }
+
+  .shadow-sagar-card,
+  .shadow-sagar-soft {
+    box-shadow: none !important;
+  }
+
+  .container {
+    max-width: 100%;
+    padding: 0;
+  }
+}

@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { toDescription, toTitle } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
 import { festivals } from "@/lib/content";
+import { breadcrumbJsonLd } from "@/lib/schema";
 import { getAartisByCategory } from "@/lib/data";
 import AartiCard from "@/components/AartiCard";
 
@@ -12,13 +13,17 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const festival = festivals.find((item) => item.slug === params.slug);
   if (!festival) {
-    return { title: toTitle("Festival") };
+    return buildMetadata({
+      title: "Festival",
+      description: "Festival aartis and prayers.",
+      pathname: `/festival/${params.slug}`
+    });
   }
-  return {
-    title: toTitle(`${festival.name} Aartis`),
-    description: toDescription(`Explore ${festival.name} aartis with English and Hindi lyrics.`),
-    alternates: { canonical: `https://bhakti-sagar.com/festival/${festival.slug}` }
-  };
+  return buildMetadata({
+    title: `${festival.name} Aartis`,
+    description: `Explore ${festival.name} aartis with English and Hindi lyrics.`,
+    pathname: `/festival/${festival.slug}`
+  });
 }
 
 export default function FestivalPage({ params }: { params: { slug: string } }) {
@@ -28,6 +33,11 @@ export default function FestivalPage({ params }: { params: { slug: string } }) {
   }
 
   const aartis = festival.categories.flatMap((category) => getAartisByCategory(category));
+  const breadcrumbData = breadcrumbJsonLd([
+    { name: "Home", url: "https://bhakti-sagar.com/" },
+    { name: "Festivals", url: "https://bhakti-sagar.com/festival" },
+    { name: festival.name, url: `https://bhakti-sagar.com/festival/${festival.slug}` }
+  ]);
 
   return (
     <div className="container py-12">
@@ -40,6 +50,10 @@ export default function FestivalPage({ params }: { params: { slug: string } }) {
           <AartiCard key={aarti.id} aarti={aarti} />
         ))}
       </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbData) }}
+      />
     </div>
   );
 }

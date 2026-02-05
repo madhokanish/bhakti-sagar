@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
-import { toDescription, toTitle } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
+import { breadcrumbJsonLd } from "@/lib/schema";
 
 export const metadata: Metadata = {
-  title: toTitle("About"),
-  description: toDescription("Learn about Bhakti Sagar and how the meaning feature works.")
+  ...buildMetadata({
+    title: "About Bhakti Sagar",
+    description: "Learn about Bhakti Sagar and how the meaning feature works.",
+    pathname: "/about"
+  })
 };
 
 export default function AboutPage() {
@@ -45,6 +49,13 @@ export default function AboutPage() {
           <a className="hover:text-sagar-saffron" href="https://commons.wikimedia.org/wiki/File:1_Om.svg">Om symbol</a>
         </div>
       </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd([
+          { name: "Home", url: "https://bhakti-sagar.com/" },
+          { name: "About", url: "https://bhakti-sagar.com/about" }
+        ])) }}
+      />
     </div>
   );
 }

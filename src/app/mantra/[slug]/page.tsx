@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { toDescription, toTitle } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
 import { mantras } from "@/lib/content";
+import { breadcrumbJsonLd } from "@/lib/schema";
 
 export function generateStaticParams() {
   return mantras.map((mantra) => ({ slug: mantra.slug }));
@@ -10,13 +11,17 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const mantra = mantras.find((item) => item.slug === params.slug);
   if (!mantra) {
-    return { title: toTitle("Mantra") };
+    return buildMetadata({
+      title: "Mantra",
+      description: "Daily mantras for devotion and remembrance.",
+      pathname: `/mantra/${params.slug}`
+    });
   }
-  return {
-    title: toTitle(mantra.name),
-    description: toDescription(mantra.description),
-    alternates: { canonical: `https://bhakti-sagar.com/mantra/${mantra.slug}` }
-  };
+  return buildMetadata({
+    title: `${mantra.name} | Meaning`,
+    description: mantra.description,
+    pathname: `/mantra/${mantra.slug}`
+  });
 }
 
 export default function MantraPage({ params }: { params: { slug: string } }) {
@@ -35,6 +40,14 @@ export default function MantraPage({ params }: { params: { slug: string } }) {
           This mantra is shared for daily remembrance. Chant slowly with focus and devotion.
         </p>
       </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd([
+          { name: "Home", url: "https://bhakti-sagar.com/" },
+          { name: "Mantra", url: "https://bhakti-sagar.com/mantra" },
+          { name: mantra.name, url: `https://bhakti-sagar.com/mantra/${mantra.slug}` }
+        ])) }}
+      />
     </div>
   );
 }

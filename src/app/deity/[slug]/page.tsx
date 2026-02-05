@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { toDescription, toTitle } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
 import { deityHubs } from "@/lib/content";
+import { breadcrumbJsonLd } from "@/lib/schema";
 import { getAartisByCategory } from "@/lib/data";
 import AartiCard from "@/components/AartiCard";
 
@@ -12,13 +13,17 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const deity = deityHubs.find((item) => item.slug === params.slug);
   if (!deity) {
-    return { title: toTitle("Deity") };
+    return buildMetadata({
+      title: "Deity",
+      description: "Explore aarti lyrics by deity.",
+      pathname: `/deity/${params.slug}`
+    });
   }
-  return {
-    title: toTitle(`${deity.label} Aartis`),
-    description: toDescription(`Read ${deity.label} aartis with lyrics and AI Insight.`),
-    alternates: { canonical: `https://bhakti-sagar.com/deity/${deity.slug}` }
-  };
+  return buildMetadata({
+    title: `${deity.label} Aartis`,
+    description: `Read ${deity.label} aartis with lyrics and AI Insight.`,
+    pathname: `/deity/${deity.slug}`
+  });
 }
 
 export default function DeityPage({ params }: { params: { slug: string } }) {
@@ -28,6 +33,11 @@ export default function DeityPage({ params }: { params: { slug: string } }) {
   }
 
   const aartis = getAartisByCategory(deity.category);
+  const breadcrumbData = breadcrumbJsonLd([
+    { name: "Home", url: "https://bhakti-sagar.com/" },
+    { name: "Deity", url: "https://bhakti-sagar.com/deity" },
+    { name: deity.label, url: `https://bhakti-sagar.com/deity/${deity.slug}` }
+  ]);
 
   return (
     <div className="container py-12">
@@ -42,6 +52,10 @@ export default function DeityPage({ params }: { params: { slug: string } }) {
           <AartiCard key={aarti.id} aarti={aarti} />
         ))}
       </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbData) }}
+      />
     </div>
   );
 }

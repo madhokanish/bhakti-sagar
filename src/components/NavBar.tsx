@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function NavBar() {
   return (
@@ -24,7 +25,9 @@ export default function NavBar() {
           <Link href="/festival" className="hover:text-sagar-saffron">Festivals</Link>
           <Link href="/about" className="hover:text-sagar-saffron">About</Link>
         </nav>
-        <form action="/aartis" className="flex w-full max-w-md items-center gap-2 rounded-full border border-sagar-amber/30 bg-white px-4 py-2 shadow-sagar-soft md:w-auto">
+        <div className="flex w-full max-w-md items-center gap-3 md:w-auto">
+          <LanguageSwitcher />
+          <form action="/aartis" className="flex w-full items-center gap-2 rounded-full border border-sagar-amber/30 bg-white px-4 py-2 shadow-sagar-soft">
           <input
             name="q"
             placeholder="Search aarti or deity"
@@ -33,7 +36,8 @@ export default function NavBar() {
           <button className="rounded-full bg-sagar-saffron px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white">
             Search
           </button>
-        </form>
+          </form>
+        </div>
       </div>
     </header>
   );

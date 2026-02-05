@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { toDescription, toTitle } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
+import { breadcrumbJsonLd } from "@/lib/schema";
 
 export const metadata: Metadata = {
-  title: toTitle("Pooja Guide"),
-  description: toDescription(
-    "Learn how to perform a simple pooja with aarti, and explore devotional lyrics by deity."
-  )
+  ...buildMetadata({
+    title: "Pooja Vidhi Guide",
+    description: "Learn how to perform a simple pooja with aarti, and explore devotional lyrics by deity.",
+    pathname: "/pooja"
+  })
 };
 
 export default function PoojaPage() {
@@ -52,6 +54,13 @@ export default function PoojaPage() {
           </div>
         </div>
       </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd([
+          { name: "Home", url: "https://bhakti-sagar.com/" },
+          { name: "Pooja", url: "https://bhakti-sagar.com/pooja" }
+        ])) }}
+      />
     </div>
   );
 }

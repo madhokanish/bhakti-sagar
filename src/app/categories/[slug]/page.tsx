@@ -2,7 +2,8 @@ import AartiCard from "@/components/AartiCard";
 import { getAartisByCategory, getCategories } from "@/lib/data";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { toDescription, toTitle } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
+import { breadcrumbJsonLd } from "@/lib/schema";
 
 export function generateStaticParams() {
   return getCategories().map((category) => ({ slug: category.slug }));
@@ -11,15 +12,19 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const category = getCategories().find((item) => item.slug === params.slug);
   if (!category) {
-    return { title: toTitle("Category") };
+    return buildMetadata({
+      title: "Category",
+      description: "Browse aartis by deity.",
+      pathname: "/categories"
+    });
   }
-  return {
-    title: toTitle(`${category.name} Aartis`),
-    description: toDescription(`Explore ${category.name} aartis with English and Hindi lyrics.`),
-    alternates: {
-      canonical: `/categories/${category.slug}`
-    }
-  };
+  const aartisCount = getAartisByCategory(category.slug).length;
+  return buildMetadata({
+    title: `${category.name} Aartis`,
+    description: `Explore ${category.name} aartis with English and Hindi lyrics.`,
+    pathname: `/categories/${category.slug}`,
+    noindex: aartisCount < 2
+  });
 }
 
 export default function CategoryPage({ params }: { params: { slug: string } }) {
@@ -39,6 +44,11 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
       url: `https://bhakti-sagar.com/aartis/${aarti.slug}`
     }))
   };
+  const breadcrumbData = breadcrumbJsonLd([
+    { name: "Home", url: "https://bhakti-sagar.com/" },
+    { name: "Categories", url: "https://bhakti-sagar.com/categories" },
+    { name: category.name, url: `https://bhakti-sagar.com/categories/${category.slug}` }
+  ]);
 
   return (
     <div className="container py-12">
@@ -54,6 +64,10 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbData) }}
       />
     </div>
   );

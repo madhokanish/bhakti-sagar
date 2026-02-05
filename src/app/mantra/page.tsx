@@ -1,11 +1,15 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { toDescription, toTitle } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
 import { mantras } from "@/lib/content";
+import { breadcrumbJsonLd } from "@/lib/schema";
 
 export const metadata: Metadata = {
-  title: toTitle("Mantras"),
-  description: toDescription("Simple mantras to support your daily pooja and prayer.")
+  ...buildMetadata({
+    title: "Mantras",
+    description: "Simple mantras to support your daily pooja and prayer.",
+    pathname: "/mantra"
+  })
 };
 
 export default function MantraIndexPage() {
@@ -29,6 +33,13 @@ export default function MantraIndexPage() {
           </Link>
         ))}
       </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd([
+          { name: "Home", url: "https://bhakti-sagar.com/" },
+          { name: "Mantra", url: "https://bhakti-sagar.com/mantra" }
+        ])) }}
+      />
     </div>
   );
 }

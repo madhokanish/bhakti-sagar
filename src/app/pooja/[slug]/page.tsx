@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { toDescription, toTitle } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
 import { poojaGuides } from "@/lib/content";
 import { getAartisByCategory } from "@/lib/data";
+import { breadcrumbJsonLd } from "@/lib/schema";
 import AartiCard from "@/components/AartiCard";
 
 export function generateStaticParams() {
@@ -12,13 +13,17 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const guide = poojaGuides.find((item) => item.slug === params.slug);
   if (!guide) {
-    return { title: toTitle("Pooja") };
+    return buildMetadata({
+      title: "Pooja Vidhi",
+      description: "Simple pooja steps with aarti and offerings.",
+      pathname: `/pooja/${params.slug}`
+    });
   }
-  return {
-    title: toTitle(guide.name),
-    description: toDescription(guide.description),
-    alternates: { canonical: `https://bhakti-sagar.com/pooja/${guide.slug}` }
-  };
+  return buildMetadata({
+    title: guide.name,
+    description: guide.description,
+    pathname: `/pooja/${guide.slug}`
+  });
 }
 
 export default function PoojaGuidePage({ params }: { params: { slug: string } }) {
@@ -28,6 +33,11 @@ export default function PoojaGuidePage({ params }: { params: { slug: string } })
   }
 
   const aartis = getAartisByCategory(guide.category);
+  const breadcrumbData = breadcrumbJsonLd([
+    { name: "Home", url: "https://bhakti-sagar.com/" },
+    { name: "Pooja", url: "https://bhakti-sagar.com/pooja" },
+    { name: guide.name, url: `https://bhakti-sagar.com/pooja/${guide.slug}` }
+  ]);
 
   return (
     <div className="container py-12">
@@ -56,6 +66,10 @@ export default function PoojaGuidePage({ params }: { params: { slug: string } })
           </div>
         </div>
       </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbData) }}
+      />
     </div>
   );
 }

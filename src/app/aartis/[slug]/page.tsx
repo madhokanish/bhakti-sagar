@@ -2,11 +2,15 @@ import { notFound } from "next/navigation";
 import AartiLyricsPanel from "@/components/AartiLyricsPanel";
 import MeaningPanel from "@/components/MeaningPanel";
 import ShareButton from "@/components/ShareButton";
+import PrintButton from "@/components/PrintButton";
 import AskAIPanel from "@/components/AskAIPanel";
-import { getAartiBySlug, getAartis, getCategories } from "@/lib/data";
+import { getAartiBySlug, getAartis, getAartisByCategory, getCategories } from "@/lib/data";
+import { festivals } from "@/lib/content";
 import { getYouTubeEmbedUrl, getYouTubeId } from "@/lib/youtube";
 import type { Metadata } from "next";
-import { siteConfig, toDescription, toTitle } from "@/lib/seo";
+import { buildMetadata, siteConfig } from "@/lib/seo";
+import { articleJsonLd, breadcrumbJsonLd, faqJsonLd, videoObjectJsonLd } from "@/lib/schema";
+import { getAuthorBySlug } from "@/lib/authors";
 
 export function generateStaticParams() {
   return getAartis().map((aarti) => ({ slug: aarti.slug }));
@@ -15,37 +19,19 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const aarti = getAartiBySlug(params.slug);
   if (!aarti) {
-    return {
-      title: toTitle("Aarti")
-    };
+    return buildMetadata({
+      title: "Aarti",
+      description: "Read devotional aarti lyrics with meaning and video.",
+      pathname: `/aartis/${params.slug}`
+    });
   }
   const title = aarti.title.english || aarti.title.hindi;
-  const description = `Read the lyrics and meaning of ${title} in English and Hindi.`;
-  return {
-    title: toTitle(`${title} Lyrics (English) | Aarti Video | Meaning`),
-    description: toDescription(
-      `Read ${title} lyrics in English letters, meaning, and watch the aarti video. Easy to read and mobile friendly.`
-    ),
-    alternates: {
-      canonical: `https://bhakti-sagar.com/aartis/${aarti.slug}`
-    },
-    openGraph: {
-      title: toTitle(`${title} Lyrics (English) | Aarti Video | Meaning`),
-      description: toDescription(
-        `Read ${title} lyrics in English letters, meaning, and watch the aarti video. Easy to read and mobile friendly.`
-      ),
-      url: `https://bhakti-sagar.com/aartis/${aarti.slug}`,
-      images: [{ url: siteConfig.ogImage }]
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: toTitle(`${title} Lyrics (English) | Aarti Video | Meaning`),
-      description: toDescription(
-        `Read ${title} lyrics in English letters, meaning, and watch the aarti video. Easy to read and mobile friendly.`
-      ),
-      images: [siteConfig.ogImage]
-    }
-  };
+  return buildMetadata({
+    title: `${title} Lyrics (English) | Aarti Video | Meaning`,
+    description: `Read ${title} lyrics in English letters, meaning, and watch the aarti video. Easy to read and mobile friendly.`,
+    pathname: `/aartis/${aarti.slug}`,
+    ogImage: siteConfig.ogImage
+  });
 }
 
 export default function AartiDetailPage({ params }: { params: { slug: string } }) {
@@ -57,48 +43,16 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
   const category = getCategories().find((item) => item.slug === aarti.category);
   const embedUrl = getYouTubeEmbedUrl(aarti.youtubeUrl);
   const titleDisplay = aarti.title.english || aarti.title.hindi;
-  const jsonLd: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "CreativeWork",
-    name: titleDisplay,
-    description: `Lyrics and meaning for ${titleDisplay}.`,
-    inLanguage: ["en", "hi"],
-    url: `https://bhakti-sagar.com/aartis/${aarti.slug}`
-  };
+  const author = getAuthorBySlug("anish-madhok");
+  const datePublished = "2024-10-01";
+  const dateModified = "2026-02-05";
+  const aartiUrl = `https://bhakti-sagar.com/aartis/${aarti.slug}`;
   const videoId = getYouTubeId(aarti.youtubeUrl);
-  if (videoId) {
-    jsonLd.associatedMedia = {
-      "@type": "VideoObject",
-      name: `${titleDisplay} Aarti`,
-      url: aarti.youtubeUrl,
-      embedUrl: `https://www.youtube.com/embed/${videoId}`,
-      thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
-    };
-  }
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: "https://bhakti-sagar.com/"
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: "Aartis",
-        item: "https://bhakti-sagar.com/aartis"
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: titleDisplay,
-        item: `https://bhakti-sagar.com/aartis/${aarti.slug}`
-      }
-    ]
-  };
+  const breadcrumbData = breadcrumbJsonLd([
+    { name: "Home", url: "https://bhakti-sagar.com/" },
+    { name: "Aartis", url: "https://bhakti-sagar.com/aartis" },
+    { name: titleDisplay, url: aartiUrl }
+  ]);
   const faqItems = [
     {
       q: `What is ${titleDisplay}?`,
@@ -125,15 +79,33 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
       a: `Yes, when available you can watch the aarti video alongside the lyrics.`
     }
   ];
-  const faqJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqItems.map((item) => ({
-      "@type": "Question",
-      name: item.q,
-      acceptedAnswer: { "@type": "Answer", text: item.a }
-    }))
-  };
+  const faqData = faqJsonLd(faqItems);
+  const articleData = articleJsonLd({
+    headline: `${titleDisplay} Aarti Lyrics`,
+    description: `Lyrics, meaning, and video for ${titleDisplay}.`,
+    url: aartiUrl,
+    datePublished,
+    dateModified,
+    authorName: author?.name ?? "Bhakti Sagar",
+    image: siteConfig.ogImage
+  });
+  const videoData = videoId
+    ? videoObjectJsonLd({
+        name: `${titleDisplay} Aarti`,
+        description: `Watch and sing along with ${titleDisplay}.`,
+        url: aarti.youtubeUrl,
+        embedUrl: `https://www.youtube.com/embed/${videoId}`,
+        thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+      })
+    : null;
+
+  const relatedByDeity = getAartisByCategory(aarti.category)
+    .filter((item) => item.slug !== aarti.slug)
+    .slice(0, 6);
+  const moreAartis = getAartis()
+    .filter((item) => item.slug !== aarti.slug)
+    .slice(0, 6);
+  const relatedFestivals = festivals.filter((festival) => festival.categories.includes(aarti.category)).slice(0, 3);
 
   return (
     <div className="container py-12">
@@ -143,7 +115,10 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
           <span className="h-1 w-1 rounded-full bg-sagar-rose" />
           <span>{aarti.isTop ? "Top Aarti" : "Prayer"}</span>
         </div>
-        <ShareButton title={titleDisplay} />
+        <div className="flex flex-wrap items-center gap-2">
+          <PrintButton />
+          <ShareButton title={titleDisplay} />
+        </div>
       </div>
 
       <h1 className="mt-4 text-4xl font-serif text-sagar-ink md:text-5xl">{titleDisplay}</h1>
@@ -153,11 +128,26 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
       <p className="mt-3 max-w-2xl text-sm text-sagar-ink/70">
         Sing along with the lyrics and open the meaning panel for a gentle explanation.
       </p>
+      <div className="mt-4 flex flex-wrap gap-4 text-xs text-sagar-ink/60">
+        <span>Last updated: Feb 5, 2026</span>
+        <span>Reviewed by: {author?.name ?? "Bhakti Sagar"}</span>
+      </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
         <div className="rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-card">
-          <AartiLyricsPanel title={aarti.title} lyrics={aarti.lyrics} />
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <div className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">On this page</p>
+            <div className="mt-3 flex flex-wrap gap-3 text-xs text-sagar-ink/70">
+              <a href="#lyrics" className="hover:text-sagar-saffron">Lyrics</a>
+              <a href="#meaning" className="hover:text-sagar-saffron">AI summary</a>
+              <a href="#how-to" className="hover:text-sagar-saffron">How to do aarti</a>
+              <a href="#faq" className="hover:text-sagar-saffron">FAQ</a>
+            </div>
+          </div>
+          <div id="lyrics" className="scroll-mt-24">
+            <AartiLyricsPanel title={aarti.title} lyrics={aarti.lyrics} />
+          </div>
+          <div id="how-to" className="mt-8 grid gap-4 md:grid-cols-2 scroll-mt-24">
             <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-4 shadow-sagar-soft">
               <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-sagar-rose">When to do this aarti</h3>
               <p className="mt-2 text-sm text-sagar-ink/70">
@@ -171,7 +161,7 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
               </p>
             </div>
           </div>
-          <div className="mt-8 rounded-2xl border border-sagar-amber/20 bg-white/70 p-6 shadow-sagar-soft">
+          <div id="faq" className="mt-8 rounded-2xl border border-sagar-amber/20 bg-white/70 p-6 shadow-sagar-soft scroll-mt-24">
             <h3 className="text-lg font-serif text-sagar-ink">FAQ</h3>
             <div className="mt-4 space-y-4 text-sm text-sagar-ink/70">
               {faqItems.map((item) => (
@@ -208,21 +198,74 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
             </div>
           </div>
           <AskAIPanel title={titleDisplay} lyrics={aarti.lyrics.english.length ? aarti.lyrics.english : aarti.lyrics.hindi} />
-          <MeaningPanel title={titleDisplay} lyrics={aarti.lyrics.english.length ? aarti.lyrics.english : aarti.lyrics.hindi} />
+          <div id="meaning" className="scroll-mt-24">
+            <MeaningPanel title={titleDisplay} lyrics={aarti.lyrics.english.length ? aarti.lyrics.english : aarti.lyrics.hindi} />
+          </div>
         </aside>
       </div>
+      <div className="mt-12 grid gap-6 md:grid-cols-2">
+        <div className="rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-soft">
+          <h3 className="text-lg font-serif text-sagar-ink">More prayers for {category?.name ?? "this deity"}</h3>
+          <div className="mt-4 grid gap-2 text-sm text-sagar-ink/70">
+            {relatedByDeity.map((item) => (
+              <a key={item.id} href={`/aartis/${item.slug}`} className="hover:text-sagar-saffron">
+                {item.title.english || item.title.hindi}
+              </a>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-soft">
+          <h3 className="text-lg font-serif text-sagar-ink">More aartis to explore</h3>
+          <div className="mt-4 grid gap-2 text-sm text-sagar-ink/70">
+            {moreAartis.map((item) => (
+              <a key={item.id} href={`/aartis/${item.slug}`} className="hover:text-sagar-saffron">
+                {item.title.english || item.title.hindi}
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-soft">
+        <h3 className="text-lg font-serif text-sagar-ink">About {category?.name ?? "the deity"}</h3>
+        <p className="mt-3 text-sm text-sagar-ink/70">
+          {category?.name ?? "This deity"} is honored in Hindu tradition with prayers, aartis, and devotional
+          songs. Devotees sing these verses to offer gratitude, seek blessings, and cultivate devotion.
+        </p>
+      </div>
+      {relatedFestivals.length > 0 && (
+        <div className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-soft">
+          <h3 className="text-lg font-serif text-sagar-ink">Related festivals</h3>
+          <div className="mt-4 flex flex-wrap gap-3 text-sm text-sagar-ink/70">
+            {relatedFestivals.map((festival) => (
+              <a
+                key={festival.slug}
+                href={`/festival/${festival.slug}`}
+                className="rounded-full border border-sagar-amber/30 px-3 py-1 hover:text-sagar-saffron"
+              >
+                {festival.name}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleData) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbData) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqData) }}
       />
+      {videoData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(videoData) }}
+        />
+      )}
     </div>
   );
 }

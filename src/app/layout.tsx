@@ -3,8 +3,9 @@ import type { Metadata } from "next";
 import { Fraunces, Source_Sans_3 } from "next/font/google";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
-import { siteConfig } from "@/lib/seo";
+import { buildMetadata, getRequestLanguage, siteConfig } from "@/lib/seo";
 import { Analytics } from "@vercel/analytics/react";
+import { organizationJsonLd, websiteJsonLd } from "@/lib/schema";
 
 const serif = Fraunces({
   subsets: ["latin"],
@@ -20,39 +21,11 @@ const sans = Source_Sans_3({
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
-  title: {
-    default: "Bhakti Sagar | Aarti Lyrics, Pooja Vidhi, Mantra and Meaning",
-    template: `%s | ${siteConfig.name}`
-  },
-  description: siteConfig.description,
-  alternates: {
-    canonical: siteConfig.url
-  },
-  openGraph: {
-    type: "website",
-    url: siteConfig.url,
-    siteName: siteConfig.name,
-    title: siteConfig.name,
+  ...buildMetadata({
+    title: "Aarti Lyrics, Pooja Vidhi, Mantra and Meaning",
     description: siteConfig.description,
-    images: [{ url: siteConfig.ogImage, width: 1200, height: 630, alt: siteConfig.name }]
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: siteConfig.name,
-    description: siteConfig.description,
-    images: [siteConfig.ogImage]
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-      "max-video-preview": -1
-    }
-  }
+    pathname: "/"
+  })
 };
 
 export default function RootLayout({
@@ -60,19 +33,29 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const lang = getRequestLanguage();
+  const orgJsonLd = organizationJsonLd();
+  const webJsonLd = websiteJsonLd();
+
   return (
-    <html lang="en">
-      <body className={`${serif.variable} ${sans.variable} font-sans`}
-      >
+    <html lang={lang}>
+      <body className={`${serif.variable} ${sans.variable} font-sans`}>
         <div className="relative min-h-screen overflow-hidden">
           <div className="pointer-events-none absolute -top-40 right-[-10%] h-80 w-80 rounded-full bg-sagar-gold/35 blur-3xl" />
           <div className="pointer-events-none absolute bottom-[-15%] left-[-10%] h-80 w-80 rounded-full bg-sagar-ember/25 blur-3xl" />
           <NavBar />
           <main className="pb-12">{children}</main>
           <Footer />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(webJsonLd) }}
+          />
           <Analytics />
         </div>
-        <Analytics />
       </body>
     </html>
   );

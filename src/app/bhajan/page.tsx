@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { toDescription, toTitle } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
+import { breadcrumbJsonLd } from "@/lib/schema";
 
 export const metadata: Metadata = {
-  title: toTitle("Bhajan & Aarti"),
-  description: toDescription(
-    "Discover devotional bhajans and aartis with lyrics in English and Hindi."
-  )
+  ...buildMetadata({
+    title: "Bhajan & Aarti",
+    description: "Discover devotional bhajans and aartis with lyrics in English and Hindi.",
+    pathname: "/bhajan"
+  })
 };
 
 export default function BhajanPage() {
@@ -39,6 +41,13 @@ export default function BhajanPage() {
           </Link>
         </div>
       </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd([
+          { name: "Home", url: "https://bhakti-sagar.com/" },
+          { name: "Bhajan", url: "https://bhakti-sagar.com/bhajan" }
+        ])) }}
+      />
     </div>
   );
 }

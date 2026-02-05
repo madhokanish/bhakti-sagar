@@ -1,11 +1,15 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { toDescription, toTitle } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
 import { chalisas } from "@/lib/content";
+import { breadcrumbJsonLd } from "@/lib/schema";
 
 export const metadata: Metadata = {
-  title: toTitle("Chalisa"),
-  description: toDescription("Chalisa prayers for daily devotion and strength.")
+  ...buildMetadata({
+    title: "Chalisa",
+    description: "Chalisa prayers for daily devotion and strength.",
+    pathname: "/chalisa"
+  })
 };
 
 export default function ChalisaIndexPage() {
@@ -29,6 +33,13 @@ export default function ChalisaIndexPage() {
           </Link>
         ))}
       </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd([
+          { name: "Home", url: "https://bhakti-sagar.com/" },
+          { name: "Chalisa", url: "https://bhakti-sagar.com/chalisa" }
+        ])) }}
+      />
     </div>
   );
 }

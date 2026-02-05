@@ -1,12 +1,26 @@
 import AartiCard from "@/components/AartiCard";
 import { getAartis, searchAartis } from "@/lib/data";
 import type { Metadata } from "next";
-import { toDescription, toTitle } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
+import { breadcrumbJsonLd, faqJsonLd } from "@/lib/schema";
 
-export const metadata: Metadata = {
-  title: toTitle("All Aartis & Bhajans"),
-  description: toDescription("Browse the full library of aartis and bhajans with English and Hindi lyrics.")
-};
+export function generateMetadata({
+  searchParams
+}: {
+  searchParams?: { q?: string };
+}): Metadata {
+  const query = searchParams?.q?.trim();
+  const title = query ? `Search results for "${query}"` : "All Aartis & Bhajans";
+  const description = query
+    ? `Search results for ${query} on Bhakti Sagar.`
+    : "Browse the full library of aartis and bhajans with English and Hindi lyrics.";
+  return buildMetadata({
+    title,
+    description,
+    pathname: "/aartis",
+    noindex: Boolean(query)
+  });
+}
 
 export default function AartisPage({
   searchParams
@@ -15,6 +29,32 @@ export default function AartisPage({
 }) {
   const query = searchParams?.q ?? "";
   const results = query ? searchAartis(query) : getAartis();
+  const breadcrumbData = breadcrumbJsonLd([
+    { name: "Home", url: "https://bhakti-sagar.com/" },
+    { name: "Aartis", url: "https://bhakti-sagar.com/aartis" }
+  ]);
+  const faqData = faqJsonLd([
+    {
+      q: "Where can I find aarti lyrics in English?",
+      a: "Bhakti Sagar provides aarti lyrics in English letters along with Hindi text."
+    },
+    {
+      q: "Do you have aarti meaning?",
+      a: "Yes. Use the AI Insight panel to read a short, simple meaning."
+    },
+    {
+      q: "Can I search by deity?",
+      a: "Yes. Search by deity name or browse categories."
+    },
+    {
+      q: "Are videos available?",
+      a: "Many aarti pages include embedded YouTube videos."
+    },
+    {
+      q: "Is this content free?",
+      a: "Yes, all aarti lyrics and meanings are free to read."
+    }
+  ]);
 
   return (
     <div className="container py-12">
@@ -44,6 +84,16 @@ export default function AartisPage({
           <AartiCard key={aarti.id} aarti={aarti} />
         ))}
       </div>
+      {!query && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqData) }}
+        />
+      )}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbData) }}
+      />
     </div>
   );
 }

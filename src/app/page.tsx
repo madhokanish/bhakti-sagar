@@ -6,6 +6,7 @@ import { getCategories, getTopAartis } from "@/lib/data";
 import { toDescription, toTitle } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
+import DailyAIInsight from "@/components/DailyAIInsight";
 
 export const metadata: Metadata = {
   title: toTitle("Aarti & Bhajan Collection"),
@@ -17,6 +18,10 @@ export const metadata: Metadata = {
 export default function HomePage() {
   const topAartis = getTopAartis();
   const categories = getCategories();
+  const dayIndex = Math.abs(
+    Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % topAartis.length
+  );
+  const dailyAarti = topAartis[dayIndex];
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -143,6 +148,16 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      {dailyAarti && (
+        <section className="py-8">
+          <DailyAIInsight
+            title={dailyAarti.title.english || dailyAarti.title.hindi}
+            slug={dailyAarti.slug}
+            lyrics={dailyAarti.lyrics.english.length ? dailyAarti.lyrics.english : dailyAarti.lyrics.hindi}
+          />
+        </section>
+      )}
 
       <section className="py-8">
         <h2 className="section-title">Common questions</h2>

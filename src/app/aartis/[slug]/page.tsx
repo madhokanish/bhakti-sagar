@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import AartiLyricsPanel from "@/components/AartiLyricsPanel";
 import MeaningPanel from "@/components/MeaningPanel";
 import ShareButton from "@/components/ShareButton";
+import AskAIPanel from "@/components/AskAIPanel";
 import { getAartiBySlug, getAartis, getCategories } from "@/lib/data";
 import { getYouTubeEmbedUrl, getYouTubeId } from "@/lib/youtube";
 import type { Metadata } from "next";
@@ -155,13 +156,6 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.4fr_0.6fr] lg:items-start">
         <div className="rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-card">
-          <div className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/60 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">Quick intro</p>
-            <p className="mt-2 text-sm text-sagar-ink/70">
-              Read the lyrics of {titleDisplay} in English and Hindi, and use AI Insight to understand the meaning
-              line by line.
-            </p>
-          </div>
           <AartiLyricsPanel title={aarti.title} lyrics={aarti.lyrics} />
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-4 shadow-sagar-soft">
@@ -190,7 +184,8 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
           </div>
         </div>
         <aside className="space-y-4 lg:sticky lg:top-24">
-          <MeaningPanel title={aarti.title.english || aarti.title.hindi} lyrics={aarti.lyrics.english.length ? aarti.lyrics.english : aarti.lyrics.hindi} />
+          <AskAIPanel title={titleDisplay} lyrics={aarti.lyrics.english.length ? aarti.lyrics.english : aarti.lyrics.hindi} />
+          <MeaningPanel title={titleDisplay} lyrics={aarti.lyrics.english.length ? aarti.lyrics.english : aarti.lyrics.hindi} />
           <div className="rounded-3xl border border-sagar-amber/20 bg-white/80 p-4 shadow-sagar-soft">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">Video</p>
             <h2 className="mt-2 text-lg font-serif text-sagar-ink">Listen & sing along</h2>

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, getRequestLanguage } from "@/lib/seo";
 import { festivals } from "@/lib/content";
 import { breadcrumbJsonLd } from "@/lib/schema";
 import { getAartisByCategory } from "@/lib/data";
@@ -33,6 +33,7 @@ export default function FestivalPage({ params }: { params: { slug: string } }) {
   }
 
   const aartis = festival.categories.flatMap((category) => getAartisByCategory(category));
+  const lang = getRequestLanguage();
   const breadcrumbData = breadcrumbJsonLd([
     { name: "Home", url: "https://bhakti-sagar.com/" },
     { name: "Festivals", url: "https://bhakti-sagar.com/festival" },
@@ -47,7 +48,7 @@ export default function FestivalPage({ params }: { params: { slug: string } }) {
 
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         {aartis.map((aarti) => (
-          <AartiCard key={aarti.id} aarti={aarti} />
+          <AartiCard key={aarti.id} aarti={aarti} language={lang} />
         ))}
       </div>
       <script

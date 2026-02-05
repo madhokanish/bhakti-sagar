@@ -2,10 +2,19 @@ import Link from "next/link";
 import { getCategoryLabel } from "@/lib/data";
 import type { Aarti } from "@/lib/data";
 
-export default function AartiCard({ aarti }: { aarti: Aarti }) {
-  const title = aarti.title.english || aarti.title.hindi;
+type Language = "en" | "hi";
+
+export default function AartiCard({ aarti, language = "en" }: { aarti: Aarti; language?: Language }) {
+  const title =
+    language === "hi"
+      ? aarti.title.hindi || aarti.title.english
+      : aarti.title.english || aarti.title.hindi;
   const lyricsPreview =
-    aarti.lyrics.english.length > 0 ? aarti.lyrics.english : aarti.lyrics.hindi;
+    language === "hi" && aarti.lyrics.hindi.length > 0
+      ? aarti.lyrics.hindi
+      : aarti.lyrics.english.length > 0
+      ? aarti.lyrics.english
+      : aarti.lyrics.hindi;
   return (
     <Link
       href={`/aartis/${aarti.slug}`}

@@ -2,7 +2,7 @@ import AartiCard from "@/components/AartiCard";
 import { getAartisByCategory, getCategories } from "@/lib/data";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, getRequestLanguage } from "@/lib/seo";
 import { breadcrumbJsonLd } from "@/lib/schema";
 
 export function generateStaticParams() {
@@ -34,6 +34,7 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
   }
 
   const aartis = getAartisByCategory(category.slug);
+  const lang = getRequestLanguage();
   const itemListJsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -58,7 +59,7 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
 
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         {aartis.map((aarti) => (
-          <AartiCard key={aarti.id} aarti={aarti} />
+          <AartiCard key={aarti.id} aarti={aarti} language={lang} />
         ))}
       </div>
       <script

@@ -17,12 +17,14 @@ type Language = "english" | "hindi";
 
 export default function AartiLyricsPanel({
   title,
-  lyrics
+  lyrics,
+  initialLanguage = "english"
 }: {
   title: TitleSet;
   lyrics: LyricsSet;
+  initialLanguage?: Language;
 }) {
-  const [language, setLanguage] = useState<Language>("english");
+  const [language, setLanguage] = useState<Language>(initialLanguage);
 
   const englishAvailable = lyrics.english.length > 0;
   const hindiAvailable = lyrics.hindi.length > 0;

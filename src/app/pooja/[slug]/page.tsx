@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, getRequestLanguage } from "@/lib/seo";
 import { poojaGuides } from "@/lib/content";
 import { getAartisByCategory } from "@/lib/data";
 import { breadcrumbJsonLd } from "@/lib/schema";
@@ -33,6 +33,7 @@ export default function PoojaGuidePage({ params }: { params: { slug: string } })
   }
 
   const aartis = getAartisByCategory(guide.category);
+  const lang = getRequestLanguage();
   const breadcrumbData = breadcrumbJsonLd([
     { name: "Home", url: "https://bhakti-sagar.com/" },
     { name: "Pooja", url: "https://bhakti-sagar.com/pooja" },
@@ -61,7 +62,7 @@ export default function PoojaGuidePage({ params }: { params: { slug: string } })
           <p className="mt-2 text-sm text-sagar-ink/70">Choose an aarti to sing during the pooja.</p>
           <div className="mt-4 grid gap-4">
             {aartis.map((aarti) => (
-              <AartiCard key={aarti.id} aarti={aarti} />
+              <AartiCard key={aarti.id} aarti={aarti} language={lang} />
             ))}
           </div>
         </div>

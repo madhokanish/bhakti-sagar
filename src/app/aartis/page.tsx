@@ -1,7 +1,7 @@
 import AartiCard from "@/components/AartiCard";
 import { getAartis, searchAartis } from "@/lib/data";
 import type { Metadata } from "next";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, getRequestLanguage } from "@/lib/seo";
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/schema";
 
 export function generateMetadata({
@@ -29,6 +29,7 @@ export default function AartisPage({
 }) {
   const query = searchParams?.q ?? "";
   const results = query ? searchAartis(query) : getAartis();
+  const lang = getRequestLanguage();
   const breadcrumbData = breadcrumbJsonLd([
     { name: "Home", url: "https://bhakti-sagar.com/" },
     { name: "Aartis", url: "https://bhakti-sagar.com/aartis" }
@@ -81,7 +82,7 @@ export default function AartisPage({
 
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         {results.map((aarti) => (
-          <AartiCard key={aarti.id} aarti={aarti} />
+          <AartiCard key={aarti.id} aarti={aarti} language={lang} />
         ))}
       </div>
       {!query && (

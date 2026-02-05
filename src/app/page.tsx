@@ -3,7 +3,7 @@ import AartiCard from "@/components/AartiCard";
 import CategoryCard from "@/components/CategoryCard";
 import AIBadge from "@/components/AIBadge";
 import { getCategories, getTopAartis } from "@/lib/data";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, getRequestLanguage } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import DailyAIInsight from "@/components/DailyAIInsight";
@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 export default function HomePage() {
   const topAartis = getTopAartis();
   const categories = getCategories();
+  const lang = getRequestLanguage();
   const dayIndex = Math.abs(
     Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % topAartis.length
   );
@@ -113,7 +114,10 @@ export default function HomePage() {
               <h2 className="mt-3 text-2xl font-serif text-sagar-ink">Start with a top aarti</h2>
               <div className="mt-4 space-y-3 text-sm text-sagar-ink/70">
                 {topAartis.slice(0, 4).map((aarti) => {
-                  const title = aarti.title.english || aarti.title.hindi;
+                  const title =
+                    lang === "hi"
+                      ? aarti.title.hindi || aarti.title.english
+                      : aarti.title.english || aarti.title.hindi;
                   return (
                   <a
                     key={aarti.id}

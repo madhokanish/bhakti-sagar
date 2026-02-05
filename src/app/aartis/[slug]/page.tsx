@@ -7,7 +7,7 @@ import { getAartiBySlug, getAartis, getAartisByCategory, getCategories } from "@
 import { festivals } from "@/lib/content";
 import { getYouTubeEmbedUrl, getYouTubeId } from "@/lib/youtube";
 import type { Metadata } from "next";
-import { buildMetadata, siteConfig } from "@/lib/seo";
+import { buildMetadata, getRequestLanguage, siteConfig } from "@/lib/seo";
 import { articleJsonLd, breadcrumbJsonLd, faqJsonLd, videoObjectJsonLd } from "@/lib/schema";
 import { getAuthorBySlug } from "@/lib/authors";
 
@@ -39,9 +39,11 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
     notFound();
   }
 
+  const lang = getRequestLanguage();
   const category = getCategories().find((item) => item.slug === aarti.category);
   const embedUrl = getYouTubeEmbedUrl(aarti.youtubeUrl);
-  const titleDisplay = aarti.title.english || aarti.title.hindi;
+  const titleDisplay = lang === "hi" ? aarti.title.hindi || aarti.title.english : aarti.title.english || aarti.title.hindi;
+  const subtitle = lang === "hi" ? aarti.title.english : aarti.title.hindi;
   const author = getAuthorBySlug("anish-madhok");
   const datePublished = "2024-10-01";
   const dateModified = "2026-02-05";
@@ -121,8 +123,8 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
       </div>
 
       <h1 className="mt-4 text-4xl font-serif text-sagar-ink md:text-5xl">{titleDisplay}</h1>
-      {aarti.title.hindi && aarti.title.english && (
-        <p className="mt-2 text-lg text-sagar-ink/70">{aarti.title.hindi}</p>
+      {subtitle && (
+        <p className="mt-2 text-lg text-sagar-ink/70">{subtitle}</p>
       )}
       <p className="mt-3 max-w-2xl text-sm text-sagar-ink/70">
         Sing along with the lyrics and open the meaning panel for a gentle explanation.
@@ -144,7 +146,11 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
             </div>
           </div>
           <div id="lyrics" className="scroll-mt-24">
-            <AartiLyricsPanel title={aarti.title} lyrics={aarti.lyrics} />
+            <AartiLyricsPanel
+              title={aarti.title}
+              lyrics={aarti.lyrics}
+              initialLanguage={lang === "hi" ? "hindi" : "english"}
+            />
           </div>
           <div id="how-to" className="mt-8 grid gap-4 md:grid-cols-2 scroll-mt-24">
             <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-4 shadow-sagar-soft">
@@ -197,7 +203,16 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
             </div>
           </div>
           <div id="meaning" className="scroll-mt-24">
-            <MeaningPanel title={titleDisplay} lyrics={aarti.lyrics.english.length ? aarti.lyrics.english : aarti.lyrics.hindi} />
+            <MeaningPanel
+              title={titleDisplay}
+              lyrics={
+                lang === "hi" && aarti.lyrics.hindi.length
+                  ? aarti.lyrics.hindi
+                  : aarti.lyrics.english.length
+                  ? aarti.lyrics.english
+                  : aarti.lyrics.hindi
+              }
+            />
           </div>
         </aside>
       </div>

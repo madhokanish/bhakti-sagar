@@ -66,7 +66,7 @@ export default function HomePage() {
 
   return (
     <div className="container">
-      <section className="grid gap-10 py-16 md:grid-cols-[1.1fr_0.9fr] md:items-center">
+      <section className="grid gap-8 py-10 md:grid-cols-[1.1fr_0.9fr] md:items-center md:py-16">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sagar-rose">Bhakti Sagar</p>
           <h1 className="mt-4 text-4xl font-serif text-sagar-ink md:text-5xl">
@@ -76,13 +76,13 @@ export default function HomePage() {
             Browse the most-loved aartis, explore categories by deity, and understand each prayer with a gentle
             explanation in simple words.
           </p>
-          <div className="mt-4">
+          <div className="mt-4 hidden sm:block">
             <AIBadge label="AI Insight for meanings" />
           </div>
-          <div className="mt-6 flex flex-wrap gap-4">
+          <div className="mt-6 flex flex-wrap gap-3">
             <a
               href="/aartis"
-              className="rounded-full bg-sagar-saffron px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white shadow-sagar-soft"
+              className="rounded-full bg-sagar-saffron px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white"
             >
               Explore Aartis
             </a>
@@ -94,9 +94,9 @@ export default function HomePage() {
             </a>
           </div>
         </div>
-        <div className="rounded-3xl border border-sagar-amber/20 bg-white/85 p-6 shadow-sagar-card">
+        <div className="rounded-3xl border border-sagar-amber/20 bg-white p-6 shadow-none lg:shadow-sagar-card">
           <div className="flex flex-col gap-4">
-            <div className="rounded-2xl border border-sagar-amber/20 bg-gradient-to-br from-white via-sagar-cream to-sagar-sand p-3 shadow-sagar-soft">
+            <div className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/60 p-3">
               <div className="relative aspect-video overflow-hidden rounded-xl bg-white">
                 <Image
                   src="/brand/bhakti-sagar-logo.png"

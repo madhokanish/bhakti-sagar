@@ -41,8 +41,6 @@ export default function RootLayout({
     <html lang={lang}>
       <body className={`${serif.variable} ${sans.variable} font-sans`}>
         <div className="relative min-h-screen overflow-hidden">
-          <div className="pointer-events-none absolute -top-40 right-[-10%] h-80 w-80 rounded-full bg-sagar-gold/35 blur-3xl" />
-          <div className="pointer-events-none absolute bottom-[-15%] left-[-10%] h-80 w-80 rounded-full bg-sagar-ember/25 blur-3xl" />
           <NavBar />
           <main className="pb-12">{children}</main>
           <Footer />

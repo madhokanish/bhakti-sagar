@@ -125,7 +125,7 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
           <span className="h-1 w-1 rounded-full bg-sagar-rose" />
           <span>{aarti.isTop ? "Top Aarti" : "Prayer"}</span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="hidden flex-wrap items-center gap-2 lg:flex">
           <PrintButton />
           <ShareButton title={titleDisplay} />
         </div>
@@ -135,20 +135,12 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
       {subtitle && (
         <p className="mt-2 text-lg text-sagar-ink/70">{subtitle}</p>
       )}
-      <p className="mt-3 max-w-2xl text-sm text-sagar-ink/70">
+      <p className="mt-2 hidden max-w-2xl text-sm text-sagar-ink/70 sm:block">
         Sing along with the lyrics and open the meaning panel for a gentle explanation.
       </p>
-      <div className="mt-4 flex flex-wrap gap-2 lg:hidden">
-        <ShareButton title={titleDisplay} />
-        <CopyLinkButton />
-      </div>
-      <div className="mt-4 flex flex-wrap gap-4 text-xs text-sagar-ink/60">
-        <span>Last updated: Feb 5, 2026</span>
-        <span>Reviewed by: {author?.name ?? "Bhakti Sagar"}</span>
-      </div>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
-        <div className="rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-card">
+      <div className="mt-6 grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
+        <div className="rounded-3xl border border-sagar-amber/20 bg-white p-6 shadow-none lg:shadow-sagar-card">
           <div className="hidden rounded-2xl border border-sagar-amber/20 bg-sagar-cream/50 p-4 lg:block">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">On this page</p>
             <div className="mt-3 flex flex-wrap gap-3 text-xs text-sagar-ink/70">
@@ -179,7 +171,7 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
               </p>
             </div>
           </div>
-          <div id="faq" className="mt-8 rounded-2xl border border-sagar-amber/20 bg-white/70 p-6 shadow-sagar-soft scroll-mt-24">
+          <div id="faq" className="mt-8 rounded-2xl border border-sagar-amber/20 bg-white p-6 scroll-mt-24 lg:shadow-sagar-soft">
             <h3 className="text-lg font-serif text-sagar-ink">FAQ</h3>
             <div className="mt-4 space-y-4 text-sm text-sagar-ink/70">
               {faqItems.map((item) => (
@@ -228,6 +220,57 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
             />
           </div>
         </aside>
+      </div>
+      <div className="mt-6 space-y-4 lg:hidden">
+        <details className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">Video</summary>
+          <div className="mt-4">
+            {embedUrl ? (
+              <div className="aspect-video overflow-hidden rounded-2xl bg-sagar-cream/70">
+                <iframe
+                  src={embedUrl}
+                  title={`${titleDisplay} Aarti Video`}
+                  className="h-full w-full"
+                  loading="lazy"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            ) : (
+              <div className="flex aspect-video items-center justify-center rounded-2xl border border-dashed border-sagar-amber/40 bg-sagar-cream/60">
+                <p className="text-sm text-sagar-ink/60">Add a YouTube URL to show the video.</p>
+              </div>
+            )}
+          </div>
+        </details>
+        <details id="meaning" className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">AI Summary</summary>
+          <div className="mt-4">
+            <MeaningPanel
+              title={titleDisplay}
+              lyrics={
+                lang === "hi" && aarti.lyrics.hindi.length
+                  ? aarti.lyrics.hindi
+                  : aarti.lyrics.english.length
+                  ? aarti.lyrics.english
+                  : aarti.lyrics.hindi
+              }
+            />
+          </div>
+        </details>
+        <details className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">Share & details</summary>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <ShareButton title={titleDisplay} />
+            <CopyLinkButton />
+            <PrintButton />
+          </div>
+          <div className="mt-4 text-xs text-sagar-ink/60">
+            <p>Last updated: Feb 5, 2026</p>
+            <p>Reviewed by: {author?.name ?? "Bhakti Sagar"}</p>
+          </div>
+        </details>
       </div>
       <div className="mt-6 space-y-4 lg:hidden">
         <details id="meaning" className="rounded-2xl border border-sagar-amber/20 bg-white/80 p-4">

@@ -4,17 +4,12 @@
 
 :root {
   color-scheme: light;
-  --bg-start: #fff0d6;
-  --bg-mid: #ffe1b5;
-  --bg-end: #fff7ee;
+  --bg-start: #fff7ee;
 }
 
 body {
-  @apply bg-sagar-sand text-sagar-ink font-sans;
-  background:
-    radial-gradient(circle at top, rgba(246, 200, 95, 0.4), transparent 55%),
-    radial-gradient(circle at 20% 20%, rgba(212, 75, 42, 0.25), transparent 50%),
-    linear-gradient(160deg, var(--bg-start), var(--bg-mid) 45%, var(--bg-end) 100%);
+  @apply text-sagar-ink font-sans;
+  background: var(--bg-start);
   min-height: 100vh;
 }
 
@@ -54,37 +49,5 @@ h1, h2, h3, h4 {
   .container {
     max-width: 100%;
     padding: 0;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  body {
-    background: #1c140f;
-    color: #f5eadb;
-  }
-
-  .bg-white,
-  .bg-white\/70,
-  .bg-white\/80 {
-    background-color: rgba(25, 18, 14, 0.9) !important;
-  }
-
-  .bg-sagar-cream,
-  .bg-sagar-cream\/50,
-  .bg-sagar-cream\/60,
-  .bg-sagar-cream\/70 {
-    background-color: rgba(30, 20, 15, 0.85) !important;
-  }
-
-  .text-sagar-ink {
-    color: #f5eadb !important;
-  }
-
-  .text-sagar-ink\/70 {
-    color: rgba(245, 234, 219, 0.7) !important;
-  }
-
-  .text-sagar-ink\/60 {
-    color: rgba(245, 234, 219, 0.6) !important;
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import LineExplain from "@/components/LineExplain";
+import LineMeaning from "@/components/LineMeaning";
 
 type LyricsSet = {
   english: string[];
@@ -80,20 +80,13 @@ export default function AartiLyricsPanel({
         </div>
       )}
 
-      <div className="space-y-4 text-[1.1rem] leading-relaxed text-sagar-ink/80 sm:text-lg sm:leading-loose md:text-xl">
+      <div className="space-y-5 text-[1.125rem] leading-[1.6] text-sagar-ink/90 sm:text-lg sm:leading-[1.7] md:text-xl">
         {activeLyrics.map((line, index) => (
-          <div
+          <LineMeaning
             key={`${line}-${index}`}
-            className="grid grid-cols-[1fr_auto] items-start gap-3 border-b border-sagar-amber/10 pb-4 last:border-b-0"
-          >
-            <p>{line}</p>
-            <LineExplain
-              title={title.english || title.hindi}
-              line={line}
-              canUse
-              onUse={() => {}}
-            />
-          </div>
+            title={title.english || title.hindi}
+            line={line}
+          />
         ))}
       </div>
     </div>

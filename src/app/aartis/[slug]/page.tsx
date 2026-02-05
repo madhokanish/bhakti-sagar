@@ -3,7 +3,6 @@ import AartiLyricsPanel from "@/components/AartiLyricsPanel";
 import MeaningPanel from "@/components/MeaningPanel";
 import ShareButton from "@/components/ShareButton";
 import PrintButton from "@/components/PrintButton";
-import AskAIPanel from "@/components/AskAIPanel";
 import { getAartiBySlug, getAartis, getAartisByCategory, getCategories } from "@/lib/data";
 import { festivals } from "@/lib/content";
 import { getYouTubeEmbedUrl, getYouTubeId } from "@/lib/youtube";
@@ -197,7 +196,6 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
               )}
             </div>
           </div>
-          <AskAIPanel title={titleDisplay} lyrics={aarti.lyrics.english.length ? aarti.lyrics.english : aarti.lyrics.hindi} />
           <div id="meaning" className="scroll-mt-24">
             <MeaningPanel title={titleDisplay} lyrics={aarti.lyrics.english.length ? aarti.lyrics.english : aarti.lyrics.hindi} />
           </div>

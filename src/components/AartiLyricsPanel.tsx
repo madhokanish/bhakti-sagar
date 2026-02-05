@@ -44,7 +44,7 @@ export default function AartiLyricsPanel({
   }, [language, englishAvailable, hindiAvailable]);
 
   return (
-    <div className="mt-6 space-y-6">
+    <div className="mt-6 space-y-6 md:max-w-3xl md:mx-auto lg:max-w-none">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">Lyrics</p>
@@ -80,9 +80,12 @@ export default function AartiLyricsPanel({
         </div>
       )}
 
-      <div className="space-y-4 text-lg leading-relaxed text-sagar-ink/80">
+      <div className="space-y-4 text-[1.1rem] leading-relaxed text-sagar-ink/80 sm:text-lg sm:leading-loose md:text-xl">
         {activeLyrics.map((line, index) => (
-          <div key={`${line}-${index}`} className="grid grid-cols-[1fr_auto] items-start gap-3">
+          <div
+            key={`${line}-${index}`}
+            className="grid grid-cols-[1fr_auto] items-start gap-3 border-b border-sagar-amber/10 pb-4 last:border-b-0"
+          >
             <p>{line}</p>
             <LineExplain
               title={title.english || title.hindi}

@@ -56,3 +56,35 @@ h1, h2, h3, h4 {
     padding: 0;
   }
 }
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #1c140f;
+    color: #f5eadb;
+  }
+
+  .bg-white,
+  .bg-white\/70,
+  .bg-white\/80 {
+    background-color: rgba(25, 18, 14, 0.9) !important;
+  }
+
+  .bg-sagar-cream,
+  .bg-sagar-cream\/50,
+  .bg-sagar-cream\/60,
+  .bg-sagar-cream\/70 {
+    background-color: rgba(30, 20, 15, 0.85) !important;
+  }
+
+  .text-sagar-ink {
+    color: #f5eadb !important;
+  }
+
+  .text-sagar-ink\/70 {
+    color: rgba(245, 234, 219, 0.7) !important;
+  }
+
+  .text-sagar-ink\/60 {
+    color: rgba(245, 234, 219, 0.6) !important;
+  }
+}

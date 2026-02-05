@@ -3,6 +3,8 @@ import AartiLyricsPanel from "@/components/AartiLyricsPanel";
 import MeaningPanel from "@/components/MeaningPanel";
 import ShareButton from "@/components/ShareButton";
 import PrintButton from "@/components/PrintButton";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import MobileContentsDrawer from "@/components/MobileContentsDrawer";
 import { getAartiBySlug, getAartis, getAartisByCategory, getCategories } from "@/lib/data";
 import { festivals } from "@/lib/content";
 import { getYouTubeEmbedUrl, getYouTubeId } from "@/lib/youtube";
@@ -107,6 +109,13 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
     .filter((item) => item.slug !== aarti.slug)
     .slice(0, 6);
   const relatedFestivals = festivals.filter((festival) => festival.categories.includes(aarti.category)).slice(0, 3);
+  const contents = [
+    { id: "lyrics", label: "Lyrics" },
+    { id: "meaning", label: "AI Summary" },
+    { id: "how-to", label: "How to do aarti" },
+    { id: "faq", label: "FAQ" },
+    { id: "related", label: "Related prayers" }
+  ];
 
   return (
     <div className="container py-12">
@@ -129,6 +138,10 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
       <p className="mt-3 max-w-2xl text-sm text-sagar-ink/70">
         Sing along with the lyrics and open the meaning panel for a gentle explanation.
       </p>
+      <div className="mt-4 flex flex-wrap gap-2 lg:hidden">
+        <ShareButton title={titleDisplay} />
+        <CopyLinkButton />
+      </div>
       <div className="mt-4 flex flex-wrap gap-4 text-xs text-sagar-ink/60">
         <span>Last updated: Feb 5, 2026</span>
         <span>Reviewed by: {author?.name ?? "Bhakti Sagar"}</span>
@@ -136,7 +149,7 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
         <div className="rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-card">
-          <div className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/50 p-4">
+          <div className="hidden rounded-2xl border border-sagar-amber/20 bg-sagar-cream/50 p-4 lg:block">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">On this page</p>
             <div className="mt-3 flex flex-wrap gap-3 text-xs text-sagar-ink/70">
               <a href="#lyrics" className="hover:text-sagar-saffron">Lyrics</a>
@@ -178,7 +191,7 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
             </div>
           </div>
         </div>
-        <aside className="space-y-4 lg:sticky lg:top-20">
+        <aside className="space-y-4 lg:sticky lg:top-20 hidden lg:block">
           <div className="rounded-3xl border border-sagar-amber/20 bg-white/80 p-4 shadow-sagar-soft">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">Video</p>
             <h2 className="mt-2 text-lg font-serif text-sagar-ink">Listen & sing along</h2>
@@ -216,7 +229,46 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
           </div>
         </aside>
       </div>
-      <div className="mt-12 grid gap-6 md:grid-cols-2">
+      <div className="mt-6 space-y-4 lg:hidden">
+        <details id="meaning" className="rounded-2xl border border-sagar-amber/20 bg-white/80 p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">Video</summary>
+          <div className="mt-4">
+            {embedUrl ? (
+              <div className="aspect-video overflow-hidden rounded-2xl bg-sagar-cream/70">
+                <iframe
+                  src={embedUrl}
+                  title={`${titleDisplay} Aarti Video`}
+                  className="h-full w-full"
+                  loading="lazy"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            ) : (
+              <div className="flex aspect-video items-center justify-center rounded-2xl border border-dashed border-sagar-amber/40 bg-sagar-cream/60">
+                <p className="text-sm text-sagar-ink/60">Add a YouTube URL to show the video.</p>
+              </div>
+            )}
+          </div>
+        </details>
+        <details className="rounded-2xl border border-sagar-amber/20 bg-white/80 p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">AI Summary</summary>
+          <div className="mt-4">
+            <MeaningPanel
+              title={titleDisplay}
+              lyrics={
+                lang === "hi" && aarti.lyrics.hindi.length
+                  ? aarti.lyrics.hindi
+                  : aarti.lyrics.english.length
+                  ? aarti.lyrics.english
+                  : aarti.lyrics.hindi
+              }
+            />
+          </div>
+        </details>
+      </div>
+      <div id="related" className="mt-12 grid gap-6 md:grid-cols-2">
         <div className="rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-soft">
           <h3 className="text-lg font-serif text-sagar-ink">More prayers for {category?.name ?? "this deity"}</h3>
           <div className="mt-4 grid gap-2 text-sm text-sagar-ink/70">
@@ -261,6 +313,7 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
           </div>
         </div>
       )}
+      <MobileContentsDrawer sections={contents} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleData) }}

@@ -494,6 +494,83 @@ END:VCALENDAR`;
         hasTimes={Boolean(sunTimes)}
       />
 
+      {sunTimes && (
+        <div className="hidden md:block rounded-2xl border border-sagar-amber/20 bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Timeline</p>
+          <div
+            ref={timelineRef}
+            className="relative mt-4 h-6 rounded-full bg-sagar-cream/70"
+            role="slider"
+            tabIndex={0}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(Math.max(0, Math.min(1, selectedRatio)) * 100)}
+            onPointerDown={(event) => {
+              scrubbingRef.current = true;
+              event.currentTarget.setPointerCapture(event.pointerId);
+              updateSelectedFromPointer(event.clientX);
+            }}
+            onPointerMove={(event) => {
+              if (!scrubbingRef.current) return;
+              updateSelectedFromPointer(event.clientX);
+            }}
+            onPointerUp={(event) => {
+              scrubbingRef.current = false;
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }}
+            onPointerCancel={() => {
+              scrubbingRef.current = false;
+            }}
+            onKeyDown={(event) => {
+              if (!sunTimes) return;
+              const step = timelineTotal / 24;
+              const minTime = sunTimes.sunrise.getTime();
+              const maxTime = sunTimes.nextSunrise.getTime() - 1;
+              if (event.key === "ArrowRight") {
+                const next = Math.min(maxTime, (selectedTimeMs ?? nowMs) + step);
+                setSelectedTimeMs(next);
+              }
+              if (event.key === "ArrowLeft") {
+                const next = Math.max(minTime, (selectedTimeMs ?? nowMs) - step);
+                setSelectedTimeMs(next);
+              }
+            }}
+          >
+            <div className="absolute inset-0 flex overflow-hidden rounded-full">
+              {combinedSegments.map((segment) => {
+                const width =
+                  ((segment.end.getTime() - segment.start.getTime()) / timelineTotal) * 100;
+                return (
+                  <button
+                    key={`${segment.name}-${segment.start.getTime()}`}
+                    className={`h-full ${goodLabels.has(segment.label) ? "bg-sagar-amber/50" : "bg-sagar-rose/30"}`}
+                    style={{ width: `${width}%` }}
+                    onClick={() => setSelectedTimeMs(segment.start.getTime())}
+                    aria-label={`${segment.name} ${segment.label}`}
+                  />
+                );
+              })}
+            </div>
+            <div
+              className="absolute top-0 h-full w-0.5 bg-sagar-saffron"
+              style={{ left: `${Math.max(0, Math.min(100, nowPosition))}%` }}
+            />
+          </div>
+          {selectedSegment && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-sagar-ink/70">
+              <span className="font-semibold text-sagar-ink">{selectedSegment.name}</span>
+              <span className="rounded-full bg-sagar-amber/20 px-2 py-0.5 text-xs uppercase text-sagar-ink/70">
+                {selectedSegment.label}
+              </span>
+              <span>
+                {formatTimeWithDay(selectedSegment.start, tz, baseDateKey)} –{" "}
+                {formatTimeWithDay(selectedSegment.end, tz, baseDateKey)}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-sagar-ink/60">
         <a href="#day" className="text-sagar-saffron">
           Jump to Day
@@ -605,82 +682,6 @@ END:VCALENDAR`;
         </>
       )}
 
-      {sunTimes && (
-        <div className="hidden md:block rounded-2xl border border-sagar-amber/20 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Timeline</p>
-          <div
-            ref={timelineRef}
-            className="relative mt-4 h-6 rounded-full bg-sagar-cream/70"
-            role="slider"
-            tabIndex={0}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(Math.max(0, Math.min(1, selectedRatio)) * 100)}
-            onPointerDown={(event) => {
-              scrubbingRef.current = true;
-              event.currentTarget.setPointerCapture(event.pointerId);
-              updateSelectedFromPointer(event.clientX);
-            }}
-            onPointerMove={(event) => {
-              if (!scrubbingRef.current) return;
-              updateSelectedFromPointer(event.clientX);
-            }}
-            onPointerUp={(event) => {
-              scrubbingRef.current = false;
-              event.currentTarget.releasePointerCapture(event.pointerId);
-            }}
-            onPointerCancel={() => {
-              scrubbingRef.current = false;
-            }}
-            onKeyDown={(event) => {
-              if (!sunTimes) return;
-              const step = timelineTotal / 24;
-              const minTime = sunTimes.sunrise.getTime();
-              const maxTime = sunTimes.nextSunrise.getTime() - 1;
-              if (event.key === "ArrowRight") {
-                const next = Math.min(maxTime, (selectedTimeMs ?? nowMs) + step);
-                setSelectedTimeMs(next);
-              }
-              if (event.key === "ArrowLeft") {
-                const next = Math.max(minTime, (selectedTimeMs ?? nowMs) - step);
-                setSelectedTimeMs(next);
-              }
-            }}
-          >
-            <div className="absolute inset-0 flex overflow-hidden rounded-full">
-              {combinedSegments.map((segment) => {
-                const width =
-                  ((segment.end.getTime() - segment.start.getTime()) / timelineTotal) * 100;
-                return (
-                  <button
-                    key={`${segment.name}-${segment.start.getTime()}`}
-                    className={`h-full ${goodLabels.has(segment.label) ? "bg-sagar-amber/50" : "bg-sagar-rose/30"}`}
-                    style={{ width: `${width}%` }}
-                    onClick={() => setSelectedTimeMs(segment.start.getTime())}
-                    aria-label={`${segment.name} ${segment.label}`}
-                  />
-                );
-              })}
-            </div>
-            <div
-              className="absolute top-0 h-full w-0.5 bg-sagar-saffron"
-              style={{ left: `${Math.max(0, Math.min(100, nowPosition))}%` }}
-            />
-          </div>
-          {selectedSegment && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-sagar-ink/70">
-              <span className="font-semibold text-sagar-ink">{selectedSegment.name}</span>
-              <span className="rounded-full bg-sagar-amber/20 px-2 py-0.5 text-xs uppercase text-sagar-ink/70">
-                {selectedSegment.label}
-              </span>
-              <span>
-                {formatTimeWithDay(selectedSegment.start, tz, baseDateKey)} –{" "}
-                {formatTimeWithDay(selectedSegment.end, tz, baseDateKey)}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

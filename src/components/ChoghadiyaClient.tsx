@@ -18,7 +18,13 @@ import {
 import { cities, CityOption } from "@/lib/choghadiyaCities";
 import GoalPlannerLauncher from "@/components/choghadiya/GoalPlannerLauncher";
 import GoalPlannerPanel, { type PlannerParams } from "@/components/choghadiya/GoalPlannerPanel";
+import StickyControlBar from "@/components/choghadiya/StickyControlBar";
+import SwipeDateStrip from "@/components/choghadiya/SwipeDateStrip";
+import CurrentSlotCard from "@/components/choghadiya/CurrentSlotCard";
+import TimetableSection from "@/components/choghadiya/TimetableSection";
+import Legend from "@/components/choghadiya/Legend";
 import { PlannerSegment } from "@/lib/choghadiyaPlanner";
+import { addDaysISO } from "@/lib/choghadiyaPlanner";
 
 type SunTimes = {
   sunrise: Date;
@@ -278,19 +284,25 @@ export default function ChoghadiyaClient({
 
   function handleCityChange(value: string) {
     setCityInput(value);
-    const match = cities.find((city) => city.name.toLowerCase() === value.toLowerCase());
-    if (match) {
-      setLat(match.lat);
-      setLon(match.lon);
-      setTz(match.tz);
-      setPathBase(`/choghadiya/${match.slug}`);
-      track("choghadiya_city_selected");
-    } else {
-      setLat(null);
-      setLon(null);
-      setPathBase("/choghadiya");
-    }
   }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const match = cities.find((city) => city.name.toLowerCase() === cityInput.toLowerCase());
+      if (match) {
+        setLat(match.lat);
+        setLon(match.lon);
+        setTz(match.tz);
+        setPathBase(`/choghadiya/${match.slug}`);
+        track("choghadiya_city_selected");
+      } else if (cityInput.trim().length === 0) {
+        setLat(null);
+        setLon(null);
+        setPathBase("/choghadiya");
+      }
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [cityInput]);
 
   function handleUseMyLocation() {
     if (!navigator.geolocation) return;
@@ -361,6 +373,10 @@ END:VCALENDAR`;
     track("choghadiya_planner_reminder_clicked");
   }
 
+  function handleCopy(text: string) {
+    navigator.clipboard.writeText(text);
+  }
+
   const timelineTotal = sunTimes
     ? sunTimes.nextSunrise.getTime() - sunTimes.sunrise.getTime()
     : 0;
@@ -429,92 +445,80 @@ END:VCALENDAR`;
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-serif text-sagar-ink">Aaj Ka Choghadiya</h1>
-        <button
-          onClick={handleShare}
-          className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70"
-          aria-label="Share this choghadiya"
-        >
-          Share
-        </button>
+    <div className="space-y-4">
+      <h1 className="sr-only">Aaj Ka Choghadiya</h1>
+      <StickyControlBar
+        cityInput={cityInput}
+        onCityChange={handleCityChange}
+        cities={cities}
+        onUseLocation={handleUseMyLocation}
+        timeZones={timeZones}
+        tz={tz}
+        onTimezoneChange={handleTimezoneChange}
+        dateISO={dateISO}
+        onDateChange={handleDateChange}
+        onPrevDay={() => handleDateChange(addDaysISO(dateISO, -1))}
+        onNextDay={() => handleDateChange(addDaysISO(dateISO, 1))}
+        onToday={() => handleDateChange(getLocalDateISO(tz))}
+        onShare={handleShare}
+      />
+
+      <SwipeDateStrip dateISO={dateISO} tz={tz} onDateChange={handleDateChange} />
+
+      {error && <p className="text-sm text-sagar-crimson">{error}</p>}
+
+      <CurrentSlotCard
+        currentSegment={currentSegment}
+        nextGood={nextGood}
+        countdown={countdown}
+        timeZone={tz}
+        baseDateKey={baseDateKey}
+        sunrise={sunTimes?.sunrise ?? null}
+        sunset={sunTimes?.sunset ?? null}
+        loading={loading}
+      />
+
+      <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-sagar-ink/60">
+        <a href="#day" className="text-sagar-saffron">
+          Jump to Day
+        </a>
+        <a href="#night" className="text-sagar-saffron">
+          Jump to Night
+        </a>
       </div>
 
-      <div className="grid gap-4 rounded-2xl border border-sagar-amber/20 bg-white p-4 md:grid-cols-[2fr_1fr]">
-        <div className="space-y-3">
-          <label className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">
-            Location
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <input
-              list="city-list"
-              value={cityInput}
-              onChange={(e) => handleCityChange(e.target.value)}
-              placeholder="City (type to search)"
-              aria-label="City"
-              className="w-full rounded-full border border-sagar-amber/30 bg-white px-4 py-2 text-sm outline-none md:w-auto"
-            />
-            <datalist id="city-list">
-              {cities.map((city) => (
-                <option key={city.slug} value={city.name} />
-              ))}
-            </datalist>
-            <button
-              onClick={handleUseMyLocation}
-              className="rounded-full border border-sagar-amber/30 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70"
-            >
-              Use my location
-            </button>
-          </div>
-        </div>
-        <div className="space-y-3">
-          <label className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">
-            Timezone
-          </label>
-          <input
-            list="tz-list"
-            value={tz}
-            onChange={(e) => handleTimezoneChange(e.target.value)}
-            aria-label="Timezone"
-            className="w-full rounded-full border border-sagar-amber/30 bg-white px-4 py-2 text-sm outline-none"
-          />
-          <datalist id="tz-list">
-            {timeZones.map((zone) => (
-              <option key={zone} value={zone} />
-            ))}
-          </datalist>
-        </div>
-      </div>
+      <TimetableSection
+        id="day"
+        title="Day"
+        anchorLabel="Sunrise"
+        headerTime={sunTimes?.sunrise ?? null}
+        segments={daySegments}
+        currentSegment={currentSegment}
+        timeZone={tz}
+        baseDateKey={baseDateKey}
+        onAddReminder={downloadICS}
+        onCopyTime={handleCopy}
+      />
+      <TimetableSection
+        id="night"
+        title="Night"
+        anchorLabel="Sunset"
+        headerTime={sunTimes?.sunset ?? null}
+        segments={nightSegments}
+        currentSegment={currentSegment}
+        timeZone={tz}
+        baseDateKey={baseDateKey}
+        onAddReminder={downloadICS}
+        onCopyTime={handleCopy}
+      />
 
-      <div className="grid gap-3 rounded-2xl border border-sagar-amber/20 bg-white p-4 md:grid-cols-[2fr_1fr]">
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => handleDateChange(getLocalDateISO(tz))}
-            className="rounded-full border border-sagar-amber/30 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70"
-          >
-            Today
-          </button>
-          <button
-            onClick={() => handleDateChange(new Date(new Date(dateISO).getTime() - 86400000).toISOString().slice(0, 10))}
-            className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70"
-          >
-            Prev
-          </button>
-          <button
-            onClick={() => handleDateChange(new Date(new Date(dateISO).getTime() + 86400000).toISOString().slice(0, 10))}
-            className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70"
-          >
-            Next
-          </button>
-          <input
-            type="date"
-            value={dateISO}
-            onChange={(e) => handleDateChange(e.target.value)}
-            className="rounded-full border border-sagar-amber/30 bg-white px-4 py-2 text-sm"
-          />
-        </div>
-        <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-sagar-ink/60">
+      <Legend />
+
+      <details className="rounded-2xl border border-sagar-amber/20 bg-white px-4 py-2 text-xs text-sagar-ink/70">
+        <summary className="cursor-pointer font-semibold uppercase tracking-[0.2em] text-sagar-rose">
+          Settings
+        </summary>
+        <div className="mt-2 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-sagar-ink/60">
           <button onClick={() => handleModeToggle("auto")} className={mode === "auto" ? "text-sagar-saffron" : ""}>
             Auto
           </button>
@@ -522,79 +526,38 @@ END:VCALENDAR`;
             Manual
           </button>
         </div>
-      </div>
-
-      {mode === "manual" && (
-        <div className="space-y-2">
-          <div className="grid gap-3 rounded-2xl border border-sagar-amber/20 bg-white p-4 md:grid-cols-3">
+        {mode === "manual" && (
+          <div className="mt-3 grid gap-2 md:grid-cols-3">
             <input
               value={sunrise}
               onChange={(e) => setSunrise(e.target.value)}
               placeholder="Sunrise (HH:mm)"
-              className="rounded-full border border-sagar-amber/30 bg-white px-4 py-2 text-sm"
+              className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs"
             />
             <input
               value={sunset}
               onChange={(e) => setSunset(e.target.value)}
               placeholder="Sunset (HH:mm)"
-              className="rounded-full border border-sagar-amber/30 bg-white px-4 py-2 text-sm"
+              className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs"
             />
             <input
               value={nextSunrise}
               onChange={(e) => setNextSunrise(e.target.value)}
               placeholder="Next sunrise (HH:mm)"
-              className="rounded-full border border-sagar-amber/30 bg-white px-4 py-2 text-sm"
+              className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs"
             />
           </div>
-          {manualHint && <p className="text-sm text-sagar-ink/60">{manualHint}</p>}
-        </div>
-      )}
+        )}
+        {manualHint && <p className="mt-2 text-xs text-sagar-ink/60">{manualHint}</p>}
+      </details>
 
-      <div className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Current Choghadiya</p>
-        {error && <p className="mt-3 text-sm text-sagar-crimson">{error}</p>}
-        {loading && (
-          <div className="mt-3 space-y-2 animate-pulse">
-            <div className="h-5 w-32 rounded-full bg-sagar-cream/80" />
-            <div className="h-4 w-48 rounded-full bg-sagar-cream/60" />
-            <div className="h-4 w-28 rounded-full bg-sagar-cream/60" />
-          </div>
-        )}
-        {!loading && !error && currentSegment && (
-          <div className="mt-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-serif text-sagar-ink">{currentSegment.name}</span>
-              <span className="rounded-full bg-sagar-amber/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70">
-                {currentSegment.label}
-              </span>
-            </div>
-            <p className="text-sm text-sagar-ink/70">
-              {formatTimeWithDay(currentSegment.start, tz, baseDateKey)} – {formatTimeWithDay(currentSegment.end, tz, baseDateKey)}
-            </p>
-            {countdown && (
-              <p className="text-sm text-sagar-ink/60">
-                Ends in {countdown}
-              </p>
-            )}
-          </div>
-        )}
-        {!loading && !error && !currentSegment && (
-          <p className="mt-3 text-sm text-sagar-ink/60">Select a city or add sunrise/sunset times to begin.</p>
-        )}
-        {nextGood && (
-          <button
-            onClick={() => setSelectedTimeMs(nextGood.start.getTime())}
-            className="mt-3 rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70"
-          >
-            Next good slot: {nextGood.name} • {formatTimeWithDay(nextGood.start, tz, baseDateKey)}
-          </button>
-        )}
-      </div>
+      <GoalPlannerLauncher
+        onOpen={() => {
+          setPlannerOpen(true);
+          track("choghadiya_planner_opened");
+        }}
+      />
 
-      <GoalPlannerLauncher onOpen={() => {
-        setPlannerOpen(true);
-        track("choghadiya_planner_opened");
-      }} />
       <GoalPlannerPanel
         open={plannerOpen}
         onClose={() => setPlannerOpen(false)}
@@ -614,16 +577,8 @@ END:VCALENDAR`;
         }
       />
 
-      {loading && !sunTimes && (
-        <div className="rounded-2xl border border-sagar-amber/20 bg-white p-4 animate-pulse">
-          <div className="h-4 w-24 rounded-full bg-sagar-cream/70" />
-          <div className="mt-4 h-6 w-full rounded-full bg-sagar-cream/60" />
-          <div className="mt-3 h-4 w-40 rounded-full bg-sagar-cream/60" />
-        </div>
-      )}
-
       {sunTimes && (
-        <div className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
+        <div className="hidden md:block rounded-2xl border border-sagar-amber/20 bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Timeline</p>
           <div
             ref={timelineRef}
@@ -698,61 +653,6 @@ END:VCALENDAR`;
           )}
         </div>
       )}
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
-          <h2 className="text-lg font-serif text-sagar-ink">Day Choghadiya</h2>
-          <div className="mt-3 space-y-3">
-            {daySegments.map((segment) => (
-              <div key={segment.start.toISOString()} className="flex items-center justify-between text-sm text-sagar-ink/70">
-                <div>
-                  <span className="font-semibold text-sagar-ink">{segment.name}</span>{" "}
-                  <span className="ml-2 rounded-full bg-sagar-amber/20 px-2 py-0.5 text-xs uppercase text-sagar-ink/70">
-                    {segment.label}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <p>
-                    {formatTimeWithDay(segment.start, tz, baseDateKey)} – {formatTimeWithDay(segment.end, tz, baseDateKey)}
-                  </p>
-                  <button onClick={() => downloadICS(segment)} className="text-xs text-sagar-saffron">
-                    Add reminder
-                  </button>
-                </div>
-              </div>
-            ))}
-            {!sunTimes && !loading && (
-              <p className="text-sm text-sagar-ink/60">Select a city to see the day choghadiya.</p>
-            )}
-          </div>
-        </div>
-        <div className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
-          <h2 className="text-lg font-serif text-sagar-ink">Night Choghadiya</h2>
-          <div className="mt-3 space-y-3">
-            {nightSegments.map((segment) => (
-              <div key={segment.start.toISOString()} className="flex items-center justify-between text-sm text-sagar-ink/70">
-                <div>
-                  <span className="font-semibold text-sagar-ink">{segment.name}</span>{" "}
-                  <span className="ml-2 rounded-full bg-sagar-amber/20 px-2 py-0.5 text-xs uppercase text-sagar-ink/70">
-                    {segment.label}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <p>
-                    {formatTimeWithDay(segment.start, tz, baseDateKey)} – {formatTimeWithDay(segment.end, tz, baseDateKey)}
-                  </p>
-                  <button onClick={() => downloadICS(segment)} className="text-xs text-sagar-saffron">
-                    Add reminder
-                  </button>
-                </div>
-              </div>
-            ))}
-            {!sunTimes && !loading && (
-              <p className="text-sm text-sagar-ink/60">Night choghadiya will appear once times are available.</p>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

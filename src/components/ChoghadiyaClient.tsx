@@ -95,6 +95,9 @@ export default function ChoghadiyaClient({
   });
   const [activePane, setActivePane] = useState<"day" | "night">(initialPane);
   const [isDateAutoSet, setIsDateAutoSet] = useState(false);
+  const handlePlannerParamsChange = useCallback((params: PlannerParams) => {
+    setPlannerParams(params);
+  }, []);
 
   useEffect(() => {
     try {
@@ -575,6 +578,3 @@ END:VCALENDAR`;
     </div>
   );
 }
-  const handlePlannerParamsChange = useCallback((params: PlannerParams) => {
-    setPlannerParams(params);
-  }, []);

@@ -1,12 +1,13 @@
 "use client";
 
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CityOption } from "@/lib/choghadiyaCities";
 
 type Props = {
   cityInput: string;
   onCityChange: (value: string) => void;
   citySuggestions: CityOption[];
-  cities: CityOption[];
+  recentCities: CityOption[];
   onUseLocation: () => void;
   timeZones: string[];
   tz: string;
@@ -23,7 +24,7 @@ export default function StickyControlBar({
   cityInput,
   onCityChange,
   citySuggestions,
-  cities,
+  recentCities,
   onUseLocation,
   timeZones,
   tz,
@@ -35,35 +36,95 @@ export default function StickyControlBar({
   onToday,
   onShare
 }: Props) {
+  const [openSuggestions, setOpenSuggestions] = useState(false);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const blurTimer = useRef<number | null>(null);
+
+  const displaySuggestions = useMemo(() => {
+    if (cityInput.trim().length > 0) return citySuggestions;
+    return recentCities;
+  }, [cityInput, citySuggestions, recentCities]);
+
+  useEffect(() => {
+    if (!openSuggestions) return;
+    setActiveIndex(displaySuggestions.length > 0 ? 0 : null);
+  }, [openSuggestions, displaySuggestions]);
+
+  const handleSelectCity = (city: CityOption) => {
+    onCityChange(city.name);
+    setOpenSuggestions(false);
+    setActiveIndex(null);
+  };
+
   return (
     <div className="sticky top-16 z-30 border-b border-sagar-amber/20 bg-sagar-cream/95 px-3 py-2 backdrop-blur md:top-20">
       <div className="flex items-center gap-2">
         <div className="relative w-full max-w-[55%]">
           <input
-            list="city-list"
             value={cityInput}
             onChange={(e) => onCityChange(e.target.value)}
+            onFocus={() => {
+              if (blurTimer.current) window.clearTimeout(blurTimer.current);
+              setOpenSuggestions(true);
+            }}
+            onBlur={() => {
+              blurTimer.current = window.setTimeout(() => setOpenSuggestions(false), 150);
+            }}
+            onKeyDown={(event) => {
+              if (!openSuggestions || displaySuggestions.length === 0) return;
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                setActiveIndex((prev) => {
+                  if (prev == null) return 0;
+                  return Math.min(displaySuggestions.length - 1, prev + 1);
+                });
+              }
+              if (event.key === "ArrowUp") {
+                event.preventDefault();
+                setActiveIndex((prev) => {
+                  if (prev == null) return displaySuggestions.length - 1;
+                  return Math.max(0, prev - 1);
+                });
+              }
+              if (event.key === "Enter") {
+                event.preventDefault();
+                const index = activeIndex ?? 0;
+                const selected = displaySuggestions[index];
+                if (selected) handleSelectCity(selected);
+              }
+              if (event.key === "Escape") {
+                setOpenSuggestions(false);
+              }
+            }}
             placeholder="City"
             aria-label="City"
             className="w-full rounded-full border border-sagar-amber/30 bg-white px-3 py-1 text-xs outline-none"
           />
-          <datalist id="city-list">
-            {cities.map((city) => (
-              <option key={city.slug} value={city.name} />
-            ))}
-          </datalist>
-          {citySuggestions.length > 0 && (
-            <div className="absolute left-0 right-0 top-[110%] z-50 rounded-2xl border border-sagar-amber/30 bg-white p-2 shadow-sagar-soft md:hidden">
-              {citySuggestions.map((city) => (
-                <button
-                  key={city.slug}
-                  onClick={() => onCityChange(city.name)}
-                  className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-left text-xs text-sagar-ink hover:bg-sagar-cream/70"
-                >
-                  <span>{city.name}</span>
-                  <span className="text-[0.6rem] text-sagar-ink/50">{city.tz}</span>
-                </button>
-              ))}
+          {openSuggestions && displaySuggestions.length > 0 && (
+            <div className="absolute left-0 right-0 top-[110%] z-50 max-h-60 overflow-auto rounded-2xl border border-sagar-amber/30 bg-white p-2 shadow-sagar-soft">
+              {displaySuggestions.map((city, index) => {
+                const active = index === activeIndex;
+                return (
+                  <button
+                    key={city.slug}
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      handleSelectCity(city);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-xl px-2 py-2 text-left text-xs ${
+                      active ? "bg-sagar-cream/70 text-sagar-ink" : "text-sagar-ink hover:bg-sagar-cream/70"
+                    }`}
+                  >
+                    <span>{city.name}</span>
+                    <span className="text-[0.6rem] text-sagar-ink/50">{city.tz}</span>
+                  </button>
+                );
+              })}
+              {cityInput.trim().length === 0 && recentCities.length > 0 && (
+                <p className="mt-1 px-2 text-[0.55rem] uppercase tracking-[0.2em] text-sagar-ink/40">
+                  Recent
+                </p>
+              )}
             </div>
           )}
         </div>

@@ -94,6 +94,8 @@ export default function ChoghadiyaClient({
   });
   const [activePane, setActivePane] = useState<"day" | "night">(initialPane);
   const [isDateAutoSet, setIsDateAutoSet] = useState(false);
+  const [recentCities, setRecentCities] = useState<CityOption[]>([]);
+  const recentKey = "choghadiya_recent_cities";
   const citySuggestions = useMemo(() => {
     const value = cityInput.trim().toLowerCase();
     if (!value) return [];
@@ -101,6 +103,21 @@ export default function ChoghadiyaClient({
       .filter((city) => city.name.toLowerCase().includes(value))
       .slice(0, 6);
   }, [cityInput]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(recentKey);
+    if (!stored) return;
+    try {
+      const slugs = JSON.parse(stored) as string[];
+      const list = slugs
+        .map((slug) => cities.find((city) => city.slug === slug))
+        .filter((city): city is CityOption => Boolean(city));
+      setRecentCities(list);
+    } catch {
+      setRecentCities([]);
+    }
+  }, []);
   const handlePlannerParamsChange = useCallback((params: PlannerParams) => {
     setPlannerParams(params);
   }, []);
@@ -278,6 +295,13 @@ export default function ChoghadiyaClient({
         setLon(match.lon);
         setTz(match.tz);
         setPathBase(`/choghadiya/${match.slug}`);
+        setRecentCities((prev) => {
+          const next = [match, ...prev.filter((item) => item.slug !== match.slug)].slice(0, 3);
+          if (typeof window !== "undefined") {
+            window.localStorage.setItem(recentKey, JSON.stringify(next.map((item) => item.slug)));
+          }
+          return next;
+        });
         track("choghadiya_city_selected");
       } else if (cityInput.trim().length === 0) {
         setLat(null);
@@ -433,7 +457,7 @@ END:VCALENDAR`;
         cityInput={cityInput}
         onCityChange={handleCityChange}
         citySuggestions={citySuggestions}
-        cities={cities}
+        recentCities={recentCities}
         onUseLocation={handleUseMyLocation}
         timeZones={timeZones}
         tz={tz}

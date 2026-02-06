@@ -1,6 +1,6 @@
 "use client";
 
-import { ChoghadiyaSegment, formatTimeWithDay } from "@/lib/choghadiya";
+import { ChoghadiyaSegment, formatTime, getDateKey } from "@/lib/choghadiya";
 import { getSlotMeta } from "@/components/choghadiya/slotMeta";
 
 type Props = {
@@ -23,11 +23,9 @@ export default function SegmentRow({
   onCopyTime
 }: Props) {
   const meta = getSlotMeta(segment.name);
-  const timeText = `${formatTimeWithDay(segment.start, timeZone, baseDateKey)} – ${formatTimeWithDay(
-    segment.end,
-    timeZone,
-    baseDateKey
-  )}`;
+  const endKey = getDateKey(segment.end, timeZone);
+  const endSuffix = endKey !== baseDateKey ? " (next day)" : "";
+  const timeText = `${formatTime(segment.start, timeZone)} – ${formatTime(segment.end, timeZone)}${endSuffix}`;
 
   return (
     <details

@@ -17,10 +17,9 @@ import {
 } from "@/lib/choghadiya";
 import { cities, CityOption } from "@/lib/choghadiyaCities";
 import GoalPlannerPanel, { type PlannerParams } from "@/components/choghadiya/GoalPlannerPanel";
-import StickyControlBar from "@/components/choghadiya/StickyControlBar";
-import SwipeDateStrip from "@/components/choghadiya/SwipeDateStrip";
+import DateController from "@/components/choghadiya/DateController";
 import CurrentSlotCard from "@/components/choghadiya/CurrentSlotCard";
-import TimetableSection from "@/components/choghadiya/TimetableSection";
+import TimetablePane from "@/components/choghadiya/TimetablePane";
 import Legend from "@/components/choghadiya/Legend";
 import { PlannerSegment } from "@/lib/choghadiyaPlanner";
 import { addDaysISO } from "@/lib/choghadiyaPlanner";
@@ -49,6 +48,7 @@ type Props = {
   initialPlannerWindow?: string;
   initialPlannerStart?: string;
   initialPlannerEnd?: string;
+  initialPane?: "day" | "night";
 };
 
 const goodLabels = new Set(["Best", "Good", "Gain", "Neutral"]);
@@ -70,7 +70,8 @@ export default function ChoghadiyaClient({
   initialPlannerGoal,
   initialPlannerWindow,
   initialPlannerStart,
-  initialPlannerEnd
+  initialPlannerEnd,
+  initialPane = "day"
 }: Props) {
   const router = useRouter();
   const [cityInput, setCityInput] = useState(initialCityName ?? initialCity?.name ?? "");
@@ -99,6 +100,8 @@ export default function ChoghadiyaClient({
     start: initialPlannerStart,
     end: initialPlannerEnd
   });
+  const [activePane, setActivePane] = useState<"day" | "night">(initialPane);
+  const [isDateAutoSet, setIsDateAutoSet] = useState(false);
 
   useEffect(() => {
     try {
@@ -231,12 +234,13 @@ export default function ChoghadiyaClient({
   }, [hasTzParam, tz, lat, lon]);
 
   useEffect(() => {
-    if (hasDateParam) return;
+    if (hasDateParam || isDateAutoSet) return;
     const localDate = getLocalDateISO(tz);
     if (localDate !== dateISO) {
       setDateISO(localDate);
     }
-  }, [hasDateParam, tz, dateISO]);
+    setIsDateAutoSet(true);
+  }, [hasDateParam, tz, dateISO, isDateAutoSet]);
 
   const combinedSegments = useMemo(() => {
     if (!sunTimes) return [];
@@ -250,15 +254,16 @@ export default function ChoghadiyaClient({
     return [...daySegments, ...nightSegments];
   }, [sunTimes, tz]);
 
+  const isToday = dateISO === getLocalDateISO(tz);
   const currentSegment = useMemo(() => {
-    if (!sunTimes) return null;
+    if (!sunTimes || !isToday) return null;
     return getCurrentSegment(combinedSegments, new Date(nowMs));
-  }, [combinedSegments, nowMs, sunTimes]);
+  }, [combinedSegments, nowMs, sunTimes, isToday]);
 
   const nextGood = useMemo(() => {
-    if (!sunTimes) return null;
+    if (!sunTimes || !isToday) return null;
     return getNextGoodSegment(combinedSegments, new Date(nowMs));
-  }, [combinedSegments, nowMs, sunTimes]);
+  }, [combinedSegments, nowMs, sunTimes, isToday]);
 
   const selectedSegment = useMemo(() => {
     if (!sunTimes) return null;
@@ -402,6 +407,7 @@ END:VCALENDAR`;
       if (tz) query.set("tz", tz);
       if (lat != null) query.set("lat", String(lat));
       if (lon != null) query.set("lon", String(lon));
+      if (activePane) query.set("pane", activePane);
       if (plannerParams.goal) query.set("goal", plannerParams.goal);
       if (plannerParams.window) query.set("window", plannerParams.window);
       if (plannerParams.start) query.set("start", plannerParams.start);
@@ -423,6 +429,7 @@ END:VCALENDAR`;
     tz,
     lat,
     lon,
+    activePane,
     plannerParams.goal,
     plannerParams.window,
     plannerParams.start,
@@ -445,10 +452,17 @@ END:VCALENDAR`;
 
   const containerClass = plannerOpen ? "space-y-4 md:pr-[420px]" : "space-y-4";
 
+  const dateLabel = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    month: "short",
+    day: "2-digit",
+    year: "numeric"
+  }).format(new Date(`${dateISO}T00:00:00Z`));
+
   return (
     <div className={containerClass}>
       <h1 className="sr-only">Aaj Ka Choghadiya</h1>
-      <StickyControlBar
+      <DateController
         cityInput={cityInput}
         onCityChange={handleCityChange}
         cities={cities}
@@ -464,8 +478,6 @@ END:VCALENDAR`;
         onShare={handleShare}
       />
 
-      <SwipeDateStrip dateISO={dateISO} tz={tz} onDateChange={handleDateChange} />
-
       {error && <p className="text-sm text-sagar-crimson">{error}</p>}
 
       <CurrentSlotCard
@@ -477,6 +489,9 @@ END:VCALENDAR`;
         sunrise={sunTimes?.sunrise ?? null}
         sunset={sunTimes?.sunset ?? null}
         loading={loading}
+        isToday={isToday}
+        dateLabel={dateLabel}
+        hasTimes={Boolean(sunTimes)}
       />
 
       <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-sagar-ink/60">
@@ -488,31 +503,21 @@ END:VCALENDAR`;
         </a>
       </div>
 
-      <TimetableSection
-        id="day"
-        title="Day"
-        anchorLabel="Sunrise"
-        headerTime={sunTimes?.sunrise ?? null}
-        segments={daySegments}
+      <TimetablePane
+        dateLabel={dateLabel}
+        sunrise={sunTimes?.sunrise ?? null}
+        sunset={sunTimes?.sunset ?? null}
+        nextSunrise={sunTimes?.nextSunrise ?? null}
+        daySegments={daySegments}
+        nightSegments={nightSegments}
         currentSegment={currentSegment}
         selectedTimeMs={selectedTimeMs}
         timeZone={tz}
         baseDateKey={baseDateKey}
         onAddReminder={downloadICS}
         onCopyTime={handleCopy}
-      />
-      <TimetableSection
-        id="night"
-        title="Night"
-        anchorLabel="Sunset"
-        headerTime={sunTimes?.sunset ?? null}
-        segments={nightSegments}
-        currentSegment={currentSegment}
-        selectedTimeMs={selectedTimeMs}
-        timeZone={tz}
-        baseDateKey={baseDateKey}
-        onAddReminder={downloadICS}
-        onCopyTime={handleCopy}
+        activePane={activePane}
+        onPaneChange={setActivePane}
       />
 
       <Legend />

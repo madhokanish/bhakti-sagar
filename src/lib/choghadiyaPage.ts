@@ -23,6 +23,7 @@ export type ChoghadiyaInitialState = {
   plannerWindow?: string;
   plannerStart?: string;
   plannerEnd?: string;
+  pane?: "day" | "night";
   cityLabel: string;
   dateLabel: string;
   canonicalUrl: string;
@@ -77,6 +78,8 @@ export function resolveChoghadiyaState({
   const plannerWindow = getParam(searchParams, "window");
   const plannerStart = getParam(searchParams, "start");
   const plannerEnd = getParam(searchParams, "end");
+  const paneParam = getParam(searchParams, "pane");
+  const pane = paneParam === "night" ? "night" : "day";
 
   const fallbackCity = cities[0];
   const initialCity =
@@ -115,6 +118,7 @@ export function resolveChoghadiyaState({
     plannerWindow,
     plannerStart,
     plannerEnd,
+    pane,
     cityLabel,
     dateLabel,
     canonicalUrl

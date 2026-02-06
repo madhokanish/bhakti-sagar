@@ -1,5 +1,5 @@
-import type { ChoghadiyaName, ChoghadiyaSegment } from "./choghadiya";
-import { computeSegments, getWeekdayForDate } from "./choghadiya.ts";
+import type { ChoghadiyaName, ChoghadiyaSegment } from "./choghadiya.js";
+import { computeSegments, getWeekdayForDate } from "./choghadiya.js";
 
 export type GoalKey =
   | "travel"

@@ -13,6 +13,9 @@ type Props = {
   sunrise?: Date | null;
   sunset?: Date | null;
   loading?: boolean;
+  isToday: boolean;
+  dateLabel: string;
+  hasTimes: boolean;
 };
 
 export default function CurrentSlotCard({
@@ -23,7 +26,10 @@ export default function CurrentSlotCard({
   baseDateKey,
   sunrise,
   sunset,
-  loading
+  loading,
+  isToday,
+  dateLabel,
+  hasTimes
 }: Props) {
   const [expanded, setExpanded] = useState(false);
 
@@ -40,7 +46,13 @@ export default function CurrentSlotCard({
   if (!currentSegment) {
     return (
       <div className="rounded-2xl border border-sagar-amber/20 bg-white px-4 py-3">
-        <p className="text-sm text-sagar-ink/60">Select a city to view the current slot.</p>
+        <p className="text-sm text-sagar-ink/60">
+          {!hasTimes
+            ? "Select a city to view the current slot."
+            : isToday
+              ? "Current slot will appear here."
+              : `Viewing timetable for ${dateLabel}.`}
+        </p>
       </div>
     );
   }
@@ -72,7 +84,7 @@ export default function CurrentSlotCard({
           {expanded ? "Less" : "More"}
         </button>
       </div>
-      {nextGood && (
+      {isToday && nextGood && (
         <p className="mt-2 text-xs text-sagar-ink/70">
           Next good slot: {nextGood.name} ·{" "}
           {formatTimeWithDay(nextGood.start, timeZone, baseDateKey)} –{" "}

@@ -77,6 +77,7 @@ export function ChoghadiyaPage({
         initialPlannerWindow={state.plannerWindow}
         initialPlannerStart={state.plannerStart}
         initialPlannerEnd={state.plannerEnd}
+        initialPane={state.pane}
       />
 
       <section className="mt-10 rounded-3xl border border-sagar-amber/20 bg-white p-6">

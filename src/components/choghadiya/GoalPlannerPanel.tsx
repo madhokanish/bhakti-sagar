@@ -50,6 +50,21 @@ type DailyResult = {
   night?: PlannerResult;
 };
 
+type SavedGoal = {
+  id: string;
+  title: string;
+  goalKey: GoalKey;
+  windowKey: WindowKey;
+  cityLabel: string;
+  dateISO: string;
+  slotName: string;
+  slotLabel: string;
+  slotStart: string;
+  slotEnd: string;
+  done: boolean;
+  createdAt: number;
+};
+
 const goalLabels: Record<GoalKey, string> = {
   travel: "Travel",
   puja: "Puja",
@@ -207,7 +222,15 @@ export default function GoalPlannerPanel({
   const [error, setError] = useState<string | null>(null);
   const [aiWhy, setAiWhy] = useState<string | null>(null);
   const [aiExtra, setAiExtra] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState("");
+  const [nameInput, setNameInput] = useState("");
+  const [savedGoals, setSavedGoals] = useState<SavedGoal[]>([]);
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
   const rangeAbortRef = useRef<AbortController | null>(null);
+  const storageKey = "bhakti_goal_planner_state";
+  const goalsKey = "bhakti_goal_planner_goals";
+  const lastKey = "bhakti_goal_planner_last";
 
   useEffect(() => {
     if (plannerParams.goal) setGoal(plannerParams.goal as GoalKey);
@@ -246,12 +269,60 @@ export default function GoalPlannerPanel({
   // no derived memo needed here
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const storedName = window.localStorage.getItem(storageKey);
+    if (storedName) setDisplayName(storedName);
+    const storedGoals = window.localStorage.getItem(goalsKey);
+    if (storedGoals) {
+      try {
+        const parsed = JSON.parse(storedGoals) as SavedGoal[];
+        setSavedGoals(parsed);
+      } catch {
+        setSavedGoals([]);
+      }
+    }
+    if (!plannerParams.goal && !plannerParams.window) {
+      const lastParams = window.localStorage.getItem(lastKey);
+      if (lastParams) {
+        try {
+          const parsed = JSON.parse(lastParams) as PlannerParams;
+          if (parsed.goal) setGoal(parsed.goal as GoalKey);
+          if (parsed.window) setWindowKey(parsed.window as WindowKey);
+          if (parsed.start) setCustomStart(parsed.start);
+          if (parsed.end) setCustomEnd(parsed.end);
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(storageKey, displayName);
+  }, [displayName]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(goalsKey, JSON.stringify(savedGoals));
+  }, [savedGoals]);
+
+  useEffect(() => {
     onPlannerParamsChange({
       goal,
       window: windowKey,
       start: customStart,
       end: customEnd
     });
+    if (typeof window !== "undefined") {
+      const payload: PlannerParams = {
+        goal,
+        window: windowKey,
+        start: customStart,
+        end: customEnd
+      };
+      window.localStorage.setItem(lastKey, JSON.stringify(payload));
+    }
   }, [goal, windowKey, customStart, customEnd, onPlannerParamsChange]);
 
   useEffect(() => {
@@ -267,145 +338,156 @@ export default function GoalPlannerPanel({
     rangeAbortRef.current = controller;
 
     const compute = async () => {
-      const windowConfig = getWindowStartEnd({
-        windowKey,
-        dateISO,
-        tz,
-        sunTimes,
-        customStart,
-        customEnd
-      });
-
-      if (!windowConfig) {
-        setError("Select a valid time window to continue.");
-        setLoading(false);
-        return;
-      }
-
-      if ((windowKey === "week" || windowKey === "month" || windowKey === "custom") && !allowRange) {
-        setError("Week and month need automatic sunrise and sunset.");
-        setLoading(false);
-        return;
-      }
-
-      const { startMs, endMs, startISO, endISO } = windowConfig;
-
-      if (endMs <= startMs) {
-        setError("End time must be after start time.");
-        setLoading(false);
-        return;
-      }
-
-      if ((windowKey === "week" || windowKey === "month" || windowKey === "custom") && (!lat || !lon)) {
-        setError("Select a city or use your location to compute sunrise and sunset.");
-        setLoading(false);
-        return;
-      }
-
-      let windowSegments: PlannerSegment[] = [];
-      let timedOut = false;
-
-      const crossDayShortWindow =
-        (windowKey === "3h" || windowKey === "6h") &&
-        sunTimes &&
-        endMs > sunTimes.nextSunrise.getTime();
-
-      if (crossDayShortWindow && (!lat || !lon || !allowRange)) {
-        setError("Select a city to compute slots that cross into the next day.");
-        setLoading(false);
-        return;
-      }
-
-      if (windowKey === "week" || windowKey === "month" || windowKey === "custom" || crossDayShortWindow) {
-        if ((window as any).gtag) (window as any).gtag("event", "choghadiya_planner_range_compute_started");
-        const rangeStartISO = startISO;
-        const rangeEndISO = crossDayShortWindow ? addDaysISO(startISO, 1) : endISO;
-        const range = await computeSegmentsForRange({
-          startISO: rangeStartISO,
-          endISO: rangeEndISO,
-          lat: lat!,
-          lon: lon!,
+      try {
+        const windowConfig = getWindowStartEnd({
+          windowKey,
+          dateISO,
           tz,
-          signal: controller.signal,
-          timeBudgetMs: 5000
+          sunTimes,
+          customStart,
+          customEnd
         });
-        windowSegments = filterSegmentsByWindow(range.segments, startMs, endMs);
-        timedOut = range.timedOut;
-      } else {
-        windowSegments = filterSegmentsByWindow(segments, startMs, endMs);
-      }
 
-      const rankingStartMs = Math.max(startMs, Date.now());
-      const ranked = rankSegments({
-        segments: windowSegments,
-        goal,
-        windowStartMs: rankingStartMs,
-        includeAvoid
-      });
-
-      setResults(ranked);
-
-      if (windowKey === "week" || windowKey === "month" || windowKey === "custom") {
-        const dates = getDateRangeISOs(startISO, endISO);
-        const daily: DailyResult[] = dates.map((date) => {
-          const dateSegments = windowSegments.filter((segment) => segment.dateISO === date);
-          const daySegments = dateSegments.filter((segment) => segment.isDay);
-          const nightSegments = dateSegments.filter((segment) => !segment.isDay);
-          const dayBest = rankSegments({
-            segments: daySegments,
-            goal,
-            windowStartMs: startMs,
-            includeAvoid,
-            limit: 1
-          })[0];
-          const nightBest = rankSegments({
-            segments: nightSegments,
-            goal,
-            windowStartMs: startMs,
-            includeAvoid,
-            limit: 1
-          })[0];
-          return { dateISO: date, day: dayBest, night: nightBest };
-        });
-        setDailyResults(daily);
-      } else {
-        setDailyResults([]);
-      }
-
-      setLoading(false);
-
-      const best = ranked[0];
-      if (best) {
-        try {
-          const ai = await fetchAiWhy({
-            city: cityLabel,
-            tz,
-            date: dateISO,
-            goal: goalLabel,
-            window: windowLabel,
-            slot: best.segment.name,
-            start: formatTime(best.segment),
-            label: best.segment.label
-          });
-          if (ai?.why) {
-            setAiWhy(ai.why);
-            setAiExtra(ai.extra ?? null);
-            if ((window as any).gtag) (window as any).gtag("event", "choghadiya_planner_ai_used");
-          }
-        } catch {
-          if ((window as any).gtag) (window as any).gtag("event", "choghadiya_planner_ai_fallback_used");
+        if (!windowConfig) {
+          setError("Select a valid time window to continue.");
+          setLoading(false);
+          return;
         }
-      }
 
-      if ((windowKey === "week" || windowKey === "month" || windowKey === "custom" || crossDayShortWindow) && (window as any).gtag) {
-        (window as any).gtag("event", "choghadiya_planner_range_compute_completed");
-      }
+        if (!sunTimes && segments.length === 0) {
+          setError("Select a city or use your location to compute today’s choghadiya.");
+          setLoading(false);
+          return;
+        }
 
-      if (timedOut) {
-        setError("Showing partial results. Try narrowing the range if needed.");
-      }
+        if ((windowKey === "week" || windowKey === "month" || windowKey === "custom") && !allowRange) {
+          setError("Week and month need automatic sunrise and sunset.");
+          setLoading(false);
+          return;
+        }
 
-      if ((window as any).gtag) (window as any).gtag("event", "choghadiya_planner_results_shown");
+        const { startMs, endMs, startISO, endISO } = windowConfig;
+
+        if (endMs <= startMs) {
+          setError("End time must be after start time.");
+          setLoading(false);
+          return;
+        }
+
+        if ((windowKey === "week" || windowKey === "month" || windowKey === "custom") && (!lat || !lon)) {
+          setError("Select a city or use your location to compute sunrise and sunset.");
+          setLoading(false);
+          return;
+        }
+
+        let windowSegments: PlannerSegment[] = [];
+        let timedOut = false;
+
+        const crossDayShortWindow =
+          (windowKey === "3h" || windowKey === "6h") &&
+          sunTimes &&
+          endMs > sunTimes.nextSunrise.getTime();
+
+        if (crossDayShortWindow && (!lat || !lon || !allowRange)) {
+          setError("Select a city to compute slots that cross into the next day.");
+          setLoading(false);
+          return;
+        }
+
+        if (windowKey === "week" || windowKey === "month" || windowKey === "custom" || crossDayShortWindow) {
+          if ((window as any).gtag) (window as any).gtag("event", "choghadiya_planner_range_compute_started");
+          const rangeStartISO = startISO;
+          const rangeEndISO = crossDayShortWindow ? addDaysISO(startISO, 1) : endISO;
+          const range = await computeSegmentsForRange({
+            startISO: rangeStartISO,
+            endISO: rangeEndISO,
+            lat: lat!,
+            lon: lon!,
+            tz,
+            signal: controller.signal,
+            timeBudgetMs: 5000
+          });
+          windowSegments = filterSegmentsByWindow(range.segments, startMs, endMs);
+          timedOut = range.timedOut;
+        } else {
+          windowSegments = filterSegmentsByWindow(segments, startMs, endMs);
+        }
+
+        const rankingStartMs = Math.max(startMs, Date.now());
+        const ranked = rankSegments({
+          segments: windowSegments,
+          goal,
+          windowStartMs: rankingStartMs,
+          includeAvoid
+        });
+
+        setResults(ranked);
+
+        if (windowKey === "week" || windowKey === "month" || windowKey === "custom") {
+          const dates = getDateRangeISOs(startISO, endISO);
+          const daily: DailyResult[] = dates.map((date) => {
+            const dateSegments = windowSegments.filter((segment) => segment.dateISO === date);
+            const daySegments = dateSegments.filter((segment) => segment.isDay);
+            const nightSegments = dateSegments.filter((segment) => !segment.isDay);
+            const dayBest = rankSegments({
+              segments: daySegments,
+              goal,
+              windowStartMs: startMs,
+              includeAvoid,
+              limit: 1
+            })[0];
+            const nightBest = rankSegments({
+              segments: nightSegments,
+              goal,
+              windowStartMs: startMs,
+              includeAvoid,
+              limit: 1
+            })[0];
+            return { dateISO: date, day: dayBest, night: nightBest };
+          });
+          setDailyResults(daily);
+        } else {
+          setDailyResults([]);
+        }
+
+        setLoading(false);
+
+        const best = ranked[0];
+        if (best) {
+          try {
+            const ai = await fetchAiWhy({
+              city: cityLabel,
+              tz,
+              date: dateISO,
+              goal: goalLabel,
+              window: windowLabel,
+              slot: best.segment.name,
+              start: formatTime(best.segment),
+              label: best.segment.label
+            });
+            if (ai?.why) {
+              setAiWhy(ai.why);
+              setAiExtra(ai.extra ?? null);
+              if ((window as any).gtag) (window as any).gtag("event", "choghadiya_planner_ai_used");
+            }
+          } catch {
+            if ((window as any).gtag) (window as any).gtag("event", "choghadiya_planner_ai_fallback_used");
+          }
+        }
+
+        if ((windowKey === "week" || windowKey === "month" || windowKey === "custom" || crossDayShortWindow) && (window as any).gtag) {
+          (window as any).gtag("event", "choghadiya_planner_range_compute_completed");
+        }
+
+        if (timedOut) {
+          setError("Showing partial results. Try narrowing the range if needed.");
+        }
+
+        if ((window as any).gtag) (window as any).gtag("event", "choghadiya_planner_results_shown");
+      } catch {
+        setError("Could not compute results. Please try again.");
+        setLoading(false);
+      }
     };
 
     compute();
@@ -456,6 +538,52 @@ export default function GoalPlannerPanel({
   const best = results[0];
   const others = results.slice(1, 3);
 
+  const handleSaveGoal = () => {
+    if (!best) return;
+    const id = crypto.randomUUID();
+    const newGoal: SavedGoal = {
+      id,
+      title: goalLabel || "Goal",
+      goalKey: goal!,
+      windowKey: windowKey!,
+      cityLabel,
+      dateISO,
+      slotName: best.segment.name,
+      slotLabel: best.segment.label,
+      slotStart: formatTime(best.segment),
+      slotEnd: formatTime(best.segment),
+      done: false,
+      createdAt: Date.now()
+    };
+    setSavedGoals((prev) => [newGoal, ...prev]);
+  };
+
+  const handleDeleteGoal = (id: string) => {
+    setSavedGoals((prev) => prev.filter((goal) => goal.id !== id));
+  };
+
+  const handleToggleDone = (id: string) => {
+    setSavedGoals((prev) =>
+      prev.map((goal) => (goal.id === id ? { ...goal, done: !goal.done } : goal))
+    );
+  };
+
+  const handleEditGoal = (goal: SavedGoal) => {
+    setEditingGoalId(goal.id);
+    setEditingTitle(goal.title);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingGoalId) return;
+    setSavedGoals((prev) =>
+      prev.map((goal) =>
+        goal.id === editingGoalId ? { ...goal, title: editingTitle || goal.title } : goal
+      )
+    );
+    setEditingGoalId(null);
+    setEditingTitle("");
+  };
+
   const shareAction = () => {
     navigator.clipboard.writeText(window.location.href);
     if ((window as any).gtag) (window as any).gtag("event", "choghadiya_planner_share_clicked");
@@ -469,7 +597,7 @@ export default function GoalPlannerPanel({
   const panelClasses =
     "fixed z-50 bg-white shadow-sagar-card transition-transform duration-200 ease-out";
   const mobileClasses =
-    "bottom-0 left-0 right-0 max-h-[85vh] rounded-t-3xl border border-sagar-amber/20 p-5 md:hidden";
+    "top-0 right-0 h-full w-[92%] max-w-sm border-l border-sagar-amber/20 p-5 md:hidden";
   const desktopClasses =
     "hidden md:block top-0 right-0 h-full w-[380px] border-l border-sagar-amber/20 p-6";
 
@@ -483,8 +611,44 @@ export default function GoalPlannerPanel({
         className={`${panelClasses} ${mobileClasses} ${open ? "translate-y-0" : "translate-y-full pointer-events-none"}`}
       >
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-sagar-ink">AI Goal Planner</p>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-sagar-ink">AI Goal Planner</p>
+              <span className="rounded-full bg-sagar-amber/20 px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70">
+                Beta
+              </span>
+            </div>
+            <p className="text-xs text-sagar-ink/60">Step {step} of 3</p>
+            {displayName ? (
+              <p className="text-xs text-sagar-ink/60">Welcome back, {displayName}.</p>
+            ) : (
+              <div className="mt-2 flex items-center gap-2 text-xs text-sagar-ink/60">
+                <input
+                  value={nameInput}
+                  onChange={(event) => setNameInput(event.target.value)}
+                  placeholder="Your name"
+                  className="w-32 rounded-full border border-sagar-amber/30 bg-white px-3 py-1 text-xs"
+                />
+                <button
+                  onClick={() => {
+                    if (nameInput.trim()) setDisplayName(nameInput.trim());
+                    setNameInput("");
+                  }}
+                  className="rounded-full border border-sagar-amber/30 px-3 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70"
+                >
+                  Save
+                </button>
+              </div>
+            )}
+          </div>
           <button onClick={onClose} className="text-sm text-sagar-ink/60">Close</button>
+        </div>
+
+        <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-sagar-cream/70">
+          <div
+            className="h-full rounded-full bg-sagar-saffron transition-all"
+            style={{ width: `${(step / 3) * 100}%` }}
+          />
         </div>
 
         <div className="mt-4 space-y-6 overflow-y-auto pb-6">
@@ -527,36 +691,91 @@ export default function GoalPlannerPanel({
           )}
           {step === 3 && (
             <>
-              <ResultsStep
-                goalLabel={goalLabel}
-                cityLabel={cityLabel}
-                windowLabel={windowLabel}
-                windowKey={windowKey!}
-                dateLabel={dateLabel}
-                todayISO={todayISO}
-                tomorrowISO={tomorrowISO}
-                best={best}
-                others={others}
-                daily={dailyResults}
-                includeAvoid={includeAvoid}
-                onIncludeAvoidChange={(value) => {
-                  setIncludeAvoid(value);
-                  if ((window as any).gtag) (window as any).gtag("event", "choghadiya_planner_include_avoid_toggled");
-                }}
-                onAddReminder={onAddReminder}
-                onShare={shareAction}
-                onCopy={copyAction}
-                formatTime={formatTime}
-                aiWhy={aiWhy}
-                aiExtra={aiExtra}
-              />
               {loading && (
                 <div className="space-y-2 animate-pulse">
                   <div className="h-4 w-32 rounded-full bg-sagar-cream/70" />
                   <div className="h-6 w-full rounded-2xl bg-sagar-cream/60" />
                 </div>
               )}
+              {!loading && (
+                <ResultsStep
+                  goalLabel={goalLabel}
+                  cityLabel={cityLabel}
+                  windowLabel={windowLabel}
+                  windowKey={windowKey!}
+                  dateLabel={dateLabel}
+                  todayISO={todayISO}
+                  tomorrowISO={tomorrowISO}
+                  best={best}
+                  others={others}
+                  daily={dailyResults}
+                  includeAvoid={includeAvoid}
+                  onIncludeAvoidChange={(value) => {
+                    setIncludeAvoid(value);
+                    if ((window as any).gtag) (window as any).gtag("event", "choghadiya_planner_include_avoid_toggled");
+                  }}
+                  onAddReminder={onAddReminder}
+                  onShare={shareAction}
+                  onCopy={copyAction}
+                  formatTime={formatTime}
+                  aiWhy={aiWhy}
+                  aiExtra={aiExtra}
+                  onSaveGoal={handleSaveGoal}
+                />
+              )}
               {error && <p className="text-sm text-sagar-crimson">{error}</p>}
+              {savedGoals.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">
+                    Saved goals
+                  </p>
+                  <div className="space-y-2">
+                    {savedGoals.map((goalItem) => (
+                      <div
+                        key={goalItem.id}
+                        className="rounded-2xl border border-sagar-amber/20 bg-white p-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          {editingGoalId === goalItem.id ? (
+                            <input
+                              value={editingTitle}
+                              onChange={(event) => setEditingTitle(event.target.value)}
+                              className="w-full rounded-full border border-sagar-amber/30 bg-white px-3 py-1 text-sm"
+                            />
+                          ) : (
+                            <p className={`text-sm font-semibold ${goalItem.done ? "line-through text-sagar-ink/50" : "text-sagar-ink"}`}>
+                              {goalItem.title}
+                            </p>
+                          )}
+                          <button
+                            onClick={() => handleToggleDone(goalItem.id)}
+                            className="rounded-full border border-sagar-amber/30 px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/60"
+                          >
+                            {goalItem.done ? "Undone" : "Done"}
+                          </button>
+                        </div>
+                        <p className="mt-1 text-xs text-sagar-ink/60">
+                          {goalItem.slotName} · {goalItem.slotLabel} · {goalItem.cityLabel}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/60">
+                          {editingGoalId === goalItem.id ? (
+                            <button onClick={handleSaveEdit} className="rounded-full border border-sagar-amber/30 px-2 py-1">
+                              Save
+                            </button>
+                          ) : (
+                            <button onClick={() => handleEditGoal(goalItem)} className="rounded-full border border-sagar-amber/30 px-2 py-1">
+                              Edit
+                            </button>
+                          )}
+                          <button onClick={() => handleDeleteGoal(goalItem.id)} className="rounded-full border border-sagar-amber/30 px-2 py-1">
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -566,8 +785,43 @@ export default function GoalPlannerPanel({
         className={`${panelClasses} ${desktopClasses} ${open ? "translate-x-0" : "translate-x-full pointer-events-none"}`}
       >
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-sagar-ink">AI Goal Planner</p>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-sagar-ink">AI Goal Planner</p>
+              <span className="rounded-full bg-sagar-amber/20 px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70">
+                Beta
+              </span>
+            </div>
+            <p className="text-xs text-sagar-ink/60">Step {step} of 3</p>
+            {displayName ? (
+              <p className="text-xs text-sagar-ink/60">Welcome back, {displayName}.</p>
+            ) : (
+              <div className="mt-2 flex items-center gap-2 text-xs text-sagar-ink/60">
+                <input
+                  value={nameInput}
+                  onChange={(event) => setNameInput(event.target.value)}
+                  placeholder="Your name"
+                  className="w-32 rounded-full border border-sagar-amber/30 bg-white px-3 py-1 text-xs"
+                />
+                <button
+                  onClick={() => {
+                    if (nameInput.trim()) setDisplayName(nameInput.trim());
+                    setNameInput("");
+                  }}
+                  className="rounded-full border border-sagar-amber/30 px-3 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70"
+                >
+                  Save
+                </button>
+              </div>
+            )}
+          </div>
           <button onClick={onClose} className="text-sm text-sagar-ink/60">Close</button>
+        </div>
+        <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-sagar-cream/70">
+          <div
+            className="h-full rounded-full bg-sagar-saffron transition-all"
+            style={{ width: `${(step / 3) * 100}%` }}
+          />
         </div>
         <div className="mt-6 space-y-6 overflow-y-auto">
           {step === 1 && (
@@ -609,36 +863,91 @@ export default function GoalPlannerPanel({
           )}
           {step === 3 && (
             <>
-              <ResultsStep
-                goalLabel={goalLabel}
-                cityLabel={cityLabel}
-                windowLabel={windowLabel}
-                windowKey={windowKey!}
-                dateLabel={dateLabel}
-                todayISO={todayISO}
-                tomorrowISO={tomorrowISO}
-                best={best}
-                others={others}
-                daily={dailyResults}
-                includeAvoid={includeAvoid}
-                onIncludeAvoidChange={(value) => {
-                  setIncludeAvoid(value);
-                  if ((window as any).gtag) (window as any).gtag("event", "choghadiya_planner_include_avoid_toggled");
-                }}
-                onAddReminder={onAddReminder}
-                onShare={shareAction}
-                onCopy={copyAction}
-                formatTime={formatTime}
-                aiWhy={aiWhy}
-                aiExtra={aiExtra}
-              />
               {loading && (
                 <div className="space-y-2 animate-pulse">
                   <div className="h-4 w-32 rounded-full bg-sagar-cream/70" />
                   <div className="h-6 w-full rounded-2xl bg-sagar-cream/60" />
                 </div>
               )}
+              {!loading && (
+                <ResultsStep
+                  goalLabel={goalLabel}
+                  cityLabel={cityLabel}
+                  windowLabel={windowLabel}
+                  windowKey={windowKey!}
+                  dateLabel={dateLabel}
+                  todayISO={todayISO}
+                  tomorrowISO={tomorrowISO}
+                  best={best}
+                  others={others}
+                  daily={dailyResults}
+                  includeAvoid={includeAvoid}
+                  onIncludeAvoidChange={(value) => {
+                    setIncludeAvoid(value);
+                    if ((window as any).gtag) (window as any).gtag("event", "choghadiya_planner_include_avoid_toggled");
+                  }}
+                  onAddReminder={onAddReminder}
+                  onShare={shareAction}
+                  onCopy={copyAction}
+                  formatTime={formatTime}
+                  aiWhy={aiWhy}
+                  aiExtra={aiExtra}
+                  onSaveGoal={handleSaveGoal}
+                />
+              )}
               {error && <p className="text-sm text-sagar-crimson">{error}</p>}
+              {savedGoals.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">
+                    Saved goals
+                  </p>
+                  <div className="space-y-2">
+                    {savedGoals.map((goalItem) => (
+                      <div
+                        key={goalItem.id}
+                        className="rounded-2xl border border-sagar-amber/20 bg-white p-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          {editingGoalId === goalItem.id ? (
+                            <input
+                              value={editingTitle}
+                              onChange={(event) => setEditingTitle(event.target.value)}
+                              className="w-full rounded-full border border-sagar-amber/30 bg-white px-3 py-1 text-sm"
+                            />
+                          ) : (
+                            <p className={`text-sm font-semibold ${goalItem.done ? "line-through text-sagar-ink/50" : "text-sagar-ink"}`}>
+                              {goalItem.title}
+                            </p>
+                          )}
+                          <button
+                            onClick={() => handleToggleDone(goalItem.id)}
+                            className="rounded-full border border-sagar-amber/30 px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/60"
+                          >
+                            {goalItem.done ? "Undone" : "Done"}
+                          </button>
+                        </div>
+                        <p className="mt-1 text-xs text-sagar-ink/60">
+                          {goalItem.slotName} · {goalItem.slotLabel} · {goalItem.cityLabel}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/60">
+                          {editingGoalId === goalItem.id ? (
+                            <button onClick={handleSaveEdit} className="rounded-full border border-sagar-amber/30 px-2 py-1">
+                              Save
+                            </button>
+                          ) : (
+                            <button onClick={() => handleEditGoal(goalItem)} className="rounded-full border border-sagar-amber/30 px-2 py-1">
+                              Edit
+                            </button>
+                          )}
+                          <button onClick={() => handleDeleteGoal(goalItem.id)} className="rounded-full border border-sagar-amber/30 px-2 py-1">
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

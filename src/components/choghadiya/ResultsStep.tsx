@@ -27,6 +27,7 @@ type Props = {
   formatTime: (segment: PlannerSegment) => string;
   aiWhy?: string | null;
   aiExtra?: string | null;
+  onSaveGoal?: () => void;
 };
 
 function ResultCard({
@@ -98,7 +99,8 @@ export default function ResultsStep({
   onCopy,
   formatTime,
   aiWhy,
-  aiExtra
+  aiExtra,
+  onSaveGoal
 }: Props) {
   if (!best) {
     return (
@@ -160,6 +162,14 @@ export default function ResultsStep({
         aiWhy={aiWhy}
         aiExtra={aiExtra}
       />
+      {onSaveGoal && (
+        <button
+          onClick={onSaveGoal}
+          className="w-full rounded-full border border-sagar-amber/30 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70"
+        >
+          Save this plan
+        </button>
+      )}
       {others.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Other good options</p>

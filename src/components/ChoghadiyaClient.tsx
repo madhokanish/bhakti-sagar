@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   ChoghadiyaSegment,
   computeSegments,
@@ -69,7 +69,7 @@ export default function ChoghadiyaClient({
   initialPlannerEnd,
   initialPane = "day"
 }: Props) {
-  const router = useRouter();
+  const pathname = usePathname();
   const [cityInput, setCityInput] = useState(initialCityName ?? initialCity?.name ?? "");
   const [tz, setTz] = useState(initialTz);
   const [dateISO, setDateISO] = useState(initialDate);
@@ -358,6 +358,7 @@ END:VCALENDAR`;
   }, [sunTimes]);
 
   useEffect(() => {
+    if (!pathname?.startsWith("/choghadiya")) return;
     const timeout = window.setTimeout(() => {
       const query = new URLSearchParams();
       if (cityInput) query.set("city", cityInput);
@@ -383,10 +384,13 @@ END:VCALENDAR`;
         const currentUrl = `${window.location.pathname}${window.location.search}`;
         if (currentUrl === nextUrl) return;
       }
-      router.replace(nextUrl, { scroll: false });
+      if (typeof window !== "undefined") {
+        window.history.replaceState(null, "", nextUrl);
+      }
     }, 400);
     return () => window.clearTimeout(timeout);
   }, [
+    pathname,
     cityInput,
     dateISO,
     tz,
@@ -401,8 +405,7 @@ END:VCALENDAR`;
     sunrise,
     sunset,
     nextSunrise,
-    pathBase,
-    router
+    pathBase
   ]);
 
   const containerClass = plannerOpen ? "space-y-4 md:pr-[420px]" : "space-y-4";
@@ -538,7 +541,7 @@ END:VCALENDAR`;
         sunTimes={sunTimes}
         segments={plannerSegments}
         plannerParams={plannerParams}
-        onPlannerParamsChange={(params) => setPlannerParams(params)}
+        onPlannerParamsChange={handlePlannerParamsChange}
         onAddReminder={handlePlannerReminder}
         onApplySegment={(segment) => setSelectedTimeMs(segment.start.getTime())}
         formatTime={(segment) =>
@@ -572,3 +575,6 @@ END:VCALENDAR`;
     </div>
   );
 }
+  const handlePlannerParamsChange = useCallback((params: PlannerParams) => {
+    setPlannerParams(params);
+  }, []);

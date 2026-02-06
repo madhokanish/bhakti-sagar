@@ -251,7 +251,7 @@ export default function GoalPlannerPanel({
     } else {
       setStep(1);
     }
-  }, [open, goal, windowKey]);
+  }, [open, goal, windowKey, onPlannerParamsChange]);
 
   const goalLabel = goal
     ? goal === "other" && otherGoal
@@ -612,9 +612,11 @@ export default function GoalPlannerPanel({
       <div
         className={`fixed inset-0 z-40 bg-black/30 transition-opacity md:hidden ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
         onClick={onClose}
+        aria-hidden={!open}
       />
       <div
         className={`${panelClasses} ${mobileClasses} ${open ? "translate-y-0" : "translate-y-full pointer-events-none"}`}
+        aria-hidden={!open}
       >
         <div className="flex items-center justify-between">
           <div>
@@ -657,7 +659,7 @@ export default function GoalPlannerPanel({
           />
         </div>
 
-        <div className="mt-2 space-y-4 overflow-y-auto pb-6">
+        <div className="mt-2 space-y-4 overflow-y-auto pb-6 max-h-[calc(100vh-140px)]">
           <p className="text-[0.7rem] text-sagar-ink/60">
             AI suggestions may be inaccurate. Please review.
           </p>
@@ -793,6 +795,7 @@ export default function GoalPlannerPanel({
 
       <div
         className={`${panelClasses} ${desktopClasses} ${open ? "translate-x-0" : "translate-x-full pointer-events-none"}`}
+        aria-hidden={!open}
       >
         <div className="flex items-center justify-between">
           <div>
@@ -833,7 +836,7 @@ export default function GoalPlannerPanel({
             style={{ width: `${(step / 3) * 100}%` }}
           />
         </div>
-        <div className="mt-4 space-y-4 overflow-y-auto">
+        <div className="mt-4 space-y-4 overflow-y-auto max-h-[calc(100vh-140px)]">
           <p className="text-[0.7rem] text-sagar-ink/60">
             AI suggestions may be inaccurate. Please review.
           </p>

@@ -1,17 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChoghadiyaSegment,
   computeSegments,
-  formatCountdown,
   formatTimeInput,
   formatTimeWithDay,
-  getCurrentSegment,
   getDateKey,
   getLocalDateISO,
-  getNextGoodSegment,
   getWeekdayForDate,
   toUTCDateFromLocal
 } from "@/lib/choghadiya";
@@ -21,6 +18,7 @@ import DateController from "@/components/choghadiya/DateController";
 import CurrentSlotCard from "@/components/choghadiya/CurrentSlotCard";
 import TimetablePane from "@/components/choghadiya/TimetablePane";
 import Legend from "@/components/choghadiya/Legend";
+import TimelineBar from "@/components/choghadiya/TimelineBar";
 import { PlannerSegment } from "@/lib/choghadiyaPlanner";
 import { addDaysISO } from "@/lib/choghadiyaPlanner";
 
@@ -50,8 +48,6 @@ type Props = {
   initialPlannerEnd?: string;
   initialPane?: "day" | "night";
 };
-
-const goodLabels = new Set(["Best", "Good", "Gain", "Neutral"]);
 
 export default function ChoghadiyaClient({
   initialCity,
@@ -88,11 +84,8 @@ export default function ChoghadiyaClient({
   const [error, setError] = useState<string | null>(null);
   const [manualHint, setManualHint] = useState<string | null>(null);
   const [selectedTimeMs, setSelectedTimeMs] = useState<number | null>(null);
-  const [nowMs, setNowMs] = useState(Date.now());
   const [timeZones, setTimeZones] = useState<string[]>([]);
   const [pathBase, setPathBase] = useState(initialPathBase);
-  const timelineRef = useRef<HTMLDivElement | null>(null);
-  const scrubbingRef = useRef(false);
   const [plannerOpen, setPlannerOpen] = useState(false);
   const [plannerParams, setPlannerParams] = useState<PlannerParams>({
     goal: initialPlannerGoal,
@@ -111,11 +104,6 @@ export default function ChoghadiyaClient({
     } catch {
       setTimeZones([]);
     }
-  }, []);
-
-  useEffect(() => {
-    const id = setInterval(() => setNowMs(Date.now()), 1000);
-    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -255,23 +243,6 @@ export default function ChoghadiyaClient({
   }, [sunTimes, tz]);
 
   const isToday = dateISO === getLocalDateISO(tz);
-  const currentSegment = useMemo(() => {
-    if (!sunTimes || !isToday) return null;
-    return getCurrentSegment(combinedSegments, new Date(nowMs));
-  }, [combinedSegments, nowMs, sunTimes, isToday]);
-
-  const nextGood = useMemo(() => {
-    if (!sunTimes || !isToday) return null;
-    return getNextGoodSegment(combinedSegments, new Date(nowMs));
-  }, [combinedSegments, nowMs, sunTimes, isToday]);
-
-  const selectedSegment = useMemo(() => {
-    if (!sunTimes) return null;
-    if (selectedTimeMs == null) return currentSegment;
-    return combinedSegments.find(
-      (segment) => selectedTimeMs >= segment.start.getTime() && selectedTimeMs < segment.end.getTime()
-    );
-  }, [combinedSegments, selectedTimeMs, currentSegment, sunTimes]);
 
   const daySegments = combinedSegments.filter((segment) => segment.isDay);
   const nightSegments = combinedSegments.filter((segment) => !segment.isDay);
@@ -381,19 +352,6 @@ END:VCALENDAR`;
     navigator.clipboard.writeText(text);
   }
 
-  const timelineTotal = sunTimes
-    ? sunTimes.nextSunrise.getTime() - sunTimes.sunrise.getTime()
-    : 0;
-  const nowPosition = sunTimes
-    ? ((nowMs - sunTimes.sunrise.getTime()) / timelineTotal) * 100
-    : 0;
-  const selectedRatio = sunTimes
-    ? ((selectedTimeMs ?? nowMs) - sunTimes.sunrise.getTime()) / timelineTotal
-    : 0;
-  const countdown = currentSegment
-    ? formatCountdown(currentSegment.end.getTime() - nowMs)
-    : null;
-
   useEffect(() => {
     if (!sunTimes) return;
     setSelectedTimeMs(null);
@@ -420,7 +378,12 @@ END:VCALENDAR`;
       }
       const qs = query.toString();
       const path = pathBase || "/choghadiya";
-      router.replace(qs ? `${path}?${qs}` : path, { scroll: false });
+      const nextUrl = qs ? `${path}?${qs}` : path;
+      if (typeof window !== "undefined") {
+        const currentUrl = `${window.location.pathname}${window.location.search}`;
+        if (currentUrl === nextUrl) return;
+      }
+      router.replace(nextUrl, { scroll: false });
     }, 400);
     return () => window.clearTimeout(timeout);
   }, [
@@ -441,14 +404,6 @@ END:VCALENDAR`;
     pathBase,
     router
   ]);
-
-  function updateSelectedFromPointer(clientX: number) {
-    if (!sunTimes || !timelineRef.current) return;
-    const rect = timelineRef.current.getBoundingClientRect();
-    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-    const time = sunTimes.sunrise.getTime() + ratio * timelineTotal;
-    setSelectedTimeMs(time);
-  }
 
   const containerClass = plannerOpen ? "space-y-4 md:pr-[420px]" : "space-y-4";
 
@@ -481,9 +436,7 @@ END:VCALENDAR`;
       {error && <p className="text-sm text-sagar-crimson">{error}</p>}
 
       <CurrentSlotCard
-        currentSegment={currentSegment}
-        nextGood={nextGood}
-        countdown={countdown}
+        segments={combinedSegments}
         timeZone={tz}
         baseDateKey={baseDateKey}
         sunrise={sunTimes?.sunrise ?? null}
@@ -494,81 +447,15 @@ END:VCALENDAR`;
         hasTimes={Boolean(sunTimes)}
       />
 
-      {sunTimes && (
-        <div className="hidden md:block rounded-2xl border border-sagar-amber/20 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Timeline</p>
-          <div
-            ref={timelineRef}
-            className="relative mt-4 h-6 rounded-full bg-sagar-cream/70"
-            role="slider"
-            tabIndex={0}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(Math.max(0, Math.min(1, selectedRatio)) * 100)}
-            onPointerDown={(event) => {
-              scrubbingRef.current = true;
-              event.currentTarget.setPointerCapture(event.pointerId);
-              updateSelectedFromPointer(event.clientX);
-            }}
-            onPointerMove={(event) => {
-              if (!scrubbingRef.current) return;
-              updateSelectedFromPointer(event.clientX);
-            }}
-            onPointerUp={(event) => {
-              scrubbingRef.current = false;
-              event.currentTarget.releasePointerCapture(event.pointerId);
-            }}
-            onPointerCancel={() => {
-              scrubbingRef.current = false;
-            }}
-            onKeyDown={(event) => {
-              if (!sunTimes) return;
-              const step = timelineTotal / 24;
-              const minTime = sunTimes.sunrise.getTime();
-              const maxTime = sunTimes.nextSunrise.getTime() - 1;
-              if (event.key === "ArrowRight") {
-                const next = Math.min(maxTime, (selectedTimeMs ?? nowMs) + step);
-                setSelectedTimeMs(next);
-              }
-              if (event.key === "ArrowLeft") {
-                const next = Math.max(minTime, (selectedTimeMs ?? nowMs) - step);
-                setSelectedTimeMs(next);
-              }
-            }}
-          >
-            <div className="absolute inset-0 flex overflow-hidden rounded-full">
-              {combinedSegments.map((segment) => {
-                const width =
-                  ((segment.end.getTime() - segment.start.getTime()) / timelineTotal) * 100;
-                return (
-                  <button
-                    key={`${segment.name}-${segment.start.getTime()}`}
-                    className={`h-full ${goodLabels.has(segment.label) ? "bg-sagar-amber/50" : "bg-sagar-rose/30"}`}
-                    style={{ width: `${width}%` }}
-                    onClick={() => setSelectedTimeMs(segment.start.getTime())}
-                    aria-label={`${segment.name} ${segment.label}`}
-                  />
-                );
-              })}
-            </div>
-            <div
-              className="absolute top-0 h-full w-0.5 bg-sagar-saffron"
-              style={{ left: `${Math.max(0, Math.min(100, nowPosition))}%` }}
-            />
-          </div>
-          {selectedSegment && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-sagar-ink/70">
-              <span className="font-semibold text-sagar-ink">{selectedSegment.name}</span>
-              <span className="rounded-full bg-sagar-amber/20 px-2 py-0.5 text-xs uppercase text-sagar-ink/70">
-                {selectedSegment.label}
-              </span>
-              <span>
-                {formatTimeWithDay(selectedSegment.start, tz, baseDateKey)} –{" "}
-                {formatTimeWithDay(selectedSegment.end, tz, baseDateKey)}
-              </span>
-            </div>
-          )}
-        </div>
+      {sunTimes && combinedSegments.length > 0 && (
+        <TimelineBar
+          segments={combinedSegments}
+          sunTimes={sunTimes}
+          timeZone={tz}
+          baseDateKey={baseDateKey}
+          selectedTimeMs={selectedTimeMs}
+          onSelectTime={setSelectedTimeMs}
+        />
       )}
 
       <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-sagar-ink/60">
@@ -587,7 +474,7 @@ END:VCALENDAR`;
         nextSunrise={sunTimes?.nextSunrise ?? null}
         daySegments={daySegments}
         nightSegments={nightSegments}
-        currentSegment={currentSegment}
+        isToday={isToday}
         selectedTimeMs={selectedTimeMs}
         timeZone={tz}
         baseDateKey={baseDateKey}

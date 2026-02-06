@@ -1,13 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { ChoghadiyaSegment, formatTimeWithDay } from "@/lib/choghadiya";
+import { useEffect, useMemo, useState } from "react";
+import { ChoghadiyaSegment, formatCountdown, formatTimeWithDay, getCurrentSegment, getNextGoodSegment } from "@/lib/choghadiya";
 import { getSlotMeta } from "@/components/choghadiya/slotMeta";
 
 type Props = {
-  currentSegment: ChoghadiyaSegment | null;
-  nextGood: ChoghadiyaSegment | null;
-  countdown: string | null;
+  segments: ChoghadiyaSegment[];
   timeZone: string;
   baseDateKey: string;
   sunrise?: Date | null;
@@ -19,9 +17,7 @@ type Props = {
 };
 
 export default function CurrentSlotCard({
-  currentSegment,
-  nextGood,
-  countdown,
+  segments,
   timeZone,
   baseDateKey,
   sunrise,
@@ -32,6 +28,27 @@ export default function CurrentSlotCard({
   hasTimes
 }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const [nowMs, setNowMs] = useState(Date.now());
+
+  useEffect(() => {
+    if (!isToday) return;
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [isToday]);
+
+  const currentSegment = useMemo(() => {
+    if (!segments.length || !isToday) return null;
+    return getCurrentSegment(segments, new Date(nowMs));
+  }, [segments, nowMs, isToday]);
+
+  const nextGood = useMemo(() => {
+    if (!segments.length || !isToday) return null;
+    return getNextGoodSegment(segments, new Date(nowMs));
+  }, [segments, nowMs, isToday]);
+
+  const countdown = currentSegment
+    ? formatCountdown(currentSegment.end.getTime() - nowMs)
+    : null;
 
   if (loading) {
     return (
@@ -57,25 +74,27 @@ export default function CurrentSlotCard({
     );
   }
 
-  const meta = getSlotMeta(currentSegment.name);
+  const meta = currentSegment ? getSlotMeta(currentSegment.name) : null;
 
   return (
     <div className="rounded-2xl border border-sagar-amber/20 bg-white px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Current slot</p>
-          <div className="mt-1 flex items-center gap-2 text-sm">
-            <span aria-hidden="true">{meta.emoji}</span>
-            <span className="font-semibold text-sagar-ink">{currentSegment.name}</span>
-            <span className="rounded-full bg-sagar-amber/20 px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70">
-              {meta.labelText}
-            </span>
-          </div>
+          {meta && (
+            <div className="mt-1 flex items-center gap-2 text-sm">
+              <span aria-hidden="true">{meta.emoji}</span>
+              <span className="font-semibold text-sagar-ink">{currentSegment.name}</span>
+              <span className="rounded-full bg-sagar-amber/20 px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70">
+                {meta.labelText}
+              </span>
+            </div>
+          )}
           <p className="text-xs text-sagar-ink/60">
             {formatTimeWithDay(currentSegment.start, timeZone, baseDateKey)} –{" "}
             {formatTimeWithDay(currentSegment.end, timeZone, baseDateKey)}
           </p>
-          {countdown && <p className="text-xs text-sagar-ink/60">Ends in {countdown}</p>}
+          {isToday && countdown && <p className="text-xs text-sagar-ink/60">Ends in {countdown}</p>}
         </div>
         <button
           onClick={() => setExpanded((prev) => !prev)}

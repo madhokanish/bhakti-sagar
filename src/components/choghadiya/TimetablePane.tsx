@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ChoghadiyaSegment } from "@/lib/choghadiya";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChoghadiyaSegment, getCurrentSegment } from "@/lib/choghadiya";
 import DayTable from "@/components/choghadiya/DayTable";
 import NightTable from "@/components/choghadiya/NightTable";
 
@@ -12,7 +12,7 @@ type Props = {
   nextSunrise: Date | null;
   daySegments: ChoghadiyaSegment[];
   nightSegments: ChoghadiyaSegment[];
-  currentSegment: ChoghadiyaSegment | null;
+  isToday: boolean;
   selectedTimeMs?: number | null;
   timeZone: string;
   baseDateKey: string;
@@ -29,7 +29,7 @@ export default function TimetablePane({
   nextSunrise,
   daySegments,
   nightSegments,
-  currentSegment,
+  isToday,
   selectedTimeMs,
   timeZone,
   baseDateKey,
@@ -42,6 +42,19 @@ export default function TimetablePane({
   const touchStartX = useRef<number | null>(null);
   const [canSplit, setCanSplit] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [nowMs, setNowMs] = useState(Date.now());
+
+  useEffect(() => {
+    if (!isToday) return;
+    const id = setInterval(() => setNowMs(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, [isToday]);
+
+  const allSegments = useMemo(() => [...daySegments, ...nightSegments], [daySegments, nightSegments]);
+  const currentSegment = useMemo(() => {
+    if (!isToday || !allSegments.length) return null;
+    return getCurrentSegment(allSegments, new Date(nowMs));
+  }, [allSegments, nowMs, isToday]);
 
   useEffect(() => {
     const update = () => {

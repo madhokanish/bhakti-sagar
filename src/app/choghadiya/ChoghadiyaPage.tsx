@@ -4,7 +4,7 @@ import { resolveChoghadiyaState, SearchParams } from "@/lib/choghadiyaPage";
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/schema";
 import { siteConfig } from "@/lib/seo";
 import { getTopAartis } from "@/lib/data";
-import { mantras, poojaGuides, festivals } from "@/lib/content";
+import { festivals } from "@/lib/content";
 
 const faqItems = [
   {
@@ -52,9 +52,7 @@ export function ChoghadiyaPage({
     breadcrumbItems.push({ name: state.cityLabel, url: state.canonicalUrl });
   }
 
-  const topAarti = getTopAartis()[0];
-  const mantra = mantras[0];
-  const pooja = poojaGuides[0];
+  const topAartis = getTopAartis().slice(0, 3);
   const festival = festivals[0];
 
   return (
@@ -83,33 +81,18 @@ export function ChoghadiyaPage({
       <section className="mt-10 rounded-3xl border border-sagar-amber/20 bg-white p-6">
         <h2 className="text-xl font-serif text-sagar-ink">Suggested for this time</h2>
         <p className="mt-2 text-sm text-sagar-ink/70">
-          Pair the current choghadiya with a short prayer or simple home ritual. Here are quick options to begin.
+          Pair the current choghadiya with a short aarti you can start right away.
         </p>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {topAarti && (
+          {topAartis.map((aarti) => (
             <Link
-              href={`/aartis/${topAarti.slug}`}
+              key={aarti.slug}
+              href={`/aartis/${aarti.slug}`}
               className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/60 p-4 text-sm font-semibold text-sagar-ink hover:text-sagar-saffron"
             >
-              {topAarti.title.english || topAarti.title.hindi}
+              {aarti.title.english || aarti.title.hindi}
             </Link>
-          )}
-          {mantra && (
-            <Link
-              href={`/mantra/${mantra.slug}`}
-              className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/60 p-4 text-sm font-semibold text-sagar-ink hover:text-sagar-saffron"
-            >
-              {mantra.name}
-            </Link>
-          )}
-          {pooja && (
-            <Link
-              href={`/pooja/${pooja.slug}`}
-              className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/60 p-4 text-sm font-semibold text-sagar-ink hover:text-sagar-saffron"
-            >
-              {pooja.name}
-            </Link>
-          )}
+          ))}
         </div>
       </section>
 

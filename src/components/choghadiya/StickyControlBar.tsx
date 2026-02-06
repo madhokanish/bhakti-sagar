@@ -5,6 +5,7 @@ import { CityOption } from "@/lib/choghadiyaCities";
 type Props = {
   cityInput: string;
   onCityChange: (value: string) => void;
+  citySuggestions: CityOption[];
   cities: CityOption[];
   onUseLocation: () => void;
   timeZones: string[];
@@ -21,6 +22,7 @@ type Props = {
 export default function StickyControlBar({
   cityInput,
   onCityChange,
+  citySuggestions,
   cities,
   onUseLocation,
   timeZones,
@@ -36,19 +38,35 @@ export default function StickyControlBar({
   return (
     <div className="sticky top-16 z-30 border-b border-sagar-amber/20 bg-sagar-cream/95 px-3 py-2 backdrop-blur md:top-20">
       <div className="flex items-center gap-2">
-        <input
-          list="city-list"
-          value={cityInput}
-          onChange={(e) => onCityChange(e.target.value)}
-          placeholder="City"
-          aria-label="City"
-          className="w-full max-w-[55%] rounded-full border border-sagar-amber/30 bg-white px-3 py-1 text-xs outline-none"
-        />
-        <datalist id="city-list">
-          {cities.map((city) => (
-            <option key={city.slug} value={city.name} />
-          ))}
-        </datalist>
+        <div className="relative w-full max-w-[55%]">
+          <input
+            list="city-list"
+            value={cityInput}
+            onChange={(e) => onCityChange(e.target.value)}
+            placeholder="City"
+            aria-label="City"
+            className="w-full rounded-full border border-sagar-amber/30 bg-white px-3 py-1 text-xs outline-none"
+          />
+          <datalist id="city-list">
+            {cities.map((city) => (
+              <option key={city.slug} value={city.name} />
+            ))}
+          </datalist>
+          {citySuggestions.length > 0 && (
+            <div className="absolute left-0 right-0 top-[110%] z-50 rounded-2xl border border-sagar-amber/30 bg-white p-2 shadow-sagar-soft md:hidden">
+              {citySuggestions.map((city) => (
+                <button
+                  key={city.slug}
+                  onClick={() => onCityChange(city.name)}
+                  className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-left text-xs text-sagar-ink hover:bg-sagar-cream/70"
+                >
+                  <span>{city.name}</span>
+                  <span className="text-[0.6rem] text-sagar-ink/50">{city.tz}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <button
           onClick={onUseLocation}
           className="rounded-full border border-sagar-amber/30 bg-white px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70"

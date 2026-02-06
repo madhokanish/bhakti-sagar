@@ -17,7 +17,6 @@ import GoalPlannerPanel, { type PlannerParams } from "@/components/choghadiya/Go
 import DateController from "@/components/choghadiya/DateController";
 import CurrentSlotCard from "@/components/choghadiya/CurrentSlotCard";
 import TimetablePane from "@/components/choghadiya/TimetablePane";
-import Legend from "@/components/choghadiya/Legend";
 import TimelineBar from "@/components/choghadiya/TimelineBar";
 import { PlannerSegment } from "@/lib/choghadiyaPlanner";
 import { addDaysISO } from "@/lib/choghadiyaPlanner";
@@ -95,6 +94,13 @@ export default function ChoghadiyaClient({
   });
   const [activePane, setActivePane] = useState<"day" | "night">(initialPane);
   const [isDateAutoSet, setIsDateAutoSet] = useState(false);
+  const citySuggestions = useMemo(() => {
+    const value = cityInput.trim().toLowerCase();
+    if (!value) return [];
+    return cities
+      .filter((city) => city.name.toLowerCase().includes(value))
+      .slice(0, 6);
+  }, [cityInput]);
   const handlePlannerParamsChange = useCallback((params: PlannerParams) => {
     setPlannerParams(params);
   }, []);
@@ -426,6 +432,7 @@ END:VCALENDAR`;
       <DateController
         cityInput={cityInput}
         onCityChange={handleCityChange}
+        citySuggestions={citySuggestions}
         cities={cities}
         onUseLocation={handleUseMyLocation}
         timeZones={timeZones}
@@ -490,21 +497,11 @@ END:VCALENDAR`;
         onPaneChange={setActivePane}
       />
 
-      <Legend />
-
-      <details className="rounded-2xl border border-sagar-amber/20 bg-white px-4 py-2 text-xs text-sagar-ink/70">
-        <summary className="cursor-pointer font-semibold uppercase tracking-[0.2em] text-sagar-rose">
-          Settings
-        </summary>
-        <div className="mt-2 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-sagar-ink/60">
-          <button onClick={() => handleModeToggle("auto")} className={mode === "auto" ? "text-sagar-saffron" : ""}>
-            Auto
-          </button>
-          <button onClick={() => handleModeToggle("manual")} className={mode === "manual" ? "text-sagar-saffron" : ""}>
-            Manual
-          </button>
-        </div>
-        {mode === "manual" && (
+      {mode === "manual" && (
+        <div className="rounded-2xl border border-sagar-amber/20 bg-white px-4 py-3 text-xs text-sagar-ink/70">
+          <div className="flex items-center gap-3 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-sagar-ink/60">
+            <span className="text-sagar-rose">Manual times</span>
+          </div>
           <div className="mt-3 grid gap-2 md:grid-cols-3">
             <input
               value={sunrise}
@@ -525,9 +522,9 @@ END:VCALENDAR`;
               className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs"
             />
           </div>
-        )}
-        {manualHint && <p className="mt-2 text-xs text-sagar-ink/60">{manualHint}</p>}
-      </details>
+          {manualHint && <p className="mt-2 text-xs text-sagar-ink/60">{manualHint}</p>}
+        </div>
+      )}
 
       <GoalPlannerPanel
         open={plannerOpen}

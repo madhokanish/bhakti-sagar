@@ -7,6 +7,7 @@ import { CityOption } from "@/lib/choghadiyaCities";
 type Props = {
   cityInput: string;
   onCityChange: (value: string) => void;
+  citySuggestions: CityOption[];
   cities: CityOption[];
   onUseLocation: () => void;
   timeZones: string[];

@@ -28,6 +28,7 @@ type Props = {
   aiWhy?: string | null;
   aiExtra?: string | null;
   onSaveGoal?: () => void;
+  onApply?: (segment: PlannerSegment) => void;
 };
 
 function ResultCard({
@@ -100,7 +101,8 @@ export default function ResultsStep({
   formatTime,
   aiWhy,
   aiExtra,
-  onSaveGoal
+  onSaveGoal,
+  onApply
 }: Props) {
   if (!best) {
     return (
@@ -162,6 +164,14 @@ export default function ResultsStep({
         aiWhy={aiWhy}
         aiExtra={aiExtra}
       />
+      {onApply && (
+        <button
+          onClick={() => onApply(best.segment)}
+          className="w-full rounded-full border border-sagar-amber/30 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70"
+        >
+          Apply to timetable
+        </button>
+      )}
       {onSaveGoal && (
         <button
           onClick={onSaveGoal}

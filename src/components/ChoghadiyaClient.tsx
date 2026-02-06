@@ -16,7 +16,6 @@ import {
   toUTCDateFromLocal
 } from "@/lib/choghadiya";
 import { cities, CityOption } from "@/lib/choghadiyaCities";
-import GoalPlannerLauncher from "@/components/choghadiya/GoalPlannerLauncher";
 import GoalPlannerPanel, { type PlannerParams } from "@/components/choghadiya/GoalPlannerPanel";
 import StickyControlBar from "@/components/choghadiya/StickyControlBar";
 import SwipeDateStrip from "@/components/choghadiya/SwipeDateStrip";
@@ -444,8 +443,10 @@ END:VCALENDAR`;
     setSelectedTimeMs(time);
   }
 
+  const containerClass = plannerOpen ? "space-y-4 md:pr-[420px]" : "space-y-4";
+
   return (
-    <div className="space-y-4">
+    <div className={containerClass}>
       <h1 className="sr-only">Aaj Ka Choghadiya</h1>
       <StickyControlBar
         cityInput={cityInput}
@@ -494,6 +495,7 @@ END:VCALENDAR`;
         headerTime={sunTimes?.sunrise ?? null}
         segments={daySegments}
         currentSegment={currentSegment}
+        selectedTimeMs={selectedTimeMs}
         timeZone={tz}
         baseDateKey={baseDateKey}
         onAddReminder={downloadICS}
@@ -506,6 +508,7 @@ END:VCALENDAR`;
         headerTime={sunTimes?.sunset ?? null}
         segments={nightSegments}
         currentSegment={currentSegment}
+        selectedTimeMs={selectedTimeMs}
         timeZone={tz}
         baseDateKey={baseDateKey}
         onAddReminder={downloadICS}
@@ -551,16 +554,12 @@ END:VCALENDAR`;
         {manualHint && <p className="mt-2 text-xs text-sagar-ink/60">{manualHint}</p>}
       </details>
 
-      <GoalPlannerLauncher
-        onOpen={() => {
-          setPlannerOpen(true);
-          track("choghadiya_planner_opened");
-        }}
-      />
-
       <GoalPlannerPanel
         open={plannerOpen}
-        onClose={() => setPlannerOpen(false)}
+        onClose={() => {
+          setPlannerOpen(false);
+          setPlannerParams({});
+        }}
         mode={mode}
         tz={tz}
         dateISO={dateISO}
@@ -572,10 +571,34 @@ END:VCALENDAR`;
         plannerParams={plannerParams}
         onPlannerParamsChange={(params) => setPlannerParams(params)}
         onAddReminder={handlePlannerReminder}
+        onApplySegment={(segment) => setSelectedTimeMs(segment.start.getTime())}
         formatTime={(segment) =>
           `${formatTimeWithDay(segment.start, tz, segment.dateISO)} – ${formatTimeWithDay(segment.end, tz, segment.dateISO)}`
         }
       />
+
+      {!plannerOpen && (
+        <>
+          <button
+            onClick={() => {
+              setPlannerOpen(true);
+              track("choghadiya_planner_opened");
+            }}
+            className="fixed right-2 top-1/2 z-40 hidden -translate-y-1/2 rounded-full bg-sagar-saffron px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-wide text-white md:flex"
+          >
+            AI Planner
+          </button>
+          <button
+            onClick={() => {
+              setPlannerOpen(true);
+              track("choghadiya_planner_opened");
+            }}
+            className="fixed right-2 bottom-24 z-40 rounded-full bg-sagar-saffron px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-wide text-white md:hidden"
+          >
+            AI Planner
+          </button>
+        </>
+      )}
 
       {sunTimes && (
         <div className="hidden md:block rounded-2xl border border-sagar-amber/20 bg-white p-4">

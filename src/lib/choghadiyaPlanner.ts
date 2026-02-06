@@ -1,9 +1,5 @@
-import {
-  ChoghadiyaName,
-  ChoghadiyaSegment,
-  computeSegments,
-  getWeekdayForDate
-} from "@/lib/choghadiya";
+import type { ChoghadiyaName, ChoghadiyaSegment } from "./choghadiya";
+import { computeSegments, getWeekdayForDate } from "./choghadiya.ts";
 
 export type GoalKey =
   | "travel"

@@ -25,24 +25,27 @@ export default function WhenStep({
   return (
     <div className="space-y-4">
       <p className="text-sm font-semibold text-sagar-ink">Step 2 · When?</p>
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {windowOptions.map((option) => {
-          const disabled = option.requiresAuto && !autoEnabled;
-          return (
-            <button
+      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">
+        Choose window
+        <select
+          value={value ?? ""}
+          onChange={(event) => onChange(event.target.value as WindowKey)}
+          className="mt-2 w-full rounded-2xl border border-sagar-amber/30 bg-white px-3 py-2 text-sm"
+        >
+          <option value="" disabled>
+            Select a window
+          </option>
+          {windowOptions.map((option) => (
+            <option
               key={option.key}
-              onClick={() => !disabled && onChange(option.key)}
-              className={`whitespace-nowrap rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
-                value === option.key
-                  ? "border-sagar-saffron bg-sagar-saffron text-white"
-                  : "border-sagar-amber/30 bg-white text-sagar-ink/70"
-              } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
+              value={option.key}
+              disabled={option.requiresAuto && !autoEnabled}
             >
               {option.label}
-            </button>
-          );
-        })}
-      </div>
+            </option>
+          ))}
+        </select>
+      </label>
       {showAutoHint && (
         <p className="text-xs text-sagar-ink/60">
           Week, month, and custom ranges need automatic sunrise and sunset.

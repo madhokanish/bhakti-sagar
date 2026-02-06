@@ -15,6 +15,7 @@ import {
   parseDateTimeLocal,
   rankSegments
 } from "@/lib/choghadiyaPlanner";
+import { fetchAiWhy } from "@/lib/aiWhy";
 import GoalStep from "@/components/choghadiya/GoalStep";
 import WhenStep from "@/components/choghadiya/WhenStep";
 import ResultsStep from "@/components/choghadiya/ResultsStep";
@@ -42,6 +43,7 @@ type Props = {
   onPlannerParamsChange: (params: PlannerParams) => void;
   onAddReminder: (segment: PlannerSegment) => void;
   formatTime: (segment: PlannerSegment) => string;
+  onApplySegment?: (segment: PlannerSegment) => void;
 };
 
 type DailyResult = {
@@ -175,24 +177,6 @@ function getWindowStartEnd({
   return null;
 }
 
-async function fetchAiWhy(payload: Record<string, string>) {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 3000);
-  try {
-    const res = await fetch("/api/choghadiya/ai-why", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
-    if (!res.ok) throw new Error("AI unavailable");
-    const data = await res.json();
-    return data;
-  } finally {
-    window.clearTimeout(timeout);
-  }
-}
-
 export default function GoalPlannerPanel({
   open,
   onClose,
@@ -207,7 +191,8 @@ export default function GoalPlannerPanel({
   plannerParams,
   onPlannerParamsChange,
   onAddReminder,
-  formatTime
+  formatTime,
+  onApplySegment
 }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [goal, setGoal] = useState<GoalKey | undefined>(plannerParams.goal as GoalKey);
@@ -240,6 +225,24 @@ export default function GoalPlannerPanel({
   }, [plannerParams.goal, plannerParams.window, plannerParams.start, plannerParams.end]);
 
   useEffect(() => {
+    if (!open) {
+      setStep(1);
+      setGoal(undefined);
+      setWindowKey(undefined);
+      setCustomStart(undefined);
+      setCustomEnd(undefined);
+      setOtherGoal("");
+      setIncludeAvoid(false);
+      setResults([]);
+      setDailyResults([]);
+      setAiWhy(null);
+      setAiExtra(null);
+      setError(null);
+      setLoading(false);
+      setEditingGoalId(null);
+      setEditingTitle("");
+      onPlannerParamsChange({});
+    }
     if (!open) return;
     if (goal && windowKey) {
       setStep(3);
@@ -413,6 +416,8 @@ export default function GoalPlannerPanel({
           windowSegments = filterSegmentsByWindow(segments, startMs, endMs);
         }
 
+        if (controller.signal.aborted) return;
+
         const rankingStartMs = Math.max(startMs, Date.now());
         const ranked = rankSegments({
           segments: windowSegments,
@@ -421,6 +426,7 @@ export default function GoalPlannerPanel({
           includeAvoid
         });
 
+        if (controller.signal.aborted) return;
         setResults(ranked);
 
         if (windowKey === "week" || windowKey === "month" || windowKey === "custom") {
@@ -597,14 +603,14 @@ export default function GoalPlannerPanel({
   const panelClasses =
     "fixed z-50 bg-white shadow-sagar-card transition-transform duration-200 ease-out";
   const mobileClasses =
-    "top-0 right-0 h-full w-[92%] max-w-sm border-l border-sagar-amber/20 p-5 md:hidden";
+    "top-0 right-0 h-full w-full border-l border-sagar-amber/20 p-5 md:hidden";
   const desktopClasses =
-    "hidden md:block top-0 right-0 h-full w-[380px] border-l border-sagar-amber/20 p-6";
+    "hidden md:block top-0 right-0 h-full w-[400px] border-l border-sagar-amber/20 p-6";
 
   return (
     <>
       <div
-        className={`fixed inset-0 z-40 bg-black/30 transition-opacity ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        className={`fixed inset-0 z-40 bg-black/30 transition-opacity md:hidden ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
         onClick={onClose}
       />
       <div
@@ -651,7 +657,10 @@ export default function GoalPlannerPanel({
           />
         </div>
 
-        <div className="mt-4 space-y-6 overflow-y-auto pb-6">
+        <div className="mt-2 space-y-4 overflow-y-auto pb-6">
+          <p className="text-[0.7rem] text-sagar-ink/60">
+            AI suggestions may be inaccurate. Please review.
+          </p>
           {step === 1 && (
             <>
               <GoalStep
@@ -721,6 +730,7 @@ export default function GoalPlannerPanel({
                   aiWhy={aiWhy}
                   aiExtra={aiExtra}
                   onSaveGoal={handleSaveGoal}
+                  onApply={onApplySegment}
                 />
               )}
               {error && <p className="text-sm text-sagar-crimson">{error}</p>}
@@ -823,7 +833,10 @@ export default function GoalPlannerPanel({
             style={{ width: `${(step / 3) * 100}%` }}
           />
         </div>
-        <div className="mt-6 space-y-6 overflow-y-auto">
+        <div className="mt-4 space-y-4 overflow-y-auto">
+          <p className="text-[0.7rem] text-sagar-ink/60">
+            AI suggestions may be inaccurate. Please review.
+          </p>
           {step === 1 && (
             <>
               <GoalStep
@@ -893,6 +906,7 @@ export default function GoalPlannerPanel({
                   aiWhy={aiWhy}
                   aiExtra={aiExtra}
                   onSaveGoal={handleSaveGoal}
+                  onApply={onApplySegment}
                 />
               )}
               {error && <p className="text-sm text-sagar-crimson">{error}</p>}

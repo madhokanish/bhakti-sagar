@@ -8,6 +8,7 @@ type Props = {
   timeZone: string;
   baseDateKey: string;
   isCurrent: boolean;
+  isHighlighted?: boolean;
   onAddReminder: (segment: ChoghadiyaSegment) => void;
   onCopyTime: (text: string) => void;
 };
@@ -17,6 +18,7 @@ export default function SegmentRow({
   timeZone,
   baseDateKey,
   isCurrent,
+  isHighlighted,
   onAddReminder,
   onCopyTime
 }: Props) {
@@ -29,7 +31,9 @@ export default function SegmentRow({
 
   return (
     <details
-      className={`rounded-2xl border border-sagar-amber/20 bg-white px-3 py-2 transition ${isCurrent ? "ring-1 ring-sagar-saffron/60" : ""}`}
+      className={`rounded-2xl border border-sagar-amber/20 bg-white px-3 py-2 transition ${
+        isHighlighted ? "ring-2 ring-sagar-saffron/70" : isCurrent ? "ring-1 ring-sagar-saffron/50" : ""
+      }`}
     >
       <summary className="flex cursor-pointer items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm">

@@ -10,6 +10,7 @@ type Props = {
   headerTime: Date | null;
   segments: ChoghadiyaSegment[];
   currentSegment: ChoghadiyaSegment | null;
+  selectedTimeMs?: number | null;
   timeZone: string;
   baseDateKey: string;
   onAddReminder: (segment: ChoghadiyaSegment) => void;
@@ -23,6 +24,7 @@ export default function TimetableSection({
   headerTime,
   segments,
   currentSegment,
+  selectedTimeMs,
   timeZone,
   baseDateKey,
   onAddReminder,
@@ -51,6 +53,7 @@ export default function TimetableSection({
             timeZone={timeZone}
             baseDateKey={baseDateKey}
             isCurrent={currentSegment?.start.getTime() === segment.start.getTime()}
+            isHighlighted={selectedTimeMs != null && selectedTimeMs === segment.start.getTime()}
             onAddReminder={onAddReminder}
             onCopyTime={onCopyTime}
           />

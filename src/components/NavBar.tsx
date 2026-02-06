@@ -10,6 +10,7 @@ export default function NavBar() {
           <nav className="hidden items-center gap-6 text-sm font-semibold text-sagar-ink/80 md:flex">
             <Link href="/aartis" className="hover:text-sagar-saffron">Aartis</Link>
             <Link href="/categories" className="hover:text-sagar-saffron">Categories</Link>
+            <Link href="/choghadiya" className="hover:text-sagar-saffron">Choghadiya</Link>
             <Link href="/pooja" className="hover:text-sagar-saffron">Pooja</Link>
             <Link href="/deity" className="hover:text-sagar-saffron">Deities</Link>
             <Link href="/festival" className="hover:text-sagar-saffron">Festivals</Link>
@@ -19,6 +20,7 @@ export default function NavBar() {
         <nav className="hidden items-center gap-4 text-xs font-semibold uppercase tracking-[0.2em] text-sagar-ink/70 md:hidden">
           <Link href="/aartis" className="hover:text-sagar-saffron">Aartis</Link>
           <Link href="/categories" className="hover:text-sagar-saffron">Categories</Link>
+          <Link href="/choghadiya" className="hover:text-sagar-saffron">Choghadiya</Link>
           <Link href="/pooja" className="hover:text-sagar-saffron">Pooja</Link>
           <Link href="/deity" className="hover:text-sagar-saffron">Deities</Link>
           <Link href="/festival" className="hover:text-sagar-saffron">Festivals</Link>
@@ -57,6 +59,7 @@ export default function NavBar() {
             <div className="absolute right-6 mt-2 w-40 rounded-2xl border border-sagar-amber/20 bg-white p-3 text-xs font-semibold uppercase tracking-[0.2em] text-sagar-ink/70 shadow-sagar-soft">
               <Link href="/aartis" className="block py-2 hover:text-sagar-saffron">Aartis</Link>
               <Link href="/categories" className="block py-2 hover:text-sagar-saffron">Categories</Link>
+              <Link href="/choghadiya" className="block py-2 hover:text-sagar-saffron">Choghadiya</Link>
               <Link href="/pooja" className="block py-2 hover:text-sagar-saffron">Pooja</Link>
               <Link href="/deity" className="block py-2 hover:text-sagar-saffron">Deities</Link>
               <Link href="/festival" className="block py-2 hover:text-sagar-saffron">Festivals</Link>

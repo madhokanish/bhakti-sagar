@@ -1,5 +1,6 @@
 import { siteConfig, supportedLanguages } from "@/lib/seo";
 import { deityHubs, festivals, poojaGuides, mantras, chalisas } from "@/lib/content";
+import { cities } from "@/lib/choghadiyaCities";
 
 function withLang(path: string) {
   return supportedLanguages.map((lang) => `${siteConfig.url}/${lang.code}${path}`);
@@ -19,6 +20,7 @@ export function GET() {
     "/stotras",
     "/vrat-katha",
     "/bhajan",
+    "/choghadiya",
     "/about",
     "/contact",
     "/privacy",
@@ -33,8 +35,17 @@ export function GET() {
   const poojaUrls = poojaGuides.flatMap((item) => withLang(`/pooja/${item.slug}`));
   const mantraUrls = mantras.flatMap((item) => withLang(`/mantra/${item.slug}`));
   const chalisaUrls = chalisas.flatMap((item) => withLang(`/chalisa/${item.slug}`));
+  const choghadiyaUrls = cities.flatMap((city) => withLang(`/choghadiya/${city.slug}`));
 
-  const urls = [...hubUrls, ...deityUrls, ...festivalUrls, ...poojaUrls, ...mantraUrls, ...chalisaUrls];
+  const urls = [
+    ...hubUrls,
+    ...deityUrls,
+    ...festivalUrls,
+    ...poojaUrls,
+    ...mantraUrls,
+    ...chalisaUrls,
+    ...choghadiyaUrls
+  ];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls

@@ -5,8 +5,6 @@ import ShareButton from "@/components/ShareButton";
 import PrintButton from "@/components/PrintButton";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import MobileContentsDrawer from "@/components/MobileContentsDrawer";
-import AartiUtilityBar from "@/components/AartiUtilityBar";
-import CompactShareButton from "@/components/CompactShareButton";
 import { getAartiBySlug, getAartis, getAartisByCategory, getCategories } from "@/lib/data";
 import { festivals } from "@/lib/content";
 import { getYouTubeEmbedUrl, getYouTubeId } from "@/lib/youtube";
@@ -29,6 +27,15 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
     });
   }
   const title = aarti.title.english || aarti.title.hindi;
+  if (aarti.slug === "shri-shiv-ji-ki-aarati") {
+    return buildMetadata({
+      title: "Om Jai Shiv Omkara Lyrics (English & Hindi) | Maha Shivratri Aarti Meaning",
+      description:
+        "Read Om Jai Shiv Omkara lyrics in English and Hindi with meaning and video. Popular Shiv Ji ki Aarti for Maha Shivratri and daily Shiva pooja.",
+      pathname: `/aartis/${aarti.slug}`,
+      ogImage: siteConfig.ogImage
+    });
+  }
   return buildMetadata({
     title: `${title} Lyrics (English) | Aarti Video | Meaning`,
     description: `Read ${title} lyrics in English letters, meaning, and watch the aarti video. Easy to read and mobile friendly.`,
@@ -120,8 +127,8 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
   ];
 
   return (
-    <div className="container py-12">
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">
+    <div className="container py-10 pb-24">
+      <div className="hidden flex-wrap items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose sm:flex">
         <div className="flex flex-wrap items-center gap-3">
           <span>{category?.name ?? "Aarti"}</span>
           <span className="h-1 w-1 rounded-full bg-sagar-rose" />
@@ -133,27 +140,20 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
         </div>
       </div>
 
-      <div className="mt-3 flex items-start justify-between gap-4">
-        <h1 className="text-3xl font-serif text-sagar-ink sm:text-4xl md:text-5xl">{titleDisplay}</h1>
-        <div className="mt-1 lg:hidden">
-          <CompactShareButton title={titleDisplay} />
-        </div>
+      <div className="mt-2 flex items-start justify-between gap-4">
+        <h1 className="text-2xl font-serif text-sagar-ink sm:text-4xl md:text-5xl">{titleDisplay}</h1>
       </div>
       {subtitle && (
-        <p className="mt-1 text-base text-sagar-ink/70">{subtitle}</p>
+        <p className="mt-1 hidden text-sm text-sagar-ink/70 sm:block sm:text-base">{subtitle}</p>
       )}
-      <div className="mt-2 text-xs text-sagar-ink/60">
+      <div className="mt-2 hidden text-xs text-sagar-ink/60 sm:block">
         <span>{category?.name ?? "Aarti"}</span>
         <span className="mx-2">•</span>
         <span>{lang === "hi" ? "Hindi" : "English"}</span>
       </div>
-      <div className="mt-3 lg:hidden">
-        <AartiUtilityBar title={titleDisplay} />
-      </div>
-
       <div className="mt-5 grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
-        <div className="rounded-3xl border border-sagar-amber/20 bg-white p-6 shadow-none lg:shadow-sagar-card">
-          <div className="hidden rounded-2xl border border-sagar-amber/20 bg-sagar-cream/50 p-4 lg:block">
+        <div className="order-1 rounded-3xl border border-sagar-amber/20 bg-white p-6 shadow-none lg:shadow-sagar-card">
+          <div className="hidden rounded-2xl border border-sagar-amber/20 bg-sagar-cream/50 p-4 lg:block aarti-secondary">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">On this page</p>
             <div className="mt-3 flex flex-wrap gap-3 text-xs text-sagar-ink/70">
               <a href="#lyrics" className="hover:text-sagar-saffron">Lyrics</a>
@@ -162,15 +162,21 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
               <a href="#faq" className="hover:text-sagar-saffron">FAQ</a>
             </div>
           </div>
+          <div className="mt-3 flex items-center justify-between lg:hidden aarti-secondary">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-ink/60">Contents</p>
+            <MobileContentsDrawer sections={contents} triggerLabel="Contents" />
+          </div>
           <div id="lyrics" className="scroll-mt-24">
             <AartiLyricsPanel
               title={aarti.title}
               lyrics={aarti.lyrics}
+              slug={aarti.slug}
+              aartiUrl={aartiUrl}
               initialLanguage={lang === "hi" ? "hindi" : "english"}
             />
           </div>
-          <div className="mt-6 lg:hidden">
-            <details className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
+          <div className="mt-6 space-y-4 aarti-secondary">
+            <details className="rounded-2xl border border-sagar-amber/20 bg-white p-4" id="video">
               <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">Video</summary>
               <div className="mt-4">
                 {embedUrl ? (
@@ -190,6 +196,21 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
                     <p className="text-sm text-sagar-ink/60">Add a YouTube URL to show the video.</p>
                   </div>
                 )}
+              </div>
+            </details>
+            <details id="meaning" className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
+              <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">AI Summary</summary>
+              <div className="mt-4">
+                <MeaningPanel
+                  title={titleDisplay}
+                  lyrics={
+                    lang === "hi" && aarti.lyrics.hindi.length
+                      ? aarti.lyrics.hindi
+                      : aarti.lyrics.english.length
+                      ? aarti.lyrics.english
+                      : aarti.lyrics.hindi
+                  }
+                />
               </div>
             </details>
           </div>
@@ -219,60 +240,8 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
             </div>
           </div>
         </div>
-        <aside className="space-y-4 lg:sticky lg:top-20 hidden lg:block">
-          <div className="rounded-3xl border border-sagar-amber/20 bg-white/80 p-4 shadow-sagar-soft">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">Video</p>
-            <h2 className="mt-2 text-lg font-serif text-sagar-ink">Listen & sing along</h2>
-            <div className="mt-4">
-              {embedUrl ? (
-                <div className="aspect-video overflow-hidden rounded-2xl bg-sagar-cream/70">
-                  <iframe
-                    src={embedUrl}
-                    title={`${titleDisplay} Aarti Video`}
-                    className="h-full w-full"
-                    loading="lazy"
-                    referrerPolicy="strict-origin-when-cross-origin"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              ) : (
-                <div className="flex aspect-video items-center justify-center rounded-2xl border border-dashed border-sagar-amber/40 bg-sagar-cream/60">
-                  <p className="text-sm text-sagar-ink/60">Add a YouTube URL to show the video.</p>
-                </div>
-              )}
-            </div>
-          </div>
-          <div id="meaning" className="scroll-mt-24">
-            <MeaningPanel
-              title={titleDisplay}
-              lyrics={
-                lang === "hi" && aarti.lyrics.hindi.length
-                  ? aarti.lyrics.hindi
-                  : aarti.lyrics.english.length
-                  ? aarti.lyrics.english
-                  : aarti.lyrics.hindi
-              }
-            />
-          </div>
-        </aside>
       </div>
-      <div className="mt-6 space-y-4 lg:hidden">
-        <details id="meaning" className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
-          <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">AI Summary</summary>
-          <div className="mt-4">
-            <MeaningPanel
-              title={titleDisplay}
-              lyrics={
-                lang === "hi" && aarti.lyrics.hindi.length
-                  ? aarti.lyrics.hindi
-                  : aarti.lyrics.english.length
-                  ? aarti.lyrics.english
-                  : aarti.lyrics.hindi
-              }
-            />
-          </div>
-        </details>
+      <div className="mt-6 space-y-4 aarti-secondary">
         <details className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
           <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">Share & details</summary>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -286,7 +255,7 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
           </div>
         </details>
       </div>
-      <div id="related" className="mt-12 grid gap-6 md:grid-cols-2">
+      <div id="related" className="mt-12 grid gap-6 md:grid-cols-2 aarti-secondary">
         <div className="rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-soft">
           <h3 className="text-lg font-serif text-sagar-ink">More prayers for {category?.name ?? "this deity"}</h3>
           <div className="mt-4 grid gap-2 text-sm text-sagar-ink/70">
@@ -308,7 +277,7 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
           </div>
         </div>
       </div>
-      <div className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-soft">
+      <div className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-soft aarti-secondary">
         <h3 className="text-lg font-serif text-sagar-ink">About {category?.name ?? "the deity"}</h3>
         <p className="mt-3 text-sm text-sagar-ink/70">
           {category?.name ?? "This deity"} is honored in Hindu tradition with prayers, aartis, and devotional
@@ -316,7 +285,7 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
         </p>
       </div>
       {relatedFestivals.length > 0 && (
-        <div className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-soft">
+        <div className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-soft aarti-secondary">
           <h3 className="text-lg font-serif text-sagar-ink">Related festivals</h3>
           <div className="mt-4 flex flex-wrap gap-3 text-sm text-sagar-ink/70">
             {relatedFestivals.map((festival) => (
@@ -331,7 +300,6 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
           </div>
         </div>
       )}
-      <MobileContentsDrawer sections={contents} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleData) }}

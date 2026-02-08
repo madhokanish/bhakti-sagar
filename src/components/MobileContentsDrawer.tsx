@@ -7,17 +7,33 @@ type Section = {
   label: string;
 };
 
-export default function MobileContentsDrawer({ sections }: { sections: Section[] }) {
+type Props = {
+  sections: Section[];
+  triggerLabel?: string;
+  triggerClassName?: string;
+  floating?: boolean;
+};
+
+export default function MobileContentsDrawer({
+  sections,
+  triggerLabel = "Contents",
+  triggerClassName,
+  floating = false
+}: Props) {
   const [open, setOpen] = useState(false);
+
+  const triggerClasses = floating
+    ? "fixed bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-full bg-sagar-saffron px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-sagar-soft lg:hidden"
+    : `rounded-full border border-sagar-amber/30 bg-white px-3 py-1 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-sagar-ink/60 ${triggerClassName ?? ""}`;
 
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-full bg-sagar-saffron px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-sagar-soft lg:hidden"
+        className={triggerClasses}
       >
-        Contents
+        {triggerLabel}
       </button>
 
       {open && (

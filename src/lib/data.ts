@@ -43,13 +43,10 @@ export function getCategoryLabel(slug: string) {
 }
 
 export function getTopAartis() {
-  return aartis
-    .filter((aarti) => aarti.isTop)
-    .sort((a, b) => {
-      if (a.slug === "shri-shiv-ji-ki-aarati") return -1;
-      if (b.slug === "shri-shiv-ji-ki-aarati") return 1;
-      return 0;
-    });
+  const topAartis = aartis.filter((aarti) => aarti.isTop);
+  const shivAarti = topAartis.find((aarti) => aarti.slug === "shri-shiv-ji-ki-aarati");
+  if (!shivAarti) return topAartis;
+  return [shivAarti, ...topAartis.filter((aarti) => aarti.slug !== "shri-shiv-ji-ki-aarati")];
 }
 
 export function getAartiBySlug(slug: string) {

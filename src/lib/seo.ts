@@ -10,10 +10,7 @@ export const siteConfig = {
   twitter: "@bhaktisagar"
 };
 
-export const supportedLanguages = [
-  { code: "en", label: "English" },
-  { code: "hi", label: "Hindi" }
-];
+export const supportedLanguages: { code: string; label: string }[] = [];
 
 export function getRequestLanguage(defaultLang: "en" | "hi" = "en") {
   try {
@@ -39,13 +36,16 @@ export function absoluteUrl(path: string) {
 
 export function buildAlternates(pathname: string) {
   const cleanPath = pathname.startsWith("/") ? pathname : `/${pathname}`;
-  return {
-    canonical: absoluteUrl(cleanPath),
-    languages: supportedLanguages.reduce<Record<string, string>>((acc, lang) => {
+  const alternates: { canonical: string; languages?: Record<string, string> } = {
+    canonical: absoluteUrl(cleanPath)
+  };
+  if (supportedLanguages.length > 0) {
+    alternates.languages = supportedLanguages.reduce<Record<string, string>>((acc, lang) => {
       acc[lang.code] = absoluteUrl(`/${lang.code}${cleanPath}`);
       return acc;
-    }, {})
-  };
+    }, {});
+  }
+  return alternates;
 }
 
 export function buildMetadata({

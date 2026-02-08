@@ -1,13 +1,9 @@
-import { siteConfig, supportedLanguages } from "@/lib/seo";
+import { siteConfig } from "@/lib/seo";
 import { getAartis } from "@/lib/data";
-
-function withLang(path: string) {
-  return supportedLanguages.map((lang) => `${siteConfig.url}/${lang.code}${path}`);
-}
 
 export function GET() {
   const aartis = getAartis();
-  const urls = aartis.flatMap((aarti) => withLang(`/aartis/${aarti.slug}`));
+  const urls = aartis.map((aarti) => `${siteConfig.url}/aartis/${aarti.slug}`);
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

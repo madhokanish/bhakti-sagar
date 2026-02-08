@@ -1,10 +1,6 @@
-import { siteConfig, supportedLanguages } from "@/lib/seo";
+import { siteConfig } from "@/lib/seo";
 import { deityHubs, festivals, poojaGuides, mantras, chalisas } from "@/lib/content";
 import { cities } from "@/lib/choghadiyaCities";
-
-function withLang(path: string) {
-  return supportedLanguages.map((lang) => `${siteConfig.url}/${lang.code}${path}`);
-}
 
 export function GET() {
   const hubs = [
@@ -29,13 +25,13 @@ export function GET() {
     "/sources"
   ];
 
-  const hubUrls = hubs.flatMap(withLang);
-  const deityUrls = deityHubs.flatMap((item) => withLang(`/deity/${item.slug}`));
-  const festivalUrls = festivals.flatMap((item) => withLang(`/festival/${item.slug}`));
-  const poojaUrls = poojaGuides.flatMap((item) => withLang(`/pooja/${item.slug}`));
-  const mantraUrls = mantras.flatMap((item) => withLang(`/mantra/${item.slug}`));
-  const chalisaUrls = chalisas.flatMap((item) => withLang(`/chalisa/${item.slug}`));
-  const choghadiyaUrls = cities.flatMap((city) => withLang(`/choghadiya/${city.slug}`));
+  const hubUrls = hubs.map((path) => `${siteConfig.url}${path}`);
+  const deityUrls = deityHubs.map((item) => `${siteConfig.url}/deity/${item.slug}`);
+  const festivalUrls = festivals.map((item) => `${siteConfig.url}/festival/${item.slug}`);
+  const poojaUrls = poojaGuides.map((item) => `${siteConfig.url}/pooja/${item.slug}`);
+  const mantraUrls = mantras.map((item) => `${siteConfig.url}/mantra/${item.slug}`);
+  const chalisaUrls = chalisas.map((item) => `${siteConfig.url}/chalisa/${item.slug}`);
+  const choghadiyaUrls = cities.map((city) => `${siteConfig.url}/choghadiya/${city.slug}`);
 
   const urls = [
     ...hubUrls,

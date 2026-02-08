@@ -6,8 +6,7 @@ export const metadata: Metadata = {
   ...buildMetadata({
     title: "All Aartis & Bhajans",
     description: "Browse the full library of aartis and bhajans with English and Hindi lyrics.",
-    pathname: "/aartis",
-    noindex: true
+    pathname: "/aartis"
   })
 };
 

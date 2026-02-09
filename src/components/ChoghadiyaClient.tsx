@@ -108,11 +108,30 @@ export default function ChoghadiyaClient({
     const stored = window.localStorage.getItem(recentKey);
     if (!stored) return;
     try {
-      const slugs = JSON.parse(stored) as string[];
-      const list = slugs
-        .map((slug) => cities.find((city) => city.slug === slug))
-        .filter((city): city is CityOption => Boolean(city));
-      setRecentCities(list);
+      const parsed = JSON.parse(stored) as unknown;
+      if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === "string") {
+        const slugs = parsed as string[];
+        const list = slugs
+          .map((slug) => cities.find((city) => city.slug === slug))
+          .filter((city): city is CityOption => Boolean(city));
+        setRecentCities(list);
+        return;
+      }
+      if (Array.isArray(parsed)) {
+        const list = parsed.filter(
+          (item): item is CityOption =>
+            Boolean(
+              item &&
+                typeof item === "object" &&
+                "slug" in item &&
+                "name" in item &&
+                "lat" in item &&
+                "lon" in item &&
+                "tz" in item
+            )
+        );
+        setRecentCities(list.slice(0, 3));
+      }
     } catch {
       setRecentCities([]);
     }
@@ -325,11 +344,27 @@ export default function ChoghadiyaClient({
     });
   }
 
+  async function fetchCityOptions(query: string, signal?: AbortSignal): Promise<CityOption[]> {
+    const response = await fetch(
+      `/api/choghadiya/geocode?query=${encodeURIComponent(query)}`,
+      signal ? { signal } : undefined
+    );
+    const data = await response.json();
+    const remote = Array.isArray(data?.results) ? (data.results as CityOption[]) : [];
+    const merged = [...remote];
+    for (const local of cities) {
+      if (local.name.toLowerCase().includes(query.toLowerCase()) && !merged.some((item) => item.slug === local.slug)) {
+        merged.push(local);
+      }
+    }
+    return merged.slice(0, 8);
+  }
+
   function persistRecentCity(city: CityOption) {
     setRecentCities((prev) => {
       const next = [city, ...prev.filter((item) => item.slug !== city.slug)].slice(0, 3);
       if (typeof window !== "undefined") {
-        window.localStorage.setItem(recentKey, JSON.stringify(next.map((item) => item.slug)));
+        window.localStorage.setItem(recentKey, JSON.stringify(next));
       }
       return next;
     });
@@ -346,12 +381,13 @@ export default function ChoghadiyaClient({
     track("choghadiya_city_selected");
   }
 
-  function handleResolveCity(raw: string) {
+  async function handleResolveCity(raw: string) {
     const value = raw.trim().toLowerCase();
     if (!value) {
       setLat(null);
       setLon(null);
       setPathBase("/choghadiya");
+      setError(null);
       return;
     }
     const exact = citySuggestions.find((city) => city.name.toLowerCase() === value);
@@ -359,9 +395,22 @@ export default function ChoghadiyaClient({
       applyCitySelection(exact);
       return;
     }
-    if (citySuggestions.length > 0) {
+    if (citySuggestions.length > 0 && citySuggestions[0]) {
       applyCitySelection(citySuggestions[0]);
       return;
+    }
+    try {
+      setCitySearchLoading(true);
+      const results = await fetchCityOptions(raw.trim());
+      setCitySuggestions(results);
+      if (results[0]) {
+        applyCitySelection(results[0]);
+        return;
+      }
+    } catch {
+      // no-op
+    } finally {
+      setCitySearchLoading(false);
     }
     setError("City not found. Try a nearby major city.");
   }

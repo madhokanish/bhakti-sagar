@@ -10,7 +10,7 @@ export default function MobileQuickNav() {
         <Link href="/deity" className="hover:text-sagar-saffron">Deities</Link>
         <Link href="/choghadiya" className="hover:text-sagar-saffron">Choghadiya</Link>
         <Link href="/pooja" className="hover:text-sagar-saffron">Pooja</Link>
-        <Link href="/aartis" className="hover:text-sagar-saffron">Search</Link>
+        <Link href="/online-puja" className="hover:text-sagar-saffron">Online</Link>
       </div>
     </div>
   );

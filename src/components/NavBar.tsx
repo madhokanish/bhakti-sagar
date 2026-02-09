@@ -11,6 +11,7 @@ export default function NavBar() {
             <Link href="/aartis" className="hover:text-sagar-saffron">Aartis</Link>
             <Link href="/categories" className="hover:text-sagar-saffron">Categories</Link>
             <Link href="/choghadiya" className="hover:text-sagar-saffron">Choghadiya</Link>
+            <Link href="/online-puja" className="hover:text-sagar-saffron">Online Puja</Link>
             <Link href="/pooja" className="hover:text-sagar-saffron">Pooja</Link>
             <Link href="/deity" className="hover:text-sagar-saffron">Deities</Link>
             <Link href="/festival" className="hover:text-sagar-saffron">Festivals</Link>
@@ -21,6 +22,7 @@ export default function NavBar() {
           <Link href="/aartis" className="hover:text-sagar-saffron">Aartis</Link>
           <Link href="/categories" className="hover:text-sagar-saffron">Categories</Link>
           <Link href="/choghadiya" className="hover:text-sagar-saffron">Choghadiya</Link>
+          <Link href="/online-puja" className="hover:text-sagar-saffron">Online Puja</Link>
           <Link href="/pooja" className="hover:text-sagar-saffron">Pooja</Link>
           <Link href="/deity" className="hover:text-sagar-saffron">Deities</Link>
           <Link href="/festival" className="hover:text-sagar-saffron">Festivals</Link>
@@ -60,6 +62,7 @@ export default function NavBar() {
               <Link href="/aartis" className="block py-2 hover:text-sagar-saffron">Aartis</Link>
               <Link href="/categories" className="block py-2 hover:text-sagar-saffron">Categories</Link>
               <Link href="/choghadiya" className="block py-2 hover:text-sagar-saffron">Choghadiya</Link>
+              <Link href="/online-puja" className="block py-2 hover:text-sagar-saffron">Online Puja</Link>
               <Link href="/pooja" className="block py-2 hover:text-sagar-saffron">Pooja</Link>
               <Link href="/deity" className="block py-2 hover:text-sagar-saffron">Deities</Link>
               <Link href="/festival" className="block py-2 hover:text-sagar-saffron">Festivals</Link>

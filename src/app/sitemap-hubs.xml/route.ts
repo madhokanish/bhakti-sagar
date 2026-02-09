@@ -1,6 +1,7 @@
 import { siteConfig } from "@/lib/seo";
 import { deityHubs, festivals, poojaGuides, mantras, chalisas } from "@/lib/content";
 import { cities } from "@/lib/choghadiyaCities";
+import { getActiveOnlinePujas } from "@/lib/onlinePuja";
 
 export function GET() {
   const hubs = [
@@ -17,6 +18,7 @@ export function GET() {
     "/vrat-katha",
     "/bhajan",
     "/choghadiya",
+    "/online-puja",
     "/about",
     "/contact",
     "/privacy",
@@ -32,6 +34,7 @@ export function GET() {
   const mantraUrls = mantras.map((item) => `${siteConfig.url}/mantra/${item.slug}`);
   const chalisaUrls = chalisas.map((item) => `${siteConfig.url}/chalisa/${item.slug}`);
   const choghadiyaUrls = cities.map((city) => `${siteConfig.url}/choghadiya/${city.slug}`);
+  const onlinePujaUrls = getActiveOnlinePujas().map((puja) => `${siteConfig.url}/online-puja/${puja.slug}`);
 
   const urls = [
     ...hubUrls,
@@ -40,7 +43,8 @@ export function GET() {
     ...poojaUrls,
     ...mantraUrls,
     ...chalisaUrls,
-    ...choghadiyaUrls
+    ...choghadiyaUrls,
+    ...onlinePujaUrls
   ];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

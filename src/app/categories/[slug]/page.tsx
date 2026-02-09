@@ -18,12 +18,10 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
       pathname: "/categories"
     });
   }
-  const aartisCount = getAartisByCategory(category.slug).length;
   return buildMetadata({
     title: `${category.name} Aartis`,
     description: `Explore ${category.name} aartis with English and Hindi lyrics.`,
-    pathname: `/categories/${category.slug}`,
-    noindex: aartisCount < 2
+    pathname: `/categories/${category.slug}`
   });
 }
 

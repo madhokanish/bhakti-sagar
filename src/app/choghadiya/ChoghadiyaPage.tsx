@@ -96,17 +96,6 @@ export function ChoghadiyaPage({
         </div>
       </section>
 
-      <section className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white p-6">
-        <h2 className="text-xl font-serif text-sagar-ink">
-          Aaj Ka Choghadiya for {state.cityLabel} on {state.dateLabel}
-        </h2>
-        <p className="mt-3 text-sm text-sagar-ink/70">
-          Use this page to find the current choghadiya, the next good slot, and the full day and night schedule. It is
-          designed for quick decisions—especially if you are outside India and want a trusted daily ritual time. Bookmark
-          this page and share it with family when planning a pooja, travel, or a new start.
-        </p>
-      </section>
-
       <section className="mt-8 grid gap-4 md:grid-cols-2">
         <details className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
           <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">What is Choghadiya?</summary>

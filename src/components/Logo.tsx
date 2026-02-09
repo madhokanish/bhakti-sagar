@@ -16,7 +16,9 @@ export default function Logo() {
       </div>
       <div className="leading-tight">
         <p className="text-2xl font-serif text-sagar-ink">Bhakti Sagar</p>
-        <p className="text-[0.6rem] uppercase tracking-[0.25em] text-sagar-saffron">Aarti · Bhajan · Bhakti</p>
+        <p className="whitespace-nowrap text-[0.58rem] font-medium tracking-[0.08em] text-sagar-saffron sm:text-[0.62rem]">
+          A Global Devotional Platform
+        </p>
       </div>
     </Link>
   );

@@ -11,9 +11,9 @@ export default function NavBar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-sagar-amber/20 bg-sagar-cream">
-      <div className="container flex items-center justify-between gap-4 py-2">
+      <div className="container relative flex items-center justify-between gap-4 py-2">
         <Logo />
-        <nav className="hidden items-center gap-6 text-sm font-semibold text-sagar-ink/80 md:flex">
+        <nav className="hidden items-center gap-6 text-sm font-semibold text-sagar-ink/80 md:absolute md:left-1/2 md:flex md:-translate-x-1/2">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -28,6 +28,7 @@ export default function NavBar() {
             </Link>
           ))}
         </nav>
+        <div className="hidden h-9 w-9 md:block" aria-hidden="true" />
         <div className="md:hidden">
           <details>
             <summary className="flex h-9 w-9 items-center justify-center rounded-full border border-sagar-amber/30 bg-white text-sagar-ink/60">

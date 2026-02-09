@@ -10,7 +10,7 @@ import Script from "next/script";
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   ...buildMetadata({
-    title: "Aarti Lyrics, Pooja Vidhi, Mantra and Meaning",
+    title: "A Global Devotional Platform",
     description: siteConfig.description,
     pathname: "/"
   }),

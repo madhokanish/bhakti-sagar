@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 export const siteConfig = {
   name: "Bhakti Sagar",
   description:
-    "Read popular aartis and pooja content with easy Hindi-in-English lyrics, meaning, and YouTube videos. Fast, clean, and mobile friendly.",
+    "A Global Devotional Platform for aartis, pooja guides, mantras, and devotional timings.",
   url: "https://bhakti-sagar.com",
   ogImage: "/brand/bhakti-sagar-logo.png",
   twitter: "@bhaktisagar"

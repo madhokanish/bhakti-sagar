@@ -175,85 +175,83 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
               initialLanguage={lang === "hi" ? "hindi" : "english"}
             />
           </div>
-          <div className="mt-6 space-y-4 aarti-secondary">
-            <details className="rounded-2xl border border-sagar-amber/20 bg-white p-4" id="video">
-              <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">Video</summary>
-              <div className="mt-4">
-                {embedUrl ? (
-                  <div className="aspect-video overflow-hidden rounded-2xl bg-sagar-cream/70">
-                    <iframe
-                      src={embedUrl}
-                      title={`${titleDisplay} Aarti Video`}
-                      className="h-full w-full"
-                      loading="lazy"
-                      referrerPolicy="strict-origin-when-cross-origin"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                ) : (
-                  <div className="flex aspect-video items-center justify-center rounded-2xl border border-dashed border-sagar-amber/40 bg-sagar-cream/60">
-                    <p className="text-sm text-sagar-ink/60">Add a YouTube URL to show the video.</p>
-                  </div>
-                )}
-              </div>
-            </details>
-            <details id="meaning" className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
-              <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">AI Summary</summary>
-              <div className="mt-4">
-                <MeaningPanel
-                  title={titleDisplay}
-                  lyrics={
-                    lang === "hi" && aarti.lyrics.hindi.length
-                      ? aarti.lyrics.hindi
-                      : aarti.lyrics.english.length
-                      ? aarti.lyrics.english
-                      : aarti.lyrics.hindi
-                  }
-                />
-              </div>
-            </details>
-          </div>
-          <div id="how-to" className="mt-8 grid gap-4 md:grid-cols-2 scroll-mt-24">
-            <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-4 shadow-sagar-soft">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-sagar-rose">When to do this aarti</h3>
-              <p className="mt-2 text-sm text-sagar-ink/70">
-                Often sung during daily prayer, temple visits, and festival poojas dedicated to {titleDisplay}.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-4 shadow-sagar-soft">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-sagar-rose">How to do aarti</h3>
-              <p className="mt-2 text-sm text-sagar-ink/70">
-                Light a diya, offer flowers or prasad, and sing the aarti with devotion while circling the lamp.
-              </p>
-            </div>
-          </div>
-          <div id="faq" className="mt-8 rounded-2xl border border-sagar-amber/20 bg-white p-6 scroll-mt-24 lg:shadow-sagar-soft">
-            <h3 className="text-lg font-serif text-sagar-ink">FAQ</h3>
-            <div className="mt-4 space-y-4 text-sm text-sagar-ink/70">
-              {faqItems.map((item) => (
-                <div key={item.q}>
-                  <p className="font-semibold text-sagar-ink">{item.q}</p>
-                  <p className="mt-1">{item.a}</p>
+        </div>
+        <aside className="order-2 space-y-4 aarti-secondary lg:sticky lg:top-24">
+          <details className="rounded-2xl border border-sagar-amber/20 bg-white p-4" id="video">
+            <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">Video</summary>
+            <div className="mt-4">
+              {embedUrl ? (
+                <div className="aspect-video overflow-hidden rounded-2xl bg-sagar-cream/70">
+                  <iframe
+                    src={embedUrl}
+                    title={`${titleDisplay} Aarti Video`}
+                    className="h-full w-full"
+                    loading="lazy"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
                 </div>
-              ))}
+              ) : (
+                <div className="flex aspect-video items-center justify-center rounded-2xl border border-dashed border-sagar-amber/40 bg-sagar-cream/60">
+                  <p className="text-sm text-sagar-ink/60">Add a YouTube URL to show the video.</p>
+                </div>
+              )}
             </div>
+          </details>
+          <details id="meaning" className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">AI Summary</summary>
+            <div className="mt-4">
+              <MeaningPanel
+                title={titleDisplay}
+                lyrics={
+                  lang === "hi" && aarti.lyrics.hindi.length
+                    ? aarti.lyrics.hindi
+                    : aarti.lyrics.english.length
+                    ? aarti.lyrics.english
+                    : aarti.lyrics.hindi
+                }
+              />
+            </div>
+          </details>
+          <details className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">Share & details</summary>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <ShareButton title={titleDisplay} />
+              <CopyLinkButton />
+              <PrintButton />
+            </div>
+            <div className="mt-4 text-xs text-sagar-ink/60">
+              <p>Last updated: Feb 5, 2026</p>
+              <p>Reviewed by: {author?.name ?? "Bhakti Sagar"}</p>
+            </div>
+          </details>
+        </aside>
+        <div id="how-to" className="order-3 grid gap-4 md:grid-cols-2 scroll-mt-24 lg:col-start-1">
+          <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-4 shadow-sagar-soft">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-sagar-rose">When to do this aarti</h3>
+            <p className="mt-2 text-sm text-sagar-ink/70">
+              Often sung during daily prayer, temple visits, and festival poojas dedicated to {titleDisplay}.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-4 shadow-sagar-soft">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-sagar-rose">How to do aarti</h3>
+            <p className="mt-2 text-sm text-sagar-ink/70">
+              Light a diya, offer flowers or prasad, and sing the aarti with devotion while circling the lamp.
+            </p>
           </div>
         </div>
-      </div>
-      <div className="mt-6 space-y-4 aarti-secondary">
-        <details className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
-          <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">Share & details</summary>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <ShareButton title={titleDisplay} />
-            <CopyLinkButton />
-            <PrintButton />
+        <div id="faq" className="order-4 rounded-2xl border border-sagar-amber/20 bg-white p-6 scroll-mt-24 lg:col-start-1 lg:shadow-sagar-soft">
+          <h3 className="text-lg font-serif text-sagar-ink">FAQ</h3>
+          <div className="mt-4 space-y-4 text-sm text-sagar-ink/70">
+            {faqItems.map((item) => (
+              <div key={item.q}>
+                <p className="font-semibold text-sagar-ink">{item.q}</p>
+                <p className="mt-1">{item.a}</p>
+              </div>
+            ))}
           </div>
-          <div className="mt-4 text-xs text-sagar-ink/60">
-            <p>Last updated: Feb 5, 2026</p>
-            <p>Reviewed by: {author?.name ?? "Bhakti Sagar"}</p>
-          </div>
-        </details>
+        </div>
       </div>
       <div id="related" className="mt-12 grid gap-6 md:grid-cols-2 aarti-secondary">
         <div className="rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-soft">

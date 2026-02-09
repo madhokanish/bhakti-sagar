@@ -531,10 +531,22 @@ END:VCALENDAR`;
     day: "2-digit",
     year: "numeric"
   }).format(new Date(`${dateISO}T00:00:00Z`));
+  const cityLabel = cityInput.trim() ? cityInput.trim() : "your location";
 
   return (
     <div className={containerClass}>
       <h1 className="sr-only">Aaj Ka Choghadiya</h1>
+      <section className="rounded-3xl border border-sagar-amber/20 bg-white p-6">
+        <h2 className="text-xl font-serif text-sagar-ink">
+          Aaj Ka Choghadiya for {cityLabel} on {dateLabel}
+        </h2>
+        <p className="mt-3 text-sm text-sagar-ink/70">
+          Use this page to find the current choghadiya, the next good slot, and the full day and night schedule.
+          It is designed for quick decisions - especially if you are outside India and want a trusted daily ritual
+          time. Bookmark this page and share it with family when planning a pooja, travel, or a new start.
+        </p>
+      </section>
+
       <DateController
         cityInput={cityInput}
         onCityChange={handleCityChange}

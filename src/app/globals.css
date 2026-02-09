@@ -5,6 +5,8 @@
 :root {
   color-scheme: light;
   --bg-start: #fff7ee;
+  --aarti-font-size: 1.125rem;
+  --aarti-line-height: 1.6;
 }
 
 body {
@@ -30,20 +32,30 @@ h1, h2, h3, h4 {
 }
 
 .aarti-lyrics {
-  font-size: 1.125rem;
-  line-height: 1.6;
+  font-size: var(--aarti-font-size, 1.125rem);
+  line-height: var(--aarti-line-height, 1.6);
 }
 
 @media (min-width: 768px) {
   .aarti-lyrics {
-    font-size: 1.25rem;
-    line-height: 1.7;
+    font-size: var(--aarti-font-size, 1.25rem);
+    line-height: var(--aarti-line-height, 1.7);
   }
 }
 
-html[data-text-size="large"] .aarti-lyrics {
-  font-size: 1.3rem;
-  line-height: 1.7;
+@media (min-width: 1024px) {
+  .aarti-lyrics {
+    max-width: 42rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+html[data-reading-mode="on"] header,
+html[data-reading-mode="on"] nav,
+html[data-reading-mode="on"] footer,
+html[data-reading-mode="on"] .aarti-secondary {
+  display: none !important;
 }
 
 @media print {

@@ -83,7 +83,6 @@ export default function ChoghadiyaClient({
   const [error, setError] = useState<string | null>(null);
   const [manualHint, setManualHint] = useState<string | null>(null);
   const [selectedTimeMs, setSelectedTimeMs] = useState<number | null>(null);
-  const [timeZones, setTimeZones] = useState<string[]>([]);
   const [pathBase, setPathBase] = useState(initialPathBase);
   const [plannerOpen, setPlannerOpen] = useState(false);
   const [plannerParams, setPlannerParams] = useState<PlannerParams>({
@@ -95,13 +94,13 @@ export default function ChoghadiyaClient({
   const [activePane, setActivePane] = useState<"day" | "night">(initialPane);
   const [isDateAutoSet, setIsDateAutoSet] = useState(false);
   const [recentCities, setRecentCities] = useState<CityOption[]>([]);
+  const [citySuggestions, setCitySuggestions] = useState<CityOption[]>([]);
+  const [citySearchLoading, setCitySearchLoading] = useState(false);
   const recentKey = "choghadiya_recent_cities";
-  const citySuggestions = useMemo(() => {
+  const staticSuggestions = useMemo(() => {
     const value = cityInput.trim().toLowerCase();
     if (!value) return [];
-    return cities
-      .filter((city) => city.name.toLowerCase().includes(value))
-      .slice(0, 6);
+    return cities.filter((city) => city.name.toLowerCase().includes(value)).slice(0, 8);
   }, [cityInput]);
 
   useEffect(() => {
@@ -123,14 +122,40 @@ export default function ChoghadiyaClient({
   }, []);
 
   useEffect(() => {
-    try {
-      if (typeof Intl.supportedValuesOf === "function") {
-        setTimeZones(Intl.supportedValuesOf("timeZone"));
-      }
-    } catch {
-      setTimeZones([]);
+    const query = cityInput.trim();
+    if (query.length < 2) {
+      setCitySuggestions(staticSuggestions);
+      setCitySearchLoading(false);
+      return;
     }
-  }, []);
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setCitySearchLoading(true);
+      try {
+        const response = await fetch(
+          `/api/choghadiya/geocode?query=${encodeURIComponent(query)}`,
+          { signal: controller.signal }
+        );
+        const data = await response.json();
+        const remote = Array.isArray(data?.results) ? (data.results as CityOption[]) : [];
+        const merged = [...remote];
+        for (const local of staticSuggestions) {
+          if (!merged.some((item) => item.slug === local.slug)) {
+            merged.push(local);
+          }
+        }
+        setCitySuggestions(merged.slice(0, 8));
+      } catch {
+        setCitySuggestions(staticSuggestions);
+      } finally {
+        setCitySearchLoading(false);
+      }
+    }, 250);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [cityInput, staticSuggestions]);
 
   useEffect(() => {
     if (mode === "manual") return;
@@ -287,35 +312,10 @@ export default function ChoghadiyaClient({
     setCityInput(value);
   }
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const match = cities.find((city) => city.name.toLowerCase() === cityInput.toLowerCase());
-      if (match) {
-        setLat(match.lat);
-        setLon(match.lon);
-        setTz(match.tz);
-        setPathBase(`/choghadiya/${match.slug}`);
-        setRecentCities((prev) => {
-          const next = [match, ...prev.filter((item) => item.slug !== match.slug)].slice(0, 3);
-          if (typeof window !== "undefined") {
-            window.localStorage.setItem(recentKey, JSON.stringify(next.map((item) => item.slug)));
-          }
-          return next;
-        });
-        track("choghadiya_city_selected");
-      } else if (cityInput.trim().length === 0) {
-        setLat(null);
-        setLon(null);
-        setPathBase("/choghadiya");
-      }
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [cityInput]);
-
   function handleUseMyLocation() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition((pos) => {
-      setCityInput("");
+      setCityInput("Current location");
       setLat(pos.coords.latitude);
       setLon(pos.coords.longitude);
       const deviceTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -325,17 +325,50 @@ export default function ChoghadiyaClient({
     });
   }
 
+  function persistRecentCity(city: CityOption) {
+    setRecentCities((prev) => {
+      const next = [city, ...prev.filter((item) => item.slug !== city.slug)].slice(0, 3);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(recentKey, JSON.stringify(next.map((item) => item.slug)));
+      }
+      return next;
+    });
+  }
+
+  function applyCitySelection(city: CityOption) {
+    setCityInput(city.name);
+    setLat(city.lat);
+    setLon(city.lon);
+    if (city.tz) setTz(city.tz);
+    const isPreset = cities.some((item) => item.slug === city.slug);
+    setPathBase(isPreset ? `/choghadiya/${city.slug}` : "/choghadiya");
+    persistRecentCity(city);
+    track("choghadiya_city_selected");
+  }
+
+  function handleResolveCity(raw: string) {
+    const value = raw.trim().toLowerCase();
+    if (!value) {
+      setLat(null);
+      setLon(null);
+      setPathBase("/choghadiya");
+      return;
+    }
+    const exact = citySuggestions.find((city) => city.name.toLowerCase() === value);
+    if (exact) {
+      applyCitySelection(exact);
+      return;
+    }
+    if (citySuggestions.length > 0) {
+      applyCitySelection(citySuggestions[0]);
+      return;
+    }
+    setError("City not found. Try a nearby major city.");
+  }
+
   function handleDateChange(nextDate: string) {
     setDateISO(nextDate);
     track("choghadiya_date_changed");
-  }
-
-  function handleTimezoneChange(value: string) {
-    setTz(value);
-  }
-
-  function handleModeToggle(value: "auto" | "manual") {
-    setMode(value);
   }
 
   function handleShare() {
@@ -456,12 +489,12 @@ END:VCALENDAR`;
       <DateController
         cityInput={cityInput}
         onCityChange={handleCityChange}
+        onResolveCity={handleResolveCity}
+        onSelectCity={applyCitySelection}
         citySuggestions={citySuggestions}
         recentCities={recentCities}
         onUseLocation={handleUseMyLocation}
-        timeZones={timeZones}
         tz={tz}
-        onTimezoneChange={handleTimezoneChange}
         dateISO={dateISO}
         onDateChange={handleDateChange}
         onPrevDay={() => handleDateChange(addDaysISO(dateISO, -1))}
@@ -469,6 +502,10 @@ END:VCALENDAR`;
         onToday={() => handleDateChange(getLocalDateISO(tz))}
         onShare={handleShare}
       />
+
+      {citySearchLoading && cityInput.trim().length > 1 && (
+        <p className="text-xs text-sagar-ink/60">Finding city...</p>
+      )}
 
       {error && <p className="text-sm text-sagar-crimson">{error}</p>}
 

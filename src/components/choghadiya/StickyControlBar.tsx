@@ -6,12 +6,11 @@ import { CityOption } from "@/lib/choghadiyaCities";
 type Props = {
   cityInput: string;
   onCityChange: (value: string) => void;
+  onResolveCity: (value: string) => void;
+  onSelectCity: (city: CityOption) => void;
   citySuggestions: CityOption[];
   recentCities: CityOption[];
   onUseLocation: () => void;
-  timeZones: string[];
-  tz: string;
-  onTimezoneChange: (value: string) => void;
   dateISO: string;
   onDateChange: (value: string) => void;
   onPrevDay: () => void;
@@ -23,12 +22,11 @@ type Props = {
 export default function StickyControlBar({
   cityInput,
   onCityChange,
+  onResolveCity,
+  onSelectCity,
   citySuggestions,
   recentCities,
   onUseLocation,
-  timeZones,
-  tz,
-  onTimezoneChange,
   dateISO,
   onDateChange,
   onPrevDay,
@@ -51,15 +49,20 @@ export default function StickyControlBar({
   }, [openSuggestions, displaySuggestions]);
 
   const handleSelectCity = (city: CityOption) => {
-    onCityChange(city.name);
+    onSelectCity(city);
     setOpenSuggestions(false);
     setActiveIndex(null);
+  };
+
+  const handleSubmitCity = () => {
+    onResolveCity(cityInput);
+    setOpenSuggestions(false);
   };
 
   return (
     <div className="sticky top-16 z-30 border-b border-sagar-amber/20 bg-sagar-cream/95 px-3 py-2 backdrop-blur md:top-20">
       <div className="flex items-center gap-2">
-        <div className="relative w-full max-w-[55%]">
+        <div className="relative w-full max-w-[62%]">
           <input
             value={cityInput}
             onChange={(e) => onCityChange(e.target.value)}
@@ -71,32 +74,36 @@ export default function StickyControlBar({
               blurTimer.current = window.setTimeout(() => setOpenSuggestions(false), 150);
             }}
             onKeyDown={(event) => {
-              if (!openSuggestions || displaySuggestions.length === 0) return;
-              if (event.key === "ArrowDown") {
+              if (event.key === "ArrowDown" && displaySuggestions.length > 0) {
                 event.preventDefault();
                 setActiveIndex((prev) => {
                   if (prev == null) return 0;
                   return Math.min(displaySuggestions.length - 1, prev + 1);
                 });
+                return;
               }
-              if (event.key === "ArrowUp") {
+              if (event.key === "ArrowUp" && displaySuggestions.length > 0) {
                 event.preventDefault();
                 setActiveIndex((prev) => {
                   if (prev == null) return displaySuggestions.length - 1;
                   return Math.max(0, prev - 1);
                 });
+                return;
               }
               if (event.key === "Enter") {
                 event.preventDefault();
-                const index = activeIndex ?? 0;
-                const selected = displaySuggestions[index];
-                if (selected) handleSelectCity(selected);
+                const selected = activeIndex != null ? displaySuggestions[activeIndex] : null;
+                if (selected) {
+                  handleSelectCity(selected);
+                } else {
+                  handleSubmitCity();
+                }
               }
               if (event.key === "Escape") {
                 setOpenSuggestions(false);
               }
             }}
-            placeholder="City"
+            placeholder="Enter city (e.g. Chicago)"
             aria-label="City"
             className="w-full rounded-full border border-sagar-amber/30 bg-white px-3 py-1 text-xs outline-none"
           />
@@ -107,6 +114,7 @@ export default function StickyControlBar({
                 return (
                   <button
                     key={city.slug}
+                    type="button"
                     onMouseDown={(event) => {
                       event.preventDefault();
                       handleSelectCity(city);
@@ -116,25 +124,29 @@ export default function StickyControlBar({
                     }`}
                   >
                     <span>{city.name}</span>
-                    <span className="text-[0.6rem] text-sagar-ink/50">{city.tz}</span>
+                    <span className="text-[0.6rem] text-sagar-ink/50">{city.country ?? city.tz}</span>
                   </button>
                 );
               })}
-              {cityInput.trim().length === 0 && recentCities.length > 0 && (
-                <p className="mt-1 px-2 text-[0.55rem] uppercase tracking-[0.2em] text-sagar-ink/40">
-                  Recent
-                </p>
-              )}
             </div>
           )}
         </div>
         <button
+          type="button"
+          onClick={handleSubmitCity}
+          className="rounded-full border border-sagar-amber/30 bg-white px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70"
+        >
+          Go
+        </button>
+        <button
+          type="button"
           onClick={onUseLocation}
           className="rounded-full border border-sagar-amber/30 bg-white px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70"
         >
           Use location
         </button>
         <button
+          type="button"
           onClick={onShare}
           aria-label="Share"
           className="ml-auto rounded-full border border-sagar-amber/30 bg-white p-2 text-sagar-ink/60"
@@ -148,32 +160,23 @@ export default function StickyControlBar({
         </button>
       </div>
       <div className="mt-2 flex items-center gap-2">
-        <input
-          list="tz-list"
-          value={tz}
-          onChange={(e) => onTimezoneChange(e.target.value)}
-          aria-label="Timezone"
-          className="w-full max-w-[45%] rounded-full border border-sagar-amber/30 bg-white px-3 py-1 text-xs outline-none"
-        />
-        <datalist id="tz-list">
-          {timeZones.map((zone) => (
-            <option key={zone} value={zone} />
-          ))}
-        </datalist>
         <div className="flex items-center gap-1">
           <button
+            type="button"
             onClick={onPrevDay}
             className="rounded-full border border-sagar-amber/30 bg-white px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70"
           >
             Prev
           </button>
           <button
+            type="button"
             onClick={onToday}
             className="rounded-full border border-sagar-amber/30 bg-white px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70"
           >
             Today
           </button>
           <button
+            type="button"
             onClick={onNextDay}
             className="rounded-full border border-sagar-amber/30 bg-white px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70"
           >

@@ -7,12 +7,12 @@ import { CityOption } from "@/lib/choghadiyaCities";
 type Props = {
   cityInput: string;
   onCityChange: (value: string) => void;
+  onResolveCity: (value: string) => void;
+  onSelectCity: (city: CityOption) => void;
   citySuggestions: CityOption[];
   recentCities: CityOption[];
   onUseLocation: () => void;
-  timeZones: string[];
   tz: string;
-  onTimezoneChange: (value: string) => void;
   dateISO: string;
   onDateChange: (value: string) => void;
   onPrevDay: () => void;

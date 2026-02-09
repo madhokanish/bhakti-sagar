@@ -4,6 +4,7 @@ export type CityOption = {
   lat: number;
   lon: number;
   tz: string;
+  country?: string;
 };
 
 export const cities: CityOption[] = [

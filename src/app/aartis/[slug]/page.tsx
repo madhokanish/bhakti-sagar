@@ -3,7 +3,6 @@ import AartiLyricsPanel from "@/components/AartiLyricsPanel";
 import MeaningPanel from "@/components/MeaningPanel";
 import ShareButton from "@/components/ShareButton";
 import PrintButton from "@/components/PrintButton";
-import CopyLinkButton from "@/components/CopyLinkButton";
 import MobileContentsDrawer from "@/components/MobileContentsDrawer";
 import { getAartiBySlug, getAartis, getAartisByCategory, getCategories } from "@/lib/data";
 import { festivals } from "@/lib/content";
@@ -177,7 +176,7 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
           </div>
         </div>
         <aside className="order-2 space-y-4 aarti-secondary lg:sticky lg:top-24">
-          <details className="rounded-2xl border border-sagar-amber/20 bg-white p-4" id="video">
+          <details open className="rounded-2xl border border-sagar-amber/20 bg-white p-4" id="video">
             <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">Video</summary>
             <div className="mt-4">
               {embedUrl ? (
@@ -199,7 +198,7 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
               )}
             </div>
           </details>
-          <details id="meaning" className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
+          <details open id="meaning" className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
             <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">AI Summary</summary>
             <div className="mt-4">
               <MeaningPanel
@@ -212,18 +211,6 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
                     : aarti.lyrics.hindi
                 }
               />
-            </div>
-          </details>
-          <details className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
-            <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">Share & details</summary>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <ShareButton title={titleDisplay} />
-              <CopyLinkButton />
-              <PrintButton />
-            </div>
-            <div className="mt-4 text-xs text-sagar-ink/60">
-              <p>Last updated: Feb 5, 2026</p>
-              <p>Reviewed by: {author?.name ?? "Bhakti Sagar"}</p>
             </div>
           </details>
         </aside>

@@ -1,7 +1,6 @@
 import Image from "next/image";
 import AartiCard from "@/components/AartiCard";
 import CategoryCard from "@/components/CategoryCard";
-import AIBadge from "@/components/AIBadge";
 import { getCategories, getTopAartis } from "@/lib/data";
 import { buildMetadata, getRequestLanguage } from "@/lib/seo";
 import type { Metadata } from "next";
@@ -69,13 +68,37 @@ export default function HomePage() {
     <div className="container">
       <section className="grid gap-8 py-6 md:grid-cols-[1.1fr_0.9fr] md:items-center md:py-16">
         <div className="md:hidden">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sagar-rose">Bhakti Sagar</p>
           <h1 className="mt-2 text-3xl font-serif text-sagar-ink">
-            Aartis, bhajans, and daily devotion.
+            Daily devotion, made simple.
           </h1>
-          <p className="mt-2 text-sm text-sagar-ink/70">
-            Start with a top aarti.
+          <p className="mt-3 text-sm text-sagar-ink/70">
+            Read aartis with clear meanings, check Choghadiya, and join weekly Online Pujas.
           </p>
+          <div className="mt-5 flex flex-col gap-3">
+            <a
+              href="/aartis"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-sagar-saffron px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white"
+            >
+              Explore Aartis
+            </a>
+            <a
+              href="/online-puja"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-sagar-saffron/45 bg-sagar-saffron/10 px-6 py-3 text-sm font-semibold uppercase tracking-wide text-sagar-saffron"
+            >
+              Online Puja
+            </a>
+            <a
+              href="/choghadiya"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-sagar-saffron/40 px-6 py-3 text-sm font-semibold uppercase tracking-wide text-sagar-saffron"
+            >
+              Choghadiya
+            </a>
+          </div>
+          <div className="mt-3">
+            <a href="/about" className="text-xs text-sagar-ink/60 underline decoration-sagar-amber/40 underline-offset-4">
+              Our vision
+            </a>
+          </div>
         </div>
 
         <div className="md:hidden">
@@ -122,29 +145,35 @@ export default function HomePage() {
         </div>
 
         <div className="hidden md:block">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sagar-rose">Bhakti Sagar</p>
           <h1 className="mt-4 text-4xl font-serif text-sagar-ink md:text-5xl">
-            A calm home for aarti, bhajan, and daily devotion.
+            Daily devotion, made simple.
           </h1>
           <p className="mt-4 max-w-lg text-base text-sagar-ink/70">
-            Browse the most-loved aartis, explore categories by deity, and understand each prayer with a gentle
-            explanation in simple words.
+            Read aartis with clear meanings, check Choghadiya, and join weekly Online Pujas.
           </p>
-          <div className="mt-4 hidden sm:block">
-            <AIBadge label="AI Insight for meanings" />
-          </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <a
               href="/aartis"
-              className="rounded-full bg-sagar-saffron px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-sagar-saffron px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white"
             >
               Explore Aartis
             </a>
             <a
-              href="/about"
-              className="rounded-full border border-sagar-saffron/40 px-6 py-3 text-sm font-semibold uppercase tracking-wide text-sagar-saffron"
+              href="/online-puja"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-sagar-saffron/45 bg-sagar-saffron/10 px-6 py-3 text-sm font-semibold uppercase tracking-wide text-sagar-saffron"
             >
-              Our Vision
+              Online Puja
+            </a>
+            <a
+              href="/choghadiya"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-sagar-saffron/40 px-6 py-3 text-sm font-semibold uppercase tracking-wide text-sagar-saffron"
+            >
+              Choghadiya
+            </a>
+          </div>
+          <div className="mt-3">
+            <a href="/about" className="text-xs text-sagar-ink/60 underline decoration-sagar-amber/40 underline-offset-4">
+              Our vision
             </a>
           </div>
         </div>

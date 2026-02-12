@@ -8,6 +8,7 @@ type Props = {
   startTime: string;
   timeZone: string;
   compact?: boolean;
+  className?: string;
 };
 
 function splitDuration(ms: number) {
@@ -27,7 +28,8 @@ export default function PujaCountdownCard({
   weeklyDay,
   startTime,
   timeZone,
-  compact = false
+  compact = false,
+  className = ""
 }: Props) {
   const [now, setNow] = useState(() => Date.now());
 
@@ -62,25 +64,25 @@ export default function PujaCountdownCard({
     <div
       className={`rounded-2xl border border-sagar-amber/25 bg-white/90 ${
         compact ? "p-3" : "p-4"
-      }`}
+      } ${className}`}
       aria-live="polite"
     >
       <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-sagar-rose">
         Next Weekly Seva
       </p>
-      <p className={`mt-1 font-serif text-sagar-ink ${compact ? "text-xl" : "text-2xl"}`}>
+      <p className={`mt-1 text-sagar-ink ${compact ? "text-xl" : "text-2xl"}`}>
         {formattedDate}
       </p>
-      <div className="mt-3 grid grid-cols-4 gap-2">
+      <div className="mt-3 grid grid-cols-4 gap-2.5">
         {[
           { key: "Days", value: duration.days },
           { key: "Hours", value: duration.hours },
-          { key: "Min", value: duration.minutes },
-          { key: "Sec", value: duration.seconds }
+          { key: "Mins", value: duration.minutes },
+          { key: "Secs", value: duration.seconds }
         ].map((part) => (
           <div
             key={part.key}
-            className="rounded-xl border border-sagar-amber/20 bg-sagar-sand/50 px-2 py-2 text-center"
+            className="rounded-xl border border-sagar-amber/20 bg-sagar-sand/55 px-2 py-2 text-center"
           >
             <p className="text-lg font-semibold text-sagar-ink">{formatParts(part.value)}</p>
             <p className="text-[0.58rem] uppercase tracking-[0.15em] text-sagar-ink/60">{part.key}</p>

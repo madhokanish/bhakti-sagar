@@ -219,6 +219,90 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section id="online-puja-how" className="py-8">
+        <div className="rounded-3xl border border-sagar-amber/20 bg-white/75 p-5 shadow-sagar-soft md:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <h2 className="text-2xl font-serif text-sagar-ink md:text-3xl">How does Online Puja work?</h2>
+            <a
+              href="/online-puja"
+              className="inline-flex min-h-[42px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-white"
+            >
+              Book Online Puja
+            </a>
+          </div>
+          <div className="mt-6 grid gap-6 md:grid-cols-[1.05fr_0.95fr] md:items-center">
+            <ol className="space-y-5">
+              <li className="rounded-2xl border border-sagar-amber/20 bg-white/90 p-4">
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-sagar-saffron px-2 text-xs font-bold text-white">
+                    1
+                  </span>
+                  <div>
+                    <p className="text-lg font-semibold text-sagar-ink">Choose your puja</p>
+                    <p className="mt-1 text-sm text-sagar-ink/72">
+                      Pick a weekly puja from the schedule based on your intention and deity preference.
+                    </p>
+                  </div>
+                </div>
+              </li>
+              <li className="rounded-2xl border border-sagar-amber/20 bg-white/90 p-4">
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-sagar-saffron px-2 text-xs font-bold text-white">
+                    2
+                  </span>
+                  <div>
+                    <p className="text-lg font-semibold text-sagar-ink">Share your details</p>
+                    <p className="mt-1 text-sm text-sagar-ink/72">
+                      Add your name, gotra, and sankalp so the puja can be performed with your specific prayer
+                      intent.
+                    </p>
+                  </div>
+                </div>
+              </li>
+              <li className="rounded-2xl border border-sagar-amber/20 bg-white/90 p-4">
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-sagar-saffron px-2 text-xs font-bold text-white">
+                    3
+                  </span>
+                  <div>
+                    <p className="text-lg font-semibold text-sagar-ink">Receive puja updates</p>
+                    <p className="mt-1 text-sm text-sagar-ink/72">
+                      You get timely updates and completion confirmation so you stay connected to the seva from
+                      anywhere.
+                    </p>
+                  </div>
+                </div>
+              </li>
+            </ol>
+
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sagar-saffron to-sagar-ember p-5">
+              <div className="pointer-events-none absolute -left-10 top-10 hidden h-40 w-28 rounded-2xl border border-white/35 bg-white/20 blur-[1px] md:block" />
+              <div className="pointer-events-none absolute -right-8 bottom-10 hidden h-40 w-28 rounded-2xl border border-white/35 bg-white/20 blur-[1px] md:block" />
+              <div className="relative mx-auto max-w-[320px] rounded-2xl bg-white p-3 shadow-sagar-card">
+                <div className="relative aspect-[16/9] overflow-hidden rounded-xl">
+                  <Image
+                    src="/category/ganesha.jpg"
+                    alt="Online puja card preview"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 320px"
+                  />
+                </div>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-sagar-rose">This week</p>
+                <h3 className="mt-1 text-xl font-serif text-sagar-ink">Ganesh Vighnaharta Puja</h3>
+                <p className="mt-1 text-sm text-sagar-ink/70">Wednesday • Shri Chintaman Ganesh Temple, Ujjain</p>
+                <a
+                  href="/online-puja/ganesh-vighnaharta"
+                  className="mt-4 inline-flex min-h-[40px] w-full items-center justify-center rounded-full bg-sagar-saffron px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white"
+                >
+                  Participate Now
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="py-8">
         <h2 className="section-title">Browse by Category</h2>
         <div className="mt-6 grid gap-6 md:grid-cols-3">

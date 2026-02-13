@@ -180,6 +180,12 @@ export default function PujaBookingSidebar({ puja }: Props) {
           <div className="rounded-xl border border-sagar-amber/20 bg-sagar-cream/55 px-3 py-2 text-sm font-medium text-sagar-ink/85">
             Email confirmations
           </div>
+          <div className="rounded-xl border border-sagar-amber/20 bg-sagar-cream/55 px-3 py-2 text-sm font-medium text-sagar-ink/85">
+            Puja video update
+          </div>
+          <div className="rounded-xl border border-sagar-amber/20 bg-sagar-cream/55 px-3 py-2 text-sm font-medium text-sagar-ink/85">
+            Certificate PDF
+          </div>
         </div>
 
         <Link

@@ -154,7 +154,8 @@ export const onlinePujas: OnlinePuja[] = [
       deliverables: [
         "Sankalp in your name(s)",
         "Email confirmation with schedule details",
-        "Post-seva completion update"
+        "Puja completion video update",
+        "Digital participation certificate (PDF)"
       ],
       scheduleRule: "weekly"
     }
@@ -210,7 +211,8 @@ export const onlinePujas: OnlinePuja[] = [
       deliverables: [
         "Sankalp in your name(s)",
         "Email confirmation with schedule details",
-        "Post-seva completion update"
+        "Puja completion video update",
+        "Digital participation certificate (PDF)"
       ],
       scheduleRule: "weekly"
     }

@@ -110,6 +110,18 @@ export default function OnlinePujaConfirmationPage({
         <p className="mt-4 text-sm text-sagar-ink/72">
           Next steps: keep an eye on your email for participation confirmation and support guidance.
         </p>
+        {puja?.booking.deliverables?.length ? (
+          <div className="mt-4 rounded-2xl border border-sagar-amber/20 bg-sagar-cream/45 p-4">
+            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-sagar-rose">
+              Included in your seva
+            </p>
+            <ul className="mt-2 space-y-1 text-sm text-sagar-ink/78">
+              {puja.booking.deliverables.map((item) => (
+                <li key={item}>• {item}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         <div className="mt-5 flex flex-wrap gap-3">
           <Link

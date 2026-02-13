@@ -94,27 +94,6 @@ export default function HomePage() {
               </Link>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5 pt-1 md:pt-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sagar-ink/55">
-                Get the app
-              </span>
-              <a
-                href="#"
-                className="inline-flex items-center gap-2 rounded-xl border border-sagar-amber/35 bg-white/90 px-3 py-2 text-xs font-semibold text-sagar-ink transition hover:bg-white"
-                aria-label="Google Play badge"
-              >
-                <span className="text-sm" aria-hidden="true">▶</span>
-                Google Play
-              </a>
-              <a
-                href="#"
-                className="inline-flex items-center gap-2 rounded-xl border border-sagar-amber/35 bg-white/90 px-3 py-2 text-xs font-semibold text-sagar-ink transition hover:bg-white"
-                aria-label="App Store badge"
-              >
-                <span className="text-sm" aria-hidden="true"></span>
-                App Store
-              </a>
-            </div>
           </div>
 
           <aside className="rounded-3xl border border-sagar-amber/25 bg-white/88 p-3 shadow-sagar-card md:p-4">

@@ -1,12 +1,11 @@
 import Image from "next/image";
-import AartiCard from "@/components/AartiCard";
-import CategoryCard from "@/components/CategoryCard";
-import { getCategories, getTopAartis } from "@/lib/data";
-import { buildMetadata, getRequestLanguage } from "@/lib/seo";
-import type { Metadata } from "next";
 import Link from "next/link";
-import DailyAIInsight from "@/components/DailyAIInsight";
+import type { Metadata } from "next";
+import { getAartis, getCategories, getTopAartis } from "@/lib/data";
+import { getRequestLanguage, buildMetadata } from "@/lib/seo";
+import { getActiveOnlinePujas, getNextPujaOccurrence } from "@/lib/onlinePuja";
 import MobileQuickNav from "@/components/MobileQuickNav";
+import CategoryCard from "@/components/CategoryCard";
 
 export const metadata: Metadata = {
   ...buildMetadata({
@@ -18,383 +17,268 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  const topAartis = getTopAartis();
-  const categories = getCategories();
   const lang = getRequestLanguage();
-  const dayIndex = Math.abs(
-    Math.floor(Date.now() / (1000 * 60 * 60 * 24)) % topAartis.length
-  );
-  const dailyAarti = topAartis[dayIndex];
-  const faqJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: [
-      {
-        "@type": "Question",
-        name: "What is an aarti?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Aarti is a devotional hymn sung with a lamp or diya at the end of prayer to offer light and gratitude."
-        }
-      },
-      {
-        "@type": "Question",
-        name: "How do I choose an aarti?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Choose by deity or intent. Bhakti Sagar lets you browse by deity and read lyrics in English and Hindi."
-        }
-      },
-      {
-        "@type": "Question",
-        name: "What is a bhajan?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Bhajans are devotional songs of praise. Bhakti Sagar is expanding its bhajan collection alongside aartis."
-        }
-      },
-      {
-        "@type": "Question",
-        name: "What is a simple pooja flow?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Light a diya, offer flowers or prasad, chant a mantra, and sing an aarti with devotion."
-        }
-      }
-    ]
-  };
+  const categories = getCategories();
+  const topAartis = getTopAartis();
+  const popularAartis = getAartis().slice(0, 6);
+  const activePujas = getActiveOnlinePujas();
+  const featuredPuja = activePujas[0] ?? null;
+
+  const categoryImageBySlug = Object.fromEntries(
+    categories.map((category) => [category.slug, category.imageUrl])
+  ) as Record<string, string>;
+
+  const nextPujaDate = featuredPuja
+    ? getNextPujaOccurrence({
+        weeklyDay: featuredPuja.weeklyDay,
+        startTime: featuredPuja.startTime,
+        timeZone: featuredPuja.timezone
+      })
+    : null;
+
+  const nextPujaLabel = nextPujaDate
+    ? new Intl.DateTimeFormat("en-IN", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: featuredPuja?.timezone ?? "Asia/Kolkata"
+      }).format(nextPujaDate)
+    : null;
+
+  const todayLabel = new Intl.DateTimeFormat("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long"
+  }).format(new Date());
 
   return (
-    <div className="container">
-      <section className="grid gap-8 py-6 md:grid-cols-[1.1fr_0.9fr] md:items-center md:py-16">
-        <div className="md:hidden">
-          <h1 className="mt-2 text-3xl font-serif text-sagar-ink">
-            Daily devotion, made simple.
-          </h1>
-          <p className="mt-3 text-sm text-sagar-ink/70">
-            Read aartis with clear meanings, check Choghadiya, and join weekly Online Pujas.
-          </p>
-          <div className="mt-5 flex flex-col gap-3">
-            <a
-              href="/aartis"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-sagar-saffron px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white"
-            >
-              Explore Aartis
-            </a>
-            <a
-              href="/online-puja"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-sagar-saffron/45 bg-sagar-saffron/10 px-6 py-3 text-sm font-semibold uppercase tracking-wide text-sagar-saffron"
-            >
-              Online Puja
-            </a>
-            <a
-              href="/choghadiya"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-sagar-saffron/40 px-6 py-3 text-sm font-semibold uppercase tracking-wide text-sagar-saffron"
-            >
-              Choghadiya
-            </a>
-          </div>
-          <div className="mt-3">
-            <a href="/about" className="text-xs text-sagar-ink/60 underline decoration-sagar-amber/40 underline-offset-4">
-              Our vision
-            </a>
-          </div>
-        </div>
+    <div className="container pb-12">
+      <section className="relative mt-3 overflow-hidden rounded-[2rem] border border-sagar-amber/25 bg-gradient-to-br from-[#fffaf2] via-[#fff3e1] to-[#f8e3c6] p-4 shadow-sagar-soft md:mt-5 md:p-8">
+        <div className="pointer-events-none absolute -left-16 -top-16 h-52 w-52 rounded-full bg-sagar-gold/25 blur-3xl" />
+        <div className="pointer-events-none absolute right-0 top-10 h-56 w-56 rounded-full bg-sagar-saffron/20 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 opacity-40 [background:radial-gradient(circle_at_20%_20%,rgba(255,255,255,.8)_0,rgba(255,255,255,0)_35%),radial-gradient(circle_at_80%_60%,rgba(255,255,255,.7)_0,rgba(255,255,255,0)_40%)]" />
 
-        <div className="md:hidden">
-          <div className="mb-4 rounded-2xl border border-sagar-amber/20 bg-sagar-cream/60 p-3">
-            <div className="relative aspect-video overflow-hidden rounded-xl bg-white">
+        <div className="relative grid gap-5 md:min-h-[34rem] md:grid-cols-[1.05fr_0.95fr] md:gap-8">
+          <div className="flex flex-col justify-center gap-5 md:gap-7">
+            <h1 className="max-w-[14ch] text-4xl font-serif leading-[1.05] text-sagar-ink sm:text-5xl lg:text-6xl">
+              Daily devotion, made simple.
+            </h1>
+            <p className="max-w-[56ch] text-base leading-relaxed text-sagar-ink/78">
+              Explore aartis, understand meanings, check Choghadiya timings, and join Online Puja
+              with clarity and peace.
+            </p>
+
+            <div className="flex flex-wrap gap-2.5">
+              <Link
+                href="/aartis"
+                aria-label="Explore Aartis"
+                className="inline-flex min-h-[42px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2.5 text-sm font-semibold text-white shadow-sagar-soft transition hover:bg-sagar-ember"
+              >
+                Explore Aartis
+              </Link>
+              <Link
+                href="/online-puja"
+                aria-label="Go to Online Puja"
+                className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-sagar-saffron/45 bg-white/85 px-5 py-2.5 text-sm font-semibold text-sagar-ember transition hover:bg-white"
+              >
+                Online Puja
+              </Link>
+              <Link
+                href="/choghadiya"
+                aria-label="Open Choghadiya"
+                className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-sagar-amber/40 bg-white/75 px-5 py-2.5 text-sm font-semibold text-sagar-ink/80 transition hover:bg-white"
+              >
+                Choghadiya
+              </Link>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5 pt-1 md:pt-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sagar-ink/55">
+                Get the app
+              </span>
+              <a
+                href="#"
+                className="inline-flex items-center gap-2 rounded-xl border border-sagar-amber/35 bg-white/90 px-3 py-2 text-xs font-semibold text-sagar-ink transition hover:bg-white"
+                aria-label="Google Play badge"
+              >
+                <span className="text-sm" aria-hidden="true">▶</span>
+                Google Play
+              </a>
+              <a
+                href="#"
+                className="inline-flex items-center gap-2 rounded-xl border border-sagar-amber/35 bg-white/90 px-3 py-2 text-xs font-semibold text-sagar-ink transition hover:bg-white"
+                aria-label="App Store badge"
+              >
+                <span className="text-sm" aria-hidden="true"></span>
+                App Store
+              </a>
+            </div>
+          </div>
+
+          <aside className="rounded-3xl border border-sagar-amber/25 bg-white/88 p-3 shadow-sagar-card md:p-4">
+            <div className="relative aspect-[16/8.5] overflow-hidden rounded-2xl">
               <Image
                 src="/brand/bhakti-sagar-logo.png"
-                alt="Bhakti Sagar banner"
+                alt="Bhakti Sagar devotional banner"
                 fill
                 className="object-cover"
-                style={{ objectPosition: "50% 50%" }}
-                sizes="100vw"
+                sizes="(max-width: 768px) 100vw, 520px"
                 priority
               />
             </div>
-          </div>
-          <div className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">Top Aartis</p>
-            <div className="mt-4 space-y-3">
-              {topAartis.slice(0, 3).map((aarti) => {
+            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">
+              Daily Prayer
+            </p>
+            <h2 className="mt-2 text-3xl font-serif leading-tight text-sagar-ink">
+              Start with a top aarti
+            </h2>
+
+            <div className="mt-4 space-y-2.5">
+              {topAartis.slice(0, 4).map((aarti) => {
                 const title =
                   lang === "hi"
                     ? aarti.title.hindi || aarti.title.english
                     : aarti.title.english || aarti.title.hindi;
+                const thumb = categoryImageBySlug[aarti.category] || "/category/ganesha.jpg";
                 return (
-                  <a
+                  <Link
                     key={aarti.id}
                     href={`/aartis/${aarti.slug}`}
-                    className="flex items-center justify-between rounded-2xl border border-sagar-amber/10 bg-sagar-cream/70 px-4 py-3 text-sm text-sagar-ink/80"
+                    className="flex items-center justify-between rounded-xl border border-sagar-amber/20 bg-white px-3 py-2.5 text-sm text-sagar-ink/82 transition hover:border-sagar-saffron/45"
                   >
-                    <span>{title}</span>
-                    <span className="text-[0.6rem] uppercase tracking-[0.2em] text-sagar-rose">Open</span>
-                  </a>
+                    <span className="flex items-center gap-3">
+                      <span className="relative h-8 w-8 overflow-hidden rounded-lg border border-sagar-amber/25">
+                        <Image
+                          src={thumb}
+                          alt={title}
+                          fill
+                          className="object-cover"
+                          sizes="32px"
+                          loading="lazy"
+                        />
+                      </span>
+                      <span>{title}</span>
+                    </span>
+                    <span aria-hidden="true" className="text-lg text-sagar-saffron">›</span>
+                  </Link>
                 );
               })}
-              <a
-                href="/aartis"
-                className="block rounded-2xl border border-sagar-saffron/30 px-4 py-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-sagar-saffron"
-              >
-                View all aartis
-              </a>
             </div>
-          </div>
-        </div>
 
-        <div className="hidden md:block">
-          <h1 className="mt-4 text-4xl font-serif text-sagar-ink md:text-5xl">
-            Daily devotion, made simple.
-          </h1>
-          <p className="mt-4 max-w-lg text-base text-sagar-ink/70">
-            Read aartis with clear meanings, check Choghadiya, and join weekly Online Pujas.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <a
+            <Link
               href="/aartis"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-sagar-saffron px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white"
+              className="mx-auto mt-4 inline-flex min-h-[40px] items-center justify-center rounded-full bg-sagar-saffron px-6 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember"
             >
-              Explore Aartis
-            </a>
-            <a
-              href="/online-puja"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-sagar-saffron/45 bg-sagar-saffron/10 px-6 py-3 text-sm font-semibold uppercase tracking-wide text-sagar-saffron"
-            >
-              Online Puja
-            </a>
-            <a
-              href="/choghadiya"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-sagar-saffron/40 px-6 py-3 text-sm font-semibold uppercase tracking-wide text-sagar-saffron"
-            >
-              Choghadiya
-            </a>
-          </div>
-          <div className="mt-3">
-            <a href="/about" className="text-xs text-sagar-ink/60 underline decoration-sagar-amber/40 underline-offset-4">
-              Our vision
-            </a>
-          </div>
-        </div>
-
-        <div className="hidden md:block rounded-3xl border border-sagar-amber/20 bg-white p-6 shadow-none lg:shadow-sagar-card">
-          <div className="flex flex-col gap-4">
-            <div className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/60 p-3">
-              <div className="relative aspect-video overflow-hidden rounded-xl bg-white">
-                <Image
-                  src="/brand/bhakti-sagar-logo.png"
-                  alt="Bhakti Sagar banner"
-                  fill
-                  className="object-cover"
-                  style={{ objectPosition: "50% 50%" }}
-                  sizes="(max-width: 768px) 100vw, 520px"
-                  priority
-                />
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">Daily Prayer</p>
-              <h2 className="mt-3 text-2xl font-serif text-sagar-ink">Start with a top aarti</h2>
-              <div className="mt-4 space-y-3 text-sm text-sagar-ink/70">
-                {topAartis.slice(0, 4).map((aarti) => {
-                  const title =
-                    lang === "hi"
-                      ? aarti.title.hindi || aarti.title.english
-                      : aarti.title.english || aarti.title.hindi;
-                  return (
-                    <a
-                      key={aarti.id}
-                      href={`/aartis/${aarti.slug}`}
-                      className="flex items-center justify-between rounded-2xl border border-sagar-amber/10 bg-sagar-cream/70 px-4 py-3 hover:border-sagar-saffron/50"
-                    >
-                      <span>{title}</span>
-                      <span className="text-xs uppercase tracking-[0.2em] text-sagar-rose">View</span>
-                    </a>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+              View all aartis
+            </Link>
+          </aside>
         </div>
       </section>
 
-      <section id="online-puja-how" className="py-8">
-        <div className="rounded-3xl border border-sagar-amber/20 bg-white/75 p-5 shadow-sagar-soft md:p-8">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <h2 className="text-2xl font-serif text-sagar-ink md:text-3xl">How does Online Puja work?</h2>
-            <a
-              href="/online-puja"
-              className="inline-flex min-h-[42px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-white"
-            >
-              Book Online Puja
-            </a>
+      <section className="mt-5 rounded-3xl border border-sagar-amber/20 bg-white/80 p-4 shadow-sagar-soft md:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sagar-rose">Today</p>
+            <h2 className="mt-1 text-xl font-serif text-sagar-ink">Today&apos;s Muhurat & Devotion</h2>
+            <p className="mt-1 text-sm text-sagar-ink/70">{todayLabel} · Plan with local Choghadiya timings</p>
           </div>
-          <div className="mt-6 grid gap-6 md:grid-cols-[1.05fr_0.95fr] md:items-center">
-            <ol className="space-y-5">
-              <li className="rounded-2xl border border-sagar-amber/20 bg-white/90 p-4">
-                <div className="flex items-start gap-3">
-                  <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-sagar-saffron px-2 text-xs font-bold text-white">
-                    1
-                  </span>
-                  <div>
-                    <p className="text-lg font-semibold text-sagar-ink">Choose your puja</p>
-                    <p className="mt-1 text-sm text-sagar-ink/72">
-                      Pick a weekly puja from the schedule based on your intention and deity preference.
-                    </p>
-                  </div>
-                </div>
-              </li>
-              <li className="rounded-2xl border border-sagar-amber/20 bg-white/90 p-4">
-                <div className="flex items-start gap-3">
-                  <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-sagar-saffron px-2 text-xs font-bold text-white">
-                    2
-                  </span>
-                  <div>
-                    <p className="text-lg font-semibold text-sagar-ink">Share your details</p>
-                    <p className="mt-1 text-sm text-sagar-ink/72">
-                      Add your name, gotra, and sankalp so the puja can be performed with your specific prayer
-                      intent.
-                    </p>
-                  </div>
-                </div>
-              </li>
-              <li className="rounded-2xl border border-sagar-amber/20 bg-white/90 p-4">
-                <div className="flex items-start gap-3">
-                  <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-sagar-saffron px-2 text-xs font-bold text-white">
-                    3
-                  </span>
-                  <div>
-                    <p className="text-lg font-semibold text-sagar-ink">Receive puja updates</p>
-                    <p className="mt-1 text-sm text-sagar-ink/72">
-                      You get timely updates and completion confirmation so you stay connected to the seva from
-                      anywhere.
-                    </p>
-                  </div>
-                </div>
-              </li>
-            </ol>
-
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sagar-saffron to-sagar-ember p-5">
-              <div className="pointer-events-none absolute -left-10 top-10 hidden h-40 w-28 rounded-2xl border border-white/35 bg-white/20 blur-[1px] md:block" />
-              <div className="pointer-events-none absolute -right-8 bottom-10 hidden h-40 w-28 rounded-2xl border border-white/35 bg-white/20 blur-[1px] md:block" />
-              <div className="relative mx-auto max-w-[320px] rounded-2xl bg-white p-3 shadow-sagar-card">
-                <div className="relative aspect-[16/9] overflow-hidden rounded-xl">
-                  <Image
-                    src="/category/ganesha.jpg"
-                    alt="Online puja card preview"
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 320px"
-                  />
-                </div>
-                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-sagar-rose">This week</p>
-                <h3 className="mt-1 text-xl font-serif text-sagar-ink">Ganesh Vighnaharta Puja</h3>
-                <p className="mt-1 text-sm text-sagar-ink/70">Wednesday • Shri Chintaman Ganesh Temple, Ujjain</p>
-                <a
-                  href="/online-puja/ganesh-vighnaharta"
-                  className="mt-4 inline-flex min-h-[40px] w-full items-center justify-center rounded-full bg-sagar-saffron px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white"
-                >
-                  Participate Now
-                </a>
-              </div>
-            </div>
-          </div>
+          <Link
+            href="/choghadiya"
+            className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-sagar-saffron/40 bg-white px-4 py-2 text-sm font-semibold text-sagar-ember hover:bg-sagar-cream/60"
+          >
+            View Choghadiya
+          </Link>
         </div>
       </section>
 
-      <section className="py-8">
-        <h2 className="section-title">Browse by Category</h2>
-        <div className="mt-6 grid gap-6 md:grid-cols-3">
-          {categories.map((category) => (
+      <section className="mt-6">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-2xl font-serif text-sagar-ink">Popular Aartis</h2>
+          <Link href="/aartis" className="text-sm font-semibold text-sagar-ember hover:text-sagar-saffron">
+            View all
+          </Link>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {popularAartis.map((aarti) => {
+            const title =
+              lang === "hi"
+                ? aarti.title.hindi || aarti.title.english
+                : aarti.title.english || aarti.title.hindi;
+            const thumb = categoryImageBySlug[aarti.category] || "/category/ganesha.jpg";
+            return (
+              <Link
+                key={aarti.id}
+                href={`/aartis/${aarti.slug}`}
+                className="rounded-2xl border border-sagar-amber/22 bg-white/90 p-3 shadow-sagar-soft transition hover:-translate-y-0.5 hover:border-sagar-saffron/45"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-sagar-amber/20">
+                    <Image src={thumb} alt={title} fill className="object-cover" sizes="48px" loading="lazy" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-sagar-ink">{title}</p>
+                    <p className="mt-0.5 text-xs uppercase tracking-[0.13em] text-sagar-rose/80">
+                      {aarti.category}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mt-7">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-2xl font-serif text-sagar-ink">Aarti Categories</h2>
+          <Link href="/categories" className="text-sm font-semibold text-sagar-ember hover:text-sagar-saffron">
+            View all
+          </Link>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {categories.slice(0, 6).map((category) => (
             <CategoryCard key={category.id} category={category} />
           ))}
         </div>
       </section>
 
-      {dailyAarti && (
-        <section className="py-8">
-          <DailyAIInsight
-            title={dailyAarti.title.english || dailyAarti.title.hindi}
-            slug={dailyAarti.slug}
-            lyrics={dailyAarti.lyrics.english.length ? dailyAarti.lyrics.english : dailyAarti.lyrics.hindi}
-          />
+      {featuredPuja && (
+        <section className="mt-6 rounded-3xl border border-sagar-amber/25 bg-gradient-to-r from-white to-sagar-cream/85 p-4 shadow-sagar-soft md:p-6">
+          <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
+            <div className="flex items-center gap-3">
+              <span className="relative h-14 w-14 overflow-hidden rounded-2xl border border-sagar-amber/25">
+                <Image
+                  src={featuredPuja.heroImageUrl}
+                  alt={featuredPuja.heroImageAlt}
+                  fill
+                  className="object-cover"
+                  sizes="56px"
+                  loading="lazy"
+                />
+              </span>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sagar-rose">Upcoming Online Puja</p>
+                <h2 className="mt-1 text-xl font-serif text-sagar-ink">{featuredPuja.title}</h2>
+                <p className="mt-1 text-sm text-sagar-ink/72">
+                  {nextPujaLabel ?? `${featuredPuja.weeklyDay} · ${featuredPuja.startTime}`} ·{" "}
+                  {featuredPuja.temple.city}
+                </p>
+              </div>
+            </div>
+            <Link
+              href={`/online-puja/${featuredPuja.slug}`}
+              className="inline-flex min-h-[42px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sagar-ember"
+            >
+              Join this puja
+            </Link>
+          </div>
         </section>
       )}
 
-      <section className="py-8">
-        <h2 className="section-title">Common questions</h2>
-        <div className="mt-6 grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-6 shadow-sagar-soft">
-            <h3 className="text-lg font-serif text-sagar-ink">What is an aarti?</h3>
-            <p className="mt-2 text-sm text-sagar-ink/70">
-              Aarti is a devotional hymn sung with a lamp or diya at the end of prayer to offer light and gratitude.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-6 shadow-sagar-soft">
-            <h3 className="text-lg font-serif text-sagar-ink">How do I choose an aarti?</h3>
-            <p className="mt-2 text-sm text-sagar-ink/70">
-              Choose by deity or intent. Bhakti Sagar lets you browse by deity and read lyrics in English and Hindi.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-6 shadow-sagar-soft">
-            <h3 className="text-lg font-serif text-sagar-ink">What is a bhajan?</h3>
-            <p className="mt-2 text-sm text-sagar-ink/70">
-              Bhajans are devotional songs of praise. We are expanding the bhajan collection alongside aartis.
-            </p>
-            <Link href="/bhajan" className="mt-3 inline-block text-xs font-semibold uppercase tracking-wide text-sagar-saffron">
-              Learn about bhajans
-            </Link>
-          </div>
-          <div className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-6 shadow-sagar-soft">
-            <h3 className="text-lg font-serif text-sagar-ink">What is a simple pooja flow?</h3>
-            <p className="mt-2 text-sm text-sagar-ink/70">
-              Light a diya, offer flowers or prasad, chant a mantra, and sing an aarti with devotion.
-            </p>
-            <Link href="/pooja" className="mt-3 inline-block text-xs font-semibold uppercase tracking-wide text-sagar-saffron">
-              Read the pooja guide
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-8">
-        <h2 className="section-title">Explore more devotion</h2>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link
-            href="/stotras"
-            className="rounded-full border border-sagar-amber/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70 hover:text-sagar-saffron"
-          >
-            Stotras
-          </Link>
-          <Link
-            href="/vrat-katha"
-            className="rounded-full border border-sagar-amber/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70 hover:text-sagar-saffron"
-          >
-            Vrat Katha
-          </Link>
-          <Link
-            href="/pooja-vidhi"
-            className="rounded-full border border-sagar-amber/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70 hover:text-sagar-saffron"
-          >
-            Pooja Vidhi
-          </Link>
-        </div>
-      </section>
-
-      <details className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white p-6 md:hidden">
-        <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">About Bhakti Sagar</summary>
-        <div className="mt-3 text-sm text-sagar-ink/70">
-          Bhakti Sagar is a calm space for aartis, bhajans, and daily devotion. Read lyrics in English and Hindi and
-          use AI Insight for simple meanings.
-        </div>
-      </details>
-
       <MobileQuickNav />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
-      />
     </div>
   );
 }

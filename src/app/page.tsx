@@ -231,22 +231,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mt-7">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-2xl font-serif text-sagar-ink">Aarti Categories</h2>
-          <Link href="/categories" className="text-sm font-semibold text-sagar-ember hover:text-sagar-saffron">
-            View all
-          </Link>
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {categories.slice(0, 6).map((category) => (
-            <CategoryCard key={category.id} category={category} />
-          ))}
-        </div>
-      </section>
-
       {featuredPuja && (
-        <section className="mt-6 rounded-3xl border border-sagar-amber/25 bg-gradient-to-r from-white to-sagar-cream/85 p-4 shadow-sagar-soft md:p-6">
+        <section className="mt-5 rounded-3xl border border-sagar-amber/25 bg-gradient-to-r from-white to-sagar-cream/85 p-4 shadow-sagar-soft md:p-6">
           <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
             <div className="flex items-center gap-3">
               <span className="relative h-14 w-14 overflow-hidden rounded-2xl border border-sagar-amber/25">
@@ -277,6 +263,20 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      <section className="mt-6">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-2xl font-serif text-sagar-ink">Aarti Categories</h2>
+          <Link href="/categories" className="text-sm font-semibold text-sagar-ember hover:text-sagar-saffron">
+            View all
+          </Link>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {categories.slice(0, 6).map((category) => (
+            <CategoryCard key={category.id} category={category} />
+          ))}
+        </div>
+      </section>
 
       <MobileQuickNav />
     </div>

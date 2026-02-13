@@ -323,6 +323,18 @@ function roundCurrencyAmount(amount: number, currency: string) {
   return Math.round(amount * 100) / 100;
 }
 
+export function convertGBPToCurrency({
+  amountGBP,
+  currency
+}: {
+  amountGBP: number;
+  currency: string;
+}) {
+  const rate = GBP_TO_CURRENCY_RATE[currency] || 0;
+  if (!rate) return null;
+  return roundCurrencyAmount(amountGBP * rate, currency);
+}
+
 export function formatPujaAmount({
   amount,
   currency,

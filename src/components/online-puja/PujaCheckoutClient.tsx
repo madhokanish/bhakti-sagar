@@ -12,6 +12,15 @@ import { trackEvent } from "@/lib/analytics";
 
 type Props = {
   puja: OnlinePuja;
+  prefill?: {
+    option?: string;
+    name?: string;
+    family?: string;
+    gotra?: string;
+    note?: string;
+    cur?: string;
+    amt?: string;
+  };
 };
 
 type ContactState = {
@@ -44,7 +53,7 @@ function validEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-export default function PujaCheckoutClient({ puja }: Props) {
+export default function PujaCheckoutClient({ puja, prefill }: Props) {
   const [step, setStep] = useState<1 | 2>(1);
   const [contact, setContact] = useState<ContactState>(initialContact);
   const [sankalp, setSankalp] = useState<SankalpState>(initialSankalp);
@@ -54,6 +63,18 @@ export default function PujaCheckoutClient({ puja }: Props) {
   const [userCurrency, setUserCurrency] = useState(puja.booking.currency);
 
   useEffect(() => {
+    if (prefill?.name || prefill?.family || prefill?.gotra || prefill?.note) {
+      setContact((prev) => ({
+        ...prev,
+        name: prefill.name || prev.name
+      }));
+      setSankalp((prev) => ({
+        ...prev,
+        devoteeNames: prefill.family || prev.devoteeNames,
+        notes: prefill.note || prev.notes
+      }));
+    }
+
     try {
       const raw = window.localStorage.getItem(PREFILL_KEY);
       if (!raw) return;
@@ -69,7 +90,7 @@ export default function PujaCheckoutClient({ puja }: Props) {
     } catch {
       // Ignore malformed local cache.
     }
-  }, []);
+  }, [prefill?.family, prefill?.gotra, prefill?.name, prefill?.note]);
 
   useEffect(() => {
     const locale = navigator.language || "en-IN";
@@ -102,6 +123,9 @@ export default function PujaCheckoutClient({ puja }: Props) {
     () => getPujaOfferPrice({ booking: puja.booking, currency: userCurrency }),
     [puja.booking, userCurrency]
   );
+  const prefillAmount = Number(prefill?.amt || "");
+  const priceCurrency = prefill?.cur || offerPrice.currency;
+  const priceAmount = Number.isFinite(prefillAmount) && prefillAmount > 0 ? prefillAmount : offerPrice.currentAmount;
 
   const localTime = new Intl.DateTimeFormat("en-IN", {
     weekday: "short",
@@ -181,8 +205,8 @@ export default function PujaCheckoutClient({ puja }: Props) {
         window.location.href = `/online-puja/confirmation/${fallbackOrderId}?slug=${encodeURIComponent(
           puja.slug
         )}&mode=requested&tz=${encodeURIComponent(localTz)}&cur=${encodeURIComponent(
-          offerPrice.currency
-        )}&amt=${encodeURIComponent(offerPrice.currentAmount)}&orig=${encodeURIComponent(
+          priceCurrency
+        )}&amt=${encodeURIComponent(priceAmount)}&orig=${encodeURIComponent(
           offerPrice.originalAmount
         )}`;
         return;
@@ -215,7 +239,7 @@ export default function PujaCheckoutClient({ puja }: Props) {
       }
 
       if (data.orderId) {
-        trackEvent("payment_success", { order_id: data.orderId, amount: offerPrice.currentAmount });
+        trackEvent("payment_success", { order_id: data.orderId, amount: priceAmount });
         window.localStorage.setItem(
           PREFILL_KEY,
           JSON.stringify({
@@ -227,8 +251,8 @@ export default function PujaCheckoutClient({ puja }: Props) {
         window.location.href = `/online-puja/confirmation/${data.orderId}?slug=${encodeURIComponent(
           puja.slug
         )}&mode=paid&tz=${encodeURIComponent(localTz)}&cur=${encodeURIComponent(
-          offerPrice.currency
-        )}&amt=${encodeURIComponent(offerPrice.currentAmount)}&orig=${encodeURIComponent(
+          priceCurrency
+        )}&amt=${encodeURIComponent(priceAmount)}&orig=${encodeURIComponent(
           offerPrice.originalAmount
         )}`;
       }
@@ -252,8 +276,8 @@ export default function PujaCheckoutClient({ puja }: Props) {
         <p>
           <span className="font-semibold">Amount:</span>{" "}
           {formatPujaAmount({
-            amount: offerPrice.currentAmount,
-            currency: offerPrice.currency,
+            amount: priceAmount,
+            currency: priceCurrency,
             locale: userLocale
           })}
           {offerPrice.isDiscounted ? (

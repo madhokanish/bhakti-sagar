@@ -1,49 +1,37 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { OnlinePuja } from "@/lib/onlinePuja";
-import { getActiveOnlinePujas, getNextPujaOccurrence } from "@/lib/onlinePuja";
-import OnlinePujaDetailLayout from "@/components/online-puja/OnlinePujaDetailLayout";
-import PujaInterestForm from "@/components/online-puja/PujaInterestForm";
-import StickyBottomCTA from "@/components/online-puja/StickyBottomCTA";
+import { getActiveOnlinePujas, getNextPujaOccurrence, type OnlinePuja } from "@/lib/onlinePuja";
+import { getPujaDetailConfig } from "@/lib/onlinePujaDetailConfig";
+import FAQAccordion from "@/components/online-puja/FAQAccordion";
+import ImageCarousel from "@/components/online-puja/ImageCarousel";
 import PujaDetailTracker from "@/components/online-puja/PujaDetailTracker";
+import ReviewsBlock from "@/components/online-puja/ReviewsBlock";
+import SectionTabs from "@/components/online-puja/SectionTabs";
+import StickyBookingCard from "@/components/online-puja/StickyBookingCard";
+import StickyBottomCTA from "@/components/online-puja/StickyBottomCTA";
 
 type Props = {
   puja: OnlinePuja;
 };
 
-function SectionTitle({ id, title }: { id: string; title: string }) {
-  return (
-    <div className="mb-4 border-b border-sagar-amber/20 pb-3">
-      <h2 id={id} className="scroll-mt-32 text-3xl text-sagar-ink md:text-4xl">
-        {title}
-      </h2>
-    </div>
-  );
-}
-
-function CheckList({ items }: { items: string[] }) {
-  return (
-    <ul className="space-y-3">
-      {items.map((item) => (
-        <li key={item} className="flex items-start gap-3">
-          <span
-            aria-hidden="true"
-            className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sagar-saffron/15 text-xs font-bold text-sagar-saffron"
-          >
-            ✓
-          </span>
-          <span className="text-base leading-relaxed text-sagar-ink/82">{item}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
+const sectionItems = [
+  { id: "benefits", label: "Benefits" },
+  { id: "how-it-works", label: "How It Works" },
+  { id: "temple-priests", label: "Temple & Priests" },
+  { id: "reviews", label: "Reviews" },
+  { id: "faq", label: "FAQ" },
+  { id: "related-sevas", label: "Related Sevas" }
+] as const;
 
 export default function PujaDetailPage({ puja }: Props) {
-  const slides = [{ src: puja.heroImageUrl, alt: puja.heroImageAlt }];
+  const detailConfig = getPujaDetailConfig(puja);
   const relatedPujas = getActiveOnlinePujas()
     .filter((item) => item.slug !== puja.slug)
-    .slice(0, 3);
+    .slice(0, 4);
+
+  const templeMapQuery = encodeURIComponent(`${puja.temple.name}, ${puja.temple.city}, ${puja.temple.state}`);
+  const templeMapHref = `https://www.google.com/maps/search/?api=1&query=${templeMapQuery}`;
+
   const nextOccurrence = getNextPujaOccurrence({
     weeklyDay: puja.weeklyDay,
     startTime: puja.startTime,
@@ -59,199 +47,172 @@ export default function PujaDetailPage({ puja }: Props) {
     timeZone: puja.timezone
   }).format(nextOccurrence);
 
-  const templeMapQuery = encodeURIComponent(
-    `${puja.temple.name}, ${puja.temple.city}, ${puja.temple.state}`
-  );
-  const templeMapHref = `https://www.google.com/maps/search/?api=1&query=${templeMapQuery}`;
-
-  const faqItems = [
-    {
-      q: `When is ${puja.title} performed?`,
-      a: `${puja.title} is performed every ${puja.weeklyDay}. The live countdown always reflects the next scheduled seva.`
-    },
-    {
-      q: "Can I include family names in sankalp?",
-      a: "Yes. Add names and prayer notes in the additional information field while submitting the form."
-    },
-    {
-      q: "How will I receive participation updates?",
-      a: "Once you submit your interest, you will receive follow-up guidance by email with the next steps."
-    }
-  ];
-
   return (
     <>
       <PujaDetailTracker sevaId={puja.id} />
-      <OnlinePujaDetailLayout puja={puja} slides={slides}>
-        <section className="rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:p-7">
-          <SectionTitle id="about" title="About" />
-          {puja.sections.about.length > 0 ? (
-            <div className="space-y-4">
-              <p className="text-base leading-relaxed text-sagar-ink/82">{puja.sections.about[0]}</p>
-              {puja.sections.about.length > 1 && <CheckList items={puja.sections.about.slice(1)} />}
+
+      <div className="container py-5 md:py-8">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_400px] lg:gap-8">
+          <main className="space-y-5">
+            <section className="rounded-[2rem] border border-sagar-amber/20 bg-gradient-to-br from-sagar-cream via-white to-sagar-sand/75 p-4 shadow-sagar-soft md:p-7">
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-sagar-saffron">Online Puja</p>
+              <h1 className="mt-2 text-5xl leading-[1.05] text-sagar-ink md:text-6xl">{puja.title}</h1>
+              <p className="mt-3 text-base text-sagar-ink/78 md:text-lg">{detailConfig.subtitle}</p>
+
+              <div className="mt-5">
+                <ImageCarousel slides={detailConfig.carouselImages} priority />
+              </div>
+
+              <div className="mt-4 grid gap-2 md:grid-cols-3">
+                {detailConfig.topChips.map((chip) => (
+                  <article
+                    key={chip.label}
+                    className="rounded-2xl border border-sagar-amber/20 bg-white/85 px-3 py-2 text-sm font-medium text-sagar-ink/82"
+                  >
+                    <span className="mr-2" aria-hidden="true">
+                      {chip.icon}
+                    </span>
+                    {chip.label}
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <div className="lg:hidden">
+              <StickyBookingCard
+                puja={puja}
+                options={detailConfig.bookingOptions}
+                deliverables={detailConfig.deliverablesTimeline}
+              />
             </div>
-          ) : (
-            <p className="text-sm text-sagar-ink/70">Not found in repo.</p>
-          )}
-        </section>
 
-        <section className="rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:p-7">
-          <SectionTitle id="benefits" title="Benefits" />
-          {puja.sections.benefits.length > 0 ? (
-            <CheckList items={puja.sections.benefits} />
-          ) : (
-            <p className="text-sm text-sagar-ink/70">Not found in repo.</p>
-          )}
-        </section>
+            <SectionTabs items={sectionItems.map((item) => ({ ...item }))} />
 
-        <section className="rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:p-7">
-          <SectionTitle id="process" title="Process" />
-          {puja.sections.process.length > 0 ? (
-            <ol className="space-y-3">
-              {puja.sections.process.map((step, index) => (
-                <li
-                  key={step}
-                  className="flex gap-3 rounded-2xl border border-sagar-amber/20 bg-sagar-cream/45 p-4"
-                >
-                  <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sagar-saffron text-sm font-semibold text-white">
-                    {index + 1}
-                  </span>
-                  <p className="text-base leading-relaxed text-sagar-ink/82">{step}</p>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="text-sm text-sagar-ink/70">Not found in repo.</p>
-          )}
-        </section>
+            <section id="benefits" className="rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:p-7">
+              <h2 className="text-3xl text-sagar-ink md:text-4xl">Benefits</h2>
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                {detailConfig.benefitCards.map((benefit) => (
+                  <article key={benefit.id} className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/40 p-4">
+                    <p className="text-xl" aria-hidden="true">
+                      {benefit.icon}
+                    </p>
+                    <h3 className="mt-2 text-2xl text-sagar-ink">{benefit.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-sagar-ink/75">{benefit.description}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
 
-        <section className="rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:p-7">
-          <SectionTitle id="temple-details" title="Temple Details" />
-          <div className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/40 p-4">
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.19em] text-sagar-rose">
-              Temple
-            </p>
-            <h3 className="mt-1 text-2xl text-sagar-ink">{puja.temple.name}</h3>
-            <p className="mt-1 text-sm text-sagar-ink/75">
-              {puja.temple.city}, {puja.temple.state}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-full border border-sagar-amber/25 bg-white px-3 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-sagar-ink/70">
-                Verified schedule
-              </span>
-              <span className="rounded-full border border-sagar-amber/25 bg-white px-3 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-sagar-ink/70">
-                Temple-led ritual
-              </span>
-            </div>
-            <a
-              href={templeMapHref}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-flex rounded-full border border-sagar-amber/30 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-sagar-ink/75 transition hover:bg-sagar-cream/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sagar-saffron"
-            >
-              Open in Maps
-            </a>
-          </div>
-          <div className="mt-4">
-            {puja.sections.temple.length > 0 ? (
-              <CheckList items={puja.sections.temple} />
-            ) : (
-              <p className="text-sm text-sagar-ink/70">Not found in repo.</p>
-            )}
-          </div>
-        </section>
+            <section id="how-it-works" className="rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:p-7">
+              <h2 className="text-3xl text-sagar-ink md:text-4xl">How It Works</h2>
+              <ol className="mt-4 space-y-3">
+                {detailConfig.howItWorks.map((step, index) => (
+                  <li key={step} className="flex gap-3 rounded-2xl border border-sagar-amber/20 bg-sagar-cream/45 p-4">
+                    <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sagar-saffron text-sm font-semibold text-white">
+                      {index + 1}
+                    </span>
+                    <p className="text-sm leading-relaxed text-sagar-ink/78">{step}</p>
+                  </li>
+                ))}
+              </ol>
+            </section>
 
-        {puja.booking.deliverables.length > 0 && (
-          <section className="rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:p-7">
-            <SectionTitle id="inclusions" title="What You Will Receive" />
-            <div className="grid gap-3 sm:grid-cols-2">
-              {puja.booking.deliverables.map((item) => (
-                <article
-                  key={item}
-                  className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/45 p-4 text-sm leading-relaxed text-sagar-ink/82"
-                >
-                  {item}
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
+            <section id="temple-priests" className="rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:p-7">
+              <h2 className="text-3xl text-sagar-ink md:text-4xl">Temple & Priests</h2>
+              <p className="mt-2 text-sm leading-relaxed text-sagar-ink/78">{detailConfig.templeCredibility}</p>
 
-        <section className="rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:p-7">
-          <SectionTitle id="faq" title="Frequently Asked Questions" />
-          <div className="space-y-3">
-            {faqItems.map((item) => (
-              <details key={item.q} className="group rounded-2xl border border-sagar-amber/20 bg-sagar-cream/45 p-4">
-                <summary className="cursor-pointer list-none text-base font-semibold text-sagar-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sagar-saffron">
-                  {item.q}
-                </summary>
-                <p className="mt-2 text-sm leading-relaxed text-sagar-ink/75">{item.a}</p>
-              </details>
-            ))}
-          </div>
-        </section>
-
-        {relatedPujas.length > 0 && (
-          <section className="rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:p-7">
-            <SectionTitle id="related-pujas" title="Related Online Pujas" />
-            <div className="grid gap-4 sm:grid-cols-2">
-              {relatedPujas.map((related) => (
-                <article
-                  key={related.slug}
-                  className="overflow-hidden rounded-2xl border border-sagar-amber/20 bg-sagar-cream/40"
-                >
-                  <div className="relative aspect-[16/10]">
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                {detailConfig.templeImages.map((image, index) => (
+                  <div key={`${image.src}-${index}`} className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-sagar-amber/20">
                     <Image
-                      src={related.heroImageUrl}
-                      alt={related.heroImageAlt}
+                      src={image.src}
+                      alt={image.alt}
                       fill
                       className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 420px"
+                      sizes="(max-width: 768px) 100vw, 360px"
                       loading="lazy"
                     />
                   </div>
-                  <div className="p-4">
-                    <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-sagar-rose">
-                      Every {related.weeklyDay}
-                    </p>
-                    <h3 className="mt-2 text-xl text-sagar-ink">{related.title}</h3>
-                    <p className="mt-2 text-sm text-sagar-ink/75">{related.tagline}</p>
-                    <Link
-                      href={`/online-puja/${related.slug}`}
-                      className="mt-3 inline-flex min-h-[40px] items-center rounded-full border border-sagar-amber/30 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-sagar-ink/80 transition hover:bg-sagar-cream"
-                    >
-                      View Puja
-                    </Link>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
+                ))}
+              </div>
 
-        {!puja.booking.isPaymentEnabled && (
-          <section
-            id="interest-form"
-            className="scroll-mt-28 rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:p-7"
-          >
-            <h2 className="text-3xl text-sagar-ink md:text-4xl">Payment temporarily unavailable</h2>
-            <p className="mt-2 text-sm text-sagar-ink/70">
-              You can still reserve this seva by submitting your details below. Our team will confirm the next cycle
-              by email.
-            </p>
-            <div className="mt-5">
-              <PujaInterestForm pujaTitle={puja.title} pujaSlug={puja.slug} />
-            </div>
-          </section>
-        )}
-      </OnlinePujaDetailLayout>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="rounded-full border border-sagar-amber/25 bg-sagar-cream/40 px-3 py-1 text-xs font-semibold text-sagar-ink/75">
+                  {puja.temple.name}
+                </span>
+                <a
+                  href={templeMapHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border border-sagar-amber/25 bg-white px-3 py-1 text-xs font-semibold text-sagar-ink/75"
+                >
+                  {puja.temple.city}, {puja.temple.state}
+                </a>
+              </div>
+            </section>
+
+            <ReviewsBlock ratingSummary="Rated 4.8 by devotees across India, UK, USA, UAE and Canada." reviews={detailConfig.reviews} />
+
+            <FAQAccordion items={detailConfig.faqs} />
+
+            <section id="related-sevas" className="rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:p-7">
+              <h2 className="text-3xl text-sagar-ink md:text-4xl">Related Sevas</h2>
+
+              {relatedPujas.length ? (
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  {relatedPujas.map((related) => (
+                    <article
+                      key={related.slug}
+                      className="overflow-hidden rounded-2xl border border-sagar-amber/20 bg-sagar-cream/35"
+                    >
+                      <div className="relative aspect-[16/10]">
+                        <Image
+                          src={related.heroImageUrl}
+                          alt={related.heroImageAlt}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 420px"
+                          loading="lazy"
+                        />
+                      </div>
+                      <div className="p-4">
+                        <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-sagar-rose">
+                          Every {related.weeklyDay}
+                        </p>
+                        <h3 className="mt-1 text-2xl text-sagar-ink">{related.title}</h3>
+                        <p className="mt-2 text-sm text-sagar-ink/72">{related.tagline}</p>
+                        <Link
+                          href={`/online-puja/${related.slug}`}
+                          className="mt-3 inline-flex min-h-[40px] items-center rounded-full border border-sagar-amber/30 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-sagar-ink/80"
+                        >
+                          View Seva
+                        </Link>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-sagar-ink/72">More sevas will be added shortly.</p>
+              )}
+            </section>
+          </main>
+
+          <div className="hidden lg:block">
+            <StickyBookingCard
+              puja={puja}
+              options={detailConfig.bookingOptions}
+              deliverables={detailConfig.deliverablesTimeline}
+            />
+          </div>
+        </div>
+      </div>
 
       <StickyBottomCTA
-        href={puja.booking.isPaymentEnabled ? `/online-puja/${puja.slug}/checkout` : "#interest-form"}
-        label={puja.booking.isPaymentEnabled ? "Book Seva" : "Reserve Seva"}
+        href={`/online-puja/${puja.slug}/checkout`}
+        label="Proceed to payment"
         booking={puja.booking}
         metaSuffix={`${nextOccurrenceIst} IST`}
-        eventName="cta_book_click"
+        eventName="proceed_to_payment_clicked"
         eventParams={{ seva_id: puja.id, source: "sticky_mobile" }}
       />
     </>

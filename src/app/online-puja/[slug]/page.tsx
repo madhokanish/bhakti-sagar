@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/schema";
 import { getActiveOnlinePujas, getOnlinePujaBySlug } from "@/lib/onlinePuja";
+import { getPujaDetailConfig } from "@/lib/onlinePujaDetailConfig";
 import PujaDetailPage from "@/components/online-puja/PujaDetailPage";
 
 export function generateStaticParams() {
@@ -37,31 +38,41 @@ export default function OnlinePujaDetailRoute({ params }: { params: { slug: stri
     { name: "Online Puja", url: "https://bhakti-sagar.com/online-puja" },
     { name: puja.title, url: `https://bhakti-sagar.com/online-puja/${puja.slug}` }
   ]);
+  const detailConfig = getPujaDetailConfig(puja);
 
-  const faq = faqJsonLd([
-    {
-      q: `When is ${puja.title} conducted?`,
-      a: `${puja.title} is scheduled every ${puja.weeklyDay}. The countdown always points to the next cycle.`
+  const faq = faqJsonLd(detailConfig.faqs.map((item) => ({ q: item.question, a: item.answer })));
+
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: puja.title,
+    description: puja.tagline,
+    brand: {
+      "@type": "Brand",
+      name: "Bhakti Sagar"
     },
-    {
-      q: "How do I join this puja from outside India?",
-      a: "You can book directly when payment is enabled. If not, submit a reservation request and our team shares next steps by email."
+    offers: {
+      "@type": "Offer",
+      priceCurrency: puja.booking.currency,
+      price: puja.booking.priceAmount,
+      availability: "https://schema.org/InStock",
+      url: `https://bhakti-sagar.com/online-puja/${puja.slug}`
     },
-    {
-      q: "Does booking confirm participation?",
-      a: "Yes when payment is enabled. For reservation-only sevas, we confirm the next available cycle by email."
-    },
-    {
-      q: "Can I include family names in sankalp?",
-      a: "Yes, you can add names and special prayer notes in the additional information field."
-    }
-  ]);
+    aggregateRating: detailConfig.reviews.length
+      ? {
+          "@type": "AggregateRating",
+          ratingValue: 4.8,
+          reviewCount: 12000
+        }
+      : undefined
+  };
 
   return (
     <>
       <PujaDetailPage puja={puja} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faq) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
     </>
   );
 }

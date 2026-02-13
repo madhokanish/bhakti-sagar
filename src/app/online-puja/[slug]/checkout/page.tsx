@@ -21,13 +21,27 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   });
 }
 
-export default function OnlinePujaCheckoutPage({ params }: { params: { slug: string } }) {
+export default function OnlinePujaCheckoutPage({
+  params,
+  searchParams
+}: {
+  params: { slug: string };
+  searchParams: {
+    option?: string;
+    name?: string;
+    family?: string;
+    gotra?: string;
+    note?: string;
+    cur?: string;
+    amt?: string;
+  };
+}) {
   const puja = getOnlinePujaBySlug(params.slug);
   if (!puja || !puja.isActive) notFound();
 
   return (
     <div className="container py-6 md:py-10">
-      <PujaCheckoutClient puja={puja} />
+      <PujaCheckoutClient puja={puja} prefill={searchParams} />
     </div>
   );
 }

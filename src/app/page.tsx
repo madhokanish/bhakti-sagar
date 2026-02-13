@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getAartis, getCategories, getTopAartis } from "@/lib/data";
+import { getCategories, getTopAartis } from "@/lib/data";
 import { getRequestLanguage, buildMetadata } from "@/lib/seo";
 import { getActiveOnlinePujas, getNextPujaOccurrence } from "@/lib/onlinePuja";
 import MobileQuickNav from "@/components/MobileQuickNav";
@@ -20,7 +20,6 @@ export default function HomePage() {
   const lang = getRequestLanguage();
   const categories = getCategories();
   const topAartis = getTopAartis();
-  const popularAartis = getAartis().slice(0, 6);
   const activePujas = getActiveOnlinePujas();
   const featuredPuja = activePujas[0] ?? null;
 
@@ -191,43 +190,6 @@ export default function HomePage() {
           >
             View Choghadiya
           </Link>
-        </div>
-      </section>
-
-      <section className="mt-6">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-2xl font-serif text-sagar-ink">Popular Aartis</h2>
-          <Link href="/aartis" className="text-sm font-semibold text-sagar-ember hover:text-sagar-saffron">
-            View all
-          </Link>
-        </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {popularAartis.map((aarti) => {
-            const title =
-              lang === "hi"
-                ? aarti.title.hindi || aarti.title.english
-                : aarti.title.english || aarti.title.hindi;
-            const thumb = categoryImageBySlug[aarti.category] || "/category/ganesha.jpg";
-            return (
-              <Link
-                key={aarti.id}
-                href={`/aartis/${aarti.slug}`}
-                className="rounded-2xl border border-sagar-amber/22 bg-white/90 p-3 shadow-sagar-soft transition hover:-translate-y-0.5 hover:border-sagar-saffron/45"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-sagar-amber/20">
-                    <Image src={thumb} alt={title} fill className="object-cover" sizes="48px" loading="lazy" />
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-sagar-ink">{title}</p>
-                    <p className="mt-0.5 text-xs uppercase tracking-[0.13em] text-sagar-rose/80">
-                      {aarti.category}
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
         </div>
       </section>
 

@@ -357,12 +357,14 @@ export function detectUserCurrency({
   timeZone: string;
   fallback: string;
 }) {
+  const fromTimezone = getCurrencyFromTimezone(timeZone);
+  if (fromTimezone) return fromTimezone;
+
   const region = locale.split("-")[1]?.toUpperCase();
   if (region && REGION_TO_CURRENCY[region]) {
     return REGION_TO_CURRENCY[region];
   }
-  const fromTimezone = getCurrencyFromTimezone(timeZone);
-  if (fromTimezone) return fromTimezone;
+
   return fallback;
 }
 

@@ -83,10 +83,8 @@ export default function PujaBookingSidebar({ puja }: Props) {
 
   const localTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   const primaryTimeZone = displayTz === "local" ? localTimeZone : puja.timezone;
-  const secondaryTimeZone = displayTz === "local" ? puja.timezone : localTimeZone;
 
   const primaryLabel = formatInTimezone(nextOccurrence, primaryTimeZone);
-  const secondaryLabel = formatInTimezone(nextOccurrence, secondaryTimeZone);
 
   function onToggle(next: DisplayTz) {
     if (next === displayTz) return;
@@ -150,7 +148,9 @@ export default function PujaBookingSidebar({ puja }: Props) {
             </button>
           </div>
           <p className="mt-2 text-sm font-semibold text-sagar-ink">{primaryLabel}</p>
-          <p className="mt-1 text-xs text-sagar-ink/62">Also: {secondaryLabel}</p>
+          <p className="mt-1 text-xs text-sagar-ink/62">
+            {displayTz === "local" ? "Switch to IST to compare temple time" : "Switch to Local time to compare"}
+          </p>
         </div>
 
         <div className="mt-3">

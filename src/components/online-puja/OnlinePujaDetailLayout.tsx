@@ -54,6 +54,26 @@ export default function OnlinePujaDetailLayout({ puja, slides, children }: Props
                 ))}
               </div>
             </nav>
+
+            <section className="rounded-2xl border border-sagar-amber/20 bg-white/90 p-4 md:p-5">
+              <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-sagar-rose">
+                Seva Highlights
+              </p>
+              <div className="mt-3 grid gap-2 text-sm text-sagar-ink/80 sm:grid-cols-2">
+                <p className="rounded-xl border border-sagar-amber/20 bg-sagar-cream/45 px-3 py-2">
+                  Every {puja.weeklyDay} • {puja.startTime} IST
+                </p>
+                <p className="rounded-xl border border-sagar-amber/20 bg-sagar-cream/45 px-3 py-2">
+                  Temple-led ritual from {puja.temple.city}
+                </p>
+                <p className="rounded-xl border border-sagar-amber/20 bg-sagar-cream/45 px-3 py-2">
+                  Sankalp in your name(s)
+                </p>
+                <p className="rounded-xl border border-sagar-amber/20 bg-sagar-cream/45 px-3 py-2">
+                  Confirmation and support on email
+                </p>
+              </div>
+            </section>
           </div>
 
           <PujaBookingSidebar puja={puja} />

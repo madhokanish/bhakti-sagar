@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { OnlinePuja } from "@/lib/onlinePuja";
-import { formatPujaPrice, getActiveOnlinePujas, getNextPujaOccurrence } from "@/lib/onlinePuja";
+import { getActiveOnlinePujas, getNextPujaOccurrence } from "@/lib/onlinePuja";
 import OnlinePujaDetailLayout from "@/components/online-puja/OnlinePujaDetailLayout";
 import PujaInterestForm from "@/components/online-puja/PujaInterestForm";
 import StickyBottomCTA from "@/components/online-puja/StickyBottomCTA";
@@ -249,7 +249,8 @@ export default function PujaDetailPage({ puja }: Props) {
       <StickyBottomCTA
         href={puja.booking.isPaymentEnabled ? `/online-puja/${puja.slug}/checkout` : "#interest-form"}
         label={puja.booking.isPaymentEnabled ? "Book Seva" : "Reserve Seva"}
-        meta={`${formatPujaPrice(puja.booking)} • ${nextOccurrenceIst} IST`}
+        booking={puja.booking}
+        metaSuffix={`${nextOccurrenceIst} IST`}
         eventName="cta_book_click"
         eventParams={{ seva_id: puja.id, source: "sticky_mobile" }}
       />

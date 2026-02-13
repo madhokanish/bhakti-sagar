@@ -49,6 +49,8 @@ export type OnlinePuja = {
   };
 };
 
+export type PujaBookingPrice = Pick<OnlinePuja["booking"], "priceAmount" | "currency">;
+
 const weekdayIndex: Record<WeeklyDay, number> = {
   Sunday: 0,
   Monday: 1,
@@ -268,9 +270,128 @@ export function formatPujaPrice({
   priceAmount: number;
   currency: string;
 }) {
-  return new Intl.NumberFormat("en-IN", {
+  return formatPujaAmount({ amount: priceAmount, currency, locale: "en-IN" });
+}
+
+const PROMO_BASE_GBP = {
+  originalAmount: 9,
+  currentAmount: 2.99
+} as const;
+
+const GBP_TO_CURRENCY_RATE: Record<string, number> = {
+  GBP: 1,
+  INR: 105.5,
+  USD: 1.27,
+  EUR: 1.17,
+  CAD: 1.72,
+  AUD: 1.95,
+  AED: 4.66,
+  SGD: 1.71,
+  NZD: 2.09
+};
+
+const REGION_TO_CURRENCY: Record<string, string> = {
+  IN: "INR",
+  GB: "GBP",
+  US: "USD",
+  CA: "CAD",
+  AU: "AUD",
+  AE: "AED",
+  SG: "SGD",
+  NZ: "NZD",
+  IE: "EUR",
+  FR: "EUR",
+  DE: "EUR",
+  IT: "EUR",
+  ES: "EUR",
+  NL: "EUR",
+  BE: "EUR",
+  PT: "EUR",
+  AT: "EUR",
+  FI: "EUR",
+  GR: "EUR"
+};
+
+const ZERO_DECIMAL_CURRENCIES = new Set(["INR", "JPY", "KRW"]);
+
+function roundCurrencyAmount(amount: number, currency: string) {
+  if (ZERO_DECIMAL_CURRENCIES.has(currency)) {
+    return Math.round(amount);
+  }
+  return Math.round(amount * 100) / 100;
+}
+
+export function formatPujaAmount({
+  amount,
+  currency,
+  locale
+}: {
+  amount: number;
+  currency: string;
+  locale: string;
+}) {
+  return new Intl.NumberFormat(locale || "en-IN", {
     style: "currency",
     currency,
-    maximumFractionDigits: 0
-  }).format(priceAmount);
+    minimumFractionDigits: ZERO_DECIMAL_CURRENCIES.has(currency) ? 0 : 2,
+    maximumFractionDigits: ZERO_DECIMAL_CURRENCIES.has(currency) ? 0 : 2
+  }).format(amount);
+}
+
+function getCurrencyFromTimezone(timeZone: string) {
+  if (!timeZone) return "";
+  if (timeZone.startsWith("Asia/Kolkata")) return "INR";
+  if (timeZone.startsWith("Europe/London")) return "GBP";
+  if (timeZone.startsWith("America/")) return "USD";
+  if (timeZone.startsWith("Europe/")) return "EUR";
+  if (timeZone.startsWith("Australia/")) return "AUD";
+  return "";
+}
+
+export function detectUserCurrency({
+  locale,
+  timeZone,
+  fallback
+}: {
+  locale: string;
+  timeZone: string;
+  fallback: string;
+}) {
+  const region = locale.split("-")[1]?.toUpperCase();
+  if (region && REGION_TO_CURRENCY[region]) {
+    return REGION_TO_CURRENCY[region];
+  }
+  const fromTimezone = getCurrencyFromTimezone(timeZone);
+  if (fromTimezone) return fromTimezone;
+  return fallback;
+}
+
+export function getPujaOfferPrice({
+  booking,
+  currency
+}: {
+  booking: PujaBookingPrice;
+  currency: string;
+}) {
+  const targetCurrency = currency || booking.currency;
+  const rate = GBP_TO_CURRENCY_RATE[targetCurrency];
+
+  if (!rate || booking.priceAmount <= 0) {
+    return {
+      currency: booking.currency,
+      currentAmount: booking.priceAmount,
+      originalAmount: booking.priceAmount,
+      isDiscounted: false
+    };
+  }
+
+  const currentAmount = roundCurrencyAmount(PROMO_BASE_GBP.currentAmount * rate, targetCurrency);
+  const originalAmount = roundCurrencyAmount(PROMO_BASE_GBP.originalAmount * rate, targetCurrency);
+
+  return {
+    currency: targetCurrency,
+    currentAmount,
+    originalAmount,
+    isDiscounted: originalAmount > currentAmount
+  };
 }

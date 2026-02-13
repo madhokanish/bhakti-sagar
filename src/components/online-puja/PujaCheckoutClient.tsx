@@ -1,7 +1,13 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { formatPujaPrice, getNextPujaOccurrence, type OnlinePuja } from "@/lib/onlinePuja";
+import {
+  detectUserCurrency,
+  formatPujaAmount,
+  getNextPujaOccurrence,
+  getPujaOfferPrice,
+  type OnlinePuja
+} from "@/lib/onlinePuja";
 import { trackEvent } from "@/lib/analytics";
 
 type Props = {
@@ -44,6 +50,8 @@ export default function PujaCheckoutClient({ puja }: Props) {
   const [sankalp, setSankalp] = useState<SankalpState>(initialSankalp);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [userLocale, setUserLocale] = useState("en-IN");
+  const [userCurrency, setUserCurrency] = useState(puja.booking.currency);
 
   useEffect(() => {
     try {
@@ -64,6 +72,19 @@ export default function PujaCheckoutClient({ puja }: Props) {
   }, []);
 
   useEffect(() => {
+    const locale = navigator.language || "en-IN";
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    setUserLocale(locale);
+    setUserCurrency(
+      detectUserCurrency({
+        locale,
+        timeZone,
+        fallback: puja.booking.currency
+      })
+    );
+  }, [puja.booking.currency]);
+
+  useEffect(() => {
     trackEvent("checkout_start", { seva_id: puja.id });
   }, [puja.id]);
 
@@ -76,6 +97,10 @@ export default function PujaCheckoutClient({ puja }: Props) {
         timeZone: puja.timezone
       }),
     [puja.startTime, puja.timezone, puja.weeklyDay]
+  );
+  const offerPrice = useMemo(
+    () => getPujaOfferPrice({ booking: puja.booking, currency: userCurrency }),
+    [puja.booking, userCurrency]
   );
 
   const localTime = new Intl.DateTimeFormat("en-IN", {
@@ -155,7 +180,11 @@ export default function PujaCheckoutClient({ puja }: Props) {
         );
         window.location.href = `/online-puja/confirmation/${fallbackOrderId}?slug=${encodeURIComponent(
           puja.slug
-        )}&mode=requested&tz=${encodeURIComponent(localTz)}`;
+        )}&mode=requested&tz=${encodeURIComponent(localTz)}&cur=${encodeURIComponent(
+          offerPrice.currency
+        )}&amt=${encodeURIComponent(offerPrice.currentAmount)}&orig=${encodeURIComponent(
+          offerPrice.originalAmount
+        )}`;
         return;
       }
 
@@ -186,7 +215,7 @@ export default function PujaCheckoutClient({ puja }: Props) {
       }
 
       if (data.orderId) {
-        trackEvent("payment_success", { order_id: data.orderId, amount: puja.booking.priceAmount });
+        trackEvent("payment_success", { order_id: data.orderId, amount: offerPrice.currentAmount });
         window.localStorage.setItem(
           PREFILL_KEY,
           JSON.stringify({
@@ -197,7 +226,11 @@ export default function PujaCheckoutClient({ puja }: Props) {
         );
         window.location.href = `/online-puja/confirmation/${data.orderId}?slug=${encodeURIComponent(
           puja.slug
-        )}&mode=paid&tz=${encodeURIComponent(localTz)}`;
+        )}&mode=paid&tz=${encodeURIComponent(localTz)}&cur=${encodeURIComponent(
+          offerPrice.currency
+        )}&amt=${encodeURIComponent(offerPrice.currentAmount)}&orig=${encodeURIComponent(
+          offerPrice.originalAmount
+        )}`;
       }
     } catch (submissionError) {
       trackEvent("payment_failure", { reason: submissionError instanceof Error ? submissionError.message : "unknown" });
@@ -217,7 +250,21 @@ export default function PujaCheckoutClient({ puja }: Props) {
 
       <div className="mt-4 rounded-2xl border border-sagar-amber/20 bg-sagar-cream/55 p-4 text-sm text-sagar-ink/80">
         <p>
-          <span className="font-semibold">Amount:</span> {formatPujaPrice(puja.booking)}
+          <span className="font-semibold">Amount:</span>{" "}
+          {formatPujaAmount({
+            amount: offerPrice.currentAmount,
+            currency: offerPrice.currency,
+            locale: userLocale
+          })}
+          {offerPrice.isDiscounted ? (
+            <span className="ml-2 text-xs text-sagar-ink/55 line-through">
+              {formatPujaAmount({
+                amount: offerPrice.originalAmount,
+                currency: offerPrice.currency,
+                locale: userLocale
+              })}
+            </span>
+          ) : null}
         </p>
         <p className="mt-1">
           <span className="font-semibold">Your local time:</span> {localTime}

@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { buildMetadata } from "@/lib/seo";
-import { getOnlinePujaBySlug, getNextPujaOccurrence, formatPujaPrice } from "@/lib/onlinePuja";
+import {
+  formatPujaAmount,
+  formatPujaPrice,
+  getOnlinePujaBySlug,
+  getNextPujaOccurrence
+} from "@/lib/onlinePuja";
 import PujaConfirmationTracker from "@/components/online-puja/PujaConfirmationTracker";
 
 export const metadata: Metadata = buildMetadata({
@@ -28,12 +33,20 @@ export default function OnlinePujaConfirmationPage({
   searchParams
 }: {
   params: { orderId: string };
-  searchParams: { slug?: string; mode?: string; tz?: string };
+  searchParams: { slug?: string; mode?: string; tz?: string; cur?: string; amt?: string; orig?: string };
 }) {
   const puja = searchParams.slug ? getOnlinePujaBySlug(searchParams.slug) : undefined;
   const mode = searchParams.mode || "requested";
   const userTz = searchParams.tz || "UTC";
   const supportEmail = puja?.booking.supportEmail || "support@bhakti-sagar.com";
+  const currency = searchParams.cur || puja?.booking.currency || "INR";
+  const amount = Number(searchParams.amt || "");
+  const originalAmount = Number(searchParams.orig || "");
+  const resolvedAmount = Number.isFinite(amount) && amount > 0 ? amount : puja?.booking.priceAmount ?? null;
+  const resolvedOriginalAmount =
+    Number.isFinite(originalAmount) && resolvedAmount !== null && originalAmount > resolvedAmount
+      ? originalAmount
+      : undefined;
   const nextOccurrence = puja
     ? getNextPujaOccurrence({
         weeklyDay: puja.weeklyDay,
@@ -66,7 +79,19 @@ export default function OnlinePujaConfirmationPage({
                 <span className="font-semibold">Seva:</span> {puja.title}
               </p>
               <p className="mt-1">
-                <span className="font-semibold">Amount:</span> {formatPujaPrice(puja.booking)}
+                <span className="font-semibold">Amount:</span>{" "}
+                {resolvedAmount !== null
+                  ? formatPujaAmount({ amount: resolvedAmount, currency, locale: "en-IN" })
+                  : formatPujaPrice(puja.booking)}
+                {resolvedOriginalAmount ? (
+                  <span className="ml-2 text-xs text-sagar-ink/55 line-through">
+                    {formatPujaAmount({
+                      amount: resolvedOriginalAmount,
+                      currency,
+                      locale: "en-IN"
+                    })}
+                  </span>
+                ) : null}
               </p>
               {nextOccurrence && (
                 <>

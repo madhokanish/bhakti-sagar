@@ -1,9 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PujaCountdownCard from "@/components/online-puja/PujaCountdownCard";
-import { formatPujaPrice, getNextPujaOccurrence, type WeeklyDay } from "@/lib/onlinePuja";
+import {
+  detectUserCurrency,
+  formatPujaAmount,
+  getNextPujaOccurrence,
+  getPujaOfferPrice,
+  type WeeklyDay
+} from "@/lib/onlinePuja";
 import { trackEvent } from "@/lib/analytics";
 
 type Props = {
@@ -45,6 +51,8 @@ function formatInTimezone(date: Date, timezone: string) {
 
 export default function PujaBookingSidebar({ puja }: Props) {
   const [displayTz, setDisplayTz] = useState<DisplayTz>("local");
+  const [userLocale, setUserLocale] = useState("en-IN");
+  const [userCurrency, setUserCurrency] = useState(puja.booking.currency);
 
   const nextOccurrence = useMemo(
     () =>
@@ -55,6 +63,23 @@ export default function PujaBookingSidebar({ puja }: Props) {
       }),
     [puja.startTime, puja.timezone, puja.weeklyDay]
   );
+  const offerPrice = useMemo(
+    () => getPujaOfferPrice({ booking: puja.booking, currency: userCurrency }),
+    [puja.booking, userCurrency]
+  );
+
+  useEffect(() => {
+    const locale = navigator.language || "en-IN";
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    setUserLocale(locale);
+    setUserCurrency(
+      detectUserCurrency({
+        locale,
+        timeZone,
+        fallback: puja.booking.currency
+      })
+    );
+  }, [puja.booking.currency]);
 
   const localTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   const primaryTimeZone = displayTz === "local" ? localTimeZone : puja.timezone;
@@ -80,7 +105,23 @@ export default function PujaBookingSidebar({ puja }: Props) {
 
         <div className="mt-3 rounded-2xl border border-sagar-amber/25 bg-sagar-cream/65 px-4 py-3">
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.19em] text-sagar-rose">Price</p>
-          <p className="mt-1 text-xl font-semibold text-sagar-ink">{formatPujaPrice(puja.booking)}</p>
+          <p className="mt-1 text-xl font-semibold text-sagar-ink">
+            {formatPujaAmount({
+              amount: offerPrice.currentAmount,
+              currency: offerPrice.currency,
+              locale: userLocale
+            })}
+            {offerPrice.isDiscounted ? (
+              <span className="ml-2 text-sm font-medium text-sagar-ink/50 line-through">
+                {formatPujaAmount({
+                  amount: offerPrice.originalAmount,
+                  currency: offerPrice.currency,
+                  locale: userLocale
+                })}
+              </span>
+            ) : null}
+          </p>
+          {offerPrice.isDiscounted ? <p className="mt-1 text-xs text-emerald-700">Limited offer this week</p> : null}
         </div>
 
         <div className="mt-3 rounded-2xl border border-sagar-amber/25 bg-sagar-cream/65 px-4 py-3">

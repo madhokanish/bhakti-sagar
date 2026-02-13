@@ -45,11 +45,11 @@ export default function OnlinePujaDetailRoute({ params }: { params: { slug: stri
     },
     {
       q: "How do I join this puja from outside India?",
-      a: "Submit the interest form and our team shares steps, schedule details, and participation instructions by email."
+      a: "You can book directly when payment is enabled. If not, submit a reservation request and our team shares next steps by email."
     },
     {
-      q: "Does the form submission confirm participation?",
-      a: "Form submission shares your interest. Our team follows up with confirmation and next actions."
+      q: "Does booking confirm participation?",
+      a: "Yes when payment is enabled. For reservation-only sevas, we confirm the next available cycle by email."
     },
     {
       q: "Can I include family names in sankalp?",
@@ -65,4 +65,3 @@ export default function OnlinePujaDetailRoute({ params }: { params: { slug: stri
     </>
   );
 }
-

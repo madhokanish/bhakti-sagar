@@ -12,6 +12,7 @@ export type WeeklyDay =
 export type PujaTabKey = "about" | "benefits" | "process" | "temple";
 
 export type OnlinePuja = {
+  id: string;
   slug: string;
   title: string;
   tagline: string;
@@ -36,6 +37,15 @@ export type OnlinePuja = {
   seo: {
     title: string;
     description: string;
+  };
+  booking: {
+    priceAmount: number;
+    currency: string;
+    isPaymentEnabled: boolean;
+    supportEmail: string;
+    refundPolicy: string;
+    deliverables: string[];
+    scheduleRule: "weekly";
   };
 };
 
@@ -92,6 +102,7 @@ export function getNextPujaOccurrence({
 
 export const onlinePujas: OnlinePuja[] = [
   {
+    id: "puja-ganesh-vighnaharta",
     slug: "ganesh-vighnaharta",
     title: "Ganesh Vighnaharta Puja and Havan",
     tagline: "A weekly seva to remove obstacles and invite steady progress.",
@@ -131,9 +142,23 @@ export const onlinePujas: OnlinePuja[] = [
       title: "Online Ganesh Vighnaharta Puja and Havan",
       description:
         "Join weekly Ganesh Vighnaharta Puja and Havan from Shri Chintaman Ganesh Temple, Ujjain. Register interest and receive participation details."
+    },
+    booking: {
+      priceAmount: 1100,
+      currency: "INR",
+      isPaymentEnabled: false,
+      supportEmail: "support@bhakti-sagar.com",
+      refundPolicy: "Reschedule requests are accepted before the seva window. Please contact support for assistance.",
+      deliverables: [
+        "Sankalp in your name(s)",
+        "Email confirmation with schedule details",
+        "Post-seva completion update"
+      ],
+      scheduleRule: "weekly"
     }
   },
   {
+    id: "puja-hanuman-family-peace",
     slug: "hanuman-family-peace",
     title: "Hanuman Puja for Family Peace and Prosperity",
     tagline: "Weekly Tuesday puja for harmony, courage, and household wellbeing.",
@@ -173,9 +198,23 @@ export const onlinePujas: OnlinePuja[] = [
       title: "Online Hanuman Puja for Family Peace and Prosperity",
       description:
         "Register for weekly Hanuman Puja focused on family peace and prosperity. Tuesday seva with sankalp and temple ritual updates."
+    },
+    booking: {
+      priceAmount: 901,
+      currency: "INR",
+      isPaymentEnabled: false,
+      supportEmail: "support@bhakti-sagar.com",
+      refundPolicy: "Reschedule requests are accepted before the seva window. Please contact support for assistance.",
+      deliverables: [
+        "Sankalp in your name(s)",
+        "Email confirmation with schedule details",
+        "Post-seva completion update"
+      ],
+      scheduleRule: "weekly"
     }
   },
   {
+    id: "puja-coming-soon-lakshmi",
     slug: "coming-soon",
     title: "Mahalakshmi Prosperity Puja",
     tagline: "New online seva will be announced soon.",
@@ -201,6 +240,15 @@ export const onlinePujas: OnlinePuja[] = [
       title: "Online Lakshmi Puja (Coming Soon)",
       description:
         "A new online Lakshmi puja option is being prepared. Check back for schedule and temple details."
+    },
+    booking: {
+      priceAmount: 0,
+      currency: "INR",
+      isPaymentEnabled: false,
+      supportEmail: "support@bhakti-sagar.com",
+      refundPolicy: "Details will be published before launch.",
+      deliverables: [],
+      scheduleRule: "weekly"
     }
   }
 ];
@@ -211,4 +259,18 @@ export function getOnlinePujaBySlug(slug: string) {
 
 export function getActiveOnlinePujas() {
   return onlinePujas.filter((puja) => puja.isActive);
+}
+
+export function formatPujaPrice({
+  priceAmount,
+  currency
+}: {
+  priceAmount: number;
+  currency: string;
+}) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0
+  }).format(priceAmount);
 }

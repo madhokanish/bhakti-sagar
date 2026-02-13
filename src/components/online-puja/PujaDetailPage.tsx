@@ -1,10 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { OnlinePuja } from "@/lib/onlinePuja";
-import { getActiveOnlinePujas } from "@/lib/onlinePuja";
+import { formatPujaPrice, getActiveOnlinePujas, getNextPujaOccurrence } from "@/lib/onlinePuja";
 import OnlinePujaDetailLayout from "@/components/online-puja/OnlinePujaDetailLayout";
 import PujaInterestForm from "@/components/online-puja/PujaInterestForm";
 import StickyBottomCTA from "@/components/online-puja/StickyBottomCTA";
+import PujaDetailTracker from "@/components/online-puja/PujaDetailTracker";
 
 type Props = {
   puja: OnlinePuja;
@@ -43,6 +44,20 @@ export default function PujaDetailPage({ puja }: Props) {
   const relatedPujas = getActiveOnlinePujas()
     .filter((item) => item.slug !== puja.slug)
     .slice(0, 3);
+  const nextOccurrence = getNextPujaOccurrence({
+    weeklyDay: puja.weeklyDay,
+    startTime: puja.startTime,
+    timeZone: puja.timezone
+  });
+  const nextOccurrenceIst = new Intl.DateTimeFormat("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: puja.timezone
+  }).format(nextOccurrence);
 
   const templeMapQuery = encodeURIComponent(
     `${puja.temple.name}, ${puja.temple.city}, ${puja.temple.state}`
@@ -66,7 +81,8 @@ export default function PujaDetailPage({ puja }: Props) {
 
   return (
     <>
-      <OnlinePujaDetailLayout puja={puja} slides={slides} ctaHref="#interest-form">
+      <PujaDetailTracker sevaId={puja.id} />
+      <OnlinePujaDetailLayout puja={puja} slides={slides}>
         <section className="rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:p-7">
           <SectionTitle id="about" title="About" />
           {puja.sections.about.length > 0 ? (
@@ -145,11 +161,11 @@ export default function PujaDetailPage({ puja }: Props) {
           </div>
         </section>
 
-        {puja.sections.benefits.length > 0 && (
+        {puja.booking.deliverables.length > 0 && (
           <section className="rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:p-7">
             <SectionTitle id="inclusions" title="What You Will Receive" />
             <div className="grid gap-3 sm:grid-cols-2">
-              {puja.sections.benefits.slice(0, 4).map((item) => (
+              {puja.booking.deliverables.map((item) => (
                 <article
                   key={item}
                   className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/45 p-4 text-sm leading-relaxed text-sagar-ink/82"
@@ -213,22 +229,30 @@ export default function PujaDetailPage({ puja }: Props) {
           </section>
         )}
 
-        <section
-          id="interest-form"
-          className="scroll-mt-28 rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:p-7"
-        >
-          <h2 className="text-3xl text-sagar-ink md:text-4xl">Interested in this Puja? Fill out the form below</h2>
-          <p className="mt-2 text-sm text-sagar-ink/70">
-            Submit your details and we will contact you with the next weekly cycle, participation
-            process, and sankalp instructions.
-          </p>
-          <div className="mt-5">
-            <PujaInterestForm pujaTitle={puja.title} pujaSlug={puja.slug} />
-          </div>
-        </section>
+        {!puja.booking.isPaymentEnabled && (
+          <section
+            id="interest-form"
+            className="scroll-mt-28 rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:p-7"
+          >
+            <h2 className="text-3xl text-sagar-ink md:text-4xl">Payment temporarily unavailable</h2>
+            <p className="mt-2 text-sm text-sagar-ink/70">
+              You can still reserve this seva by submitting your details below. Our team will confirm the next cycle
+              by email.
+            </p>
+            <div className="mt-5">
+              <PujaInterestForm pujaTitle={puja.title} pujaSlug={puja.slug} />
+            </div>
+          </section>
+        )}
       </OnlinePujaDetailLayout>
 
-      <StickyBottomCTA href="#interest-form" label="Join Seva" />
+      <StickyBottomCTA
+        href={puja.booking.isPaymentEnabled ? `/online-puja/${puja.slug}/checkout` : "#interest-form"}
+        label={puja.booking.isPaymentEnabled ? "Book Seva" : "Reserve Seva"}
+        meta={`${formatPujaPrice(puja.booking)} • ${nextOccurrenceIst} IST`}
+        eventName="cta_book_click"
+        eventParams={{ seva_id: puja.id, source: "sticky_mobile" }}
+      />
     </>
   );
 }

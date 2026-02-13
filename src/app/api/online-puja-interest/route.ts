@@ -14,6 +14,15 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function getEnv(name: string) {
   const value = process.env[name];
   return value && value.trim() ? value.trim() : "";
@@ -31,16 +40,23 @@ export async function POST(request: Request) {
   }
 
   const smtpHost = getEnv("SMTP_HOST");
-  const smtpPort = Number(getEnv("SMTP_PORT") || "587");
+  const smtpPortRaw = getEnv("SMTP_PORT") || "587";
+  const smtpPort = Number(smtpPortRaw);
   const smtpUser = getEnv("SMTP_USER");
   const smtpPass = getEnv("SMTP_PASS");
-  const smtpFrom = getEnv("SMTP_FROM") || "Bhakti Sagar <no-reply@bhakti-sagar.com>";
+  const smtpFrom = getEnv("SMTP_FROM") || smtpUser;
   const recipient = getEnv("ONLINE_PUJA_RECIPIENT_EMAIL") || "anishmadhok.in@gmail.com";
+  const missingEnv: string[] = [];
 
-  if (!smtpHost || !smtpUser || !smtpPass || Number.isNaN(smtpPort)) {
+  if (!smtpHost) missingEnv.push("SMTP_HOST");
+  if (!smtpPortRaw || Number.isNaN(smtpPort)) missingEnv.push("SMTP_PORT");
+  if (!smtpUser) missingEnv.push("SMTP_USER");
+  if (!smtpPass) missingEnv.push("SMTP_PASS");
+
+  if (missingEnv.length > 0) {
     return NextResponse.json(
-      { error: "Email service is not configured. Please contact support." },
-      { status: 500 }
+      { error: `Email service is not configured. Missing: ${missingEnv.join(", ")}` },
+      { status: 503 }
     );
   }
 
@@ -54,34 +70,40 @@ export async function POST(request: Request) {
     }
   });
 
-  const subject = `Online Puja Interest: ${body.pujaTitle}`;
+  const pujaTitle = body.pujaTitle.trim();
+  const pujaSlug = body.pujaSlug.trim();
+  const name = body.name.trim();
+  const email = body.email.trim();
+  const phone = body.phone?.trim() || "Not provided";
+  const additionalInfo = body.additionalInfo?.trim() || "Not provided";
+  const subject = `Online Puja Interest: ${pujaTitle}`;
   const text = [
-    `Puja: ${body.pujaTitle}`,
-    `Slug: ${body.pujaSlug}`,
-    `Name: ${body.name.trim()}`,
-    `Email: ${body.email.trim()}`,
-    `Phone: ${body.phone?.trim() || "Not provided"}`,
+    `Puja: ${pujaTitle}`,
+    `Slug: ${pujaSlug}`,
+    `Name: ${name}`,
+    `Email: ${email}`,
+    `Phone: ${phone}`,
     "",
     "Additional Information:",
-    body.additionalInfo?.trim() || "Not provided"
+    additionalInfo
   ].join("\n");
 
   const html = `
     <h2>Online Puja Interest</h2>
-    <p><strong>Puja:</strong> ${body.pujaTitle}</p>
-    <p><strong>Slug:</strong> ${body.pujaSlug}</p>
-    <p><strong>Name:</strong> ${body.name.trim()}</p>
-    <p><strong>Email:</strong> ${body.email.trim()}</p>
-    <p><strong>Phone:</strong> ${body.phone?.trim() || "Not provided"}</p>
+    <p><strong>Puja:</strong> ${escapeHtml(pujaTitle)}</p>
+    <p><strong>Slug:</strong> ${escapeHtml(pujaSlug)}</p>
+    <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+    <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+    <p><strong>Phone:</strong> ${escapeHtml(phone)}</p>
     <p><strong>Additional Information:</strong></p>
-    <p>${(body.additionalInfo?.trim() || "Not provided").replace(/\n/g, "<br/>")}</p>
+    <p>${escapeHtml(additionalInfo).replace(/\n/g, "<br/>")}</p>
   `;
 
   try {
     await transporter.sendMail({
       from: smtpFrom,
       to: recipient,
-      replyTo: body.email.trim(),
+      replyTo: email,
       subject,
       text,
       html
@@ -93,4 +115,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-

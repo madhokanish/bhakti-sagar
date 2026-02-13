@@ -7,7 +7,7 @@ import PujaListingPage from "@/components/online-puja/PujaListingPage";
 export const metadata: Metadata = buildMetadata({
   title: "Online Puja Seva",
   description:
-    "Join weekly online puja seva with temple-led rituals. View Ganesh and Hanuman puja details and submit your interest in minutes.",
+    "Book weekly online puja seva with temple-led rituals. View Ganesh and Hanuman puja details, pricing, and checkout in minutes.",
   pathname: "/online-puja"
 });
 
@@ -19,11 +19,11 @@ export default function OnlinePujaIndexPage() {
   const faq = faqJsonLd([
     {
       q: "What is Online Puja on Bhakti Sagar?",
-      a: "Online Puja allows you to express interest in weekly temple rituals and receive participation details by email."
+      a: "Online Puja lets you book recurring weekly temple sevas from home with clear schedules and devotional guidance."
     },
     {
       q: "Do I need to pay online right now?",
-      a: "No. This MVP only collects interest details. Payments and checkout are not part of this release."
+      a: "Selected sevas may have direct booking enabled. If payment is temporarily unavailable, you can still submit a reservation request."
     },
     {
       q: "How does the countdown work?",
@@ -39,4 +39,3 @@ export default function OnlinePujaIndexPage() {
     </>
   );
 }
-

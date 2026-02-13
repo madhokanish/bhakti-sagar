@@ -1,19 +1,28 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect } from "react";
 import type { OnlinePuja } from "@/lib/onlinePuja";
+import { formatPujaPrice } from "@/lib/onlinePuja";
 import OnlinePujaLayout from "@/components/online-puja/OnlinePujaLayout";
 import PujaCountdownCard from "@/components/online-puja/PujaCountdownCard";
+import { trackEvent } from "@/lib/analytics";
 
 type Props = {
   pujas: OnlinePuja[];
 };
 
 export default function PujaListingPage({ pujas }: Props) {
+  useEffect(() => {
+    trackEvent("online_puja_list_view", { page: "/online-puja" });
+  }, []);
+
   return (
     <OnlinePujaLayout
       eyebrow="Online Puja"
-      title="Temple seva from home"
-      description="Join recurring online puja services each week. Select a puja, review details, and submit your interest to get participation guidance."
+      title="Book weekly temple seva from home"
+      description="Choose a puja, review date and pricing, and complete your booking in a calm 2-step flow. Need help is always available."
     >
       <div className="grid gap-6 lg:grid-cols-3">
         {pujas.map((puja) => (
@@ -29,6 +38,11 @@ export default function PujaListingPage({ pujas }: Props) {
                 <p className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-sagar-rose">{puja.deity} Puja</p>
                 <h2 className="mt-2 text-2xl font-serif text-sagar-ink">{puja.title}</h2>
                 <p className="mt-2 text-sm text-sagar-ink/70">{puja.tagline}</p>
+                {puja.isActive && (
+                  <p className="mt-2 text-sm font-semibold text-sagar-ink">
+                    {formatPujaPrice(puja.booking)} <span className="text-sagar-ink/65">per seva</span>
+                  </p>
+                )}
               </div>
 
               {puja.isActive ? (
@@ -40,12 +54,22 @@ export default function PujaListingPage({ pujas }: Props) {
               )}
 
               {puja.isActive ? (
-                <Link
-                  href={`/online-puja/${puja.slug}`}
-                  className="inline-flex rounded-full bg-sagar-saffron px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-white"
-                >
-                  View Details
-                </Link>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={`/online-puja/${puja.slug}/checkout`}
+                    onClick={() => trackEvent("online_puja_card_click", { seva_id: puja.id, slug: puja.slug, target: "checkout" })}
+                    className="inline-flex rounded-full bg-sagar-saffron px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-white"
+                  >
+                    Book Seva
+                  </Link>
+                  <Link
+                    href={`/online-puja/${puja.slug}`}
+                    onClick={() => trackEvent("online_puja_card_click", { seva_id: puja.id, slug: puja.slug, target: "detail" })}
+                    className="inline-flex rounded-full border border-sagar-amber/30 px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-sagar-ink/75"
+                  >
+                    View Details
+                  </Link>
+                </div>
               ) : (
                 <span className="inline-flex rounded-full border border-sagar-amber/30 px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-sagar-ink/55">
                   Coming Soon
@@ -58,4 +82,3 @@ export default function PujaListingPage({ pujas }: Props) {
     </OnlinePujaLayout>
   );
 }
-

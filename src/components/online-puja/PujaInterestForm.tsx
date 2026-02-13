@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 
 type Props = {
   pujaTitle: string;
@@ -26,6 +27,7 @@ export default function PujaInterestForm({ pujaTitle, pujaSlug }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [error, setError] = useState<string>("");
+  const [started, setStarted] = useState(false);
 
   const isValid = useMemo(() => {
     const email = form.email.trim();
@@ -59,13 +61,21 @@ export default function PujaInterestForm({ pujaTitle, pujaSlug }: Props) {
       }
 
       setStatus("success");
+      trackEvent("form_submit", { puja_slug: pujaSlug });
       setForm(initialState);
+      setStarted(false);
     } catch (submitError) {
       setStatus("error");
       setError(submitError instanceof Error ? submitError.message : "Submission failed.");
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function markStarted() {
+    if (started) return;
+    setStarted(true);
+    trackEvent("form_start", { puja_slug: pujaSlug });
   }
 
   return (
@@ -76,6 +86,7 @@ export default function PujaInterestForm({ pujaTitle, pujaSlug }: Props) {
           <input
             value={form.name}
             onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+            onFocus={markStarted}
             className="mt-1 w-full rounded-xl border border-sagar-amber/30 bg-white px-3 py-2 text-sm outline-none focus:border-sagar-saffron"
             required
           />
@@ -86,6 +97,7 @@ export default function PujaInterestForm({ pujaTitle, pujaSlug }: Props) {
             type="email"
             value={form.email}
             onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
+            onFocus={markStarted}
             className="mt-1 w-full rounded-xl border border-sagar-amber/30 bg-white px-3 py-2 text-sm outline-none focus:border-sagar-saffron"
             required
           />
@@ -96,6 +108,7 @@ export default function PujaInterestForm({ pujaTitle, pujaSlug }: Props) {
         <input
           value={form.phone}
           onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
+          onFocus={markStarted}
           className="mt-1 w-full rounded-xl border border-sagar-amber/30 bg-white px-3 py-2 text-sm outline-none focus:border-sagar-saffron"
         />
       </label>
@@ -104,6 +117,7 @@ export default function PujaInterestForm({ pujaTitle, pujaSlug }: Props) {
         <textarea
           value={form.additionalInfo}
           onChange={(event) => setForm((prev) => ({ ...prev, additionalInfo: event.target.value }))}
+          onFocus={markStarted}
           className="mt-1 min-h-[120px] w-full rounded-xl border border-sagar-amber/30 bg-white px-3 py-2 text-sm outline-none focus:border-sagar-saffron"
           placeholder="Share your sankalp, family names, or any specific prayer request."
         />
@@ -128,4 +142,3 @@ export default function PujaInterestForm({ pujaTitle, pujaSlug }: Props) {
     </form>
   );
 }
-

@@ -7,6 +7,8 @@ type Props = {
   weeklyDay: WeeklyDay;
   startTime: string;
   timeZone: string;
+  scheduleTimeZone?: string;
+  displayTimeZone?: string;
   compact?: boolean;
   className?: string;
 };
@@ -28,6 +30,8 @@ export default function PujaCountdownCard({
   weeklyDay,
   startTime,
   timeZone,
+  scheduleTimeZone,
+  displayTimeZone,
   compact = false,
   className = ""
 }: Props) {
@@ -40,14 +44,17 @@ export default function PujaCountdownCard({
     return () => window.clearInterval(id);
   }, []);
 
+  const scheduleTz = scheduleTimeZone || timeZone;
+  const displayTz = displayTimeZone || timeZone;
+
   const nextOccurrence = useMemo(() => {
     return getNextPujaOccurrence({
       weeklyDay,
       startTime,
-      timeZone,
+      timeZone: scheduleTz,
       now: new Date(now)
     });
-  }, [now, startTime, timeZone, weeklyDay]);
+  }, [now, scheduleTz, startTime, weeklyDay]);
 
   const duration = splitDuration(nextOccurrence.getTime() - now);
   const formattedDate = new Intl.DateTimeFormat("en-IN", {
@@ -57,7 +64,7 @@ export default function PujaCountdownCard({
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
-    timeZone
+    timeZone: displayTz
   }).format(nextOccurrence);
 
   return (

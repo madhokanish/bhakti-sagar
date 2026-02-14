@@ -53,7 +53,7 @@ export default async function LiveMandirPage({ params }: { params: { id: string 
             <h1 className="text-4xl font-serif leading-tight text-sagar-ink md:text-5xl">{mandir.name}</h1>
             <p className="mt-2 text-base text-sagar-ink/72">{mandir.location}</p>
           </div>
-          <DarshanPlayer channelId={channelId} />
+          <DarshanPlayer channelId={channelId} channelUrl={mandir.channelUrl} />
         </div>
 
         <aside className="space-y-4">

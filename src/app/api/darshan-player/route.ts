@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { DarshanPlayerPayload, getDarshanPlayerPayload } from "@/lib/liveDarshan";
+import {
+  DarshanPlayerPayload,
+  getDarshanPlayerPayload,
+  resolveChannelIdFromUrl
+} from "@/lib/liveDarshan";
 
 export const runtime = "nodejs";
 
@@ -13,10 +17,30 @@ const TTL_MS = 60 * 1000;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const channelId = searchParams.get("channelId")?.trim();
+  const channelIdParam = searchParams.get("channelId")?.trim();
+  const channelUrl = searchParams.get("channelUrl")?.trim();
+  let channelId = channelIdParam || null;
+
+  if (!channelId && channelUrl) {
+    channelId = await resolveChannelIdFromUrl(channelUrl);
+  }
 
   if (!channelId) {
-    return NextResponse.json({ error: "channelId is required." }, { status: 400 });
+    return NextResponse.json(
+      {
+        status: "none",
+        videoId: null,
+        embedUrl: null,
+        title: null,
+        publishedAt: null
+      } satisfies DarshanPlayerPayload,
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120"
+        }
+      }
+    );
   }
 
   const cached = cache.get(channelId);

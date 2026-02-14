@@ -174,6 +174,21 @@ async function searchChannelsByHandle(handle: string) {
   return channelId;
 }
 
+async function resolveHandleFromPublicPage(handle: string) {
+  const normalized = normalizeHandle(handle);
+  try {
+    const response = await fetch(`https://www.youtube.com/@${normalized}`, {
+      next: { revalidate: 60 }
+    });
+    if (!response.ok) return null;
+    const html = await response.text();
+    const matched = html.match(/"channelId":"(UC[\w-]+)"/);
+    return matched?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function extractChannelIdFromUrl(channelUrl: string) {
   const match = channelUrl.match(/\/channel\/(UC[\w-]+)/i);
   return match?.[1] ?? null;
@@ -192,9 +207,21 @@ export async function resolveChannelIdFromUrl(channelUrl: string) {
   if (!handle) return null;
 
   try {
-    return await searchChannelsByHandle(handle);
+    const viaApi = await searchChannelsByHandle(handle);
+    if (viaApi) return viaApi;
+    const viaPublicPage = await resolveHandleFromPublicPage(handle);
+    if (viaPublicPage) {
+      handleCache.set(normalizeHandle(handle), viaPublicPage);
+      await persistHandleCache();
+    }
+    return viaPublicPage;
   } catch {
-    return null;
+    const viaPublicPage = await resolveHandleFromPublicPage(handle);
+    if (viaPublicPage) {
+      handleCache.set(normalizeHandle(handle), viaPublicPage);
+      await persistHandleCache();
+    }
+    return viaPublicPage;
   }
 }
 

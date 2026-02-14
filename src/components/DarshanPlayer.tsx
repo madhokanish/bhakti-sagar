@@ -26,24 +26,27 @@ const TONE_BY_STATUS: Record<PlayerStatus, string> = {
   none: "bg-slate-100 text-slate-700"
 };
 
-export default function DarshanPlayer({ channelId }: { channelId: string | null }) {
+export default function DarshanPlayer({
+  channelId,
+  channelUrl
+}: {
+  channelId: string | null;
+  channelUrl?: string;
+}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PlayerResponse | null>(null);
 
   useEffect(() => {
-    if (!channelId) {
-      setLoading(false);
-      setError("Channel ID is unavailable.");
-      return;
-    }
-
     let active = true;
     let timer: ReturnType<typeof setInterval> | null = null;
 
     const loadPlayer = async () => {
       try {
-        const response = await fetch(`/api/darshan-player?channelId=${encodeURIComponent(channelId)}`);
+        const query = channelId
+          ? `channelId=${encodeURIComponent(channelId)}`
+          : `channelUrl=${encodeURIComponent(channelUrl ?? "")}`;
+        const response = await fetch(`/api/darshan-player?${query}`);
         if (!response.ok) {
           throw new Error("Failed to fetch player.");
         }
@@ -67,7 +70,7 @@ export default function DarshanPlayer({ channelId }: { channelId: string | null 
       active = false;
       if (timer) clearInterval(timer);
     };
-  }, [channelId]);
+  }, [channelId, channelUrl]);
 
   const status = useMemo<PlayerStatus>(() => data?.status ?? "none", [data?.status]);
 

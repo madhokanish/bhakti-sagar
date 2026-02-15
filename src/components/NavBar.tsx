@@ -7,10 +7,9 @@ import Logo from "@/components/Logo";
 export default function NavBar() {
   const [scrolled, setScrolled] = useState(false);
   const navItems = [
-    { href: "/", label: "Home" },
     { href: "/aartis", label: "Aartis" },
-    { href: "/online-puja", label: "Online Puja" },
     { href: "/choghadiya", label: "Choghadiya" },
+    { href: "/online-puja", label: "Online Puja" },
     { href: "/live", label: "Live Darshan" }
   ] as const;
 
@@ -38,11 +37,7 @@ export default function NavBar() {
             <Link
               key={item.href}
               href={item.href}
-              className={
-                item.href === "/"
-                  ? "text-sagar-ink"
-                  : "text-sagar-ink/80 transition hover:text-sagar-ember"
-              }
+              className="text-sagar-ink/80 transition hover:text-sagar-ember"
             >
               {item.label}
             </Link>

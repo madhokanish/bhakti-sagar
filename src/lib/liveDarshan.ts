@@ -265,7 +265,6 @@ async function findLongVideoInSearchPages({
   eventType?: "completed";
 }) {
   let pageToken: string | undefined;
-  let firstItem: NonNullable<SearchResponse["items"]>[number] | null = null;
 
   for (let page = 0; page < maxPages; page += 1) {
     const key = getApiKey();
@@ -286,7 +285,6 @@ async function findLongVideoInSearchPages({
     if (!response.ok) break;
     const payload = (await response.json()) as SearchResponse & { nextPageToken?: string };
     const items = payload.items ?? [];
-    if (!firstItem) firstItem = items[0] ?? null;
     if (items.length === 0) break;
 
     const ids = items.map((item) => item.id?.videoId).filter(Boolean) as string[];
@@ -294,14 +292,14 @@ async function findLongVideoInSearchPages({
     const longId = ids.find((id) => (durations.get(id)?.durationSeconds ?? 0) >= minSeconds);
     if (longId) {
       const longItem = items.find((item) => item.id?.videoId === longId) ?? null;
-      return { item: longItem, firstItem };
+      return { item: longItem };
     }
 
     pageToken = payload.nextPageToken;
     if (!pageToken) break;
   }
 
-  return { item: null, firstItem };
+  return { item: null };
 }
 
 async function getVideosByIds(ids: string[]) {
@@ -372,7 +370,7 @@ export async function getDarshanPlayerPayload(channelId: string): Promise<Darsha
       channelId,
       minSeconds: MIN_VIDEO_SECONDS
     });
-    const latest = latestSearch.item ?? latestSearch.firstItem;
+    const latest = latestSearch.item;
 
     if (!latest) {
       return {

@@ -38,6 +38,11 @@ type VideosResponse = {
     snippet?: {
       title?: string;
       publishedAt?: string;
+      liveBroadcastContent?: string;
+    };
+    liveStreamingDetails?: {
+      actualStartTime?: string;
+      actualEndTime?: string;
     };
   }>;
 };
@@ -359,55 +364,6 @@ async function searchVideos(params: Record<string, string>) {
   return search.items ?? [];
 }
 
-async function findLongVideoInSearchPages({
-  channelId,
-  minSeconds = MIN_VIDEO_SECONDS,
-  maxPages = 10,
-  eventType
-}: {
-  channelId: string;
-  minSeconds?: number;
-  maxPages?: number;
-  eventType?: "completed";
-}) {
-  let pageToken: string | undefined;
-
-  for (let page = 0; page < maxPages; page += 1) {
-    const key = getApiKey();
-    const params = new URLSearchParams({
-      part: "snippet",
-      type: "video",
-      channelId,
-      order: "date",
-      maxResults: "25",
-      key
-    });
-    if (eventType) params.set("eventType", eventType);
-    if (pageToken) params.set("pageToken", pageToken);
-
-    const response = await fetch(`${YT_BASE}/search?${params.toString()}`, {
-      next: { revalidate: 60 }
-    });
-    if (!response.ok) break;
-    const payload = (await response.json()) as SearchResponse & { nextPageToken?: string };
-    const items = payload.items ?? [];
-    if (items.length === 0) break;
-
-    const ids = items.map((item) => item.id?.videoId).filter(Boolean) as string[];
-    const durations = await getVideosByIds(ids);
-    const longId = ids.find((id) => (durations.get(id)?.durationSeconds ?? 0) > minSeconds);
-    if (longId) {
-      const longItem = items.find((item) => item.id?.videoId === longId) ?? null;
-      return { item: longItem };
-    }
-
-    pageToken = payload.nextPageToken;
-    if (!pageToken) break;
-  }
-
-  return { item: null };
-}
-
 async function getUploadsPlaylistId(channelId: string) {
   const channels = await youtubeGet<ChannelsResponse>("channels", {
     part: "contentDetails",
@@ -468,26 +424,93 @@ async function getVideosByIds(ids: string[]) {
   if (ids.length === 0) return new Map<string, { durationSeconds: number }>();
 
   const videos = await youtubeGet<VideosResponse>("videos", {
-    part: "contentDetails,snippet",
+    part: "contentDetails,snippet,liveStreamingDetails",
     id: ids.join(",")
   });
 
-  const map = new Map<string, { durationSeconds: number }>();
+  const map = new Map<
+    string,
+    {
+      durationSeconds: number;
+      title?: string | null;
+      publishedAt?: string | null;
+      isLiveRecording?: boolean;
+    }
+  >();
   for (const item of videos.items ?? []) {
     const videoId = item.id;
     if (!videoId) continue;
     map.set(videoId, {
-      durationSeconds: parseDurationSeconds(item.contentDetails?.duration)
+      durationSeconds: parseDurationSeconds(item.contentDetails?.duration),
+      title: item.snippet?.title ?? null,
+      publishedAt: item.snippet?.publishedAt ?? null,
+      isLiveRecording: Boolean(
+        item.liveStreamingDetails?.actualStartTime ||
+          item.liveStreamingDetails?.actualEndTime ||
+          item.snippet?.liveBroadcastContent === "live"
+      )
     });
   }
   return map;
 }
 
+async function findNewestLongVideoFromChannel({
+  channelId,
+  minSeconds = MIN_VIDEO_SECONDS,
+  maxPages = 10
+}: {
+  channelId: string;
+  minSeconds?: number;
+  maxPages?: number;
+}) {
+  let pageToken: string | undefined;
+
+  for (let page = 0; page < maxPages; page += 1) {
+    const key = getApiKey();
+    const params = new URLSearchParams({
+      part: "snippet",
+      type: "video",
+      channelId,
+      order: "date",
+      maxResults: "25",
+      key
+    });
+    if (pageToken) params.set("pageToken", pageToken);
+
+    const response = await fetch(`${YT_BASE}/search?${params.toString()}`, {
+      next: { revalidate: 60 }
+    });
+    if (!response.ok) break;
+    const payload = (await response.json()) as SearchResponse & { nextPageToken?: string };
+    const items = payload.items ?? [];
+    if (items.length === 0) break;
+
+    const ids = items.map((item) => item.id?.videoId).filter(Boolean) as string[];
+    const details = await getVideosByIds(ids);
+
+    for (const id of ids) {
+      const meta = details.get(id);
+      if (meta && meta.durationSeconds > minSeconds) {
+        return {
+          id,
+          title: meta.title ?? null,
+          publishedAt: meta.publishedAt ?? null,
+          isLiveRecording: Boolean(meta.isLiveRecording)
+        };
+      }
+    }
+
+    pageToken = payload.nextPageToken;
+    if (!pageToken) break;
+  }
+
+  return null;
+}
+
 /**
  * Mandatory selection order:
  * 1) current live stream
- * 2) last completed livestream
- * 3) latest upload excluding Shorts (<=60s) when possible
+ * 2) newest video from same channelId with duration > 10 minutes
  * 4) none
  */
 export async function getDarshanPlayerPayload(channelId: string): Promise<DarshanPlayerPayload> {
@@ -521,40 +544,13 @@ export async function getDarshanPlayerPayload(channelId: string): Promise<Darsha
       };
     }
 
-    const completedSearch = await findLongVideoInSearchPages({
-      channelId,
-      eventType: "completed",
-      minSeconds: MIN_VIDEO_SECONDS
-    });
-    const completed = completedSearch.item;
-    const completedVideoId = completed?.id?.videoId ?? null;
-    if (!completedVideoId) {
-      log.details.push("No completed livestream found with duration > 10 minutes");
-    }
-
-    if (completedVideoId) {
-      log.status = "recording";
-      log.videoId = completedVideoId;
-      log.details.push("Matched eventType=completed with duration > 10 minutes");
-      console.info("[darshan-player]", log);
-      return {
-        status: "recording",
-        videoId: completedVideoId,
-        embedUrl: toEmbedUrl(completedVideoId),
-        title: completed?.snippet?.title ?? null,
-        publishedAt: completed?.snippet?.publishedAt ?? null
-      };
-    }
-
-    const latest = await findLongVideoFromUploadsPlaylist({
+    const latest = await findNewestLongVideoFromChannel({
       channelId,
       minSeconds: MIN_VIDEO_SECONDS
     });
-    if (!latest?.id) {
-      log.details.push("No upload found with duration > 10 minutes in uploads playlist scan");
-    }
 
     if (!latest?.id) {
+      log.details.push("No video found with duration > 10 minutes");
       console.info("[darshan-player]", log);
       return {
         status: "none",
@@ -565,12 +561,12 @@ export async function getDarshanPlayerPayload(channelId: string): Promise<Darsha
       };
     }
 
-    log.status = "latest";
+    log.status = latest.isLiveRecording ? "recording" : "latest";
     log.videoId = latest.id;
-    log.details.push("Matched uploads playlist video with duration > 10 minutes");
+    log.details.push("Matched newest video with duration > 10 minutes");
     console.info("[darshan-player]", log);
     return {
-      status: "latest",
+      status: latest.isLiveRecording ? "recording" : "latest",
       videoId: latest.id,
       embedUrl: toEmbedUrl(latest.id),
       title: latest.title,

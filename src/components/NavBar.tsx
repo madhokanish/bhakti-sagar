@@ -11,7 +11,7 @@ export default function NavBar() {
     { href: "/aartis", label: "Aartis" },
     { href: "/online-puja", label: "Online Puja" },
     { href: "/choghadiya", label: "Choghadiya" },
-    { href: "/live", label: "Live" }
+    { href: "/live", label: "Live Darshan" }
   ] as const;
 
   useEffect(() => {

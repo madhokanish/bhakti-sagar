@@ -41,6 +41,30 @@ type VideosResponse = {
   }>;
 };
 
+type ChannelsResponse = {
+  items?: Array<{
+    id?: string;
+    contentDetails?: {
+      relatedPlaylists?: {
+        uploads?: string;
+      };
+    };
+  }>;
+};
+
+type PlaylistItemsResponse = {
+  nextPageToken?: string;
+  items?: Array<{
+    snippet?: {
+      title?: string;
+      publishedAt?: string;
+      resourceId?: {
+        videoId?: string;
+      };
+    };
+  }>;
+};
+
 const YT_BASE = "https://www.googleapis.com/youtube/v3";
 const RESOLVER_CACHE_PATH = path.join(process.cwd(), "src/data/live-channel-cache.json");
 const RUNTIME_CACHE_PATH = "/tmp/live-channel-cache.json";
@@ -162,6 +186,30 @@ async function resolveHandleFromPublicPage(handle: string, originalUrl?: string)
   }
 }
 
+async function resolveHandleViaApi(handle: string) {
+  const normalized = normalizeHandle(handle);
+  await ensureHandleCacheLoaded();
+  const cached = handleCache.get(normalized);
+  if (cached) return cached;
+
+  try {
+    const channels = await youtubeGet<ChannelsResponse>("channels", {
+      part: "id",
+      forHandle: normalized,
+      maxResults: "1"
+    });
+    const channelId = channels.items?.[0]?.id ?? null;
+    if (channelId) {
+      handleCache.set(normalized, channelId);
+      await persistHandleCache();
+      return channelId;
+    }
+  } catch {
+    // fall back to public page parse
+  }
+  return null;
+}
+
 export function extractChannelIdFromUrl(channelUrl: string) {
   const match = channelUrl.match(/\/channel\/(UC[\w-]+)/i);
   return match?.[1] ?? null;
@@ -179,6 +227,8 @@ export async function resolveChannelIdFromUrl(channelUrl: string) {
   const handle = extractHandleFromUrl(channelUrl);
   if (!handle) return null;
 
+  const viaApi = await resolveHandleViaApi(handle);
+  if (viaApi) return viaApi;
   return resolveHandleFromPublicPage(handle, channelUrl);
 }
 
@@ -258,6 +308,62 @@ async function findLongVideoInSearchPages({
   return { item: null };
 }
 
+async function getUploadsPlaylistId(channelId: string) {
+  const channels = await youtubeGet<ChannelsResponse>("channels", {
+    part: "contentDetails",
+    id: channelId,
+    maxResults: "1"
+  });
+  return channels.items?.[0]?.contentDetails?.relatedPlaylists?.uploads ?? null;
+}
+
+async function findLongVideoFromUploadsPlaylist({
+  channelId,
+  minSeconds = MIN_VIDEO_SECONDS,
+  maxPages = 20
+}: {
+  channelId: string;
+  minSeconds?: number;
+  maxPages?: number;
+}) {
+  const playlistId = await getUploadsPlaylistId(channelId);
+  if (!playlistId) return null;
+
+  let pageToken: string | undefined;
+  for (let page = 0; page < maxPages; page += 1) {
+    const payload = await youtubeGet<PlaylistItemsResponse>("playlistItems", {
+      part: "snippet",
+      playlistId,
+      maxResults: "50",
+      ...(pageToken ? { pageToken } : {})
+    });
+
+    const items = payload.items ?? [];
+    if (items.length === 0) break;
+
+    const ids = items
+      .map((item) => item.snippet?.resourceId?.videoId)
+      .filter(Boolean) as string[];
+    const durations = await getVideosByIds(ids);
+    const longId = ids.find((id) => (durations.get(id)?.durationSeconds ?? 0) >= minSeconds);
+
+    if (longId) {
+      const item = items.find((entry) => entry.snippet?.resourceId?.videoId === longId) ?? null;
+      if (!item?.snippet) return null;
+      return {
+        id: longId,
+        title: item.snippet.title ?? null,
+        publishedAt: item.snippet.publishedAt ?? null
+      };
+    }
+
+    pageToken = payload.nextPageToken;
+    if (!pageToken) break;
+  }
+
+  return null;
+}
+
 async function getVideosByIds(ids: string[]) {
   if (ids.length === 0) return new Map<string, { durationSeconds: number }>();
 
@@ -322,26 +428,12 @@ export async function getDarshanPlayerPayload(channelId: string): Promise<Darsha
       };
     }
 
-    const latestSearch = await findLongVideoInSearchPages({
+    const latest = await findLongVideoFromUploadsPlaylist({
       channelId,
       minSeconds: MIN_VIDEO_SECONDS
     });
-    const latest = latestSearch.item;
 
-    if (!latest) {
-      return {
-        status: "none",
-        videoId: null,
-        embedUrl: null,
-        title: null,
-        publishedAt: null
-      };
-    }
-
-    const selectedId = latest.id?.videoId ?? null;
-    const selectedItem = latest;
-
-    if (!selectedId) {
+    if (!latest?.id) {
       return {
         status: "none",
         videoId: null,
@@ -353,10 +445,10 @@ export async function getDarshanPlayerPayload(channelId: string): Promise<Darsha
 
     return {
       status: "latest",
-      videoId: selectedId,
-      embedUrl: toEmbedUrl(selectedId),
-      title: selectedItem?.snippet?.title ?? null,
-      publishedAt: selectedItem?.snippet?.publishedAt ?? null
+      videoId: latest.id,
+      embedUrl: toEmbedUrl(latest.id),
+      title: latest.title,
+      publishedAt: latest.publishedAt
     };
   } catch {
     return {

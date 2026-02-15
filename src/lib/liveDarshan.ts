@@ -2,6 +2,7 @@ import "server-only";
 
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { LiveMandir } from "@/data/liveMandirs";
 
 export type DarshanStatus = "live" | "recording" | "latest" | "none";
 
@@ -44,6 +45,9 @@ type VideosResponse = {
 type ChannelsResponse = {
   items?: Array<{
     id?: string;
+    snippet?: {
+      title?: string;
+    };
     contentDetails?: {
       relatedPlaylists?: {
         uploads?: string;
@@ -69,10 +73,20 @@ const YT_BASE = "https://www.googleapis.com/youtube/v3";
 const RESOLVER_CACHE_PATH = path.join(process.cwd(), "src/data/live-channel-cache.json");
 const RUNTIME_CACHE_PATH = "/tmp/live-channel-cache.json";
 const MIN_VIDEO_SECONDS = 10 * 60;
+const MANDIR_PROFILE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const handleCache = new Map<string, string>();
+const mandirProfileCache = new Map<string, { expiresAt: number; value: ResolvedLiveMandir }>();
 let cacheReady = false;
 let cacheLoadPromise: Promise<void> | null = null;
+
+export type ResolvedLiveMandir = LiveMandir & {
+  slug: string;
+  aliases: string[];
+  channelId?: string;
+  channelTitle?: string;
+  displayName: string;
+};
 
 function getApiKey() {
   const key = process.env.YT_API_KEY?.trim();
@@ -230,6 +244,92 @@ export async function resolveChannelIdFromUrl(channelUrl: string) {
   const viaApi = await resolveHandleViaApi(handle);
   if (viaApi) return viaApi;
   return resolveHandleFromPublicPage(handle, channelUrl);
+}
+
+function slugifyName(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function cleanChannelTitle(title: string) {
+  let value = title.replace(/\s+/g, " ").trim();
+  if (!value) return value;
+
+  value = value.replace(
+    /\s*(?:[-:\u2022]\s*)?(?:official(?:\s+channel)?|live(?:\s+tv)?|tv)\s*$/i,
+    ""
+  );
+
+  value = value.replace(/\s+/g, " ").trim();
+  return value || title.replace(/\s+/g, " ").trim();
+}
+
+async function getChannelTitleById(channelId: string) {
+  try {
+    const channels = await youtubeGet<ChannelsResponse>("channels", {
+      part: "snippet",
+      id: channelId,
+      maxResults: "1"
+    });
+    return channels.items?.[0]?.snippet?.title?.trim() ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function buildMandirAliases(mandir: LiveMandir, channelId: string | undefined, slug: string) {
+  const aliases = new Set<string>();
+  aliases.add(slug.toLowerCase());
+  aliases.add(mandir.id.toLowerCase());
+  aliases.add(mandir.id);
+
+  if (channelId) {
+    aliases.add(channelId.toLowerCase());
+    aliases.add(channelId);
+  }
+
+  return [...aliases];
+}
+
+export async function resolveLiveMandir(mandir: LiveMandir): Promise<ResolvedLiveMandir> {
+  const cacheKey = mandir.channelId ?? mandir.channelUrl;
+  const cached = mandirProfileCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+
+  const resolvedChannelId =
+    mandir.channelId ?? (await resolveChannelIdFromUrl(mandir.channelUrl)) ?? undefined;
+  const channelTitle = resolvedChannelId ? await getChannelTitleById(resolvedChannelId) : null;
+  const displayName = cleanChannelTitle(channelTitle ?? mandir.name);
+  const slug = slugifyName(displayName) || slugifyName(mandir.name) || mandir.id.toLowerCase();
+
+  const resolved: ResolvedLiveMandir = {
+    ...mandir,
+    slug,
+    aliases: buildMandirAliases(mandir, resolvedChannelId, slug),
+    channelId: resolvedChannelId,
+    channelTitle: channelTitle ?? undefined,
+    displayName
+  };
+
+  mandirProfileCache.set(cacheKey, { value: resolved, expiresAt: Date.now() + MANDIR_PROFILE_TTL_MS });
+  return resolved;
+}
+
+export async function resolveLiveMandirs(mandirs: LiveMandir[]) {
+  return Promise.all(mandirs.map((mandir) => resolveLiveMandir(mandir)));
+}
+
+export function findResolvedMandirByIdentifier(
+  mandirs: ResolvedLiveMandir[],
+  identifier: string
+) {
+  const key = identifier.toLowerCase();
+  return mandirs.find((mandir) => mandir.aliases.some((alias) => alias.toLowerCase() === key));
 }
 
 function toEmbedUrl(videoId: string, autoplay = false) {

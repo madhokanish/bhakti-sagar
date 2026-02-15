@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { getLiveMandirs } from "@/data/liveMandirs";
 import LiveDarshanGrid from "@/components/LiveDarshanGrid";
+import { resolveLiveMandirs } from "@/lib/liveDarshan";
 
 export const metadata: Metadata = {
   ...buildMetadata({
@@ -12,8 +13,8 @@ export const metadata: Metadata = {
   })
 };
 
-export default function LiveDarshanPage() {
-  const mandirs = getLiveMandirs();
+export default async function LiveDarshanPage() {
+  const mandirs = await resolveLiveMandirs(getLiveMandirs());
 
   return (
     <div className="container py-6 md:py-8">

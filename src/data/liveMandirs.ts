@@ -73,7 +73,7 @@ export const liveMandirs: LiveMandir[] = [
   },
   {
     id: "ucuxwN78ElYEiHBbbR05bV7g",
-    name: "Temple Channel UCuxw",
+    name: "Sri Patna Sahib",
     location: "India",
     channelUrl: "https://www.youtube.com/channel/UCuxwN78ElYEiHBbbR05bV7g",
     channelId: "UCuxwN78ElYEiHBbbR05bV7g",
@@ -81,7 +81,7 @@ export const liveMandirs: LiveMandir[] = [
   },
   {
     id: "ucsof6uS83aCrckdJtvMmxnw",
-    name: "Temple Channel UCsOF",
+    name: "Mandir Live Darshan",
     location: "India",
     channelUrl: "https://www.youtube.com/channel/UCsOF6uS83aCrckdJtvMmxnw",
     channelId: "UCsOF6uS83aCrckdJtvMmxnw",

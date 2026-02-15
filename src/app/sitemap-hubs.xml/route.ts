@@ -3,8 +3,9 @@ import { deityHubs, festivals, poojaGuides, mantras, chalisas } from "@/lib/cont
 import { cities } from "@/lib/choghadiyaCities";
 import { getActiveOnlinePujas } from "@/lib/onlinePuja";
 import { getLiveMandirs } from "@/data/liveMandirs";
+import { resolveLiveMandirs } from "@/lib/liveDarshan";
 
-export function GET() {
+export async function GET() {
   const hubs = [
     "/",
     "/aartis",
@@ -37,7 +38,8 @@ export function GET() {
   const chalisaUrls = chalisas.map((item) => `${siteConfig.url}/chalisa/${item.slug}`);
   const choghadiyaUrls = cities.map((city) => `${siteConfig.url}/choghadiya/${city.slug}`);
   const onlinePujaUrls = getActiveOnlinePujas().map((puja) => `${siteConfig.url}/online-puja/${puja.slug}`);
-  const liveDarshanUrls = getLiveMandirs().map((mandir) => `${siteConfig.url}/live/${mandir.id}`);
+  const resolvedLiveMandirs = await resolveLiveMandirs(getLiveMandirs());
+  const liveDarshanUrls = resolvedLiveMandirs.map((mandir) => `${siteConfig.url}/live/${mandir.slug}`);
 
   const urls = [
     ...hubUrls,

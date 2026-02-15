@@ -253,6 +253,57 @@ async function searchVideos(params: Record<string, string>) {
   return search.items ?? [];
 }
 
+async function findLongVideoInSearchPages({
+  channelId,
+  minSeconds = MIN_VIDEO_SECONDS,
+  maxPages = 3,
+  eventType
+}: {
+  channelId: string;
+  minSeconds?: number;
+  maxPages?: number;
+  eventType?: "completed";
+}) {
+  let pageToken: string | undefined;
+  let firstItem: NonNullable<SearchResponse["items"]>[number] | null = null;
+
+  for (let page = 0; page < maxPages; page += 1) {
+    const key = getApiKey();
+    const params = new URLSearchParams({
+      part: "snippet",
+      type: "video",
+      channelId,
+      order: "date",
+      maxResults: "25",
+      key
+    });
+    if (eventType) params.set("eventType", eventType);
+    if (pageToken) params.set("pageToken", pageToken);
+
+    const response = await fetch(`${YT_BASE}/search?${params.toString()}`, {
+      next: { revalidate: 60 }
+    });
+    if (!response.ok) break;
+    const payload = (await response.json()) as SearchResponse & { nextPageToken?: string };
+    const items = payload.items ?? [];
+    if (!firstItem) firstItem = items[0] ?? null;
+    if (items.length === 0) break;
+
+    const ids = items.map((item) => item.id?.videoId).filter(Boolean) as string[];
+    const durations = await getVideosByIds(ids);
+    const longId = ids.find((id) => (durations.get(id)?.durationSeconds ?? 0) >= minSeconds);
+    if (longId) {
+      const longItem = items.find((item) => item.id?.videoId === longId) ?? null;
+      return { item: longItem, firstItem };
+    }
+
+    pageToken = payload.nextPageToken;
+    if (!pageToken) break;
+  }
+
+  return { item: null, firstItem };
+}
+
 async function getVideosByIds(ids: string[]) {
   if (ids.length === 0) return new Map<string, { durationSeconds: number }>();
 
@@ -270,17 +321,6 @@ async function getVideosByIds(ids: string[]) {
     });
   }
   return map;
-}
-
-async function pickFirstLongVideo(
-  items: NonNullable<SearchResponse["items"]>,
-  minSeconds = MIN_VIDEO_SECONDS
-) {
-  const ids = items.map((item) => item.id?.videoId).filter(Boolean) as string[];
-  const videoMap = await getVideosByIds(ids);
-  const selectedId = ids.find((id) => (videoMap.get(id)?.durationSeconds ?? 0) >= minSeconds) ?? null;
-  const selectedItem = items.find((item) => item.id?.videoId === selectedId) ?? null;
-  return { selectedId, selectedItem };
 }
 
 /**
@@ -310,14 +350,13 @@ export async function getDarshanPlayerPayload(channelId: string): Promise<Darsha
       };
     }
 
-    const completedItems = await searchVideos({
+    const completedSearch = await findLongVideoInSearchPages({
       channelId,
       eventType: "completed",
-      order: "date",
-      maxResults: "5"
+      minSeconds: MIN_VIDEO_SECONDS
     });
-    const { selectedId: completedVideoId, selectedItem: completed } =
-      await pickFirstLongVideo(completedItems);
+    const completed = completedSearch.item;
+    const completedVideoId = completed?.id?.videoId ?? null;
 
     if (completedVideoId) {
       return {
@@ -329,12 +368,13 @@ export async function getDarshanPlayerPayload(channelId: string): Promise<Darsha
       };
     }
 
-    const latestItems = await searchVideos({
+    const latestSearch = await findLongVideoInSearchPages({
       channelId,
-      order: "date",
-      maxResults: "10"
+      minSeconds: MIN_VIDEO_SECONDS
     });
-    if (latestItems.length === 0) {
+    const latest = latestSearch.item ?? latestSearch.firstItem;
+
+    if (!latest) {
       return {
         status: "none",
         videoId: null,
@@ -344,7 +384,8 @@ export async function getDarshanPlayerPayload(channelId: string): Promise<Darsha
       };
     }
 
-    const { selectedId, selectedItem } = await pickFirstLongVideo(latestItems);
+    const selectedId = latest.id?.videoId ?? null;
+    const selectedItem = latest;
 
     if (!selectedId) {
       return {

@@ -3,6 +3,7 @@ export type LiveMandir = {
   name: string;
   location: string;
   channelUrl: string;
+  channelId?: string;
   thumbnail: string;
 };
 
@@ -75,6 +76,7 @@ export const liveMandirs: LiveMandir[] = [
     name: "Temple Channel UCuxw",
     location: "India",
     channelUrl: "https://www.youtube.com/channel/UCuxwN78ElYEiHBbbR05bV7g",
+    channelId: "UCuxwN78ElYEiHBbbR05bV7g",
     thumbnail: "/category/other.webp"
   },
   {
@@ -82,7 +84,8 @@ export const liveMandirs: LiveMandir[] = [
     name: "Temple Channel UCsOF",
     location: "India",
     channelUrl: "https://www.youtube.com/channel/UCsOF6uS83aCrckdJtvMmxnw",
-    thumbnail: "/category/other.jpg"
+    channelId: "UCsOF6uS83aCrckdJtvMmxnw",
+    thumbnail: "/category/other.webp"
   },
   {
     id: "svbc-ttd-live-tv",

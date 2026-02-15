@@ -26,6 +26,12 @@ export async function GET(request: Request) {
   }
 
   if (!channelId) {
+    console.info("[darshan-player]", {
+      status: "none",
+      reason: "channel_not_resolved",
+      channelIdParam: channelIdParam ?? null,
+      channelUrl: channelUrl ?? null
+    });
     return NextResponse.json(
       {
         status: "none",

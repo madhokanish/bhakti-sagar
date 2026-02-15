@@ -262,7 +262,7 @@ async function searchVideos(params: Record<string, string>) {
 async function findLongVideoInSearchPages({
   channelId,
   minSeconds = MIN_VIDEO_SECONDS,
-  maxPages = 3,
+  maxPages = 10,
   eventType
 }: {
   channelId: string;
@@ -295,7 +295,7 @@ async function findLongVideoInSearchPages({
 
     const ids = items.map((item) => item.id?.videoId).filter(Boolean) as string[];
     const durations = await getVideosByIds(ids);
-    const longId = ids.find((id) => (durations.get(id)?.durationSeconds ?? 0) >= minSeconds);
+    const longId = ids.find((id) => (durations.get(id)?.durationSeconds ?? 0) > minSeconds);
     if (longId) {
       const longItem = items.find((item) => item.id?.videoId === longId) ?? null;
       return { item: longItem };
@@ -320,7 +320,7 @@ async function getUploadsPlaylistId(channelId: string) {
 async function findLongVideoFromUploadsPlaylist({
   channelId,
   minSeconds = MIN_VIDEO_SECONDS,
-  maxPages = 20
+  maxPages = 10
 }: {
   channelId: string;
   minSeconds?: number;
@@ -345,7 +345,7 @@ async function findLongVideoFromUploadsPlaylist({
       .map((item) => item.snippet?.resourceId?.videoId)
       .filter(Boolean) as string[];
     const durations = await getVideosByIds(ids);
-    const longId = ids.find((id) => (durations.get(id)?.durationSeconds ?? 0) >= minSeconds);
+    const longId = ids.find((id) => (durations.get(id)?.durationSeconds ?? 0) > minSeconds);
 
     if (longId) {
       const item = items.find((entry) => entry.snippet?.resourceId?.videoId === longId) ?? null;
@@ -391,6 +391,13 @@ async function getVideosByIds(ids: string[]) {
  * 4) none
  */
 export async function getDarshanPlayerPayload(channelId: string): Promise<DarshanPlayerPayload> {
+  const log = {
+    channelId,
+    status: "none" as DarshanStatus,
+    videoId: null as string | null,
+    details: [] as string[]
+  };
+
   try {
     const liveItems = await searchVideos({
       channelId,
@@ -401,6 +408,10 @@ export async function getDarshanPlayerPayload(channelId: string): Promise<Darsha
     const liveVideoId = live?.id?.videoId ?? null;
 
     if (liveVideoId) {
+      log.status = "live";
+      log.videoId = liveVideoId;
+      log.details.push("Matched eventType=live");
+      console.info("[darshan-player]", log);
       return {
         status: "live",
         videoId: liveVideoId,
@@ -417,8 +428,15 @@ export async function getDarshanPlayerPayload(channelId: string): Promise<Darsha
     });
     const completed = completedSearch.item;
     const completedVideoId = completed?.id?.videoId ?? null;
+    if (!completedVideoId) {
+      log.details.push("No completed livestream found with duration > 10 minutes");
+    }
 
     if (completedVideoId) {
+      log.status = "recording";
+      log.videoId = completedVideoId;
+      log.details.push("Matched eventType=completed with duration > 10 minutes");
+      console.info("[darshan-player]", log);
       return {
         status: "recording",
         videoId: completedVideoId,
@@ -432,8 +450,12 @@ export async function getDarshanPlayerPayload(channelId: string): Promise<Darsha
       channelId,
       minSeconds: MIN_VIDEO_SECONDS
     });
+    if (!latest?.id) {
+      log.details.push("No upload found with duration > 10 minutes in uploads playlist scan");
+    }
 
     if (!latest?.id) {
+      console.info("[darshan-player]", log);
       return {
         status: "none",
         videoId: null,
@@ -443,6 +465,10 @@ export async function getDarshanPlayerPayload(channelId: string): Promise<Darsha
       };
     }
 
+    log.status = "latest";
+    log.videoId = latest.id;
+    log.details.push("Matched uploads playlist video with duration > 10 minutes");
+    console.info("[darshan-player]", log);
     return {
       status: "latest",
       videoId: latest.id,
@@ -451,6 +477,8 @@ export async function getDarshanPlayerPayload(channelId: string): Promise<Darsha
       publishedAt: latest.publishedAt
     };
   } catch {
+    log.details.push("Unexpected error while fetching YouTube API data");
+    console.info("[darshan-player]", log);
     return {
       status: "none",
       videoId: null,

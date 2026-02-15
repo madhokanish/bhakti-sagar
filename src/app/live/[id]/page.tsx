@@ -30,7 +30,7 @@ export default async function LiveMandirPage({ params }: { params: { id: string 
     notFound();
   }
 
-  const channelId = await resolveChannelIdFromUrl(mandir.channelUrl);
+  const channelId = mandir.channelId ?? (await resolveChannelIdFromUrl(mandir.channelUrl));
   const moreMandirs = getLiveMandirs().filter((item) => item.id !== mandir.id).slice(0, 4);
 
   return (

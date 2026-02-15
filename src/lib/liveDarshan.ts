@@ -62,10 +62,6 @@ function normalizeHandle(handle: string) {
   return handle.replace(/^@/, "").trim().toLowerCase();
 }
 
-function compact(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
 async function readHandleCacheFile(filePath: string) {
   try {
     const raw = await readFile(filePath, "utf8");
@@ -120,71 +116,47 @@ async function youtubeGet<T>(endpoint: string, params: Record<string, string>) {
   return (await response.json()) as T;
 }
 
-function scoreChannelCandidate(
-  item: NonNullable<SearchResponse["items"]>[number],
-  handle: string
-) {
-  const target = compact(handle);
-  const title = compact(item.snippet?.channelTitle ?? "");
-  const description = (item.snippet?.description ?? "").toLowerCase();
-  let score = 0;
-
-  if (title === target) score += 10;
-  if (title.includes(target)) score += 6;
-  if (description.includes(`@${handle}`)) score += 4;
-  if (item.id?.channelId?.startsWith("UC")) score += 1;
-
-  return score;
-}
-
-async function searchChannelsByHandle(handle: string) {
+async function resolveHandleFromPublicPage(handle: string, originalUrl?: string) {
   const normalized = normalizeHandle(handle);
   await ensureHandleCacheLoaded();
 
   const cached = handleCache.get(normalized);
   if (cached) return cached;
 
-  const search = await youtubeGet<SearchResponse>("search", {
-    part: "snippet",
-    type: "channel",
-    q: `@${normalized}`,
-    maxResults: "5"
-  });
+  const candidates = [
+    originalUrl,
+    `https://www.youtube.com/@${normalized}`,
+    `https://www.youtube.com/@${normalized}/featured`,
+    `https://www.youtube.com/@${normalized}/videos`
+  ].filter(Boolean) as string[];
 
-  let items = search.items ?? [];
-  if (items.length === 0) {
-    const fallback = await youtubeGet<SearchResponse>("search", {
-      part: "snippet",
-      type: "channel",
-      q: normalized,
-      maxResults: "5"
-    });
-    items = fallback.items ?? [];
-  }
-  if (items.length === 0) return null;
+  const extractFromHtml = (html: string) => {
+    const patterns = [
+      /"channelId":"(UC[\w-]+)"/,
+      /"externalId":"(UC[\w-]+)"/,
+      /"browseId":"(UC[\w-]+)"/,
+      /\/channel\/(UC[\w-]+)/
+    ];
+    for (const pattern of patterns) {
+      const matched = html.match(pattern);
+      if (matched?.[1]) return matched[1];
+    }
+    return null;
+  };
 
-  const best = [...items].sort(
-    (a, b) => scoreChannelCandidate(b, normalized) - scoreChannelCandidate(a, normalized)
-  )[0];
-
-  const channelId = best?.id?.channelId ?? null;
-  if (!channelId) return null;
-
-  handleCache.set(normalized, channelId);
-  await persistHandleCache();
-  return channelId;
-}
-
-async function resolveHandleFromPublicPage(handle: string) {
-  const normalized = normalizeHandle(handle);
   try {
-    const response = await fetch(`https://www.youtube.com/@${normalized}`, {
-      next: { revalidate: 60 }
-    });
-    if (!response.ok) return null;
-    const html = await response.text();
-    const matched = html.match(/"channelId":"(UC[\w-]+)"/);
-    return matched?.[1] ?? null;
+    for (const candidate of candidates) {
+      const response = await fetch(candidate, { next: { revalidate: 60 } });
+      if (!response.ok) continue;
+      const html = await response.text();
+      const resolved = extractFromHtml(html);
+      if (resolved) {
+        handleCache.set(normalized, resolved);
+        await persistHandleCache();
+        return resolved;
+      }
+    }
+    return null;
   } catch {
     return null;
   }
@@ -207,23 +179,7 @@ export async function resolveChannelIdFromUrl(channelUrl: string) {
   const handle = extractHandleFromUrl(channelUrl);
   if (!handle) return null;
 
-  try {
-    const viaApi = await searchChannelsByHandle(handle);
-    if (viaApi) return viaApi;
-    const viaPublicPage = await resolveHandleFromPublicPage(handle);
-    if (viaPublicPage) {
-      handleCache.set(normalizeHandle(handle), viaPublicPage);
-      await persistHandleCache();
-    }
-    return viaPublicPage;
-  } catch {
-    const viaPublicPage = await resolveHandleFromPublicPage(handle);
-    if (viaPublicPage) {
-      handleCache.set(normalizeHandle(handle), viaPublicPage);
-      await persistHandleCache();
-    }
-    return viaPublicPage;
-  }
+  return resolveHandleFromPublicPage(handle, channelUrl);
 }
 
 function toEmbedUrl(videoId: string, autoplay = false) {

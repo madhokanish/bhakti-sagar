@@ -9,9 +9,13 @@ import ReviewsBlock from "@/components/online-puja/ReviewsBlock";
 import SectionTabs from "@/components/online-puja/SectionTabs";
 import StickyBookingCard from "@/components/online-puja/StickyBookingCard";
 import StickyBottomCTA from "@/components/online-puja/StickyBottomCTA";
+import PremiumFeatureGate from "@/components/PremiumFeatureGate";
+import PaywallTrigger from "@/components/PaywallTrigger";
 
 type Props = {
   puja: OnlinePuja;
+  isEntitled: boolean;
+  renewalPriceLabel: string;
 };
 
 const sectionItems = [
@@ -23,7 +27,7 @@ const sectionItems = [
   { id: "related-sevas", label: "Related Sevas" }
 ] as const;
 
-export default function PujaDetailPage({ puja }: Props) {
+export default function PujaDetailPage({ puja, isEntitled, renewalPriceLabel }: Props) {
   const detailConfig = getPujaDetailConfig(puja);
   const relatedPujas = getActiveOnlinePujas()
     .filter((item) => item.slug !== puja.slug)
@@ -79,11 +83,19 @@ export default function PujaDetailPage({ puja }: Props) {
             </section>
 
             <div className="lg:hidden">
-              <StickyBookingCard
-                puja={puja}
-                options={detailConfig.bookingOptions}
-                deliverables={detailConfig.deliverablesTimeline}
-              />
+              {isEntitled ? (
+                <StickyBookingCard
+                  puja={puja}
+                  options={detailConfig.bookingOptions}
+                  deliverables={detailConfig.deliverablesTimeline}
+                />
+              ) : (
+                <PremiumFeatureGate
+                  title="Online Puja booking is included with membership"
+                  description={`Start a 14 day free trial, then ${renewalPriceLabel} per month. Cancel anytime from your billing portal.`}
+                  returnTo={`/online-puja/${puja.slug}`}
+                />
+              )}
             </div>
 
             <SectionTabs items={sectionItems.map((item) => ({ ...item }))} />
@@ -198,23 +210,45 @@ export default function PujaDetailPage({ puja }: Props) {
           </main>
 
           <div className="hidden lg:block">
-            <StickyBookingCard
-              puja={puja}
-              options={detailConfig.bookingOptions}
-              deliverables={detailConfig.deliverablesTimeline}
-            />
+            {isEntitled ? (
+              <StickyBookingCard
+                puja={puja}
+                options={detailConfig.bookingOptions}
+                deliverables={detailConfig.deliverablesTimeline}
+              />
+            ) : (
+              <PremiumFeatureGate
+                title="Online Puja booking is included with membership"
+                description={`Start a 14 day free trial, then ${renewalPriceLabel} per month. Cancel anytime from your billing portal.`}
+                returnTo={`/online-puja/${puja.slug}`}
+              />
+            )}
           </div>
         </div>
       </div>
 
-      <StickyBottomCTA
-        href={`/online-puja/${puja.slug}/checkout`}
-        label="Proceed to payment"
-        booking={puja.booking}
-        metaSuffix={`${nextOccurrenceIst} IST`}
-        eventName="proceed_to_payment_clicked"
-        eventParams={{ seva_id: puja.id, source: "sticky_mobile" }}
-      />
+      {isEntitled ? (
+        <StickyBottomCTA
+          href={`/online-puja/${puja.slug}/checkout`}
+          label="Proceed to payment"
+          booking={puja.booking}
+          metaSuffix={`${nextOccurrenceIst} IST`}
+          eventName="proceed_to_payment_clicked"
+          eventParams={{ seva_id: puja.id, source: "sticky_mobile" }}
+        />
+      ) : (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-sagar-amber/25 bg-white/95 p-3 backdrop-blur md:hidden">
+          <PaywallTrigger
+            featureName="online_puja"
+            returnTo={`/online-puja/${puja.slug}`}
+            priceLabel={renewalPriceLabel}
+            lockBadge
+            className="inline-flex w-full min-h-[46px] items-center justify-center rounded-full bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white"
+          >
+            Start free trial to book seva
+          </PaywallTrigger>
+        </div>
+      )}
     </>
   );
 }

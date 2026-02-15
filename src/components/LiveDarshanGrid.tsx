@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import PaywallTrigger from "@/components/PaywallTrigger";
 
 type LiveDarshanCard = {
   id: string;
@@ -42,7 +43,15 @@ const STATUS_CLASS: Record<PlayerStatus, string> = {
   none: "bg-slate-100 text-slate-700"
 };
 
-export default function LiveDarshanGrid({ mandirs }: { mandirs: LiveDarshanCard[] }) {
+export default function LiveDarshanGrid({
+  mandirs,
+  isEntitled,
+  renewalPriceLabel
+}: {
+  mandirs: LiveDarshanCard[];
+  isEntitled: boolean;
+  renewalPriceLabel: string;
+}) {
   const [statusById, setStatusById] = useState<Record<string, PlayerStatus>>({});
 
   useEffect(() => {
@@ -52,8 +61,8 @@ export default function LiveDarshanGrid({ mandirs }: { mandirs: LiveDarshanCard[
         mandirs.map(async (mandir) => {
           try {
             const query = mandir.channelId
-              ? `channelId=${encodeURIComponent(mandir.channelId)}`
-              : `channelUrl=${encodeURIComponent(mandir.channelUrl)}`;
+              ? `channelId=${encodeURIComponent(mandir.channelId)}&preview=1`
+              : `channelUrl=${encodeURIComponent(mandir.channelUrl)}&preview=1`;
             const response = await fetch(`/api/darshan-player?${query}`);
             const payload = (await response.json()) as PlayerResponse;
             return [mandir.slug, payload.status] as const;
@@ -105,12 +114,24 @@ export default function LiveDarshanGrid({ mandirs }: { mandirs: LiveDarshanCard[
             <div className="p-4">
               <h2 className="text-xl font-serif text-sagar-ink">{mandir.displayName}</h2>
               <p className="mt-1 text-sm text-sagar-ink/70">{mandir.location}</p>
-              <Link
-                href={`/live/${mandir.slug}`}
-                className="mt-4 inline-flex min-h-[40px] items-center justify-center rounded-full bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember"
-              >
-                View Darshan
-              </Link>
+              {isEntitled ? (
+                <Link
+                  href={`/live/${mandir.slug}`}
+                  className="mt-4 inline-flex min-h-[40px] items-center justify-center rounded-full bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember"
+                >
+                  View Darshan
+                </Link>
+              ) : (
+                <PaywallTrigger
+                  featureName="live_darshan"
+                  returnTo={`/live/${mandir.slug}`}
+                  priceLabel={renewalPriceLabel}
+                  lockBadge
+                  className="mt-4 inline-flex min-h-[40px] items-center justify-center rounded-full bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember"
+                >
+                  Start free trial
+                </PaywallTrigger>
+              )}
             </div>
           </article>
         );

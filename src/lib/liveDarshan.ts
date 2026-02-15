@@ -421,7 +421,17 @@ async function findLongVideoFromUploadsPlaylist({
 }
 
 async function getVideosByIds(ids: string[]) {
-  if (ids.length === 0) return new Map<string, { durationSeconds: number }>();
+  if (ids.length === 0) {
+    return new Map<
+      string,
+      {
+        durationSeconds: number;
+        title?: string | null;
+        publishedAt?: string | null;
+        isLiveRecording?: boolean;
+      }
+    >();
+  }
 
   const videos = await youtubeGet<VideosResponse>("videos", {
     part: "contentDetails,snippet,liveStreamingDetails",

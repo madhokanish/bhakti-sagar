@@ -3,9 +3,11 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import DarshanPlayer from "@/components/DarshanPlayer";
+import PremiumFeatureGate from "@/components/PremiumFeatureGate";
 import { getLiveMandirs } from "@/data/liveMandirs";
 import { findResolvedMandirByIdentifier, resolveLiveMandirs } from "@/lib/liveDarshan";
 import { buildMetadata } from "@/lib/seo";
+import { formatRenewalPrice, getRequestEntitlement } from "@/lib/subscription";
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const resolvedMandirs = await resolveLiveMandirs(getLiveMandirs());
@@ -26,6 +28,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 }
 
 export default async function LiveMandirPage({ params }: { params: { id: string } }) {
+  const entitlement = await getRequestEntitlement();
+  const renewalPriceLabel = formatRenewalPrice(entitlement.currency);
   const resolvedMandirs = await resolveLiveMandirs(getLiveMandirs());
   const mandir = findResolvedMandirByIdentifier(resolvedMandirs, params.id);
   if (!mandir) {
@@ -63,7 +67,15 @@ export default async function LiveMandirPage({ params }: { params: { id: string 
             </h1>
             <p className="mt-2 text-base text-sagar-ink/72">{mandir.location}</p>
           </div>
-          <DarshanPlayer channelId={channelId} channelUrl={mandir.channelUrl} />
+          {entitlement.isEntitled ? (
+            <DarshanPlayer channelId={channelId} channelUrl={mandir.channelUrl} />
+          ) : (
+            <PremiumFeatureGate
+              title="Live Darshan player is included with membership"
+              description={`Start your 14 day free trial, then ${renewalPriceLabel} per month. Cancel anytime from billing settings.`}
+              returnTo={`/live/${mandir.slug}`}
+            />
+          )}
         </div>
 
         <aside className="space-y-4">

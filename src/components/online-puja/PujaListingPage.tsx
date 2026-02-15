@@ -8,12 +8,15 @@ import { detectUserCurrency, formatPujaAmount, getPujaOfferPrice } from "@/lib/o
 import OnlinePujaLayout from "@/components/online-puja/OnlinePujaLayout";
 import PujaCountdownCard from "@/components/online-puja/PujaCountdownCard";
 import { trackEvent } from "@/lib/analytics";
+import PaywallTrigger from "@/components/PaywallTrigger";
 
 type Props = {
   pujas: OnlinePuja[];
+  isEntitled: boolean;
+  renewalPriceLabel: string;
 };
 
-export default function PujaListingPage({ pujas }: Props) {
+export default function PujaListingPage({ pujas, isEntitled, renewalPriceLabel }: Props) {
   const [userLocale, setUserLocale] = useState("en-IN");
   const [userCurrency, setUserCurrency] = useState("INR");
 
@@ -75,6 +78,9 @@ export default function PujaListingPage({ pujas }: Props) {
                       ) : null}
                     </p>
                     <p className="text-xs text-emerald-700">Limited offer • per seva</p>
+                    {!isEntitled ? (
+                      <p className="mt-1 text-xs font-semibold text-sagar-rose">🔒 Premium feature</p>
+                    ) : null}
                   </div>
                 )}
               </div>
@@ -89,13 +95,25 @@ export default function PujaListingPage({ pujas }: Props) {
 
               {puja.isActive ? (
                 <div className="flex flex-wrap gap-2">
-                  <Link
-                    href={`/online-puja/${puja.slug}/checkout`}
-                    onClick={() => trackEvent("online_puja_card_click", { seva_id: puja.id, slug: puja.slug, target: "checkout" })}
-                    className="inline-flex rounded-full bg-sagar-saffron px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-white"
-                  >
-                    Book Seva
-                  </Link>
+                  {isEntitled ? (
+                    <Link
+                      href={`/online-puja/${puja.slug}/checkout`}
+                      onClick={() => trackEvent("online_puja_card_click", { seva_id: puja.id, slug: puja.slug, target: "checkout" })}
+                      className="inline-flex rounded-full bg-sagar-saffron px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-white"
+                    >
+                      Book Seva
+                    </Link>
+                  ) : (
+                    <PaywallTrigger
+                      featureName="online_puja"
+                      returnTo={`/online-puja/${puja.slug}`}
+                      priceLabel={renewalPriceLabel}
+                      lockBadge
+                      className="inline-flex rounded-full bg-sagar-saffron px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-white"
+                    >
+                      Start free trial
+                    </PaywallTrigger>
+                  )}
                   <Link
                     href={`/online-puja/${puja.slug}`}
                     onClick={() => trackEvent("online_puja_card_click", { seva_id: puja.id, slug: puja.slug, target: "detail" })}

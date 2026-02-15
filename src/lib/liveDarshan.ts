@@ -44,6 +44,7 @@ type VideosResponse = {
 const YT_BASE = "https://www.googleapis.com/youtube/v3";
 const RESOLVER_CACHE_PATH = path.join(process.cwd(), "src/data/live-channel-cache.json");
 const RUNTIME_CACHE_PATH = "/tmp/live-channel-cache.json";
+const MIN_VIDEO_SECONDS = 10 * 60;
 
 const handleCache = new Map<string, string>();
 let cacheReady = false;
@@ -271,6 +272,17 @@ async function getVideosByIds(ids: string[]) {
   return map;
 }
 
+async function pickFirstLongVideo(
+  items: NonNullable<SearchResponse["items"]>,
+  minSeconds = MIN_VIDEO_SECONDS
+) {
+  const ids = items.map((item) => item.id?.videoId).filter(Boolean) as string[];
+  const videoMap = await getVideosByIds(ids);
+  const selectedId = ids.find((id) => (videoMap.get(id)?.durationSeconds ?? 0) >= minSeconds) ?? null;
+  const selectedItem = items.find((item) => item.id?.videoId === selectedId) ?? null;
+  return { selectedId, selectedItem };
+}
+
 /**
  * Mandatory selection order:
  * 1) current live stream
@@ -302,25 +314,25 @@ export async function getDarshanPlayerPayload(channelId: string): Promise<Darsha
       channelId,
       eventType: "completed",
       order: "date",
-      maxResults: "1"
+      maxResults: "5"
     });
-    const completed = completedItems[0];
-    const completedVideoId = completed?.id?.videoId ?? null;
+    const { selectedId: completedVideoId, selectedItem: completed } =
+      await pickFirstLongVideo(completedItems);
 
     if (completedVideoId) {
       return {
         status: "recording",
         videoId: completedVideoId,
         embedUrl: toEmbedUrl(completedVideoId),
-        title: completed.snippet?.title ?? null,
-        publishedAt: completed.snippet?.publishedAt ?? null
+        title: completed?.snippet?.title ?? null,
+        publishedAt: completed?.snippet?.publishedAt ?? null
       };
     }
 
     const latestItems = await searchVideos({
       channelId,
       order: "date",
-      maxResults: "5"
+      maxResults: "10"
     });
     if (latestItems.length === 0) {
       return {
@@ -332,11 +344,7 @@ export async function getDarshanPlayerPayload(channelId: string): Promise<Darsha
       };
     }
 
-    const ids = latestItems.map((item) => item.id?.videoId).filter(Boolean) as string[];
-    const videoMap = await getVideosByIds(ids);
-    const nonShortId = ids.find((id) => (videoMap.get(id)?.durationSeconds ?? 0) > 60) ?? null;
-    const selectedId = nonShortId ?? ids[0] ?? null;
-    const selectedItem = latestItems.find((item) => item.id?.videoId === selectedId) ?? latestItems[0];
+    const { selectedId, selectedItem } = await pickFirstLongVideo(latestItems);
 
     if (!selectedId) {
       return {

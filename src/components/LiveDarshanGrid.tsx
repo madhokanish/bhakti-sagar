@@ -92,12 +92,12 @@ export default function LiveDarshanGrid({
             key={mandir.slug}
             className="overflow-hidden rounded-2xl border border-sagar-amber/20 bg-white/90 shadow-sagar-soft"
           >
-            <div className="relative aspect-[16/9]">
+            <div className="relative aspect-[4/3] bg-sagar-cream/60">
               <Image
                 src={mandir.thumbnail}
                 alt={mandir.name}
                 fill
-                className="object-cover"
+                className="object-contain"
                 sizes="(max-width: 768px) 100vw, 33vw"
               />
               <span

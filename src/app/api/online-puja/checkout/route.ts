@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getOnlinePujaBySlug } from "@/lib/onlinePuja";
-import { SUBSCRIPTION_SESSION_COOKIE, verifySignedSessionToken } from "@/lib/session";
 
 type Payload = {
   pujaSlug: string;
@@ -23,21 +22,7 @@ function createOrderId() {
     .padStart(4, "0")}`;
 }
 
-function getCookieValue(cookieHeader: string | null, key: string) {
-  if (!cookieHeader) return null;
-  const parts = cookieHeader.split(";").map((item) => item.trim());
-  const matched = parts.find((part) => part.startsWith(`${key}=`));
-  if (!matched) return null;
-  return decodeURIComponent(matched.slice(key.length + 1));
-}
-
 export async function POST(request: Request) {
-  const token = getCookieValue(request.headers.get("cookie"), SUBSCRIPTION_SESSION_COOKIE);
-  const session = verifySignedSessionToken(token);
-  if (!session?.entitled) {
-    return NextResponse.json({ error: "Subscription required." }, { status: 402 });
-  }
-
   const body = (await request.json()) as Payload;
 
   if (!body?.pujaSlug || !body?.name?.trim() || !body?.email?.trim()) {

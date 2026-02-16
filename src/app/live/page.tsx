@@ -3,7 +3,6 @@ import { buildMetadata } from "@/lib/seo";
 import { getLiveMandirs } from "@/data/liveMandirs";
 import LiveDarshanGrid from "@/components/LiveDarshanGrid";
 import { resolveLiveMandirs } from "@/lib/liveDarshan";
-import { formatRenewalPrice, getRequestEntitlement } from "@/lib/subscription";
 
 export const metadata: Metadata = {
   ...buildMetadata({
@@ -15,8 +14,6 @@ export const metadata: Metadata = {
 };
 
 export default async function LiveDarshanPage() {
-  const entitlement = await getRequestEntitlement();
-  const renewalPriceLabel = formatRenewalPrice(entitlement.currency);
   const mandirs = await resolveLiveMandirs(getLiveMandirs());
 
   return (
@@ -31,11 +28,7 @@ export default async function LiveDarshanPage() {
           last livestream recording, then the latest regular upload.
         </p>
       </section>
-      <LiveDarshanGrid
-        mandirs={mandirs}
-        isEntitled={entitlement.isEntitled}
-        renewalPriceLabel={renewalPriceLabel}
-      />
+      <LiveDarshanGrid mandirs={mandirs} />
     </div>
   );
 }

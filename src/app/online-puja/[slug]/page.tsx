@@ -4,7 +4,6 @@ import { buildMetadata } from "@/lib/seo";
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/schema";
 import { getActiveOnlinePujas, getOnlinePujaBySlug } from "@/lib/onlinePuja";
 import { getPujaDetailConfig } from "@/lib/onlinePujaDetailConfig";
-import { formatRenewalPrice, getRequestEntitlement } from "@/lib/subscription";
 import PujaDetailPage from "@/components/online-puja/PujaDetailPage";
 
 export function generateStaticParams() {
@@ -33,8 +32,6 @@ export default async function OnlinePujaDetailRoute({ params }: { params: { slug
   if (!puja || !puja.isActive) {
     notFound();
   }
-  const entitlement = await getRequestEntitlement();
-  const renewalPriceLabel = formatRenewalPrice(entitlement.currency);
 
   const breadcrumb = breadcrumbJsonLd([
     { name: "Home", url: "https://bhakti-sagar.com/" },
@@ -72,11 +69,7 @@ export default async function OnlinePujaDetailRoute({ params }: { params: { slug
 
   return (
     <>
-      <PujaDetailPage
-        puja={puja}
-        isEntitled={entitlement.isEntitled}
-        renewalPriceLabel={renewalPriceLabel}
-      />
+      <PujaDetailPage puja={puja} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faq) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />

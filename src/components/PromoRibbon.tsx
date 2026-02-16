@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
-import PaywallTrigger from "@/components/PaywallTrigger";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 const DISMISS_KEY = "bs_promo_ribbon_dismissed_at";
 const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -13,10 +12,9 @@ const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 // - src/components/online-puja/PujaDetailPage.tsx (mobile CTA + gate copy)
 // - src/components/LiveDarshanGrid.tsx (card CTA)
 // - src/components/PremiumFeatureGate.tsx (removed promo copy + pricing line)
-export default function PromoRibbon({ priceLabel }: { priceLabel: string }) {
+export default function PromoRibbon() {
   const [visible, setVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const pathname = usePathname();
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? window.localStorage.getItem(DISMISS_KEY) : null;
@@ -30,7 +28,7 @@ export default function PromoRibbon({ priceLabel }: { priceLabel: string }) {
     setVisible(true);
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const update = () => {
       const height = visible ? ref.current?.offsetHeight ?? 0 : 0;
       document.documentElement.style.setProperty("--promo-ribbon-height", `${height}px`);
@@ -56,21 +54,19 @@ export default function PromoRibbon({ priceLabel }: { priceLabel: string }) {
   return (
     <div
       ref={ref}
-      className="sticky top-0 z-50 border-b border-sagar-amber/20 bg-sagar-cream/90 px-4 py-2 text-xs text-sagar-ink/80 backdrop-blur"
+      className="sticky top-0 z-50 border-b border-sagar-amber/20 bg-sagar-cream/95 px-4 pb-2 pt-[calc(0.4rem+env(safe-area-inset-top))] text-xs text-sagar-ink/80 backdrop-blur"
     >
       <div className="container flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-semibold text-sagar-ink/80">
-          14 day free trial. Then {priceLabel}/month in your currency. Cancel anytime.
+          Seva Membership is coming. Premium content will be for members soon. Subscribe now.
         </p>
         <div className="flex items-center gap-2">
-          <PaywallTrigger
-            featureName="promo_ribbon"
-            returnTo={pathname || "/"}
-            priceLabel={priceLabel}
+          <Link
+            href="/subscribe"
             className="inline-flex min-h-[28px] items-center justify-center rounded-full border border-sagar-saffron/40 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sagar-ember"
           >
-            View plans
-          </PaywallTrigger>
+            Subscribe
+          </Link>
           <button
             type="button"
             onClick={handleDismiss}

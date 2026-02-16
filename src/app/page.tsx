@@ -4,10 +4,8 @@ import type { Metadata } from "next";
 import { getCategories, getTopAartis } from "@/lib/data";
 import { getRequestLanguage, buildMetadata } from "@/lib/seo";
 import { getActiveOnlinePujas, getNextPujaOccurrence } from "@/lib/onlinePuja";
-import { formatRenewalPrice, getRequestEntitlement } from "@/lib/subscription";
 import MobileQuickNav from "@/components/MobileQuickNav";
 import CategoryCard from "@/components/CategoryCard";
-import PaywallTrigger from "@/components/PaywallTrigger";
 
 export const metadata: Metadata = {
   ...buildMetadata({
@@ -20,8 +18,6 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   const lang = getRequestLanguage();
-  const entitlement = await getRequestEntitlement();
-  const renewalPriceLabel = formatRenewalPrice(entitlement.currency);
   const categories = getCategories();
   const topAartis = getTopAartis();
   const activePujas = getActiveOnlinePujas();
@@ -82,24 +78,13 @@ export default async function HomePage() {
               >
                 Explore Aartis
               </Link>
-              {entitlement.isEntitled ? (
-                <Link
-                  href="/online-puja"
-                  aria-label="Go to Online Puja"
-                  className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-sagar-saffron/45 bg-white/85 px-5 py-2.5 text-sm font-semibold text-sagar-ember transition hover:bg-white"
-                >
-                  Online Puja
-                </Link>
-              ) : (
-                <PaywallTrigger
-                  featureName="online_puja"
-                  returnTo="/online-puja"
-                  priceLabel={renewalPriceLabel}
-                  className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-sagar-saffron/45 bg-white/85 px-5 py-2.5 text-sm font-semibold text-sagar-ember transition hover:bg-white"
-                >
-                  Online Puja
-                </PaywallTrigger>
-              )}
+              <Link
+                href="/online-puja"
+                aria-label="Go to Online Puja"
+                className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-sagar-saffron/45 bg-white/85 px-5 py-2.5 text-sm font-semibold text-sagar-ember transition hover:bg-white"
+              >
+                Online Puja
+              </Link>
               <Link
                 href="/choghadiya"
                 aria-label="Open Choghadiya"
@@ -185,23 +170,12 @@ export default async function HomePage() {
             >
               View Choghadiya
             </Link>
-            {entitlement.isEntitled ? (
-              <Link
-                href="/live"
-                className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-sagar-amber/40 bg-white px-4 py-2 text-sm font-semibold text-sagar-ink/80 hover:bg-sagar-cream/60"
-              >
-                Live Darshan
-              </Link>
-            ) : (
-              <PaywallTrigger
-                featureName="live_darshan"
-                returnTo="/live"
-                priceLabel={renewalPriceLabel}
-                className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-sagar-amber/40 bg-white px-4 py-2 text-sm font-semibold text-sagar-ink/80 hover:bg-sagar-cream/60"
-              >
-                Live Darshan
-              </PaywallTrigger>
-            )}
+            <Link
+              href="/live"
+              className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-sagar-amber/40 bg-white px-4 py-2 text-sm font-semibold text-sagar-ink/80 hover:bg-sagar-cream/60"
+            >
+              Live Darshan
+            </Link>
           </div>
         </div>
       </section>
@@ -229,23 +203,12 @@ export default async function HomePage() {
                 </p>
               </div>
             </div>
-            {entitlement.isEntitled ? (
-              <Link
-                href={`/online-puja/${featuredPuja.slug}`}
-                className="inline-flex min-h-[42px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sagar-ember"
-              >
-                Join this puja
-              </Link>
-            ) : (
-              <PaywallTrigger
-                featureName="online_puja"
-                returnTo={`/online-puja/${featuredPuja.slug}`}
-                priceLabel={renewalPriceLabel}
-                className="inline-flex min-h-[42px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sagar-ember"
-              >
-                Join this puja
-              </PaywallTrigger>
-            )}
+            <Link
+              href={`/online-puja/${featuredPuja.slug}`}
+              className="inline-flex min-h-[42px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sagar-ember"
+            >
+              Join this puja
+            </Link>
           </div>
         </section>
       )}

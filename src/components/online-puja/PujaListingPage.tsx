@@ -8,15 +8,12 @@ import { detectUserCurrency, formatPujaAmount, getPujaOfferPrice } from "@/lib/o
 import OnlinePujaLayout from "@/components/online-puja/OnlinePujaLayout";
 import PujaCountdownCard from "@/components/online-puja/PujaCountdownCard";
 import { trackEvent } from "@/lib/analytics";
-import PaywallTrigger from "@/components/PaywallTrigger";
 
 type Props = {
   pujas: OnlinePuja[];
-  isEntitled: boolean;
-  renewalPriceLabel: string;
 };
 
-export default function PujaListingPage({ pujas, isEntitled, renewalPriceLabel }: Props) {
+export default function PujaListingPage({ pujas }: Props) {
   const [userLocale, setUserLocale] = useState("en-IN");
   const [userCurrency, setUserCurrency] = useState("INR");
 
@@ -92,24 +89,13 @@ export default function PujaListingPage({ pujas, isEntitled, renewalPriceLabel }
 
               {puja.isActive ? (
                 <div className="flex flex-wrap gap-2">
-                  {isEntitled ? (
-                    <Link
-                      href={`/online-puja/${puja.slug}/checkout`}
-                      onClick={() => trackEvent("online_puja_card_click", { seva_id: puja.id, slug: puja.slug, target: "checkout" })}
-                      className="inline-flex rounded-full bg-sagar-saffron px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-white"
-                    >
-                      Book Seva
-                    </Link>
-                  ) : (
-                    <PaywallTrigger
-                      featureName="online_puja"
-                      returnTo={`/online-puja/${puja.slug}`}
-                      priceLabel={renewalPriceLabel}
-                      className="inline-flex rounded-full bg-sagar-saffron px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-white"
-                    >
-                      Book Seva
-                    </PaywallTrigger>
-                  )}
+                  <Link
+                    href={`/online-puja/${puja.slug}/checkout`}
+                    onClick={() => trackEvent("online_puja_card_click", { seva_id: puja.id, slug: puja.slug, target: "checkout" })}
+                    className="inline-flex rounded-full bg-sagar-saffron px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-white"
+                  >
+                    Book Seva
+                  </Link>
                   <Link
                     href={`/online-puja/${puja.slug}`}
                     onClick={() => trackEvent("online_puja_card_click", { seva_id: puja.id, slug: puja.slug, target: "detail" })}

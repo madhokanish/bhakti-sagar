@@ -1,8 +1,7 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { getOnlinePujaBySlug } from "@/lib/onlinePuja";
-import { getRequestEntitlement } from "@/lib/subscription";
 import PujaCheckoutClient from "@/components/online-puja/PujaCheckoutClient";
 
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
@@ -37,11 +36,6 @@ export default async function OnlinePujaCheckoutPage({
     amt?: string;
   };
 }) {
-  const entitlement = await getRequestEntitlement();
-  if (!entitlement.isEntitled) {
-    redirect(`/subscribe?returnTo=${encodeURIComponent(`/online-puja/${params.slug}/checkout`)}`);
-  }
-
   const puja = getOnlinePujaBySlug(params.slug);
   if (!puja || !puja.isActive) notFound();
 

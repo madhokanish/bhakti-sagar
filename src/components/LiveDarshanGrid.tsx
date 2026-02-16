@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import PaywallTrigger from "@/components/PaywallTrigger";
 
 type LiveDarshanCard = {
   id: string;
@@ -44,13 +43,9 @@ const STATUS_CLASS: Record<PlayerStatus, string> = {
 };
 
 export default function LiveDarshanGrid({
-  mandirs,
-  isEntitled,
-  renewalPriceLabel
+  mandirs
 }: {
   mandirs: LiveDarshanCard[];
-  isEntitled: boolean;
-  renewalPriceLabel: string;
 }) {
   const [statusById, setStatusById] = useState<Record<string, PlayerStatus>>({});
 
@@ -114,23 +109,12 @@ export default function LiveDarshanGrid({
             <div className="p-4">
               <h2 className="text-xl font-serif text-sagar-ink">{mandir.displayName}</h2>
               <p className="mt-1 text-sm text-sagar-ink/70">{mandir.location}</p>
-              {isEntitled ? (
-                <Link
-                  href={`/live/${mandir.slug}`}
-                  className="mt-4 inline-flex min-h-[40px] items-center justify-center rounded-full bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember"
-                >
-                  View Darshan
-                </Link>
-              ) : (
-                <PaywallTrigger
-                  featureName="live_darshan"
-                  returnTo={`/live/${mandir.slug}`}
-                  priceLabel={renewalPriceLabel}
-                  className="mt-4 inline-flex min-h-[40px] items-center justify-center rounded-full bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember"
-                >
-                  View Darshan
-                </PaywallTrigger>
-              )}
+              <Link
+                href={`/live/${mandir.slug}`}
+                className="mt-4 inline-flex min-h-[40px] items-center justify-center rounded-full bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember"
+              >
+                View Darshan
+              </Link>
             </div>
           </article>
         );

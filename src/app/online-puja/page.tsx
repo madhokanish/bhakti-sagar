@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/schema";
 import { onlinePujas } from "@/lib/onlinePuja";
-import { formatRenewalPrice, getRequestEntitlement } from "@/lib/subscription";
 import PujaListingPage from "@/components/online-puja/PujaListingPage";
 
 export const metadata: Metadata = buildMetadata({
@@ -13,8 +12,6 @@ export const metadata: Metadata = buildMetadata({
 });
 
 export default async function OnlinePujaIndexPage() {
-  const entitlement = await getRequestEntitlement();
-  const renewalPriceLabel = formatRenewalPrice(entitlement.currency);
   const breadcrumb = breadcrumbJsonLd([
     { name: "Home", url: "https://bhakti-sagar.com/" },
     { name: "Online Puja", url: "https://bhakti-sagar.com/online-puja" }
@@ -38,8 +35,6 @@ export default async function OnlinePujaIndexPage() {
     <>
       <PujaListingPage
         pujas={onlinePujas}
-        isEntitled={entitlement.isEntitled}
-        renewalPriceLabel={renewalPriceLabel}
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faq) }} />

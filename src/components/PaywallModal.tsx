@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { trackEvent } from "@/lib/analytics";
 
 type Props = {
@@ -16,6 +17,7 @@ export default function PaywallModal({ open, onClose, featureName, returnTo, pri
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -28,6 +30,46 @@ export default function PaywallModal({ open, onClose, featureName, returnTo, pri
       setLoading(false);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+      if (event.key !== "Tab") return;
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        "a[href], button, textarea, input, select, [tabindex]:not([tabindex='-1'])"
+      );
+      if (!focusable || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    const focusTimer = window.setTimeout(() => {
+      const focusable = dialogRef.current?.querySelector<HTMLElement>(
+        "button, input, a[href]"
+      );
+      focusable?.focus();
+    }, 0);
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+      window.clearTimeout(focusTimer);
+    };
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -61,9 +103,14 @@ export default function PaywallModal({ open, onClose, featureName, returnTo, pri
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-4 md:items-center">
-      <div className="w-full max-w-xl rounded-3xl border border-sagar-amber/25 bg-white p-5 shadow-sagar-card md:p-7">
+  const modal = (
+    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/50 p-4 md:items-center">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-xl rounded-3xl border border-sagar-amber/25 bg-white p-5 shadow-sagar-card md:p-7"
+      >
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-3xl font-serif text-sagar-ink">Start your 14 day free trial</h2>
@@ -132,4 +179,6 @@ export default function PaywallModal({ open, onClose, featureName, returnTo, pri
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }

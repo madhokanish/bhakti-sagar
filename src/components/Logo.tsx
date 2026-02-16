@@ -4,13 +4,14 @@ import Image from "next/image";
 export default function Logo() {
   return (
     <Link href="/" className="flex items-center gap-3">
-      <div className="relative h-11 w-11 overflow-hidden rounded-2xl border border-sagar-amber/20 bg-white md:h-12 md:w-12">
+      <div className="relative h-12 w-12 overflow-hidden md:h-14 md:w-14">
         <Image
           src="/brand/bh-logo.png"
           alt="Bhakti Sagar logo"
           fill
-          className="object-cover object-center scale-125"
-          sizes="48px"
+          className="object-contain object-center"
+          sizes="56px"
+          quality={100}
           priority
         />
       </div>

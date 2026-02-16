@@ -178,6 +178,12 @@ export default async function HomePage() {
               View Choghadiya
             </Link>
             <Link
+              href="/panchang"
+              className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-sagar-saffron/25 bg-white px-4 py-2 text-sm font-semibold text-sagar-ink/80 hover:bg-sagar-cream/60"
+            >
+              Panchang hub
+            </Link>
+            <Link
               href="/live"
               className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-sagar-amber/40 bg-white px-4 py-2 text-sm font-semibold text-sagar-ink/80 hover:bg-sagar-cream/60"
             >

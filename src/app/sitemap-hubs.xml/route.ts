@@ -14,6 +14,7 @@ export async function GET() {
     "/festival",
     "/pooja",
     "/pooja-vidhi",
+    "/panchang",
     "/mantra",
     "/chalisa",
     "/stotras",

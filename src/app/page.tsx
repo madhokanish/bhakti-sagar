@@ -66,8 +66,8 @@ export default async function HomePage() {
               Daily devotion, made simple.
             </h1>
             <p className="max-w-[56ch] text-base leading-relaxed text-sagar-ink/78">
-              Explore aartis, understand meanings, check Choghadiya timings, and join Online Puja
-              with clarity and peace.
+              Explore aartis, understand meanings, check Choghadiya timings, watch Live Darshan, and
+              join Online Puja with clarity and peace.
             </p>
 
             <div className="flex flex-wrap gap-2.5">
@@ -91,6 +91,13 @@ export default async function HomePage() {
                 className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-sagar-amber/40 bg-white/75 px-5 py-2.5 text-sm font-semibold text-sagar-ink/80 transition hover:bg-white"
               >
                 Choghadiya
+              </Link>
+              <Link
+                href="/live"
+                aria-label="Open Live Darshan"
+                className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-sagar-amber/40 bg-white/75 px-5 py-2.5 text-sm font-semibold text-sagar-ink/80 transition hover:bg-white"
+              >
+                Live Darshan
               </Link>
             </div>
 

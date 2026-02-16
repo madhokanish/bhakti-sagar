@@ -74,7 +74,7 @@ export async function POST(request: Request) {
             email,
             stripeCustomerId:
               typeof session.customer === "string" ? session.customer : session.customer?.id ?? null,
-            subscriptionStatus: "trialing",
+            subscriptionStatus: session.mode === "subscription" ? "trialing" : undefined,
             currency: session.currency?.toUpperCase() || undefined
           });
         }

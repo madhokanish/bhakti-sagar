@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Bhakti Sagar">
+  <circle cx="64" cy="64" r="60" fill="#F07A19"/>
+  <rect x="30" y="70" width="68" height="22" rx="3" fill="#FFFFFF"/>
+  <rect x="34" y="60" width="60" height="10" rx="2" fill="#FFFFFF"/>
+  <circle cx="64" cy="54" r="16" fill="#FFFFFF"/>
+  <circle cx="44" cy="60" r="10" fill="#FFFFFF"/>
+  <circle cx="84" cy="60" r="10" fill="#FFFFFF"/>
+  <rect x="60" y="76" width="8" height="12" rx="2" fill="#F07A19"/>
+</svg>

@@ -22,7 +22,8 @@ export default function NavBar() {
 
   return (
     <header
-      className={`sticky top-0 z-40 border-b border-sagar-amber/18 bg-white/90 backdrop-blur transition-shadow ${
+      style={{ top: "var(--promo-ribbon-height, 0px)" }}
+      className={`sticky z-40 border-b border-sagar-amber/18 bg-white/90 backdrop-blur transition-shadow ${
         scrolled ? "shadow-[0_10px_30px_-24px_rgba(44,20,10,0.5)]" : "shadow-none"
       }`}
     >

@@ -91,9 +91,8 @@ export default function PujaDetailPage({ puja, isEntitled, renewalPriceLabel }: 
                 />
               ) : (
                 <PremiumFeatureGate
-                  title="Online Puja booking is included with membership"
-                  description={`Start a 14 day free trial, then ${renewalPriceLabel} per month. Cancel anytime from your billing portal.`}
                   returnTo={`/online-puja/${puja.slug}`}
+                  priceLabel={renewalPriceLabel}
                 />
               )}
             </div>
@@ -218,9 +217,8 @@ export default function PujaDetailPage({ puja, isEntitled, renewalPriceLabel }: 
               />
             ) : (
               <PremiumFeatureGate
-                title="Online Puja booking is included with membership"
-                description={`Start a 14 day free trial, then ${renewalPriceLabel} per month. Cancel anytime from your billing portal.`}
                 returnTo={`/online-puja/${puja.slug}`}
+                priceLabel={renewalPriceLabel}
               />
             )}
           </div>
@@ -242,10 +240,9 @@ export default function PujaDetailPage({ puja, isEntitled, renewalPriceLabel }: 
             featureName="online_puja"
             returnTo={`/online-puja/${puja.slug}`}
             priceLabel={renewalPriceLabel}
-            lockBadge
             className="inline-flex w-full min-h-[46px] items-center justify-center rounded-full bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white"
           >
-            Start free trial to book seva
+            Book Seva
           </PaywallTrigger>
         </div>
       )}

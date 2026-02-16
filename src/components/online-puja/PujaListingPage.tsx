@@ -78,9 +78,6 @@ export default function PujaListingPage({ pujas, isEntitled, renewalPriceLabel }
                       ) : null}
                     </p>
                     <p className="text-xs text-emerald-700">Limited offer • per seva</p>
-                    {!isEntitled ? (
-                      <p className="mt-1 text-xs font-semibold text-sagar-rose">🔒 Premium feature</p>
-                    ) : null}
                   </div>
                 )}
               </div>
@@ -108,10 +105,9 @@ export default function PujaListingPage({ pujas, isEntitled, renewalPriceLabel }
                       featureName="online_puja"
                       returnTo={`/online-puja/${puja.slug}`}
                       priceLabel={renewalPriceLabel}
-                      lockBadge
                       className="inline-flex rounded-full bg-sagar-saffron px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-white"
                     >
-                      Start free trial
+                      Book Seva
                     </PaywallTrigger>
                   )}
                   <Link

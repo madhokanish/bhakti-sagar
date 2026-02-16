@@ -126,10 +126,9 @@ export default function LiveDarshanGrid({
                   featureName="live_darshan"
                   returnTo={`/live/${mandir.slug}`}
                   priceLabel={renewalPriceLabel}
-                  lockBadge
                   className="mt-4 inline-flex min-h-[40px] items-center justify-center rounded-full bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember"
                 >
-                  Start free trial
+                  View Darshan
                 </PaywallTrigger>
               )}
             </div>

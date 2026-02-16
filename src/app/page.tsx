@@ -95,10 +95,9 @@ export default async function HomePage() {
                   featureName="online_puja"
                   returnTo="/online-puja"
                   priceLabel={renewalPriceLabel}
-                  lockBadge
                   className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-sagar-saffron/45 bg-white/85 px-5 py-2.5 text-sm font-semibold text-sagar-ember transition hover:bg-white"
                 >
-                  Start free trial
+                  Online Puja
                 </PaywallTrigger>
               )}
               <Link
@@ -198,10 +197,9 @@ export default async function HomePage() {
                 featureName="live_darshan"
                 returnTo="/live"
                 priceLabel={renewalPriceLabel}
-                lockBadge
                 className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-sagar-amber/40 bg-white px-4 py-2 text-sm font-semibold text-sagar-ink/80 hover:bg-sagar-cream/60"
               >
-                Start free trial
+                Live Darshan
               </PaywallTrigger>
             )}
           </div>
@@ -243,10 +241,9 @@ export default async function HomePage() {
                 featureName="online_puja"
                 returnTo={`/online-puja/${featuredPuja.slug}`}
                 priceLabel={renewalPriceLabel}
-                lockBadge
                 className="inline-flex min-h-[42px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sagar-ember"
               >
-                Start free trial
+                Join this puja
               </PaywallTrigger>
             )}
           </div>

@@ -1,8 +1,10 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import NavBar from "@/components/NavBar";
+import PromoRibbon from "@/components/PromoRibbon";
 import Footer from "@/components/Footer";
 import { buildMetadata, getRequestLanguage, siteConfig } from "@/lib/seo";
+import { formatRenewalPrice, getRequestEntitlement } from "@/lib/subscription";
 import { Analytics } from "@vercel/analytics/react";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/schema";
 import Script from "next/script";
@@ -20,12 +22,14 @@ export const metadata: Metadata = {
   }
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children
 }: {
   children: React.ReactNode;
 }) {
   const lang = getRequestLanguage();
+  const entitlement = await getRequestEntitlement();
+  const priceLabel = formatRenewalPrice(entitlement.currency);
   const orgJsonLd = organizationJsonLd();
   const webJsonLd = websiteJsonLd();
 
@@ -33,6 +37,7 @@ export default function RootLayout({
     <html lang={lang}>
       <body className="font-sans">
         <div className="relative min-h-screen overflow-hidden">
+          <PromoRibbon priceLabel={priceLabel} />
           <NavBar />
           <main className="pb-12">{children}</main>
           <Footer />

@@ -161,9 +161,11 @@ export default function PujaDetailPage({ puja }: Props) {
               {relatedPujas.length ? (
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   {relatedPujas.map((related) => (
-                    <article
+                    <Link
                       key={related.slug}
-                      className="overflow-hidden rounded-2xl border border-sagar-amber/20 bg-sagar-cream/35"
+                      href={`/online-puja/${related.slug}`}
+                      className="group overflow-hidden rounded-2xl border border-sagar-amber/20 bg-sagar-cream/35 transition hover:-translate-y-0.5 hover:border-sagar-saffron/40 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sagar-saffron/60"
+                      aria-label={`Open ${related.title} seva`}
                     >
                       <div className="relative aspect-[16/10]">
                         <Image
@@ -181,14 +183,11 @@ export default function PujaDetailPage({ puja }: Props) {
                         </p>
                         <h3 className="mt-1 text-2xl text-sagar-ink">{related.title}</h3>
                         <p className="mt-2 text-sm text-sagar-ink/72">{related.tagline}</p>
-                        <Link
-                          href={`/online-puja/${related.slug}`}
-                          className="mt-3 inline-flex min-h-[40px] items-center rounded-full border border-sagar-amber/30 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-sagar-ink/80"
-                        >
-                          View Seva
-                        </Link>
+                        <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-sagar-ember/80">
+                          Open Seva
+                        </p>
                       </div>
-                    </article>
+                    </Link>
                   ))}
                 </div>
               ) : (

@@ -88,9 +88,11 @@ export default function LiveDarshanGrid({
       {sorted.map((mandir) => {
         const status = statusById[mandir.slug] ?? "none";
         return (
-          <article
+          <Link
             key={mandir.slug}
-            className="overflow-hidden rounded-2xl border border-sagar-amber/20 bg-white/90 shadow-sagar-soft"
+            href={`/live/${mandir.slug}`}
+            aria-label={`Open ${mandir.displayName} live darshan`}
+            className="group overflow-hidden rounded-2xl border border-sagar-amber/20 bg-white/90 shadow-sagar-soft transition hover:-translate-y-0.5 hover:border-sagar-saffron/40 hover:shadow-sagar-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sagar-saffron/60"
           >
             <div className="relative aspect-[4/3] bg-sagar-cream/60">
               <Image
@@ -109,14 +111,11 @@ export default function LiveDarshanGrid({
             <div className="p-4">
               <h2 className="text-xl font-serif text-sagar-ink">{mandir.displayName}</h2>
               <p className="mt-1 text-sm text-sagar-ink/70">{mandir.location}</p>
-              <Link
-                href={`/live/${mandir.slug}`}
-                className="mt-4 inline-flex min-h-[40px] items-center justify-center rounded-full bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember"
-              >
-                View Darshan
-              </Link>
+              <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-sagar-ember/80">
+                Open Darshan
+              </p>
             </div>
-          </article>
+          </Link>
         );
       })}
     </section>

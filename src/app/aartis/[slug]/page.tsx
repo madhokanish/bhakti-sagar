@@ -119,10 +119,10 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
   const relatedFestivals = festivals.filter((festival) => festival.categories.includes(aarti.category)).slice(0, 3);
   const contents = [
     { id: "lyrics", label: "Lyrics" },
+    { id: "meaning", label: "AI Summary" },
     { id: "how-to", label: "How to do aarti" },
     { id: "faq", label: "FAQ" },
-    { id: "related", label: "Related prayers" },
-    { id: "meaning", label: "Meaning" }
+    { id: "related", label: "Related prayers" }
   ];
 
   return (
@@ -156,10 +156,10 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">On this page</p>
             <div className="mt-3 flex flex-wrap gap-3 text-xs text-sagar-ink/70">
               <a href="#lyrics" className="hover:text-sagar-saffron">Lyrics</a>
+              <a href="#meaning" className="hover:text-sagar-saffron">AI summary</a>
               <a href="#how-to" className="hover:text-sagar-saffron">How to do aarti</a>
               <a href="#faq" className="hover:text-sagar-saffron">FAQ</a>
               <a href="#related" className="hover:text-sagar-saffron">Related prayers</a>
-              <a href="#meaning" className="hover:text-sagar-saffron">Meaning</a>
             </div>
           </div>
           <div className="mt-3 flex items-center justify-between lg:hidden aarti-secondary">
@@ -197,6 +197,21 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
                   <p className="text-sm text-sagar-ink/60">Add a YouTube URL to show the video.</p>
                 </div>
               )}
+            </div>
+          </details>
+          <details open id="meaning" className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">AI Summary</summary>
+            <div className="mt-4">
+              <MeaningPanel
+                title={titleDisplay}
+                lyrics={
+                  lang === "hi" && aarti.lyrics.hindi.length
+                    ? aarti.lyrics.hindi
+                    : aarti.lyrics.english.length
+                    ? aarti.lyrics.english
+                    : aarti.lyrics.hindi
+                }
+              />
             </div>
           </details>
         </aside>
@@ -271,18 +286,6 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
           </div>
         </div>
       )}
-      <div id="meaning" className="mt-10 scroll-mt-24">
-        <MeaningPanel
-          title={titleDisplay}
-          lyrics={
-            lang === "hi" && aarti.lyrics.hindi.length
-              ? aarti.lyrics.hindi
-              : aarti.lyrics.english.length
-              ? aarti.lyrics.english
-              : aarti.lyrics.hindi
-          }
-        />
-      </div>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleData) }}

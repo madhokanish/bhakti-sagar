@@ -55,14 +55,14 @@ export const liveMandirs: LiveMandir[] = [
     name: "Koradi Temple",
     location: "Nagpur, India",
     channelUrl: "https://www.youtube.com/@KoradiTemple",
-    thumbnail: "/category/shakti.jpg"
+    thumbnail: "/live/mahalaxmi.png"
   },
   {
     id: "somnath-temple",
     name: "Somnath Temple Official",
     location: "Prabhas Patan, India",
     channelUrl: "https://www.youtube.com/@SomnathTempleOfficialChannel/featured",
-    thumbnail: "/category/shiva.jpg"
+    thumbnail: "/live/somnath.png"
   },
   {
     id: "iskcon-vrndavan",
@@ -92,7 +92,7 @@ export const liveMandirs: LiveMandir[] = [
     name: "SVBC TTD Live TV",
     location: "Tirupati, India",
     channelUrl: "https://www.youtube.com/@svbcttdlivetv/featured",
-    thumbnail: "/category/vishnu.jpg"
+    thumbnail: "/live/svbc.png"
   }
 ];
 

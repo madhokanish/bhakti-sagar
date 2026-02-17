@@ -259,13 +259,13 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
                 key={item.title}
                 className="group rounded-2xl border border-sagar-amber/25 bg-white p-5 shadow-sagar-soft transition hover:-translate-y-0.5 hover:border-sagar-saffron/40 hover:shadow-sagar-card"
               >
-                <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center justify-center gap-2 text-center">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sagar-saffron/20">
                     <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-sagar-saffron">
                       <path d={item.icon} />
                     </svg>
                   </span>
-                  <span className="text-right text-[0.65rem] font-bold uppercase tracking-wider text-sagar-rose/90">
+                  <span className="text-[0.65rem] font-bold uppercase tracking-wider text-sagar-rose/90">
                     {item.fear}
                   </span>
                 </div>

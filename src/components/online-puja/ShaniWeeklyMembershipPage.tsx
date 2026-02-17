@@ -216,7 +216,6 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
                     <path d={item.icon} />
                   </svg>
                 </span>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#fbe8cd]/85">Weekly focus</span>
               </div>
               <h3 className="relative mt-3 text-[1.9rem] font-serif leading-tight text-[#fff3de] [text-shadow:0_1px_0_rgba(0,0,0,0.25)]">
                 {item.title}
@@ -279,15 +278,15 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
       </section>
 
       <section className="mt-6 rounded-3xl border border-sagar-amber/20 bg-gradient-to-br from-[#2f1a12] to-[#24140f] p-5 text-[#f7e7cf] shadow-sagar-soft">
-        <h2 className="text-3xl font-serif">Join before this week&apos;s cutoff</h2>
+        <h2 className="text-3xl font-serif text-[#f7e7cf]">Join before this week&apos;s cutoff</h2>
         <p className="mt-3 text-sm text-[#f7e7cf]/85">
           Add your name now for this Saturday&apos;s sankalp. Membership includes weekly inclusion, live access,
           replay, and certificate updates.
         </p>
         <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
-          <span className="rounded-full border border-sagar-amber/35 bg-black/20 px-3 py-1">Temple verified</span>
-          <span className="rounded-full border border-sagar-amber/35 bg-black/20 px-3 py-1">Secure payments</span>
-          <span className="rounded-full border border-sagar-amber/35 bg-black/20 px-3 py-1">Support on WhatsApp and email</span>
+          <span className="rounded-full border border-sagar-amber/35 bg-black/20 px-3 py-1 text-[#f7e7cf]">Temple verified</span>
+          <span className="rounded-full border border-sagar-amber/35 bg-black/20 px-3 py-1 text-[#f7e7cf]">Secure payments</span>
+          <span className="rounded-full border border-sagar-amber/35 bg-black/20 px-3 py-1 text-[#f7e7cf]">Support on WhatsApp and email</span>
         </div>
       </section>
 

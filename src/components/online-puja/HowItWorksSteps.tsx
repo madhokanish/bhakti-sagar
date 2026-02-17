@@ -1,8 +1,8 @@
 export default function HowItWorksSteps() {
   const steps = [
     "Choose Lord Ganesh or Shani Dev membership",
-    "Add your name and intention once",
-    "Every week your name is included automatically",
+    "Add your name, gotra, and intention once",
+    "Every week your name and gotra are included automatically",
     "Get replay and confirmation after completion"
   ];
 

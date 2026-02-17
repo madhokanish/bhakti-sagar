@@ -9,7 +9,7 @@ import { getPlanById } from "@/app/online-puja/plans";
 export const metadata: Metadata = buildMetadata({
   title: `${DEITY_NAMES.ganesh.heading} Puja Online Every Wednesday | Weekly Membership`,
   description:
-    `Join ${DEITY_NAMES.ganesh.heading} Puja online every Wednesday. 4 pujas per month in your name with live darshan access, replay, and certificate.`,
+    `Join ${DEITY_NAMES.ganesh.heading} Puja online every Wednesday. 4 pujas per month with sankalp in your name and gotra, plus live darshan, replay, and certificate.`,
   pathname: "/online-puja/ganesh-weekly",
   keywords: [
     "lord ganesh puja",
@@ -32,11 +32,11 @@ export default function GaneshWeeklyMembershipPage() {
   const faq = faqJsonLd([
     {
       q: `What is ${DEITY_NAMES.ganesh.heading} Puja online membership?`,
-      a: `It is a weekly Wednesday ritual where your name is included in sankalp, with live access and replay support.`
+      a: `It is a weekly Wednesday ritual where your name and gotra are included in sankalp, with live access and replay support.`
     },
     {
       q: "What does in your name mean?",
-      a: "Your name is included in sankalp recitation during the weekly ritual."
+      a: "Your name and gotra are included in sankalp recitation during the weekly ritual."
     },
     {
       q: "Do I need to attend live?",
@@ -57,7 +57,7 @@ export default function GaneshWeeklyMembershipPage() {
     "@type": "Product",
     name: `${DEITY_NAMES.ganesh.heading} Puja Online Weekly Membership`,
     description:
-      "Weekly Lord Ganesh Puja membership with sankalp in your name, live darshan access, replay, and certificate.",
+      "Weekly Lord Ganesh Puja membership with sankalp in your name and gotra, live darshan access, replay, and certificate.",
     image: `https://bhakti-sagar.com${plan.heroImage}`,
     brand: { "@type": "Brand", name: "Bhakti Sagar" },
     offers: {

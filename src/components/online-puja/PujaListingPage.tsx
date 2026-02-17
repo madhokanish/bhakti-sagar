@@ -16,7 +16,7 @@ const faqItems = [
   {
     id: "name-in-sankalp",
     question: "What does in your name mean?",
-    answer: "Your name is included in sankalp recitation during the weekly ritual."
+    answer: "Your name and gotra are included in sankalp recitation during the weekly ritual."
   },
   {
     id: "need-live",
@@ -56,8 +56,8 @@ export default function PujaListingPage({ supportEmail }: Props) {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Online Puja</p>
         <h1 className="mt-2 text-4xl font-serif leading-tight text-sagar-ink md:text-5xl">Weekly Online Puja Membership</h1>
         <p className="mt-3 max-w-3xl text-base text-sagar-ink/75 md:text-lg">
-          4 pujas per month in your name. Join online puja for Lord Ganesh Puja or Shani Dev Puja with live access,
-          replay, and certificate updates.
+          4 pujas per month with your name and gotra in sankalp. Join online puja for Lord Ganesh Puja or Shani Dev Puja with live access,
+          replay, certificate updates, and weekly sankalp with your name and gotra.
         </p>
       </section>
 
@@ -98,7 +98,7 @@ export default function PujaListingPage({ supportEmail }: Props) {
               <div className="space-y-3 p-5">
                 <p className="text-sm text-sagar-ink/85">{plan.subtitle}</p>
                 <ul className="space-y-1 text-sm text-sagar-ink/78">
-                  <li>• Name in sankalp weekly</li>
+                  <li>• Name and gotra in sankalp weekly</li>
                   <li>• Live access</li>
                   <li>• Replay + certificate</li>
                 </ul>

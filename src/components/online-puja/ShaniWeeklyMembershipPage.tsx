@@ -67,7 +67,7 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
     {
       id: "name-in-sankalp",
       question: "What does “in your name” mean?",
-      answer: "Your name is included in sankalp recitation every Saturday as part of the weekly ritual."
+      answer: "Your name and gotra are included in sankalp recitation every Saturday as part of the weekly ritual."
     },
     {
       id: "missing-live",
@@ -118,7 +118,7 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
   ];
 
   const deliverables = [
-    { text: "Name in sankalp every Saturday (automatically)" },
+    { text: "Name and gotra in sankalp every Saturday (automatically)" },
     { text: "Live darshan access" },
     { text: "Replay link after puja" },
     { text: "Certificate PDF after each puja" },
@@ -130,7 +130,7 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
     { text: "You feel stuck or delayed despite effort—nothing seems to move", fear: true },
     { text: "You're going through a heavy phase and need steadiness", fear: true },
     { text: "You want a steady Saturday routine for calm and discipline", fear: false },
-    { text: "You want weekly sankalp in your name without managing bookings", fear: false }
+    { text: "You want weekly sankalp with your name and gotra without managing bookings", fear: false }
   ];
 
   const testimonials = [
@@ -138,7 +138,7 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
       name: "Rohit",
       location: "London",
       before: "Life was moving slowly. I was constantly anxious.",
-      after: "The Saturday ritual gave me routine and calm. Hearing the sankalp in my name made it feel personal. It really worked.",
+      after: "The Saturday ritual gave me routine and calm. Hearing the sankalp with my name and gotra made it feel personal. It really worked.",
       detail: "I watch the replay when I miss live.",
       stars: 5
     },
@@ -174,16 +174,16 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
             </div>
             <h1 className="mt-4 text-4xl font-serif leading-tight text-[#f7e7cf] md:text-5xl">{shaniHeading} Puja</h1>
             <p className="mt-3 max-w-xl text-base text-[#f2d8ba]/90">
-              Every Saturday. 4 pujas per month in your name. A calm weekly ritual to seek steadiness,
+              Every Saturday. 4 pujas per month with your name and gotra in sankalp. A calm weekly ritual to seek steadiness,
               discipline, and stability.
             </p>
             <p className="mt-2 max-w-xl text-sm text-[#f2d8ba]/80">
               This {shaniHeading} online puja membership is designed for devotees who want a consistent Saturday
-              sankalp with live darshan, replay, and certificate updates.
+              sankalp with their name and gotra, live darshan, replay, and certificate updates.
             </p>
 
             <p className="mt-4 text-sm font-semibold text-[#f7e7cf]">
-              Last chance to add your name for this Saturday. Miss the cutoff and you wait until next week.
+              Last chance to add your name and gotra for this Saturday. Miss the cutoff and you wait until next week.
             </p>
 
             <div className="mt-4 flex flex-wrap gap-2">
@@ -216,7 +216,7 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
               onClick={() => trackEvent("shani_weekly_cta_click", { placement: "hero" })}
               className="mt-6 inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-sagar-saffron px-8 py-3 text-base font-bold text-white shadow-lg shadow-sagar-saffron/25 transition hover:bg-sagar-ember hover:shadow-sagar-saffron/30 sm:w-auto"
             >
-              Add my name before cutoff
+              Add my name and gotra before cutoff
             </Link>
             <p className="mt-3 text-sm text-[#f2d8ba]/85">Cancel anytime · Replay + certificate included · {monthlyPrice}/month</p>
           </div>
@@ -250,7 +250,7 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
             delayed, or uncertain—many devotees turn to this Saturday ritual for steadiness and relief.
           </p>
           <p className="mt-4 rounded-xl border border-sagar-amber/30 bg-white/80 px-4 py-3 text-sm font-semibold text-sagar-ink shadow-sm">
-            Every week you wait is another Saturday without your name in the sankalp.
+            Every week you wait is another Saturday without your name and gotra in the sankalp.
           </p>
 
           <div className="mt-6 grid gap-4 md:grid-cols-3">
@@ -277,6 +277,28 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
                 </p>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-6 overflow-hidden rounded-3xl border border-sagar-amber/20 bg-white shadow-sagar-soft">
+        <div className="grid gap-0 md:grid-cols-[1.05fr_0.95fr]">
+          <div className="p-5 md:p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Sankalp Assurance</p>
+            <h2 className="mt-2 text-2xl font-serif text-sagar-ink">Pandit ji will recite your name and gotra</h2>
+            <p className="mt-2 text-sm text-sagar-ink/78">
+              During the puja sankalp, pandit ji takes your submitted name and gotra as part of the ritual recitation.
+            </p>
+          </div>
+          <div className="relative min-h-[240px]">
+            <Image
+              src="/images/online-puja/pandit-sankalp.png"
+              alt="Pandit ji performing sankalp and reciting devotee name and gotra"
+              fill
+              className="object-contain bg-white p-2"
+              sizes="(max-width: 768px) 100vw, 45vw"
+              loading="lazy"
+            />
           </div>
         </div>
       </section>
@@ -375,7 +397,7 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
               Once cutoff passes, names for this week close. You&apos;ll have to wait until next Saturday.
             </p>
             <p className="mt-2 text-sm font-medium text-[#f7e7cf]">
-              Add your name now. Membership includes weekly inclusion, live access, replay, and certificate.
+              Add your name and gotra now. Membership includes weekly inclusion, live access, replay, and certificate.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <CutoffCountdown cutoffAt={schedule.cutoffAt} compact urgent />
@@ -386,7 +408,7 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
             onClick={() => trackEvent("shani_weekly_cta_click", { placement: "cutoff_section" })}
             className="inline-flex min-h-[48px] shrink-0 items-center justify-center rounded-full bg-sagar-saffron px-6 py-3 text-sm font-bold text-white transition hover:bg-sagar-ember"
           >
-            Add my name now
+            Add name and gotra now
           </Link>
         </div>
         <div className="mt-4 flex flex-wrap gap-2 border-t border-sagar-amber/20 pt-4 text-xs font-semibold">
@@ -412,14 +434,14 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
           onClick={() => trackEvent("shani_weekly_cta_click", { placement: "bottom" })}
           className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-sagar-saffron px-8 py-3 text-base font-bold text-white shadow-lg shadow-sagar-saffron/25 hover:bg-sagar-ember"
         >
-          Add my name before cutoff
+          Add my name and gotra before cutoff
         </Link>
-        <p className="text-sm text-sagar-ink/75">Don&apos;t let another Saturday pass without your name in the ritual.</p>
+        <p className="text-sm text-sagar-ink/75">Don&apos;t let another Saturday pass without your name and gotra in the ritual.</p>
       </div>
 
       <MobileStickyCTA
         targetId="shani-weekly-hero"
-        label="Add name before cutoff"
+        label="Add name and gotra"
         priceLabel={`${shaniHeading} Puja: ${monthlyPrice} / month`}
         onClick={() => {
           trackEvent("shani_weekly_cta_click", { placement: "sticky" });

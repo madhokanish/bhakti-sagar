@@ -45,7 +45,7 @@ export const WEEKLY_PLANS: WeeklyPlan[] = [
       monthly: "STRIPE_PRICE_ID_GANESH_MONTHLY",
       once: "STRIPE_PRICE_ID_GANESH_ONCE"
     },
-    includes: ["Name in sankalp", "Live darshan access", "Replay available", "Confirmation after puja"]
+    includes: ["Name and gotra in sankalp", "Live darshan access", "Replay available", "Confirmation after puja"]
   },
   {
     id: "shani",
@@ -66,7 +66,7 @@ export const WEEKLY_PLANS: WeeklyPlan[] = [
       monthly: "STRIPE_PRICE_ID_SHANI_MONTHLY",
       once: "STRIPE_PRICE_ID_SHANI_ONCE"
     },
-    includes: ["Name in sankalp", "Live darshan access", "Replay available", "Confirmation after puja"]
+    includes: ["Name and gotra in sankalp", "Live darshan access", "Replay available", "Confirmation after puja"]
   }
 ];
 

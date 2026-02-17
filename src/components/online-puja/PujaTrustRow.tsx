@@ -1,7 +1,7 @@
 export default function PujaTrustRow() {
   const items = [
     { label: "Weekly temple ritual", value: "Verified schedule" },
-    { label: "Sankalp in your name", value: "Dedicated participation" },
+    { label: "Sankalp with name and gotra", value: "Dedicated participation" },
     { label: "Email updates", value: "Clear coordination" }
   ];
 
@@ -19,4 +19,3 @@ export default function PujaTrustRow() {
     </div>
   );
 }
-

@@ -67,7 +67,7 @@ export default function OnlinePujaDetailLayout({ puja, slides, children }: Props
                   Temple-led ritual from {puja.temple.city}
                 </p>
                 <p className="rounded-xl border border-sagar-amber/20 bg-sagar-cream/45 px-3 py-2">
-                  Sankalp in your name(s)
+                  Sankalp with your name and gotra
                 </p>
                 <p className="rounded-xl border border-sagar-amber/20 bg-sagar-cream/45 px-3 py-2">
                   Confirmation and support on email

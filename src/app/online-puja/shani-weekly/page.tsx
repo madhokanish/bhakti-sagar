@@ -9,7 +9,7 @@ import { getPlanById } from "@/app/online-puja/plans";
 export const metadata: Metadata = buildMetadata({
   title: `${DEITY_NAMES.shani.heading} Puja Online Every Saturday | Weekly Membership`,
   description:
-    `Join ${DEITY_NAMES.shani.heading} Puja online every Saturday. 4 pujas per month in your name with live darshan access, replay, and certificate.`,
+    `Join ${DEITY_NAMES.shani.heading} Puja online every Saturday. 4 pujas per month with sankalp in your name and gotra, plus live darshan, replay, and certificate.`,
   pathname: "/online-puja/shani-weekly",
   keywords: [
     "shani dev puja",
@@ -32,11 +32,11 @@ export default function ShaniWeeklyMembershipPage() {
   const faq = faqJsonLd([
     {
       q: `What is ${DEITY_NAMES.shani.heading} Puja online membership?`,
-      a: "It is a weekly Saturday ritual with sankalp in your name, live access, replay, and certificate updates."
+      a: "It is a weekly Saturday ritual with sankalp in your name and gotra, live access, replay, and certificate updates."
     },
     {
       q: "What does in your name mean?",
-      a: "Your name is included in sankalp recitation every Saturday as part of the weekly ritual."
+      a: "Your name and gotra are included in sankalp recitation every Saturday as part of the weekly ritual."
     },
     {
       q: "Do I need to attend live?",
@@ -52,7 +52,7 @@ export default function ShaniWeeklyMembershipPage() {
     },
     {
       q: "How is this different from one-time online puja booking?",
-      a: "This plan includes 4 weekly pujas every month, so your name is included automatically each week."
+      a: "This plan includes 4 weekly pujas every month, so your name and gotra are included automatically each week."
     }
   ]);
 
@@ -61,7 +61,7 @@ export default function ShaniWeeklyMembershipPage() {
     "@type": "Product",
     name: `${DEITY_NAMES.shani.heading} Puja Online Weekly Membership`,
     description:
-      "Weekly Shani Dev Puja membership with sankalp in your name, live darshan access, replay, and certificate.",
+      "Weekly Shani Dev Puja membership with sankalp in your name and gotra, live darshan access, replay, and certificate.",
     image: `https://bhakti-sagar.com${plan.heroImage}`,
     brand: { "@type": "Brand", name: "Bhakti Sagar" },
     offers: {

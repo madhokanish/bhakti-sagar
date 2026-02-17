@@ -44,7 +44,7 @@ export default function MembershipPlanPage({ plan, currency }: Props) {
     {
       id: "name-meaning",
       question: "What does in your name mean?",
-      answer: "Your name is included in sankalp recitation during the weekly ritual."
+      answer: "Your name and gotra are included in sankalp recitation during the weekly ritual."
     },
     {
       id: "need-live",
@@ -89,12 +89,12 @@ export default function MembershipPlanPage({ plan, currency }: Props) {
             </h1>
             <p className="mt-2 text-sm text-[#f2d8ba]/90">
               {plan.id === "ganesh"
-                ? "Every Wednesday. 4 pujas per month in your name."
-                : "Every Saturday. 4 pujas per month in your name."}
+                ? "Every Wednesday. 4 pujas per month with your name and gotra in sankalp."
+                : "Every Saturday. 4 pujas per month with your name and gotra in sankalp."}
             </p>
             <p className="mt-2 max-w-xl text-sm text-[#f2d8ba]/80">
-              This {deityBody} online puja membership includes weekly sankalp in your name, live darshan access, replay,
-              and certificate updates.
+              This {deityBody} online puja membership includes weekly sankalp with your name and gotra, live darshan access,
+              replay, and certificate updates.
             </p>
 
             <div className="mt-5 rounded-2xl border border-sagar-amber/35 bg-black/20 p-4">
@@ -152,11 +152,33 @@ export default function MembershipPlanPage({ plan, currency }: Props) {
       <section className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft" id="deliverables">
         <h2 className="text-2xl font-serif text-sagar-ink">Deliverables every week</h2>
         <ul className="mt-3 space-y-2 text-sm text-sagar-ink/78">
-          <li>• Name included in sankalp weekly</li>
+          <li>• Name and gotra included in sankalp weekly</li>
           <li>• Live darshan access</li>
           <li>• Replay link after puja</li>
           <li>• Certificate PDF after puja</li>
         </ul>
+      </section>
+
+      <section className="mt-6 overflow-hidden rounded-3xl border border-sagar-amber/20 bg-white shadow-sagar-soft">
+        <div className="grid gap-0 md:grid-cols-[1.05fr_0.95fr]">
+          <div className="p-5 md:p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Sankalp Assurance</p>
+            <h2 className="mt-2 text-2xl font-serif text-sagar-ink">Pandit ji will recite your name and gotra</h2>
+            <p className="mt-2 text-sm text-sagar-ink/78">
+              During the puja sankalp, pandit ji takes your submitted name and gotra as part of the ritual recitation.
+            </p>
+          </div>
+          <div className="relative min-h-[240px]">
+            <Image
+              src="/images/online-puja/pandit-sankalp.png"
+              alt="Pandit ji performing sankalp and reciting devotee name and gotra"
+              fill
+              className="object-contain bg-white p-2"
+              sizes="(max-width: 768px) 100vw, 45vw"
+              loading="lazy"
+            />
+          </div>
+        </div>
       </section>
 
       <section className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft">

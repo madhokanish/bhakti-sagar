@@ -8,7 +8,7 @@ import PujaListingPage from "@/components/online-puja/PujaListingPage";
 export const metadata: Metadata = buildMetadata({
   title: "Online Puja Membership | Lord Ganesh Puja & Shani Dev Puja",
   description:
-    `Join online puja memberships for ${DEITY_NAMES.ganesh.heading} Puja and ${DEITY_NAMES.shani.heading} Puja. Weekly sankalp in your name, live access, replay, and certificate updates.`,
+    `Join online puja memberships for ${DEITY_NAMES.ganesh.heading} Puja and ${DEITY_NAMES.shani.heading} Puja. Weekly sankalp includes your name and gotra, with live access, replay, and certificate updates.`,
   pathname: "/online-puja",
   keywords: [
     "online puja",
@@ -32,7 +32,7 @@ export default async function OnlinePujaIndexPage() {
     },
     {
       q: "What does in your name mean?",
-      a: "Your name is included in sankalp recitation during the ritual."
+      a: "Your name and gotra are included in sankalp recitation during the ritual."
     },
     {
       q: "What if I miss the live puja?",

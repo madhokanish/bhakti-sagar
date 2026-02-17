@@ -34,8 +34,8 @@ export default function SubscribePage({ searchParams }: { searchParams: SearchPa
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Weekly Puja Membership</p>
         <h1 className="mt-2 text-4xl font-serif text-sagar-ink md:text-5xl">Join weekly membership</h1>
         <p className="mt-3 max-w-3xl text-sm text-sagar-ink/74 md:text-base">
-          Complete your details once and continue with secure checkout. Membership includes weekly inclusion in sankalp,
-          live access, replay, and certificate updates.
+          Complete your details once and continue with secure checkout. Membership includes weekly sankalp with your
+          name and gotra, plus live access, replay, and certificate updates.
         </p>
       </section>
 

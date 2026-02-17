@@ -175,7 +175,7 @@ export default function PujaBookingSidebar({ puja }: Props) {
             Verified schedule
           </div>
           <div className="rounded-xl border border-sagar-amber/20 bg-sagar-cream/55 px-3 py-2 text-sm font-medium text-sagar-ink/85">
-            Sankalp in your name
+            Sankalp with your name and gotra
           </div>
           <div className="rounded-xl border border-sagar-amber/20 bg-sagar-cream/55 px-3 py-2 text-sm font-medium text-sagar-ink/85">
             Email confirmations

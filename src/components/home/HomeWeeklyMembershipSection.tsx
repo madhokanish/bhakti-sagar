@@ -38,7 +38,7 @@ export default function HomeWeeklyMembershipSection({ plans }: Props) {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Online Puja</p>
         <h2 className="mt-1 text-3xl font-serif text-sagar-ink md:text-4xl">Weekly Puja Membership</h2>
         <p className="mt-2 text-sm text-sagar-ink/75 md:text-base">
-          4 pujas every month in your name. Live from temple. Replay and certificate. Cancel anytime.
+          4 pujas every month with your name and gotra in sankalp. Live from temple. Replay and certificate. Cancel anytime.
         </p>
       </div>
 
@@ -79,7 +79,7 @@ export default function HomeWeeklyMembershipSection({ plans }: Props) {
 
               <div className="space-y-3 p-4">
                 <ul className="space-y-1 text-sm text-sagar-ink/78">
-                  <li>• Name in sankalp weekly</li>
+                  <li>• Name and gotra in sankalp weekly</li>
                   <li>• Live access</li>
                   <li>• Replay + certificate</li>
                 </ul>

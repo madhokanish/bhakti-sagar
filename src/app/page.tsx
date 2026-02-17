@@ -14,8 +14,9 @@ export const metadata: Metadata = {
   ...buildMetadata({
     title: "Aarti, Bhajan, Mantra & Pooja Vidhi",
     description:
-      "Read aartis, chalisas, stotras, mantras and pooja guides with easy lyrics, meaning, and videos. Explore by deity and festival.",
-    pathname: "/"
+      "Read aartis, chalisas, stotras, mantras and pooja guides with easy lyrics, meaning, and videos. Explore weekly online puja for Lord Ganesh Puja and Shani Dev Puja.",
+    pathname: "/",
+    keywords: ["online puja", "ganesh puja", "shani dev puja", "aartis", "pooja vidhi"]
   })
 };
 

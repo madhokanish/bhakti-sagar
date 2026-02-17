@@ -172,10 +172,14 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
               <CutoffCountdown cutoffAt={schedule.cutoffAt} compact urgent />
               <span className="text-xs font-semibold text-sagar-amber">· Live from Ujjain</span>
             </div>
-            <h1 className="mt-4 text-4xl font-serif leading-tight text-[#f7e7cf] md:text-5xl">Weekly {shaniHeading} Membership</h1>
+            <h1 className="mt-4 text-4xl font-serif leading-tight text-[#f7e7cf] md:text-5xl">{shaniHeading} Puja</h1>
             <p className="mt-3 max-w-xl text-base text-[#f2d8ba]/90">
               Every Saturday. 4 pujas per month in your name. A calm weekly ritual to seek steadiness,
               discipline, and stability.
+            </p>
+            <p className="mt-2 max-w-xl text-sm text-[#f2d8ba]/80">
+              This {shaniHeading} online puja membership is designed for devotees who want a consistent Saturday
+              sankalp with live darshan, replay, and certificate updates.
             </p>
 
             <p className="mt-4 text-sm font-semibold text-[#f7e7cf]">
@@ -220,7 +224,7 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
           <div className="relative min-h-[280px]">
             <Image
               src={plan.heroImage}
-              alt={`Weekly ${shaniHeading} Membership`}
+              alt={`${shaniHeading} Puja`}
               fill
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 55vw"
@@ -416,7 +420,7 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
       <MobileStickyCTA
         targetId="shani-weekly-hero"
         label="Add name before cutoff"
-        priceLabel={`${shaniHeading}: ${monthlyPrice} / month`}
+        priceLabel={`${shaniHeading} Puja: ${monthlyPrice} / month`}
         onClick={() => {
           trackEvent("shani_weekly_cta_click", { placement: "sticky" });
           window.location.href = joinHref;

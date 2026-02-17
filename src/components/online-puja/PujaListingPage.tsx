@@ -54,9 +54,14 @@ export default function PujaListingPage({ supportEmail }: Props) {
     <div className="container pb-16 pt-6 md:pt-10">
       <section className="rounded-[2rem] border border-sagar-amber/25 bg-gradient-to-br from-white via-sagar-cream/60 to-sagar-sand/65 p-6 shadow-sagar-soft md:p-9">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Online Puja</p>
-        <h1 className="mt-2 text-4xl font-serif leading-tight text-sagar-ink md:text-5xl">Weekly Puja Membership</h1>
+        <h1 className="mt-2 text-4xl font-serif leading-tight text-sagar-ink md:text-5xl">Weekly Online Puja Membership</h1>
         <p className="mt-3 max-w-3xl text-base text-sagar-ink/75 md:text-lg">
-          4 pujas per month in your name. Live from temple. Replay and certificate. Cancel anytime.
+          4 pujas per month in your name. Join online puja for Lord Ganesh Puja or Shani Dev Puja with live access,
+          replay, and certificate updates.
+        </p>
+        <p className="mt-3 max-w-3xl text-sm text-sagar-ink/70 md:text-base">
+          Searching for online puja from UK, USA, Canada, or India? Choose your weekly plan below and view timing in
+          your local timezone.
         </p>
       </section>
 
@@ -70,7 +75,7 @@ export default function PujaListingPage({ supportEmail }: Props) {
               href={`/online-puja/${plan.slug}`}
               className="group overflow-hidden rounded-3xl border border-sagar-amber/25 bg-white shadow-sagar-soft transition hover:-translate-y-0.5 hover:border-sagar-saffron/45 hover:shadow-sagar-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sagar-saffron"
               onClick={() => trackEvent("directory_weekly_puja_click", { plan: plan.id })}
-              aria-label={`Open ${deityHeading} membership page`}
+              aria-label={`Open ${deityHeading} Puja page`}
             >
               <div className="relative aspect-[16/9] overflow-hidden">
                 <Image
@@ -83,7 +88,7 @@ export default function PujaListingPage({ supportEmail }: Props) {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
                 <div className="absolute bottom-3 left-4 right-4 space-y-2">
-                  <h2 className="text-2xl font-serif leading-tight text-white">{`Weekly ${deityHeading} Membership`}</h2>
+                  <h2 className="text-2xl font-serif leading-tight text-white">{`${deityHeading} Puja`}</h2>
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full border border-white/30 bg-black/25 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-white">
                       Every {weekday}
@@ -102,12 +107,22 @@ export default function PujaListingPage({ supportEmail }: Props) {
                   <li>• Replay + certificate</li>
                 </ul>
                 <span className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2 text-sm font-semibold text-white transition group-hover:bg-sagar-ember">
-                  Join {deityHeading} membership
+                  Join {deityHeading} Puja
                 </span>
               </div>
             </Link>
           );
         })}
+      </section>
+
+      <section className="mt-6 rounded-3xl border border-sagar-amber/20 bg-sagar-cream/35 p-4 text-sm text-sagar-ink/80">
+        <p className="font-semibold text-sagar-ink">Popular online puja searches</p>
+        <p className="mt-1">
+          <Link href="/online-puja/ganesh-weekly" className="text-sagar-ember underline underline-offset-2">Lord Ganesh Puja online</Link>
+          {" · "}
+          <Link href="/online-puja/shani-weekly" className="text-sagar-ember underline underline-offset-2">Shani Dev Puja online</Link>
+          {" · Weekly sankalp membership"}
+        </p>
       </section>
 
       <section className="mt-6 grid gap-3 rounded-3xl border border-sagar-amber/20 bg-sagar-cream/35 p-4 text-center text-sm text-sagar-ink/82 md:grid-cols-3">

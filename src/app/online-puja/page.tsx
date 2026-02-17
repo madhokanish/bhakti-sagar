@@ -2,13 +2,21 @@ import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/schema";
 import { WEEKLY_PLANS } from "@/app/online-puja/plans";
+import { DEITY_NAMES } from "@/lib/terminology";
 import PujaListingPage from "@/components/online-puja/PujaListingPage";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Weekly Online Puja Membership",
+  title: "Online Puja Membership | Lord Ganesh Puja & Shani Dev Puja",
   description:
-    "Join Weekly Ganesh and Shani Online Puja Membership. Name included weekly, live access, replay included, and cancel anytime.",
-  pathname: "/online-puja"
+    `Join online puja memberships for ${DEITY_NAMES.ganesh.heading} Puja and ${DEITY_NAMES.shani.heading} Puja. Weekly sankalp in your name, live access, replay, and certificate updates.`,
+  pathname: "/online-puja",
+  keywords: [
+    "online puja",
+    "shani dev puja",
+    "ganesh puja",
+    "weekly online puja",
+    "online puja membership"
+  ]
 });
 
 export default async function OnlinePujaIndexPage() {
@@ -18,6 +26,10 @@ export default async function OnlinePujaIndexPage() {
     { name: "Online Puja", url: "https://bhakti-sagar.com/online-puja" }
   ]);
   const faqItems = [
+    {
+      q: "How can I join online puja for Shani Dev or Lord Ganesh?",
+      a: "Open the plan page, add your details once, and continue to membership checkout."
+    },
     {
       q: "What does in your name mean?",
       a: "Your name is included in sankalp recitation during the ritual."
@@ -29,6 +41,10 @@ export default async function OnlinePujaIndexPage() {
     {
       q: "Can I cancel anytime?",
       a: "Yes. Membership can be managed from billing settings."
+    },
+    {
+      q: "Can I join online puja from outside India?",
+      a: "Yes. We show the schedule in your local timezone with IST reference."
     }
   ];
   const faq = faqJsonLd(faqItems);

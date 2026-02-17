@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import type { SupportedCurrency } from "@/lib/subscription";
 import { trackEvent } from "@/lib/analytics";
+import { getDeityName } from "@/lib/terminology";
 import { formatCurrency, getPlanSchedule, type WeeklyPlan } from "@/app/online-puja/plans";
 import FAQAccordion from "@/components/online-puja/FAQAccordion";
 import MobileStickyCTA from "@/components/online-puja/MobileStickyCTA";
@@ -32,6 +33,8 @@ export default function MembershipPlanPage({ plan, currency }: Props) {
   const schedule = useMemo(() => getPlanSchedule(plan), [plan]);
   const currentTimeZone = showIST ? "Asia/Kolkata" : localTimeZone;
   const monthlyPrice = formatCurrency(plan.priceMonthly[currency], currency);
+  const deityHeading = getDeityName(plan.id, "heading");
+  const deityBody = getDeityName(plan.id, "body");
 
   useEffect(() => {
     trackEvent("plan_page_view", { plan: plan.id });
@@ -82,12 +85,16 @@ export default function MembershipPlanPage({ plan, currency }: Props) {
           <div className="p-6 md:p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-amber">Weekly membership</p>
             <h1 className="mt-2 text-4xl font-serif leading-tight text-[#f7e7cf] md:text-5xl">
-              {plan.id === "ganesh" ? "Weekly Ganesh Membership" : "Weekly Shani Membership"}
+              {`Weekly ${deityHeading} Membership`}
             </h1>
             <p className="mt-2 text-sm text-[#f2d8ba]/90">
               {plan.id === "ganesh"
                 ? "Every Wednesday. 4 pujas per month in your name."
                 : "Every Saturday. 4 pujas per month in your name."}
+            </p>
+            <p className="mt-2 max-w-xl text-sm text-[#f2d8ba]/80">
+              This {deityBody} online puja membership includes weekly sankalp in your name, live darshan access, replay,
+              and certificate updates.
             </p>
 
             <div className="mt-5 rounded-2xl border border-sagar-amber/35 bg-black/20 p-4">
@@ -162,7 +169,7 @@ export default function MembershipPlanPage({ plan, currency }: Props) {
           </ul>
         ) : (
           <ul className="mt-3 space-y-2 text-sm text-sagar-ink/78">
-            <li>• Traditionally performed to seek clarity and removal of obstacles.</li>
+            <li>• Traditionally performed in {deityBody} Puja to seek clarity and removal of obstacles.</li>
             <li>• Supports focus and steady progress in daily life.</li>
           </ul>
         )}

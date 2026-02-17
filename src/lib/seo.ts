@@ -53,13 +53,15 @@ export function buildMetadata({
   description,
   pathname,
   ogImage,
-  noindex = false
+  noindex = false,
+  keywords
 }: {
   title: string;
   description?: string;
   pathname: string;
   ogImage?: string;
   noindex?: boolean;
+  keywords?: string[];
 }): Metadata {
   const fullTitle = toTitle(title);
   const desc = toDescription(description);
@@ -69,6 +71,7 @@ export function buildMetadata({
   return {
     title: fullTitle,
     description: desc,
+    keywords,
     alternates: buildAlternates(pathname),
     robots: noindex
       ? { index: false, follow: false, googleBot: { index: false, follow: false } }

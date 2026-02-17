@@ -7,9 +7,9 @@ import Logo from "@/components/Logo";
 export default function NavBar() {
   const [scrolled, setScrolled] = useState(false);
   const navItems = [
+    { href: "/online-puja", label: "Online Puja", featured: true },
     { href: "/aartis", label: "Aartis" },
     { href: "/choghadiya", label: "Choghadiya" },
-    { href: "/online-puja", label: "Online Puja" },
     { href: "/live", label: "Live Darshan" }
   ] as const;
 
@@ -38,7 +38,11 @@ export default function NavBar() {
             <Link
               key={item.href}
               href={item.href}
-              className="text-sagar-ink/80 transition hover:text-sagar-ember"
+              className={
+                item.featured
+                  ? "rounded-full border border-sagar-saffron/70 bg-sagar-saffron px-3 py-1.5 text-white shadow-[0_8px_20px_-14px_rgba(140,58,20,0.75)] transition hover:bg-sagar-ember"
+                  : "text-sagar-ink/80 transition hover:text-sagar-ember"
+              }
             >
               {item.label}
             </Link>
@@ -60,7 +64,11 @@ export default function NavBar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="block rounded-xl px-2 py-2 transition hover:bg-sagar-cream/70 hover:text-sagar-ember"
+                  className={
+                    item.featured
+                      ? "mb-1 block rounded-xl border border-sagar-saffron/40 bg-sagar-saffron px-2 py-2 text-white transition hover:bg-sagar-ember"
+                      : "block rounded-xl px-2 py-2 transition hover:bg-sagar-cream/70 hover:text-sagar-ember"
+                  }
                 >
                   {item.label}
                 </Link>

@@ -233,64 +233,46 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
         </div>
       </section>
 
-      <section className="relative mt-8 overflow-hidden rounded-3xl border-2 border-sagar-amber/30 bg-gradient-to-br from-[#1a0f0a] via-[#2a1810] to-[#1a0f0a] shadow-sagar-soft">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(234,179,8,0.08)_0%,_transparent_50%)]" />
-        <div className="relative grid gap-6 p-6 md:grid-cols-[1fr_280px] md:p-8">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-sagar-amber">Why devotees join</p>
-            <h2 className="mt-2 text-3xl font-serif text-[#f7e7cf] md:text-4xl">
-              A way out of the difficult phase in life
-            </h2>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#f2d8ba]/90">
-              Shani Dev is worshipped as the deity of karma, discipline, and justice. When life feels heavy,
-              delayed, or uncertain—many devotees turn to this Saturday ritual for steadiness and relief.
-            </p>
-            <p className="mt-4 rounded-lg border border-sagar-rose/40 bg-sagar-rose/10 px-4 py-2 text-sm font-semibold text-sagar-cream">
-              Every week you wait is another Saturday without your name in the sankalp.
-            </p>
+      <section className="relative mt-8 overflow-hidden rounded-3xl border border-sagar-amber/20 bg-gradient-to-br from-[#fffbf5] via-[#fdf6eb] to-[#f9edd9] p-6 shadow-sagar-soft md:p-8">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-sagar-gold/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-sagar-saffron/8 blur-3xl" />
+        <div className="relative">
+          <p className="text-xs font-bold uppercase tracking-[0.25em] text-sagar-rose">Why devotees join</p>
+          <h2 className="mt-2 text-3xl font-serif text-sagar-ink md:text-4xl">
+            A way out of the difficult phase in life
+          </h2>
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-sagar-ink/85">
+            Shani Dev is worshipped as the deity of karma, discipline, and justice. When life feels heavy,
+            delayed, or uncertain—many devotees turn to this Saturday ritual for steadiness and relief.
+          </p>
+          <p className="mt-4 rounded-xl border border-sagar-amber/30 bg-white/80 px-4 py-3 text-sm font-semibold text-sagar-ink shadow-sm">
+            Every week you wait is another Saturday without your name in the sankalp.
+          </p>
 
-            <div className="mt-6 grid gap-3 md:grid-cols-3">
-              {emotionalCards.map((item) => (
-                <article
-                  key={item.title}
-                  className="group relative overflow-hidden rounded-2xl border border-sagar-amber/40 bg-gradient-to-br from-[#3d2318] via-[#2d1912] to-[#1f110c] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] transition hover:-translate-y-0.5 hover:border-sagar-amber/60 hover:shadow-[0_12px_32px_rgba(234,179,8,0.15)]"
-                >
-                  <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-sagar-gold/15 blur-2xl transition group-hover:scale-110" />
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-sagar-amber/50 bg-sagar-amber/10">
-                    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-sagar-amber">
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {emotionalCards.map((item) => (
+              <article
+                key={item.title}
+                className="group rounded-2xl border border-sagar-amber/25 bg-white p-5 shadow-sagar-soft transition hover:-translate-y-0.5 hover:border-sagar-saffron/40 hover:shadow-sagar-card"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sagar-saffron/20">
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-sagar-saffron">
                       <path d={item.icon} />
                     </svg>
                   </span>
-                  <p className="absolute right-3 top-3 text-[0.65rem] font-bold uppercase tracking-wider text-sagar-rose/80">
+                  <span className="text-right text-[0.65rem] font-bold uppercase tracking-wider text-sagar-rose/90">
                     {item.fear}
-                  </p>
-                  <h3 className="relative mt-4 text-lg font-serif font-semibold leading-tight text-[#fff3de]">
-                    {item.title}
-                  </h3>
-                  <p className="relative mt-2 text-sm leading-relaxed text-[#f2d8ba]/85">
-                    {item.copy}
-                  </p>
-                </article>
-              ))}
-            </div>
-          </div>
-          <div className="relative">
-            <div className="sticky top-6 overflow-hidden rounded-2xl border border-sagar-amber/30 shadow-lg md:max-w-[280px]">
-              <div className="relative aspect-[4/5] w-full md:aspect-auto md:h-[360px]">
-                <Image
-                  src={plan.heroImage}
-                  alt="Shani Dev - Lord of karma and justice"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 280px"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <p className="text-sm font-semibold text-white">Live from Ujjain temple</p>
-                  <p className="text-xs text-white/85">Your name in every Saturday sankalp</p>
+                  </span>
                 </div>
-              </div>
-            </div>
+                <h3 className="mt-4 text-lg font-serif font-semibold leading-tight text-sagar-ink">
+                  {item.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-sagar-ink/80">
+                  {item.copy}
+                </p>
+              </article>
+            ))}
           </div>
         </div>
       </section>

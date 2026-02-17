@@ -46,16 +46,18 @@ export default function HomeWeeklyMembershipSection({ plans }: Props) {
           const weekday = plan.dayOfWeek === 3 ? "Wednesday" : "Saturday";
 
           return (
-            <article
+            <Link
               key={plan.id}
-              className="overflow-hidden rounded-2xl border border-sagar-amber/25 bg-white shadow-sagar-card"
+              href={`/online-puja/${plan.slug}`}
+              className="group overflow-hidden rounded-2xl border border-sagar-amber/25 bg-white shadow-sagar-card transition hover:-translate-y-0.5 hover:border-sagar-saffron/45 hover:shadow-sagar-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sagar-saffron"
+              onClick={() => trackEvent("home_weekly_puja_click", { plan: plan.id })}
             >
               <div className="relative aspect-[16/9] overflow-hidden">
                 <Image
                   src={plan.heroImage}
                   alt={`${plan.deity} weekly membership`}
                   fill
-                  className="object-cover"
+                  className="object-cover transition duration-300 group-hover:scale-[1.02]"
                   sizes="(max-width: 768px) 100vw, 50vw"
                   loading="lazy"
                 />
@@ -79,16 +81,11 @@ export default function HomeWeeklyMembershipSection({ plans }: Props) {
                   <li>• Live access</li>
                   <li>• Replay + certificate</li>
                 </ul>
-
-                <Link
-                  href={`/online-puja/${plan.slug}`}
-                  className="inline-flex min-h-[42px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sagar-ember"
-                  onClick={() => trackEvent("home_weekly_puja_click", { plan: plan.id })}
-                >
-                  {plan.id === "ganesh" ? "Open Ganesh page" : "Open Shani page"}
-                </Link>
+                <p className="text-sm font-semibold text-sagar-ember">
+                  {plan.id === "ganesh" ? "Open Ganesh page" : "Open Shani page"} <span aria-hidden="true">→</span>
+                </p>
               </div>
-            </article>
+            </Link>
           );
         })}
       </div>

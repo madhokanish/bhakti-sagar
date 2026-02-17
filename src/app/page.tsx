@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getCategories, getTopAartis } from "@/lib/data";
 import { getRequestLanguage, buildMetadata } from "@/lib/seo";
+import { DEITY_NAMES } from "@/lib/terminology";
 import { WEEKLY_PLANS } from "@/app/online-puja/plans";
 import MobileQuickNav from "@/components/MobileQuickNav";
 import CategoryCard from "@/components/CategoryCard";
@@ -86,7 +87,7 @@ export default async function HomePage() {
           <aside className="rounded-3xl border border-sagar-amber/25 bg-white/88 p-3 shadow-sagar-card md:p-4">
             <div className="relative aspect-[16/8.5] overflow-hidden rounded-2xl">
               <Image
-                src="/brand/bhakti-sagar-logo.png"
+                src="/brand/home-top-aarti-banner.png"
                 alt="Bhakti Sagar devotional banner"
                 fill
                 className="object-cover"
@@ -146,7 +147,7 @@ export default async function HomePage() {
       <section className="mt-5 rounded-2xl border border-sagar-amber/25 bg-white/90 p-3 shadow-sagar-soft md:p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-sagar-ink/80">
-            This week&apos;s pujas: Ganesh (Wed) and Shani (Sat). Join membership for 4 pujas per month.
+            This week&apos;s pujas: {DEITY_NAMES.ganesh.heading} (Wed) and {DEITY_NAMES.shani.heading} (Sat). Join membership for 4 pujas per month.
           </p>
           <HomeTrackedLink
             href="/online-puja"

@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { trackEvent } from "@/lib/analytics";
 
 const DISMISS_KEY = "bs_promo_ribbon_dismissed_at";
 const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -54,18 +55,25 @@ export default function PromoRibbon() {
   return (
     <div
       ref={ref}
-      className="sticky top-0 z-50 border-b border-sagar-amber/20 bg-sagar-cream/95 px-4 pb-2 pt-[calc(0.4rem+env(safe-area-inset-top))] text-xs text-sagar-ink/80 backdrop-blur"
+      className="sticky top-0 z-50 border-b border-sagar-amber/20 bg-sagar-cream/95 px-4 py-[calc(0.35rem+env(safe-area-inset-top)/2)] text-xs text-sagar-ink/80 backdrop-blur"
     >
-      <div className="container flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-semibold text-sagar-ink/80">
-          Seva Membership is coming. Premium content will be for members soon. Subscribe now.
-        </p>
+      <div className="container flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold uppercase tracking-[0.14em] text-sagar-ink">
+            Weekly Puja Membership
+          </p>
+          <p className="hidden text-xs text-sagar-ink/75 sm:block">
+            4 pujas per month in your name. Ganesh on Wednesday. Shani on Saturday.
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <Link
-            href="/subscribe"
-            className="inline-flex min-h-[28px] items-center justify-center rounded-full border border-sagar-saffron/40 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sagar-ember"
+            href="/online-puja"
+            aria-label="View Weekly Puja Membership plans"
+            onClick={() => trackEvent("home_ribbon_weekly_puja_click", { target: "online_puja" })}
+            className="inline-flex min-h-[30px] items-center justify-center rounded-full border border-sagar-saffron/40 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sagar-ember focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sagar-saffron"
           >
-            Subscribe
+            View plans
           </Link>
           <button
             type="button"

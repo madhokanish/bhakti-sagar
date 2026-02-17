@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/schema";
-import { onlinePujas } from "@/lib/onlinePuja";
 import { WEEKLY_PLANS } from "@/app/online-puja/plans";
-import { getCurrencyForRequest } from "@/lib/subscription";
 import PujaListingPage from "@/components/online-puja/PujaListingPage";
 
 export const metadata: Metadata = buildMetadata({
@@ -14,8 +12,6 @@ export const metadata: Metadata = buildMetadata({
 });
 
 export default async function OnlinePujaIndexPage() {
-  const initialCurrency = getCurrencyForRequest();
-  const secondaryPujas = onlinePujas.filter((item) => item.slug !== "ganesh-vighnaharta");
   const supportEmail = "support@bhakti-sagar.com";
   const breadcrumb = breadcrumbJsonLd([
     { name: "Home", url: "https://bhakti-sagar.com/" },
@@ -54,11 +50,7 @@ export default async function OnlinePujaIndexPage() {
 
   return (
     <>
-      <PujaListingPage
-        initialCurrency={initialCurrency}
-        secondaryPujas={secondaryPujas}
-        supportEmail={supportEmail}
-      />
+      <PujaListingPage supportEmail={supportEmail} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faq) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />

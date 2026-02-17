@@ -5,7 +5,6 @@ import { getCurrencyForRequest, type SupportedCurrency } from "@/lib/subscriptio
 type CheckoutBody = {
   email?: string;
   plan?: "ganesh" | "shani";
-  mode?: "monthly" | "once";
   fullName?: string;
   familyNames?: string;
   gotra?: string;
@@ -28,15 +27,11 @@ function getTrialDays() {
   return Number.isFinite(raw) && raw > 0 ? raw : 7;
 }
 
-function getPlanPriceId(plan: "ganesh" | "shani", mode: "monthly" | "once") {
+function getPlanPriceId(plan: "ganesh" | "shani") {
   const envKey =
     plan === "ganesh"
-      ? mode === "monthly"
-        ? "STRIPE_PRICE_ID_GANESH_MONTHLY"
-        : "STRIPE_PRICE_ID_GANESH_ONCE"
-      : mode === "monthly"
-      ? "STRIPE_PRICE_ID_SHANI_MONTHLY"
-      : "STRIPE_PRICE_ID_SHANI_ONCE";
+      ? "STRIPE_PRICE_ID_GANESH_MONTHLY"
+      : "STRIPE_PRICE_ID_SHANI_MONTHLY";
 
   return process.env[envKey]?.trim() || "";
 }
@@ -47,7 +42,6 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as CheckoutBody;
   const email = body.email?.trim().toLowerCase() || "";
   const plan = body.plan === "shani" ? "shani" : "ganesh";
-  const mode = body.mode === "once" ? "once" : "monthly";
 
   if (!validEmail(email)) {
     return NextResponse.json({ error: "Please enter a valid email." }, { status: 400 });
@@ -57,7 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Please enter your full name." }, { status: 400 });
   }
 
-  const priceId = getPlanPriceId(plan, mode);
+  const priceId = getPlanPriceId(plan);
   if (!priceId) {
     return NextResponse.json(
       { error: "Checkout is not configured for this plan yet." },
@@ -73,7 +67,7 @@ export async function POST(request: Request) {
   const metadata = {
     product: "online_puja",
     plan,
-    mode,
+    mode: "monthly",
     full_name: body.fullName.trim(),
     family_names: body.familyNames?.trim() || "",
     gotra: body.gotra?.trim() || "",
@@ -84,21 +78,18 @@ export async function POST(request: Request) {
   };
 
   const session = await stripe.checkout.sessions.create({
-    mode: mode === "monthly" ? "subscription" : "payment",
+    mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
     payment_method_collection: "always",
     allow_promotion_codes: true,
     customer_email: email,
     metadata,
-    subscription_data:
-      mode === "monthly"
-        ? {
-            trial_period_days: getTrialDays(),
-            metadata
-          }
-        : undefined,
-    success_url: `${appUrl}/online-puja/success?session_id={CHECKOUT_SESSION_ID}&plan=${plan}&mode=${mode}`,
-    cancel_url: `${appUrl}/subscribe?plan=${plan}&mode=${mode}&cancelled=1`
+    subscription_data: {
+      trial_period_days: getTrialDays(),
+      metadata
+    },
+    success_url: `${appUrl}/online-puja/success?session_id={CHECKOUT_SESSION_ID}&plan=${plan}`,
+    cancel_url: `${appUrl}/subscribe?plan=${plan}&cancelled=1`
   });
 
   return NextResponse.json({ url: session.url });

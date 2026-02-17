@@ -3,7 +3,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getCategories, getTopAartis } from "@/lib/data";
 import { getRequestLanguage, buildMetadata } from "@/lib/seo";
-import { getCurrencyForRequest } from "@/lib/subscription";
 import { WEEKLY_PLANS } from "@/app/online-puja/plans";
 import MobileQuickNav from "@/components/MobileQuickNav";
 import CategoryCard from "@/components/CategoryCard";
@@ -25,8 +24,6 @@ export default async function HomePage() {
   const categories = getCategories();
   const topAartis = getTopAartis();
   const membershipPlans = WEEKLY_PLANS.filter((plan) => plan.id === "ganesh" || plan.id === "shani");
-  const currency = getCurrencyForRequest();
-  const locale = currency === "USD" ? "en-US" : currency === "EUR" ? "en-IE" : "en-GB";
 
   const categoryImageBySlug = Object.fromEntries(
     categories.map((category) => [category.slug, category.imageUrl])
@@ -162,7 +159,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <HomeWeeklyMembershipSection plans={membershipPlans} currency={currency} locale={locale} />
+      <HomeWeeklyMembershipSection plans={membershipPlans} />
 
       <section className="mt-5 rounded-3xl border border-sagar-amber/20 bg-white/80 p-4 shadow-sagar-soft md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">

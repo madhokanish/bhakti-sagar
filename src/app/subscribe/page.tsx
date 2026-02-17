@@ -12,7 +12,6 @@ export const metadata: Metadata = buildMetadata({
 
 type SearchParams = {
   plan?: string;
-  mode?: string;
   email?: string;
   name?: string;
   family?: string;
@@ -27,22 +26,20 @@ const trialDays = Number.parseInt(process.env.ONLINE_PUJA_TRIAL_DAYS?.trim() || 
 export default function SubscribePage({ searchParams }: { searchParams: SearchParams }) {
   const initialCurrency = getCurrencyForRequest();
   const initialPlan = searchParams.plan === "shani" ? "shani" : "ganesh";
-  const initialMode = searchParams.mode === "once" ? "once" : "monthly";
 
   return (
     <div className="container py-8 md:py-12">
       <section className="mb-6 rounded-[2rem] border border-sagar-amber/20 bg-gradient-to-br from-white via-sagar-cream/60 to-sagar-sand/65 p-6 shadow-sagar-soft md:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Weekly Puja Membership</p>
-        <h1 className="mt-2 text-4xl font-serif text-sagar-ink md:text-5xl">Choose your weekly seva</h1>
+        <h1 className="mt-2 text-4xl font-serif text-sagar-ink md:text-5xl">Join weekly membership</h1>
         <p className="mt-3 max-w-3xl text-sm text-sagar-ink/74 md:text-base">
           Complete your details once and continue with secure checkout. Membership includes weekly inclusion in sankalp,
-          live access, and replay support.
+          live access, replay, and certificate updates.
         </p>
       </section>
 
       <SubscribeCheckoutPanel
         initialPlan={initialPlan}
-        initialMode={initialMode}
         initialCurrency={initialCurrency}
         trialDays={trialDays}
         prefill={{

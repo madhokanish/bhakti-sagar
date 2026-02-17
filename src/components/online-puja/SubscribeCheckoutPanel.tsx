@@ -8,7 +8,6 @@ import { formatCurrency, getPlanById, getPlanSchedule } from "@/app/online-puja/
 
 type Props = {
   initialPlan: "ganesh" | "shani";
-  initialMode: "monthly" | "once";
   initialCurrency: SupportedCurrency;
   trialDays: number;
   prefill: {
@@ -24,7 +23,6 @@ type Props = {
 
 export default function SubscribeCheckoutPanel({
   initialPlan,
-  initialMode,
   initialCurrency,
   trialDays,
   prefill
@@ -42,11 +40,10 @@ export default function SubscribeCheckoutPanel({
 
   const plan = useMemo(() => getPlanById(initialPlan), [initialPlan]);
   const [showIST, setShowIST] = useState(false);
-  const renewalLabel = useMemo(() => {
-    const amount = initialMode === "monthly" ? plan.priceMonthly[initialCurrency] : plan.priceOnce[initialCurrency];
-    const suffix = initialMode === "monthly" ? " / month" : " this week";
-    return `${formatCurrency(amount, initialCurrency)}${suffix}`;
-  }, [initialCurrency, initialMode, plan]);
+  const renewalLabel = useMemo(
+    () => `${formatCurrency(plan.priceMonthly[initialCurrency], initialCurrency)} / month`,
+    [initialCurrency, plan]
+  );
   const userTimeZone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", []);
   const schedule = useMemo(() => getPlanSchedule(plan), [plan]);
   const selectedTimeZone = showIST ? "Asia/Kolkata" : userTimeZone;
@@ -98,7 +95,6 @@ export default function SubscribeCheckoutPanel({
         body: JSON.stringify({
           email,
           plan: plan.id,
-          mode: initialMode,
           fullName,
           familyNames,
           gotra,
@@ -114,7 +110,7 @@ export default function SubscribeCheckoutPanel({
         throw new Error(data.error || "Unable to continue to checkout.");
       }
 
-      trackEvent("checkout_start", { plan: plan.id, mode: initialMode });
+      trackEvent("checkout_start", { plan: plan.id });
       window.location.href = data.url;
     } catch (checkoutError) {
       setError(checkoutError instanceof Error ? checkoutError.message : "Unable to continue.");
@@ -148,7 +144,7 @@ export default function SubscribeCheckoutPanel({
     <section className="mx-auto max-w-4xl rounded-3xl border border-sagar-amber/20 bg-white p-6 shadow-sagar-soft md:p-8">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Weekly Puja Membership</p>
       <h1 className="mt-2 text-3xl font-serif text-sagar-ink md:text-4xl">
-        {initialMode === "monthly" ? `Start ${plan.deity} membership` : `Book ${plan.deity} puja once`}
+        Start {plan.deity} membership
       </h1>
       <p className="mt-2 text-sm text-sagar-ink/72">{plan.subtitle}</p>
 
@@ -170,13 +166,9 @@ export default function SubscribeCheckoutPanel({
           >
             {showIST ? "Switch to local time" : "Switch to IST"}
           </button>
-          {initialMode === "monthly" ? (
-            <p className="mt-1 text-xs text-sagar-ink/65">
-              No charge today. Auto-renews after {trialDays} days. Next billing date: {nextBillingDate}. Cancel anytime.
-            </p>
-          ) : (
-            <p className="mt-1 text-xs text-sagar-ink/65">Single seva booking. No recurring charge.</p>
-          )}
+          <p className="mt-1 text-xs text-sagar-ink/65">
+            No charge today. Auto-renews after {trialDays} days. Next billing date: {nextBillingDate}. Cancel anytime.
+          </p>
         </div>
         <ul className="space-y-1 text-sm text-sagar-ink/75">
           {plan.includes.map((item) => (
@@ -266,11 +258,7 @@ export default function SubscribeCheckoutPanel({
           disabled={loading}
           className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-sagar-saffron px-6 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading
-            ? "Redirecting..."
-            : initialMode === "monthly"
-            ? `Start ${trialDays}-day trial`
-            : "Proceed to payment"}
+          {loading ? "Redirecting..." : `Start ${trialDays}-day trial`}
         </button>
         <button
           type="button"

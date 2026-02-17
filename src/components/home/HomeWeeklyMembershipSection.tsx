@@ -2,34 +2,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { formatCurrency, getPlanSchedule, type WeeklyPlan } from "@/app/online-puja/plans";
-import CutoffCountdown from "@/components/online-puja/CutoffCountdown";
+import { useEffect, useRef } from "react";
+import type { WeeklyPlan } from "@/app/online-puja/plans";
 import { trackEvent } from "@/lib/analytics";
-import type { SupportedCurrency } from "@/lib/subscription";
-
-function formatDateTime(date: Date, timeZone: string) {
-  return new Intl.DateTimeFormat("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone
-  }).format(date);
-}
 
 type Props = {
   plans: WeeklyPlan[];
-  currency: SupportedCurrency;
-  locale: string;
 };
 
-export default function HomeWeeklyMembershipSection({ plans, currency, locale }: Props) {
+export default function HomeWeeklyMembershipSection({ plans }: Props) {
   const sectionRef = useRef<HTMLElement | null>(null);
-  const userTimeZone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", []);
-  const [showIstByPlan, setShowIstByPlan] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const target = sectionRef.current;
@@ -61,10 +43,7 @@ export default function HomeWeeklyMembershipSection({ plans, currency, locale }:
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         {plans.map((plan) => {
-          const schedule = getPlanSchedule(plan);
-          const showIst = showIstByPlan[plan.id] ?? false;
-          const primaryTimeZone = showIst ? "Asia/Kolkata" : userTimeZone;
-          const monthlyPrice = formatCurrency(plan.priceMonthly[currency], currency, locale);
+          const weekday = plan.dayOfWeek === 3 ? "Wednesday" : "Saturday";
 
           return (
             <article
@@ -85,7 +64,7 @@ export default function HomeWeeklyMembershipSection({ plans, currency, locale }:
                   <h3 className="text-2xl font-serif leading-tight text-white">{plan.deity} Weekly Membership</h3>
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full border border-white/30 bg-black/25 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-white">
-                      Every {plan.dayOfWeek === 3 ? "Wednesday" : "Saturday"}
+                      Every {weekday}
                     </span>
                     <span className="rounded-full border border-white/30 bg-black/25 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-white">
                       4 pujas per month
@@ -95,44 +74,18 @@ export default function HomeWeeklyMembershipSection({ plans, currency, locale }:
               </div>
 
               <div className="space-y-3 p-4">
-                <div className="rounded-xl border border-sagar-amber/25 bg-sagar-cream/45 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sagar-rose">Next session</p>
-                  <p className="mt-1 text-sm font-semibold text-sagar-ink">
-                    {formatDateTime(schedule.nextOccurrence, primaryTimeZone)}
-                  </p>
-                  <button
-                    type="button"
-                    className="mt-1 text-xs font-semibold text-sagar-ember hover:text-sagar-saffron"
-                    onClick={() => {
-                      setShowIstByPlan((current) => ({ ...current, [plan.id]: !showIst }));
-                    }}
-                  >
-                    {showIst ? "Switch to local time" : "Switch to IST"}
-                  </button>
-                  <p className="mt-1 text-xs text-sagar-ink/65">IST: {formatDateTime(schedule.nextOccurrence, "Asia/Kolkata")}</p>
-                </div>
-
-                <CutoffCountdown cutoffAtIso={schedule.cutoffAt.toISOString()} rolledToNextWeek={schedule.rolledToNextWeek} />
-
-                <p className="text-sm font-semibold text-sagar-ink">
-                  {monthlyPrice} / month <span className="font-normal text-sagar-ink/65">• Includes 4 weekly pujas</span>
-                </p>
-
                 <ul className="space-y-1 text-sm text-sagar-ink/78">
-                  <li>• Name included in sankalp weekly</li>
-                  <li>• Live darshan access</li>
-                  <li>• Replay and certificate</li>
+                  <li>• Name in sankalp weekly</li>
+                  <li>• Live access</li>
+                  <li>• Replay + certificate</li>
                 </ul>
 
                 <Link
                   href={`/online-puja/${plan.slug}`}
-                  className="inline-flex min-h-[42px] w-full items-center justify-center rounded-full bg-sagar-saffron px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sagar-ember"
-                  onClick={() => {
-                    trackEvent("home_online_puja_card_click", { plan: plan.id });
-                    trackEvent("home_online_puja_cta_click", { placement: "membership_card", plan: plan.id });
-                  }}
+                  className="inline-flex min-h-[42px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sagar-ember"
+                  onClick={() => trackEvent("home_weekly_puja_click", { plan: plan.id })}
                 >
-                  Join {plan.deity} membership
+                  {plan.id === "ganesh" ? "Open Ganesh page" : "Open Shani page"}
                 </Link>
               </div>
             </article>

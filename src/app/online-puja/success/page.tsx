@@ -11,25 +11,21 @@ export const metadata: Metadata = buildMetadata({
 
 type SearchParams = {
   plan?: string;
-  mode?: string;
   session_id?: string;
 };
 
 export default function OnlinePujaSuccessPage({ searchParams }: { searchParams: SearchParams }) {
   const plan = searchParams.plan === "shani" ? "shani" : "ganesh";
-  const mode = searchParams.mode === "once" ? "once" : "monthly";
 
   return (
     <div className="container py-8 md:py-12">
-      <CheckoutSuccessTracker plan={plan} mode={mode} />
+      <CheckoutSuccessTracker plan={plan} mode="monthly" />
       <section className="mx-auto max-w-3xl rounded-3xl border border-sagar-amber/20 bg-white p-6 shadow-sagar-soft md:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sagar-rose">Success</p>
-        <h1 className="mt-2 text-3xl font-serif text-sagar-ink md:text-4xl">
-          {mode === "monthly" ? "Membership started" : "Booking completed"}
-        </h1>
+        <h1 className="mt-2 text-3xl font-serif text-sagar-ink md:text-4xl">Membership started</h1>
         <p className="mt-3 text-sm text-sagar-ink/74 md:text-base">
-          Your {plan === "ganesh" ? "Ganesh" : "Shani"} {mode === "monthly" ? "membership" : "one-time booking"} is confirmed.
-          You will receive confirmation details on email.
+          Your {plan === "ganesh" ? "Ganesh" : "Shani"} membership is confirmed. You will receive
+          confirmation details on email.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3">

@@ -8,9 +8,9 @@ export default function NavBar() {
   const [scrolled, setScrolled] = useState(false);
   const navItems = [
     { href: "/online-puja", label: "Online Puja", featured: true },
-    { href: "/aartis", label: "Aartis" },
-    { href: "/choghadiya", label: "Choghadiya" },
-    { href: "/live", label: "Live Darshan" }
+    { href: "/aartis", label: "Aartis", featured: false },
+    { href: "/choghadiya", label: "Choghadiya", featured: false },
+    { href: "/live", label: "Live Darshan", featured: false }
   ] as const;
 
   useEffect(() => {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/schema";
 import { getCurrencyForRequest } from "@/lib/subscription";
-import MembershipPlanPage from "@/components/online-puja/MembershipPlanPage";
+import ShaniWeeklyMembershipView from "@/components/online-puja/ShaniWeeklyMembershipPage";
 import { getPlanById } from "@/app/online-puja/plans";
 
 export const metadata: Metadata = buildMetadata({
@@ -24,8 +24,8 @@ export default function ShaniWeeklyMembershipPage() {
 
   const faq = faqJsonLd([
     {
-      q: "Why is this Saturday ritual done?",
-      a: "Devotees traditionally perform this weekly puja to seek stability, patience, and steadiness."
+      q: "What does in your name mean?",
+      a: "Your name is included in sankalp recitation every Saturday as part of the weekly ritual."
     },
     {
       q: "Do I need to attend live?",
@@ -34,12 +34,16 @@ export default function ShaniWeeklyMembershipPage() {
     {
       q: "Can I cancel anytime?",
       a: "Yes. Membership can be managed from billing settings."
+    },
+    {
+      q: "Is this available outside India?",
+      a: "Yes. Timing is shown in your local timezone with IST reference."
     }
   ]);
 
   return (
     <>
-      <MembershipPlanPage plan={plan} currency={currency} />
+      <ShaniWeeklyMembershipView plan={plan} currency={currency} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faq) }} />
     </>

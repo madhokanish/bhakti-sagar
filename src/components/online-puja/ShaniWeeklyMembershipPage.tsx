@@ -115,6 +115,24 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
     }
   ];
 
+  const emotionalCards = [
+    {
+      title: "Relief when life feels stuck",
+      copy: "A weekly ritual to seek steadiness during long delays and difficult phases.",
+      icon: "M12 2a10 10 0 100 20 10 10 0 000-20zm0 5v5l3.5 2"
+    },
+    {
+      title: "Discipline and inner strength",
+      copy: "Traditionally associated with patience, responsibility, and consistent effort.",
+      icon: "M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6l7-3z"
+    },
+    {
+      title: "Protection and stability",
+      copy: "A calm Saturday sankalp to seek stability for home, work, and mind.",
+      icon: "M4 12l8-8 8 8v7H4z"
+    }
+  ];
+
   return (
     <div className="container py-8 pb-24">
       <section
@@ -176,26 +194,36 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
         </div>
       </section>
 
-      <section className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft">
+      <section className="relative mt-8 overflow-hidden rounded-3xl border border-sagar-amber/20 bg-gradient-to-br from-[#fffaf2] via-[#fff2df] to-[#f9e6ca] p-5 shadow-sagar-soft">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-sagar-gold/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-sagar-saffron/15 blur-3xl" />
         <h2 className="text-3xl font-serif text-sagar-ink">Why devotees do Shani puja weekly</h2>
-        <p className="mt-3 text-base text-sagar-ink/78">
+        <p className="mt-3 max-w-4xl text-base text-sagar-ink/82">
           Shani Dev is worshipped as the deity of karma, discipline, and justice. Many devotees turn to this
           Saturday ritual when life feels heavy, delayed, or uncertain.
         </p>
 
         <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <article className="rounded-2xl border border-sagar-amber/25 bg-gradient-to-br from-[#3a2218] to-[#2a160f] p-4 text-[#f7e7cf]">
-            <h3 className="text-2xl font-serif">Relief when life feels stuck</h3>
-            <p className="mt-2 text-sm text-[#f7e7cf]/85">A weekly ritual to seek steadiness during long delays and difficult phases.</p>
-          </article>
-          <article className="rounded-2xl border border-sagar-amber/25 bg-gradient-to-br from-[#3a2218] to-[#2a160f] p-4 text-[#f7e7cf]">
-            <h3 className="text-2xl font-serif">Discipline and inner strength</h3>
-            <p className="mt-2 text-sm text-[#f7e7cf]/85">Traditionally associated with patience, responsibility, and consistent effort.</p>
-          </article>
-          <article className="rounded-2xl border border-sagar-amber/25 bg-gradient-to-br from-[#3a2218] to-[#2a160f] p-4 text-[#f7e7cf]">
-            <h3 className="text-2xl font-serif">Protection and stability</h3>
-            <p className="mt-2 text-sm text-[#f7e7cf]/85">A calm Saturday sankalp to seek stability for home, work, and mind.</p>
-          </article>
+          {emotionalCards.map((item) => (
+            <article
+              key={item.title}
+              className="group relative overflow-hidden rounded-2xl border border-sagar-amber/30 bg-gradient-to-br from-[#4a281b] via-[#3a1f15] to-[#26130d] p-4 shadow-[0_8px_24px_rgba(67,29,14,0.35)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(67,29,14,0.45)]"
+            >
+              <div className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-sagar-gold/20 blur-2xl transition group-hover:scale-110" />
+              <div className="relative flex items-center gap-2">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-sagar-amber/50 bg-[#fff7ea14]">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#fbe8cd" strokeWidth="1.8" className="h-4 w-4">
+                    <path d={item.icon} />
+                  </svg>
+                </span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#fbe8cd]/85">Weekly focus</span>
+              </div>
+              <h3 className="relative mt-3 text-[1.9rem] font-serif leading-tight text-[#fff3de] [text-shadow:0_1px_0_rgba(0,0,0,0.25)]">
+                {item.title}
+              </h3>
+              <p className="relative mt-2 text-sm leading-relaxed text-[#ffe9ca]/92">{item.copy}</p>
+            </article>
+          ))}
         </div>
       </section>
 
@@ -249,10 +277,10 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
       </section>
 
       <section className="mt-6 rounded-3xl border border-sagar-amber/20 bg-gradient-to-br from-[#2f1a12] to-[#24140f] p-5 text-[#f7e7cf] shadow-sagar-soft">
-        <h2 className="text-3xl font-serif">A calm, respectful way to worship</h2>
+        <h2 className="text-3xl font-serif">Join before this week&apos;s cutoff</h2>
         <p className="mt-3 text-sm text-[#f7e7cf]/85">
-          No fear based claims. This is a traditional Saturday puja performed with devotion. Many devotees
-          find peace in consistency.
+          Add your name now for this Saturday&apos;s sankalp. Membership includes weekly inclusion, live access,
+          replay, and certificate updates.
         </p>
         <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
           <span className="rounded-full border border-sagar-amber/35 bg-black/20 px-3 py-1">Temple verified</span>

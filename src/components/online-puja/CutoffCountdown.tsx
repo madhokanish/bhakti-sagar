@@ -1,51 +1,97 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type Props = {
-  cutoffAtIso: string;
-  rolledToNextWeek?: boolean;
+  cutoffAt: Date;
+  /** Compact mode shows single line e.g. "2d 17h left" */
+  compact?: boolean;
+  /** Urgent mode applies pulsing when under 24h */
+  urgent?: boolean;
 };
 
-function getRemaining(targetIso: string) {
-  const diff = new Date(targetIso).getTime() - Date.now();
-  if (diff <= 0) return { totalMs: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
-  const totalSeconds = Math.floor(diff / 1000);
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return { totalMs: diff, days, hours, minutes, seconds };
+function getParts(cutoffAt: Date) {
+  const diff = cutoffAt.getTime() - Date.now();
+  if (diff <= 0) return { expired: true, days: 0, hours: 0, minutes: 0 };
+
+  const totalMinutes = Math.floor(diff / 60000);
+  const days = Math.floor(totalMinutes / (24 * 60));
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+  const minutes = totalMinutes % 60;
+
+  return { expired: false, days, hours, minutes };
 }
 
-function pad(value: number) {
-  return String(value).padStart(2, "0");
-}
-
-export default function CutoffCountdown({ cutoffAtIso, rolledToNextWeek = false }: Props) {
-  const [remaining, setRemaining] = useState(() => getRemaining(cutoffAtIso));
+export default function CutoffCountdown({ cutoffAt, compact, urgent }: Props) {
+  const [parts, setParts] = useState(() => getParts(cutoffAt));
+  const isUrgent = urgent && !parts.expired && parts.days === 0 && parts.hours < 24;
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      setRemaining(getRemaining(cutoffAtIso));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [cutoffAtIso]);
+    setParts(getParts(cutoffAt));
+    const interval = isUrgent ? 10000 : 60000; // 10s when under 24h, else 1min
+    const timer = setInterval(() => setParts(getParts(cutoffAt)), interval);
+    return () => clearInterval(timer);
+  }, [cutoffAt, isUrgent]);
 
-  const label = useMemo(() => {
-    if (remaining.totalMs <= 0) return "Name submission window closed";
-    if (rolledToNextWeek) return "Cutoff passed for this week, next week is open";
-    return "Name submission cutoff";
-  }, [remaining.totalMs, rolledToNextWeek]);
+  if (parts.expired) {
+    return (
+      <span className="rounded-lg bg-sagar-rose/20 px-2 py-1 text-sm font-semibold text-sagar-rose">
+        Cutoff passed — join for next Saturday
+      </span>
+    );
+  }
+
+  if (compact) {
+    const text =
+      parts.days > 0
+        ? `${parts.days}d ${parts.hours}h left`
+        : parts.hours > 0
+          ? `${parts.hours}h ${parts.minutes}m left`
+          : `${parts.minutes}m left`;
+    return (
+      <span
+        className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-bold ${
+          isUrgent
+            ? "animate-pulse bg-sagar-rose/25 text-sagar-rose"
+            : "bg-sagar-amber/30 text-sagar-ink"
+        }`}
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
+        {text}
+      </span>
+    );
+  }
 
   return (
-    <div className="rounded-xl border border-sagar-amber/30 bg-sagar-cream/55 p-3">
-      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-sagar-rose">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-sagar-ink">
-        {remaining.totalMs > 0
-          ? `${remaining.days}d ${pad(remaining.hours)}h ${pad(remaining.minutes)}m ${pad(remaining.seconds)}s`
-          : "Join upcoming cycle"}
-      </p>
+    <div
+      className={`inline-flex items-center gap-3 rounded-xl border px-4 py-2.5 ${
+        isUrgent
+          ? "animate-pulse border-sagar-rose/40 bg-sagar-rose/15"
+          : "border-sagar-amber/35 bg-black/20"
+      }`}
+      role="timer"
+      aria-live="polite"
+      aria-label={`Cutoff in ${parts.days} days, ${parts.hours} hours, ${parts.minutes} minutes`}
+    >
+      <span className="text-xs font-semibold uppercase tracking-[0.15em] text-sagar-amber">
+        Names close in
+      </span>
+      <div className="flex gap-2 font-mono">
+        {parts.days > 0 && (
+          <span className="flex flex-col items-center">
+            <span className="text-xl font-bold text-[#f7e7cf] tabular-nums">{parts.days}</span>
+            <span className="text-[0.65rem] uppercase text-[#f2d8ba]/80">days</span>
+          </span>
+        )}
+        <span className="flex flex-col items-center">
+          <span className="text-xl font-bold text-[#f7e7cf] tabular-nums">{parts.hours}</span>
+          <span className="text-[0.65rem] uppercase text-[#f2d8ba]/80">hrs</span>
+        </span>
+        <span className="flex flex-col items-center">
+          <span className="text-xl font-bold text-[#f7e7cf] tabular-nums">{parts.minutes}</span>
+          <span className="text-[0.65rem] uppercase text-[#f2d8ba]/80">min</span>
+        </span>
+      </div>
     </div>
   );
 }

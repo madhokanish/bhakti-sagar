@@ -4,9 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatCurrency, getPlanSchedule, type WeeklyPlan } from "@/app/online-puja/plans";
+import CutoffCountdown from "@/components/online-puja/CutoffCountdown";
 import FAQAccordion from "@/components/online-puja/FAQAccordion";
 import MobileStickyCTA from "@/components/online-puja/MobileStickyCTA";
 import { trackEvent } from "@/lib/analytics";
+import { getDeityName } from "@/lib/terminology";
 import type { SupportedCurrency } from "@/lib/subscription";
 
 type Props = {
@@ -26,37 +28,15 @@ function formatDateTime(date: Date, timeZone: string) {
   }).format(date);
 }
 
-function getCutoffCountdown(cutoffAt: Date) {
-  const diff = cutoffAt.getTime() - Date.now();
-  if (diff <= 0) return "Cutoff passed, join next week";
-
-  const totalMinutes = Math.floor(diff / 60000);
-  const days = Math.floor(totalMinutes / (24 * 60));
-  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
-  const minutes = totalMinutes % 60;
-
-  if (days > 0) return `Cutoff in ${days}d ${hours}h`;
-  return `Cutoff in ${hours}h ${minutes}m`;
-}
-
 export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
   const [showIST, setShowIST] = useState(false);
   const localTimeZone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", []);
   const schedule = useMemo(() => getPlanSchedule(plan), [plan]);
-  const [countdownText, setCountdownText] = useState(() => getCutoffCountdown(schedule.cutoffAt));
   const reviewsRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     trackEvent("shani_weekly_view", { page: "/online-puja/shani-weekly" });
   }, []);
-
-  useEffect(() => {
-    setCountdownText(getCutoffCountdown(schedule.cutoffAt));
-    const timer = window.setInterval(() => {
-      setCountdownText(getCutoffCountdown(schedule.cutoffAt));
-    }, 30000);
-    return () => window.clearInterval(timer);
-  }, [schedule.cutoffAt]);
 
   useEffect(() => {
     const target = reviewsRef.current;
@@ -81,6 +61,7 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
   const nextSessionLabel = formatDateTime(schedule.nextOccurrence, displayZone);
   const istLabel = formatDateTime(schedule.nextOccurrence, "Asia/Kolkata");
   const joinHref = "/subscribe?plan=shani";
+  const shaniHeading = getDeityName("shani", "heading");
 
   const faqItems = [
     {
@@ -141,10 +122,18 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
       >
         <div className="grid gap-0 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="p-6 md:p-8">
-            <h1 className="text-4xl font-serif leading-tight text-[#f7e7cf] md:text-5xl">Weekly Shani Membership</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <CutoffCountdown cutoffAt={schedule.cutoffAt} compact urgent />
+              <span className="text-xs font-semibold text-sagar-amber">· Live from Ujjain</span>
+            </div>
+            <h1 className="mt-4 text-4xl font-serif leading-tight text-[#f7e7cf] md:text-5xl">Weekly {shaniHeading} Membership</h1>
             <p className="mt-3 max-w-xl text-base text-[#f2d8ba]/90">
               Every Saturday. 4 pujas per month in your name. A calm weekly ritual to seek steadiness,
               discipline, and stability.
+            </p>
+
+            <p className="mt-4 text-sm font-semibold text-[#f7e7cf]">
+              Last chance to add your name for this Saturday. Miss the cutoff and you wait until next week.
             </p>
 
             <div className="mt-4 flex flex-wrap gap-2">
@@ -168,28 +157,32 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
             </button>
             <p className="mt-1 text-xs text-[#f2d8ba]/80">IST: {istLabel}</p>
 
-            <p className="mt-3 text-sm font-semibold text-[#f7e7cf]">Add your name for this Saturday. {countdownText}</p>
+            <div className="mt-5">
+              <CutoffCountdown cutoffAt={schedule.cutoffAt} urgent />
+            </div>
 
             <Link
               href={joinHref}
               onClick={() => trackEvent("shani_weekly_cta_click", { placement: "hero" })}
-              className="mt-5 inline-flex min-h-[44px] items-center justify-center rounded-full bg-sagar-saffron px-6 py-2 text-sm font-semibold text-white hover:bg-sagar-ember"
+              className="mt-6 inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-sagar-saffron px-8 py-3 text-base font-bold text-white shadow-lg shadow-sagar-saffron/25 transition hover:bg-sagar-ember hover:shadow-sagar-saffron/30 sm:w-auto"
             >
-              Join membership
+              Add my name before cutoff
             </Link>
-            <p className="mt-3 text-sm text-[#f2d8ba]/85">Cancel anytime. Replay and certificate included.</p>
-            <p className="mt-2 text-sm text-[#f2d8ba]/85">{monthlyPrice} per month</p>
+            <p className="mt-3 text-sm text-[#f2d8ba]/85">Cancel anytime · Replay + certificate included · {monthlyPrice}/month</p>
           </div>
 
           <div className="relative min-h-[280px]">
             <Image
               src={plan.heroImage}
-              alt="Weekly Shani Membership"
+              alt={`Weekly ${shaniHeading} Membership`}
               fill
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 55vw"
               priority
             />
+            <div className="absolute bottom-3 left-3 rounded-lg border border-white/20 bg-black/40 px-3 py-2 text-xs font-semibold text-white backdrop-blur-sm">
+              Temple-verified · Live from Ujjain
+            </div>
           </div>
         </div>
       </section>
@@ -197,10 +190,13 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
       <section className="relative mt-8 overflow-hidden rounded-3xl border border-sagar-amber/20 bg-gradient-to-br from-[#fffaf2] via-[#fff2df] to-[#f9e6ca] p-5 shadow-sagar-soft">
         <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-sagar-gold/20 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-sagar-saffron/15 blur-3xl" />
-        <h2 className="text-3xl font-serif text-sagar-ink">Why devotees do Shani puja weekly</h2>
+        <h2 className="text-3xl font-serif text-sagar-ink">Why devotees do {shaniHeading} Puja weekly</h2>
         <p className="mt-3 max-w-4xl text-base text-sagar-ink/82">
           Shani Dev is worshipped as the deity of karma, discipline, and justice. Many devotees turn to this
           Saturday ritual when life feels heavy, delayed, or uncertain.
+        </p>
+        <p className="mt-2 text-sm font-medium text-sagar-ink/90">
+          Every week you wait is another Saturday without your name in the sankalp.
         </p>
 
         <div className="mt-5 grid gap-3 md:grid-cols-3">
@@ -255,6 +251,7 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
       {/* TODO: Replace sample reviews with real user reviews from DB/CMS before scaling paid traffic. */}
       <section ref={reviewsRef} className="mt-6">
         <h2 className="text-3xl font-serif text-sagar-ink">Life change stories from members</h2>
+        <p className="mt-2 text-sm text-sagar-ink/75">Join devotees from London, Mumbai, Toronto, Dubai, and more.</p>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <article className="rounded-2xl border border-sagar-amber/20 bg-white p-4 shadow-sagar-soft">
             <p className="text-sm font-semibold text-sagar-ink">Rohit · London</p>
@@ -277,13 +274,29 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
         </div>
       </section>
 
-      <section className="mt-6 rounded-3xl border border-sagar-amber/20 bg-gradient-to-br from-[#2f1a12] to-[#24140f] p-5 text-[#f7e7cf] shadow-sagar-soft">
-        <h2 className="text-3xl font-serif text-[#f7e7cf]">Join before this week&apos;s cutoff</h2>
-        <p className="mt-3 text-sm text-[#f7e7cf]/85">
-          Add your name now for this Saturday&apos;s sankalp. Membership includes weekly inclusion, live access,
-          replay, and certificate updates.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
+      <section className="mt-6 overflow-hidden rounded-3xl border border-sagar-amber/30 bg-gradient-to-br from-[#2f1a12] to-[#24140f] p-6 text-[#f7e7cf] shadow-sagar-soft">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-serif text-[#f7e7cf] md:text-3xl">Don&apos;t miss this Saturday&apos;s sankalp</h2>
+            <p className="mt-2 text-sm text-[#f7e7cf]/90">
+              Once cutoff passes, names for this week close. You&apos;ll have to wait until next Saturday.
+            </p>
+            <p className="mt-2 text-sm font-medium text-[#f7e7cf]">
+              Add your name now. Membership includes weekly inclusion, live access, replay, and certificate.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <CutoffCountdown cutoffAt={schedule.cutoffAt} compact urgent />
+            </div>
+          </div>
+          <Link
+            href={joinHref}
+            onClick={() => trackEvent("shani_weekly_cta_click", { placement: "cutoff_section" })}
+            className="inline-flex min-h-[48px] shrink-0 items-center justify-center rounded-full bg-sagar-saffron px-6 py-3 text-sm font-bold text-white transition hover:bg-sagar-ember"
+          >
+            Add my name now
+          </Link>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-sagar-amber/20 pt-4 text-xs font-semibold">
           <span className="rounded-full border border-sagar-amber/35 bg-black/20 px-3 py-1 text-[#f7e7cf]">Temple verified</span>
           <span className="rounded-full border border-sagar-amber/35 bg-black/20 px-3 py-1 text-[#f7e7cf]">Secure payments</span>
           <span className="rounded-full border border-sagar-amber/35 bg-black/20 px-3 py-1 text-[#f7e7cf]">Support on WhatsApp and email</span>
@@ -300,20 +313,21 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
         />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
         <Link
           href={joinHref}
           onClick={() => trackEvent("shani_weekly_cta_click", { placement: "bottom" })}
-          className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-sagar-saffron px-6 py-2 text-sm font-semibold text-white hover:bg-sagar-ember"
+          className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-sagar-saffron px-8 py-3 text-base font-bold text-white shadow-lg shadow-sagar-saffron/25 hover:bg-sagar-ember"
         >
-          Join membership
+          Add my name before cutoff
         </Link>
+        <p className="text-sm text-sagar-ink/75">Don&apos;t let another Saturday pass without your name in the ritual.</p>
       </div>
 
       <MobileStickyCTA
         targetId="shani-weekly-hero"
-        label="Join membership"
-        priceLabel={`Shani: ${monthlyPrice} / month`}
+        label="Add name before cutoff"
+        priceLabel={`${shaniHeading}: ${monthlyPrice} / month`}
         onClick={() => {
           trackEvent("shani_weekly_cta_click", { placement: "sticky" });
           window.location.href = joinHref;

@@ -81,7 +81,7 @@ export default function WeeklyPlanCard({ plan, mode, currency, locale, onPrimary
           <p className="text-xs text-sagar-ink/65">Temple city: {plan.locationText}</p>
         </div>
 
-        <CutoffCountdown cutoffAtIso={schedule.cutoffAt.toISOString()} rolledToNextWeek={schedule.rolledToNextWeek} />
+        <CutoffCountdown cutoffAt={schedule.cutoffAt} compact />
 
         <div>
           {mode === "membership" ? (

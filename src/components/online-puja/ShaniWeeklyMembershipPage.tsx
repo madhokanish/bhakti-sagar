@@ -99,18 +99,64 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
   const emotionalCards = [
     {
       title: "Relief when life feels stuck",
-      copy: "A weekly ritual to seek steadiness during long delays and difficult phases.",
-      icon: "M12 2a10 10 0 100 20 10 10 0 000-20zm0 5v5l3.5 2"
+      copy: "Delays, obstacles, feeling like nothing moves despite your effort. Weekly sankalp helps seek steadiness through difficult phases.",
+      icon: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z",
+      fear: "Stuck? Delays? Heavy phase?"
     },
     {
       title: "Discipline and inner strength",
-      copy: "Traditionally associated with patience, responsibility, and consistent effort.",
-      icon: "M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6l7-3z"
+      copy: "Shani Dev rewards patience and consistent effort. A weekly ritual builds inner strength when life tests you.",
+      icon: "M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6l7-3z",
+      fear: "Need strength to endure?"
     },
     {
       title: "Protection and stability",
-      copy: "A calm Saturday sankalp to seek stability for home, work, and mind.",
-      icon: "M4 12l8-8 8 8v7H4z"
+      copy: "Home, work, mind—seek stability in all areas. Devotees turn to Saturday puja when life feels shaky.",
+      icon: "M4 12l8-8 8 8v7H4z",
+      fear: "Life feels unstable?"
+    }
+  ];
+
+  const deliverables = [
+    { text: "Name in sankalp every Saturday (automatically)" },
+    { text: "Live darshan access" },
+    { text: "Replay link after puja" },
+    { text: "Certificate PDF after each puja" },
+    { text: "Support on WhatsApp and email" },
+    { text: "Cancel anytime" }
+  ];
+
+  const whoItsFor = [
+    { text: "You feel stuck or delayed despite effort—nothing seems to move", fear: true },
+    { text: "You're going through a heavy phase and need steadiness", fear: true },
+    { text: "You want a steady Saturday routine for calm and discipline", fear: false },
+    { text: "You want weekly sankalp in your name without managing bookings", fear: false }
+  ];
+
+  const testimonials = [
+    {
+      name: "Rohit",
+      location: "London",
+      before: "Life was moving slowly. I was constantly anxious.",
+      after: "The Saturday ritual gave me routine and calm. Hearing the sankalp in my name made it feel personal. It really worked.",
+      detail: "I watch the replay when I miss live.",
+      stars: 5
+    },
+    {
+      name: "Meera",
+      location: "Toronto",
+      before: "Overwhelmed and stuck in a long difficult phase.",
+      after: "This became my anchor. It reminds me to stay disciplined and patient. Things slowly started shifting.",
+      detail: "The certificate helps me feel it truly happened.",
+      stars: 5
+    },
+    {
+      name: "Ankit",
+      location: "Dubai",
+      before: "Wanted something steady every week, not occasional rituals.",
+      after: "Saturday feels complete now. Less about fear, more about steadiness. The weekly structure helped me through.",
+      detail: "Reminders and replay make it easy.",
+      stars: 5
     }
   ];
 
@@ -187,90 +233,151 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
         </div>
       </section>
 
-      <section className="relative mt-8 overflow-hidden rounded-3xl border border-sagar-amber/20 bg-gradient-to-br from-[#fffaf2] via-[#fff2df] to-[#f9e6ca] p-5 shadow-sagar-soft">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-sagar-gold/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-sagar-saffron/15 blur-3xl" />
-        <h2 className="text-3xl font-serif text-sagar-ink">Why devotees do {shaniHeading} Puja weekly</h2>
-        <p className="mt-3 max-w-4xl text-base text-sagar-ink/82">
-          Shani Dev is worshipped as the deity of karma, discipline, and justice. Many devotees turn to this
-          Saturday ritual when life feels heavy, delayed, or uncertain.
-        </p>
-        <p className="mt-2 text-sm font-medium text-sagar-ink/90">
-          Every week you wait is another Saturday without your name in the sankalp.
-        </p>
+      <section className="relative mt-8 overflow-hidden rounded-3xl border-2 border-sagar-amber/30 bg-gradient-to-br from-[#1a0f0a] via-[#2a1810] to-[#1a0f0a] shadow-sagar-soft">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(234,179,8,0.08)_0%,_transparent_50%)]" />
+        <div className="relative grid gap-6 p-6 md:grid-cols-[1fr_280px] md:p-8">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-sagar-amber">Why devotees join</p>
+            <h2 className="mt-2 text-3xl font-serif text-[#f7e7cf] md:text-4xl">
+              A way out of the difficult phase in life
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#f2d8ba]/90">
+              Shani Dev is worshipped as the deity of karma, discipline, and justice. When life feels heavy,
+              delayed, or uncertain—many devotees turn to this Saturday ritual for steadiness and relief.
+            </p>
+            <p className="mt-4 rounded-lg border border-sagar-rose/40 bg-sagar-rose/10 px-4 py-2 text-sm font-semibold text-sagar-cream">
+              Every week you wait is another Saturday without your name in the sankalp.
+            </p>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          {emotionalCards.map((item) => (
-            <article
-              key={item.title}
-              className="group relative overflow-hidden rounded-2xl border border-sagar-amber/30 bg-gradient-to-br from-[#4a281b] via-[#3a1f15] to-[#26130d] p-4 shadow-[0_8px_24px_rgba(67,29,14,0.35)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(67,29,14,0.45)]"
-            >
-              <div className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-sagar-gold/20 blur-2xl transition group-hover:scale-110" />
-              <div className="relative flex items-center gap-2">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-sagar-amber/50 bg-[#fff7ea14]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#fbe8cd" strokeWidth="1.8" className="h-4 w-4">
-                    <path d={item.icon} />
-                  </svg>
-                </span>
+            <div className="mt-6 grid gap-3 md:grid-cols-3">
+              {emotionalCards.map((item) => (
+                <article
+                  key={item.title}
+                  className="group relative overflow-hidden rounded-2xl border border-sagar-amber/40 bg-gradient-to-br from-[#3d2318] via-[#2d1912] to-[#1f110c] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.4)] transition hover:-translate-y-0.5 hover:border-sagar-amber/60 hover:shadow-[0_12px_32px_rgba(234,179,8,0.15)]"
+                >
+                  <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-sagar-gold/15 blur-2xl transition group-hover:scale-110" />
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-sagar-amber/50 bg-sagar-amber/10">
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-sagar-amber">
+                      <path d={item.icon} />
+                    </svg>
+                  </span>
+                  <p className="absolute right-3 top-3 text-[0.65rem] font-bold uppercase tracking-wider text-sagar-rose/80">
+                    {item.fear}
+                  </p>
+                  <h3 className="relative mt-4 text-lg font-serif font-semibold leading-tight text-[#fff3de]">
+                    {item.title}
+                  </h3>
+                  <p className="relative mt-2 text-sm leading-relaxed text-[#f2d8ba]/85">
+                    {item.copy}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </div>
+          <div className="relative">
+            <div className="sticky top-6 overflow-hidden rounded-2xl border border-sagar-amber/30 shadow-lg md:max-w-[280px]">
+              <div className="relative aspect-[4/5] w-full md:aspect-auto md:h-[360px]">
+                <Image
+                  src={plan.heroImage}
+                  alt="Shani Dev - Lord of karma and justice"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 280px"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <p className="text-sm font-semibold text-white">Live from Ujjain temple</p>
+                  <p className="text-xs text-white/85">Your name in every Saturday sankalp</p>
+                </div>
               </div>
-              <h3 className="relative mt-3 text-[1.9rem] font-serif leading-tight text-[#fff3de] [text-shadow:0_1px_0_rgba(0,0,0,0.25)]">
-                {item.title}
-              </h3>
-              <p className="relative mt-3 rounded-lg bg-black/30 px-2.5 py-2 text-sm font-medium leading-relaxed text-white [text-shadow:0_1px_1px_rgba(0,0,0,0.35)]">
-                {item.copy}
-              </p>
-            </article>
-          ))}
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="mt-6 grid gap-4 rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft md:grid-cols-2">
+      <section className="mt-6 grid gap-6 rounded-3xl border-2 border-sagar-amber/25 bg-gradient-to-br from-white via-sagar-cream/40 to-sagar-sand/50 p-6 shadow-sagar-soft md:grid-cols-2 md:p-8">
         <div>
-          <h2 className="text-3xl font-serif text-sagar-ink">What you receive every Saturday</h2>
-          <ul className="mt-3 space-y-2 text-sm text-sagar-ink/78">
-            <li>• Name included in sankalp weekly (automatically)</li>
-            <li>• Live darshan access</li>
-            <li>• Replay link after puja</li>
-            <li>• Certificate PDF after each puja</li>
-            <li>• Support on WhatsApp and email</li>
-            <li>• Cancel anytime</li>
+          <h2 className="text-2xl font-serif text-sagar-ink md:text-3xl">What you receive every Saturday</h2>
+          <p className="mt-2 text-sm text-sagar-ink/75">Everything you need—no hassle, no extra steps.</p>
+          <ul className="mt-4 space-y-3">
+            {deliverables.map((item) => (
+              <li key={item.text} className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sagar-saffron/25">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4 text-sagar-saffron">
+                    <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                <span className="text-sm font-medium text-sagar-ink/88">{item.text}</span>
+              </li>
+            ))}
           </ul>
         </div>
 
-        <div>
-          <h2 className="text-3xl font-serif text-sagar-ink">Who this membership is for</h2>
-          <ul className="mt-3 space-y-2 text-sm text-sagar-ink/78">
-            <li>• You feel stuck or delayed despite effort</li>
-            <li>• You want a steady Saturday routine for calm and discipline</li>
-            <li>• You are going through a heavy period and want steadiness and strength</li>
-            <li>• You want a weekly sankalp in your name without managing bookings</li>
+        <div className="rounded-2xl border-2 border-sagar-rose/25 bg-gradient-to-br from-sagar-cream/80 to-white p-5">
+          <h2 className="text-2xl font-serif text-sagar-ink md:text-3xl">Who this is for</h2>
+          <p className="mt-2 text-sm font-medium text-sagar-rose/90">If this sounds like you—you&apos;re in the right place.</p>
+          <ul className="mt-4 space-y-3">
+            {whoItsFor.map((item) => (
+              <li
+                key={item.text}
+                className={`flex items-start gap-3 rounded-xl px-3 py-2 ${
+                  item.fear ? "border border-sagar-rose/30 bg-sagar-rose/5" : "bg-white/60"
+                }`}
+              >
+                <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${item.fear ? "bg-sagar-rose/20" : "bg-sagar-amber/20"}`}>
+                  <span className={`text-xs font-bold ${item.fear ? "text-sagar-rose" : "text-sagar-amber"}`}>✓</span>
+                </span>
+                <span className="text-sm font-medium text-sagar-ink/90">{item.text}</span>
+              </li>
+            ))}
           </ul>
         </div>
       </section>
 
       {/* TODO: Replace sample reviews with real user reviews from DB/CMS before scaling paid traffic. */}
-      <section ref={reviewsRef} className="mt-6">
-        <h2 className="text-3xl font-serif text-sagar-ink">Life change stories from members</h2>
-        <p className="mt-2 text-sm text-sagar-ink/75">Join devotees from London, Mumbai, Toronto, Dubai, and more.</p>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <article className="rounded-2xl border border-sagar-amber/20 bg-white p-4 shadow-sagar-soft">
-            <p className="text-sm font-semibold text-sagar-ink">Rohit · London</p>
-            <p className="mt-2 text-sm text-sagar-ink/78"><span className="font-semibold">Before:</span> I felt like life was moving slowly and I was constantly anxious.</p>
-            <p className="mt-2 text-sm text-sagar-ink/78"><span className="font-semibold">After:</span> The Saturday ritual gave me routine and calm. Hearing the sankalp in my name made it feel personal.</p>
-            <p className="mt-2 text-sm text-sagar-ink/78"><span className="font-semibold">Detail:</span> I watch the replay when I miss live.</p>
-          </article>
-          <article className="rounded-2xl border border-sagar-amber/20 bg-white p-4 shadow-sagar-soft">
-            <p className="text-sm font-semibold text-sagar-ink">Meera · Toronto</p>
-            <p className="mt-2 text-sm text-sagar-ink/78"><span className="font-semibold">Before:</span> I was overwhelmed and felt stuck in a long phase.</p>
-            <p className="mt-2 text-sm text-sagar-ink/78"><span className="font-semibold">After:</span> This became my anchor. It reminds me to stay disciplined and patient.</p>
-            <p className="mt-2 text-sm text-sagar-ink/78"><span className="font-semibold">Detail:</span> The certificate helps me feel it truly happened.</p>
-          </article>
-          <article className="rounded-2xl border border-sagar-amber/20 bg-white p-4 shadow-sagar-soft">
-            <p className="text-sm font-semibold text-sagar-ink">Ankit · Dubai</p>
-            <p className="mt-2 text-sm text-sagar-ink/78"><span className="font-semibold">Before:</span> I wanted something steady I could do every week, not occasional rituals.</p>
-            <p className="mt-2 text-sm text-sagar-ink/78"><span className="font-semibold">After:</span> Now Saturday feels complete. It is less about fear and more about steadiness.</p>
-            <p className="mt-2 text-sm text-sagar-ink/78"><span className="font-semibold">Detail:</span> The reminders and replay make it easy.</p>
-          </article>
+      <section ref={reviewsRef} className="mt-8">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-serif text-sagar-ink">It really worked for them</h2>
+            <p className="mt-2 text-base font-medium text-sagar-ink/85">Life change stories from members who got through their difficult phase.</p>
+            <p className="mt-1 text-sm text-sagar-ink/75">Join devotees from London, Mumbai, Toronto, Dubai, and more.</p>
+          </div>
+          <div className="flex gap-1">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <span key={i} className="text-xl text-sagar-gold" aria-hidden>★</span>
+            ))}
+            <span className="ml-2 text-sm font-semibold text-sagar-ink">5.0</span>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          {testimonials.map((t) => (
+            <article
+              key={`${t.name}-${t.location}`}
+              className="group overflow-hidden rounded-2xl border-2 border-sagar-amber/25 bg-white shadow-sagar-soft transition hover:border-sagar-saffron/40 hover:shadow-sagar-card"
+            >
+              <div className="border-b border-sagar-amber/20 bg-sagar-cream/50 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-sagar-ink">{t.name} · {t.location}</p>
+                  <span className="flex gap-0.5 text-sagar-gold" aria-hidden>
+                    {Array.from({ length: t.stars }).map((_, i) => (
+                      <span key={i}>★</span>
+                    ))}
+                  </span>
+                </div>
+              </div>
+              <div className="p-4">
+                <div className="rounded-lg bg-sagar-rose/5 border border-sagar-rose/20 px-3 py-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-sagar-rose/80">Before</p>
+                  <p className="mt-1 text-sm font-medium text-sagar-ink/90">{t.before}</p>
+                </div>
+                <div className="mt-3 rounded-lg bg-sagar-saffron/10 border border-sagar-saffron/25 px-3 py-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-sagar-saffron">After · It worked</p>
+                  <p className="mt-1 text-sm font-medium text-sagar-ink">{t.after}</p>
+                </div>
+                <p className="mt-3 text-xs text-sagar-ink/70">{t.detail}</p>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 

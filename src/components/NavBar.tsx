@@ -40,7 +40,7 @@ export default function NavBar() {
               href={item.href}
               className={
                 item.featured
-                  ? "text-sagar-ember transition hover:text-sagar-saffron"
+                  ? "text-sagar-ink/80 transition hover:text-sagar-ember"
                   : "text-sagar-ink/80 transition hover:text-sagar-ember"
               }
             >
@@ -74,7 +74,7 @@ export default function NavBar() {
                   href={item.href}
                   className={
                     item.featured
-                      ? "mb-1 block rounded-xl bg-sagar-cream/60 px-2 py-2 text-sagar-ember transition"
+                      ? "mb-1 block rounded-xl bg-sagar-cream/60 px-2 py-2 text-sagar-ink/80 transition hover:text-sagar-ember"
                       : "block rounded-xl px-2 py-2 transition hover:bg-sagar-cream/70 hover:text-sagar-ember"
                   }
                 >

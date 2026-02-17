@@ -59,10 +59,6 @@ export default function PujaListingPage({ supportEmail }: Props) {
           4 pujas per month in your name. Join online puja for Lord Ganesh Puja or Shani Dev Puja with live access,
           replay, and certificate updates.
         </p>
-        <p className="mt-3 max-w-3xl text-sm text-sagar-ink/70 md:text-base">
-          Searching for online puja from UK, USA, Canada, or India? Choose your weekly plan below and view timing in
-          your local timezone.
-        </p>
       </section>
 
       <section className="mt-6 grid gap-4 md:grid-cols-2">
@@ -115,16 +111,6 @@ export default function PujaListingPage({ supportEmail }: Props) {
         })}
       </section>
 
-      <section className="mt-6 rounded-3xl border border-sagar-amber/20 bg-sagar-cream/35 p-4 text-sm text-sagar-ink/80">
-        <p className="font-semibold text-sagar-ink">Popular online puja searches</p>
-        <p className="mt-1">
-          <Link href="/online-puja/ganesh-weekly" className="text-sagar-ember underline underline-offset-2">Lord Ganesh Puja online</Link>
-          {" · "}
-          <Link href="/online-puja/shani-weekly" className="text-sagar-ember underline underline-offset-2">Shani Dev Puja online</Link>
-          {" · Weekly sankalp membership"}
-        </p>
-      </section>
-
       <section className="mt-6 grid gap-3 rounded-3xl border border-sagar-amber/20 bg-sagar-cream/35 p-4 text-center text-sm text-sagar-ink/82 md:grid-cols-3">
         <div className="rounded-2xl border border-sagar-amber/20 bg-white/90 p-3">Weekly ritual handled for you</div>
         <div className="rounded-2xl border border-sagar-amber/20 bg-white/90 p-3">Name included automatically every week</div>
@@ -150,6 +136,20 @@ export default function PujaListingPage({ supportEmail }: Props) {
       <div className="mt-8">
         <FAQAccordion items={faqItems} title="Membership FAQs" sectionId="online-puja-faq" />
       </div>
+
+      <section className="mt-6 rounded-2xl border border-sagar-amber/20 bg-sagar-cream/25 p-4 text-sm text-sagar-ink/76">
+        <p>
+          Searching for online puja from UK, USA, Canada, or India? Choose your weekly plan above and view timing in
+          your local timezone.
+        </p>
+        <p className="mt-2 font-semibold text-sagar-ink/80">Popular online puja searches</p>
+        <p className="mt-1">
+          <Link href="/online-puja/ganesh-weekly" className="text-sagar-ember underline underline-offset-2">Lord Ganesh Puja online</Link>
+          {" · "}
+          <Link href="/online-puja/shani-weekly" className="text-sagar-ember underline underline-offset-2">Shani Dev Puja online</Link>
+          {" · Weekly sankalp membership"}
+        </p>
+      </section>
 
       <p className="mt-6 text-xs text-sagar-ink/58">
         Support: <a href={`mailto:${supportEmail}`} className="underline underline-offset-2">{supportEmail}</a>

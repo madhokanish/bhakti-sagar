@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { WEEKLY_PLANS } from "@/app/online-puja/plans";
 import { trackEvent } from "@/lib/analytics";
+import { getDeityName } from "@/lib/terminology";
 import FAQAccordion from "@/components/online-puja/FAQAccordion";
 
 type Props = {
@@ -62,41 +63,47 @@ export default function PujaListingPage({ supportEmail }: Props) {
       <section className="mt-6 grid gap-4 md:grid-cols-2">
         {WEEKLY_PLANS.map((plan) => {
           const weekday = plan.dayOfWeek === 3 ? "Wednesday" : "Saturday";
+          const deityHeading = getDeityName(plan.id, "heading");
           return (
             <Link
               key={plan.id}
               href={`/online-puja/${plan.slug}`}
               className="group overflow-hidden rounded-3xl border border-sagar-amber/25 bg-white shadow-sagar-soft transition hover:-translate-y-0.5 hover:border-sagar-saffron/45 hover:shadow-sagar-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sagar-saffron"
               onClick={() => trackEvent("directory_weekly_puja_click", { plan: plan.id })}
+              aria-label={`Open ${deityHeading} membership page`}
             >
-              <div className="relative aspect-[16/9]">
+              <div className="relative aspect-[16/9] overflow-hidden">
                 <Image
                   src={plan.heroImage}
                   alt={`${plan.deity} weekly membership`}
                   fill
                   className="object-cover transition duration-300 group-hover:scale-[1.02]"
                   sizes="(max-width: 768px) 100vw, 50vw"
+                  loading="lazy"
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+                <div className="absolute bottom-3 left-4 right-4 space-y-2">
+                  <h2 className="text-2xl font-serif leading-tight text-white">{`Weekly ${deityHeading} Membership`}</h2>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full border border-white/30 bg-black/25 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-white">
+                      Every {weekday}
+                    </span>
+                    <span className="rounded-full border border-white/30 bg-black/25 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-white">
+                      4 pujas per month
+                    </span>
+                  </div>
+                </div>
               </div>
               <div className="space-y-3 p-5">
-                <h2 className="text-2xl font-serif text-sagar-ink">{plan.id === "ganesh" ? "Ganesh Weekly" : "Shani Weekly"}</h2>
-                <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full border border-sagar-amber/30 bg-sagar-cream/45 px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-sagar-ink/80">
-                    Every {weekday}
-                  </span>
-                  <span className="rounded-full border border-sagar-amber/30 bg-sagar-cream/45 px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-sagar-ink/80">
-                    4 pujas per month
-                  </span>
-                </div>
-
+                <p className="text-sm text-sagar-ink/85">{plan.subtitle}</p>
                 <ul className="space-y-1 text-sm text-sagar-ink/78">
                   <li>• Name in sankalp weekly</li>
                   <li>• Live access</li>
                   <li>• Replay + certificate</li>
                 </ul>
-                <p className="text-sm font-semibold text-sagar-ember">
-                  {plan.id === "ganesh" ? "Open Ganesh page" : "Open Shani page"} <span aria-hidden="true">→</span>
-                </p>
+                <span className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2 text-sm font-semibold text-white transition group-hover:bg-sagar-ember">
+                  Join {deityHeading} membership
+                </span>
               </div>
             </Link>
           );

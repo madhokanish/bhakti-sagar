@@ -3,7 +3,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getCategories, getTopAartis } from "@/lib/data";
 import { getRequestLanguage, buildMetadata } from "@/lib/seo";
-import { DEITY_NAMES } from "@/lib/terminology";
 import { WEEKLY_PLANS } from "@/app/online-puja/plans";
 import MobileQuickNav from "@/components/MobileQuickNav";
 import CategoryCard from "@/components/CategoryCard";
@@ -141,22 +140,6 @@ export default async function HomePage() {
               View all aartis
             </Link>
           </aside>
-        </div>
-      </section>
-
-      <section className="mt-5 rounded-2xl border border-sagar-amber/25 bg-white/90 p-3 shadow-sagar-soft md:p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-sagar-ink/80">
-            This week&apos;s pujas: {DEITY_NAMES.ganesh.heading} (Wed) and {DEITY_NAMES.shani.heading} (Sat). Join membership for 4 pujas per month.
-          </p>
-          <HomeTrackedLink
-            href="/online-puja"
-            eventName="home_online_puja_cta_click"
-            eventParams={{ placement: "promo_strip", target: "membership" }}
-            className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember"
-          >
-            Join membership
-          </HomeTrackedLink>
         </div>
       </section>
 

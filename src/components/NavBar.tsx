@@ -40,11 +40,19 @@ export default function NavBar() {
               href={item.href}
               className={
                 item.featured
-                  ? "rounded-full border border-sagar-saffron/70 bg-sagar-saffron px-3 py-1.5 text-white shadow-[0_8px_20px_-14px_rgba(140,58,20,0.75)] transition hover:bg-sagar-ember"
+                  ? "text-sagar-ember transition hover:text-sagar-saffron"
                   : "text-sagar-ink/80 transition hover:text-sagar-ember"
               }
             >
-              {item.label}
+              <span className="relative inline-flex items-center">
+                {item.label}
+                {item.featured ? (
+                  <span
+                    aria-hidden="true"
+                    className="absolute -right-2 -top-1 inline-flex h-2.5 w-2.5 rounded-full bg-sagar-saffron shadow-[0_0_0_2px_rgba(255,255,255,0.95)]"
+                  />
+                ) : null}
+              </span>
             </Link>
           ))}
         </nav>
@@ -66,11 +74,19 @@ export default function NavBar() {
                   href={item.href}
                   className={
                     item.featured
-                      ? "mb-1 block rounded-xl border border-sagar-saffron/40 bg-sagar-saffron px-2 py-2 text-white transition hover:bg-sagar-ember"
+                      ? "mb-1 block rounded-xl bg-sagar-cream/60 px-2 py-2 text-sagar-ember transition"
                       : "block rounded-xl px-2 py-2 transition hover:bg-sagar-cream/70 hover:text-sagar-ember"
                   }
                 >
-                  {item.label}
+                  <span className="inline-flex items-center gap-2">
+                    {item.label}
+                    {item.featured ? (
+                      <span
+                        aria-hidden="true"
+                        className="inline-flex h-2 w-2 rounded-full bg-sagar-saffron"
+                      />
+                    ) : null}
+                  </span>
                 </Link>
               ))}
             </div>

@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { trackEvent } from "@/lib/analytics";
+import { DEITY_NAMES } from "@/lib/terminology";
 
 const DISMISS_KEY = "bs_promo_ribbon_dismissed_at";
 const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -63,7 +64,7 @@ export default function PromoRibbon() {
             Weekly Puja Membership
           </p>
           <p className="hidden text-xs text-sagar-ink/75 sm:block">
-            4 pujas per month in your name. Ganesh on Wednesday. Shani on Saturday.
+            Weekly Puja Membership now at lower prices.
           </p>
         </div>
         <div className="flex items-center gap-2">

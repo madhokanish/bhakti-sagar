@@ -3,9 +3,13 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getCategories, getTopAartis } from "@/lib/data";
 import { getRequestLanguage, buildMetadata } from "@/lib/seo";
-import { getActiveOnlinePujas, getNextPujaOccurrence } from "@/lib/onlinePuja";
+import { getCurrencyForRequest } from "@/lib/subscription";
+import { WEEKLY_PLANS } from "@/app/online-puja/plans";
 import MobileQuickNav from "@/components/MobileQuickNav";
 import CategoryCard from "@/components/CategoryCard";
+import HomeTrackedLink from "@/components/home/HomeTrackedLink";
+import HomeWeeklyMembershipSection from "@/components/home/HomeWeeklyMembershipSection";
+import HomeStickyMembershipCTA from "@/components/home/HomeStickyMembershipCTA";
 
 export const metadata: Metadata = {
   ...buildMetadata({
@@ -20,32 +24,13 @@ export default async function HomePage() {
   const lang = getRequestLanguage();
   const categories = getCategories();
   const topAartis = getTopAartis();
-  const activePujas = getActiveOnlinePujas();
-  const featuredPuja = activePujas[0] ?? null;
+  const membershipPlans = WEEKLY_PLANS.filter((plan) => plan.id === "ganesh" || plan.id === "shani");
+  const currency = getCurrencyForRequest();
+  const locale = currency === "USD" ? "en-US" : currency === "EUR" ? "en-IE" : "en-GB";
 
   const categoryImageBySlug = Object.fromEntries(
     categories.map((category) => [category.slug, category.imageUrl])
   ) as Record<string, string>;
-
-  const nextPujaDate = featuredPuja
-    ? getNextPujaOccurrence({
-        weeklyDay: featuredPuja.weeklyDay,
-        startTime: featuredPuja.startTime,
-        timeZone: featuredPuja.timezone
-      })
-    : null;
-
-  const nextPujaLabel = nextPujaDate
-    ? new Intl.DateTimeFormat("en-IN", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-        timeZone: featuredPuja?.timezone ?? "Asia/Kolkata"
-      }).format(nextPujaDate)
-    : null;
 
   const todayLabel = new Intl.DateTimeFormat("en-IN", {
     weekday: "long",
@@ -55,7 +40,10 @@ export default async function HomePage() {
 
   return (
     <div className="container pb-12">
-      <section className="relative mt-3 overflow-hidden rounded-[2rem] border border-sagar-amber/25 bg-gradient-to-br from-[#fffaf2] via-[#fff3e1] to-[#f8e3c6] p-4 shadow-sagar-soft md:mt-5 md:p-8">
+      <section
+        id="home-hero"
+        className="relative mt-3 overflow-hidden rounded-[2rem] border border-sagar-amber/25 bg-gradient-to-br from-[#fffaf2] via-[#fff3e1] to-[#f8e3c6] p-4 shadow-sagar-soft md:mt-5 md:p-8"
+      >
         <div className="pointer-events-none absolute -left-16 -top-16 h-52 w-52 rounded-full bg-sagar-gold/25 blur-3xl" />
         <div className="pointer-events-none absolute right-0 top-10 h-56 w-56 rounded-full bg-sagar-saffron/20 blur-3xl" />
         <div className="pointer-events-none absolute inset-0 opacity-40 [background:radial-gradient(circle_at_20%_20%,rgba(255,255,255,.8)_0,rgba(255,255,255,0)_35%),radial-gradient(circle_at_80%_60%,rgba(255,255,255,.7)_0,rgba(255,255,255,0)_40%)]" />
@@ -66,24 +54,26 @@ export default async function HomePage() {
               Daily devotion, made simple.
             </h1>
             <p className="max-w-[56ch] text-base leading-relaxed text-sagar-ink/78">
-              Explore aartis, understand meanings, check Choghadiya timings, watch Live Darshan, and
-              join Online Puja with clarity and peace.
+              Join Weekly Puja Membership for temple seva from home, then continue your daily rhythm with
+              aartis and Choghadiya.
             </p>
 
-            <div className="flex flex-wrap gap-2.5">
+            <div className="flex flex-wrap items-center gap-3">
+              <HomeTrackedLink
+                href="/online-puja"
+                eventName="home_online_puja_cta_click"
+                eventParams={{ placement: "hero", target: "membership" }}
+                aria-label="Weekly Puja Membership"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2.5 text-sm font-semibold text-white shadow-sagar-soft transition hover:bg-sagar-ember"
+              >
+                Weekly Puja Membership
+              </HomeTrackedLink>
               <Link
                 href="/aartis"
                 aria-label="Explore Aartis"
-                className="inline-flex min-h-[42px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2.5 text-sm font-semibold text-white shadow-sagar-soft transition hover:bg-sagar-ember"
-              >
-                Explore Aartis
-              </Link>
-              <Link
-                href="/online-puja"
-                aria-label="Go to Online Puja"
                 className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-sagar-saffron/45 bg-white/85 px-5 py-2.5 text-sm font-semibold text-sagar-ember transition hover:bg-white"
               >
-                Online Puja
+                Explore Aartis
               </Link>
               <Link
                 href="/choghadiya"
@@ -91,13 +81,6 @@ export default async function HomePage() {
                 className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-sagar-amber/40 bg-white/75 px-5 py-2.5 text-sm font-semibold text-sagar-ink/80 transition hover:bg-white"
               >
                 Choghadiya
-              </Link>
-              <Link
-                href="/live"
-                aria-label="Open Live Darshan"
-                className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-sagar-amber/40 bg-white/75 px-5 py-2.5 text-sm font-semibold text-sagar-ink/80 transition hover:bg-white"
-              >
-                Live Darshan
               </Link>
             </div>
 
@@ -163,6 +146,24 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <section className="mt-5 rounded-2xl border border-sagar-amber/25 bg-white/90 p-3 shadow-sagar-soft md:p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-sagar-ink/80">
+            This week&apos;s pujas: Ganesh (Wed) and Shani (Sat). Join membership for 4 pujas per month.
+          </p>
+          <HomeTrackedLink
+            href="/online-puja"
+            eventName="home_online_puja_cta_click"
+            eventParams={{ placement: "promo_strip", target: "membership" }}
+            className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember"
+          >
+            Join membership
+          </HomeTrackedLink>
+        </div>
+      </section>
+
+      <HomeWeeklyMembershipSection plans={membershipPlans} currency={currency} locale={locale} />
+
       <section className="mt-5 rounded-3xl border border-sagar-amber/20 bg-white/80 p-4 shadow-sagar-soft md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -193,39 +194,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {featuredPuja && (
-        <section className="mt-5 rounded-3xl border border-sagar-amber/25 bg-gradient-to-r from-white to-sagar-cream/85 p-4 shadow-sagar-soft md:p-6">
-          <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
-            <div className="flex items-center gap-3">
-              <span className="relative h-14 w-14 overflow-hidden rounded-2xl border border-sagar-amber/25">
-                <Image
-                  src={featuredPuja.heroImageUrl}
-                  alt={featuredPuja.heroImageAlt}
-                  fill
-                  className="object-cover"
-                  sizes="56px"
-                  loading="lazy"
-                />
-              </span>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sagar-rose">Upcoming Online Puja</p>
-                <h2 className="mt-1 text-xl font-serif text-sagar-ink">{featuredPuja.title}</h2>
-                <p className="mt-1 text-sm text-sagar-ink/72">
-                  {nextPujaLabel ?? `${featuredPuja.weeklyDay} · ${featuredPuja.startTime}`} ·{" "}
-                  {featuredPuja.temple.city}
-                </p>
-              </div>
-            </div>
-            <Link
-              href={`/online-puja/${featuredPuja.slug}`}
-              className="inline-flex min-h-[42px] items-center justify-center rounded-full bg-sagar-saffron px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sagar-ember"
-            >
-              Join this puja
-            </Link>
-          </div>
-        </section>
-      )}
-
       <section className="mt-6">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-2xl font-serif text-sagar-ink">Aarti Categories</h2>
@@ -240,6 +208,7 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <HomeStickyMembershipCTA targetId="home-hero" plans={membershipPlans} />
       <MobileQuickNav />
     </div>
   );

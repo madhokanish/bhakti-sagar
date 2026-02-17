@@ -29,8 +29,8 @@ export const WEEKLY_PLANS: WeeklyPlan[] = [
   {
     id: "ganesh",
     slug: "ganesh-weekly",
-    deity: "Ganesh",
-    title: "Weekly Ganesh Vighnaharta Puja",
+    deity: "Lord Ganesh",
+    title: "Weekly Lord Ganesh Vighnaharta Puja",
     subtitle: "For auspicious beginnings and steady progress.",
     traditionalNote: "Traditionally performed to seek clarity, focus, and removal of obstacles.",
     dayOfWeek: 3,
@@ -50,7 +50,7 @@ export const WEEKLY_PLANS: WeeklyPlan[] = [
   {
     id: "shani",
     slug: "shani-weekly",
-    deity: "Shani",
+    deity: "Shani Dev",
     title: "Weekly Shani Dev Puja",
     subtitle: "A Saturday ritual to seek stability, discipline, and relief during difficult periods.",
     traditionalNote: "Traditionally performed to seek steadiness, patience, and protection from prolonged delays.",

@@ -37,8 +37,8 @@ export const festivals = [
   },
   {
     slug: "ganesh-chaturthi",
-    name: "Ganesh Chaturthi",
-    description: "Celebration of Ganesh ji with aarti and offerings.",
+    name: "Lord Ganesh Chaturthi",
+    description: "Celebration of Ganesh Ji with aarti and offerings.",
     categories: ["ganesha"]
   },
   {
@@ -64,8 +64,8 @@ export const festivals = [
 export const poojaGuides = [
   {
     slug: "ganesh",
-    name: "Ganesh Pooja Vidhi",
-    description: "Simple Ganesh pooja steps with aarti and offerings.",
+    name: "Lord Ganesh Pooja Vidhi",
+    description: "Simple Ganesh Ji pooja steps with aarti and offerings.",
     category: "ganesha"
   },
   {
@@ -91,7 +91,7 @@ export const poojaGuides = [
 export const mantras = [
   {
     slug: "ganesh",
-    name: "Ganesh Mantra",
+    name: "Lord Ganesh Mantra",
     description: "Om Gan Ganapataye Namah"
   },
   {

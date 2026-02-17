@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { getCurrencyForRequest } from "@/lib/subscription";
+import { DEITY_NAMES } from "@/lib/terminology";
 import SubscribeCheckoutPanel from "@/components/online-puja/SubscribeCheckoutPanel";
 
 export const metadata: Metadata = buildMetadata({
   title: "Weekly Puja Membership Checkout",
   description:
-    "Start Ganesh or Shani Weekly Puja Membership with trial access, clear deliverables, and self-serve cancellation.",
+    `Start ${DEITY_NAMES.ganesh.heading} or ${DEITY_NAMES.shani.heading} Weekly Puja Membership with trial access, clear deliverables, and self-serve cancellation.`,
   pathname: "/subscribe"
 });
 

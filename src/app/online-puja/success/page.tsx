@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { buildMetadata } from "@/lib/seo";
+import { DEITY_NAMES } from "@/lib/terminology";
 import CheckoutSuccessTracker from "@/components/online-puja/CheckoutSuccessTracker";
 
 export const metadata: Metadata = buildMetadata({
@@ -24,7 +25,7 @@ export default function OnlinePujaSuccessPage({ searchParams }: { searchParams: 
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sagar-rose">Success</p>
         <h1 className="mt-2 text-3xl font-serif text-sagar-ink md:text-4xl">Membership started</h1>
         <p className="mt-3 text-sm text-sagar-ink/74 md:text-base">
-          Your {plan === "ganesh" ? "Ganesh" : "Shani"} membership is confirmed. You will receive
+          Your {plan === "ganesh" ? DEITY_NAMES.ganesh.heading : DEITY_NAMES.shani.heading} membership is confirmed. You will receive
           confirmation details on email.
         </p>
 

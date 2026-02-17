@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import type { WeeklyPlan } from "@/app/online-puja/plans";
 import { trackEvent } from "@/lib/analytics";
+import { getDeityName } from "@/lib/terminology";
 
 type Props = {
   plans: WeeklyPlan[];
@@ -44,6 +45,7 @@ export default function HomeWeeklyMembershipSection({ plans }: Props) {
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         {plans.map((plan) => {
           const weekday = plan.dayOfWeek === 3 ? "Wednesday" : "Saturday";
+          const deityHeading = getDeityName(plan.id, "heading");
 
           return (
             <Link
@@ -63,7 +65,7 @@ export default function HomeWeeklyMembershipSection({ plans }: Props) {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
                 <div className="absolute bottom-3 left-3 right-3 space-y-2">
-                  <h3 className="text-2xl font-serif leading-tight text-white">{plan.deity} Weekly Membership</h3>
+                  <h3 className="text-2xl font-serif leading-tight text-white">{`${deityHeading} Puja`}</h3>
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full border border-white/30 bg-black/25 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-white">
                       Every {weekday}
@@ -82,7 +84,7 @@ export default function HomeWeeklyMembershipSection({ plans }: Props) {
                   <li>• Replay + certificate</li>
                 </ul>
                 <p className="text-sm font-semibold text-sagar-ember">
-                  {plan.id === "ganesh" ? "Open Ganesh page" : "Open Shani page"} <span aria-hidden="true">→</span>
+                  {`Open ${deityHeading} Puja`} <span aria-hidden="true">→</span>
                 </p>
               </div>
             </Link>

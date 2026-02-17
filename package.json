@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "check:deity-copy": "node scripts/check-deity-copy.js",
     "test": "node --test --experimental-strip-types --experimental-specifier-resolution=node",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",

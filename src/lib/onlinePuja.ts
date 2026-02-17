@@ -106,11 +106,11 @@ export const onlinePujas: OnlinePuja[] = [
   {
     id: "puja-ganesh-vighnaharta",
     slug: "ganesh-vighnaharta",
-    title: "Ganesh Vighnaharta Puja and Havan",
+    title: "Lord Ganesh Vighnaharta Puja and Havan",
     tagline: "A weekly seva to remove obstacles and invite steady progress.",
-    deity: "Ganesh",
+    deity: "Ganesh Ji",
     heroImageUrl: "/category/ganesha.jpg",
-    heroImageAlt: "Ganesh deity image for online puja",
+    heroImageAlt: "Lord Ganesh deity image for online puja",
     weeklyDay: "Wednesday",
     startTime: "19:00",
     timezone: "Asia/Kolkata",
@@ -122,7 +122,7 @@ export const onlinePujas: OnlinePuja[] = [
     },
     sections: {
       about: [
-        "This weekly Ganesh puja focuses on invoking Vighnaharta, the remover of obstacles, before major life and work decisions.",
+        "This weekly Lord Ganesh puja focuses on invoking Vighnaharta, the remover of obstacles, before major life and work decisions.",
         "The sankalp is offered in your name, and the puja sequence includes mantra japa, deepam, and havan for a complete offering."
       ],
       benefits: [
@@ -136,14 +136,14 @@ export const onlinePujas: OnlinePuja[] = [
         "The puja is performed at the temple with sankalp in your name."
       ],
       temple: [
-        "Shri Chintaman Ganesh Temple in Ujjain is among the most visited Ganesh shrines in central India.",
+        "Shri Chintaman Ganesh Temple in Ujjain is among the most visited Lord Ganesh shrines in central India.",
         "The temple is known for seva dedicated to peace of mind, obstacle removal, and auspicious starts."
       ]
     },
     seo: {
-      title: "Online Ganesh Vighnaharta Puja and Havan",
+      title: "Online Lord Ganesh Vighnaharta Puja and Havan",
       description:
-        "Join weekly Ganesh Vighnaharta Puja and Havan from Shri Chintaman Ganesh Temple, Ujjain. Register interest and receive participation details."
+        "Join weekly Lord Ganesh Vighnaharta Puja and Havan from Shri Chintaman Ganesh Temple, Ujjain. Register interest and receive participation details."
     },
     booking: {
       priceAmount: 1100,

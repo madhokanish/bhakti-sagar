@@ -65,7 +65,7 @@ const detailConfigBySlug: Record<string, Omit<PujaDetailConfig, "faqs"> & { faqs
   "ganesh-vighnaharta": {
     subtitle: "A powerful weekly puja to remove obstacles and invite steady progress.",
     carouselImages: [
-      { src: "/category/ganesha.jpg", alt: "Ganesh temple darshan for online puja" },
+      { src: "/category/ganesha.jpg", alt: "Lord Ganesh temple darshan for online puja" },
       { src: "/category/lakshmi.jpg", alt: "Temple puja altar setup" },
       { src: "/category/hanuman.jpg", alt: "Devotees attending evening aarti" }
     ],
@@ -109,7 +109,7 @@ const detailConfigBySlug: Record<string, Omit<PujaDetailConfig, "faqs"> & { faqs
         id: "obstacles",
         icon: "🕉️",
         title: "Remove obstacles",
-        description: "Weekly Ganesh sankalp for smoother progress in work, family, and important decisions."
+        description: "Weekly Ganesh Ji sankalp for smoother progress in work, family, and important decisions."
       },
       {
         id: "success",

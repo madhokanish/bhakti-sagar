@@ -221,7 +221,9 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
               <h3 className="relative mt-3 text-[1.9rem] font-serif leading-tight text-[#fff3de] [text-shadow:0_1px_0_rgba(0,0,0,0.25)]">
                 {item.title}
               </h3>
-              <p className="relative mt-2 text-sm leading-relaxed text-[#ffe9ca]/92">{item.copy}</p>
+              <p className="relative mt-3 rounded-lg bg-black/30 px-2.5 py-2 text-sm font-medium leading-relaxed text-white [text-shadow:0_1px_1px_rgba(0,0,0,0.35)]">
+                {item.copy}
+              </p>
             </article>
           ))}
         </div>

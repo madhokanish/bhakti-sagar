@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { SupportedCurrency } from "@/lib/subscription";
 import { trackEvent } from "@/lib/analytics";
-import { formatCurrency, getPlanById } from "@/app/online-puja/plans";
+import { formatCurrency, getPlanById, getPlanSchedule } from "@/app/online-puja/plans";
 
 type Props = {
   initialPlan: "ganesh" | "shani";
@@ -14,6 +14,7 @@ type Props = {
   prefill: {
     email?: string;
     fullName?: string;
+    familyNames?: string;
     gotra?: string;
     intention?: string;
     whatsappOptIn?: boolean;
@@ -30,6 +31,7 @@ export default function SubscribeCheckoutPanel({
 }: Props) {
   const [email, setEmail] = useState(prefill.email || "");
   const [fullName, setFullName] = useState(prefill.fullName || "");
+  const [familyNames, setFamilyNames] = useState(prefill.familyNames || "");
   const [gotra, setGotra] = useState(prefill.gotra || "");
   const [intention, setIntention] = useState(prefill.intention || "career");
   const [whatsappOptIn, setWhatsappOptIn] = useState(Boolean(prefill.whatsappOptIn));
@@ -39,11 +41,50 @@ export default function SubscribeCheckoutPanel({
   const [portalError, setPortalError] = useState("");
 
   const plan = useMemo(() => getPlanById(initialPlan), [initialPlan]);
+  const [showIST, setShowIST] = useState(false);
   const renewalLabel = useMemo(() => {
     const amount = initialMode === "monthly" ? plan.priceMonthly[initialCurrency] : plan.priceOnce[initialCurrency];
     const suffix = initialMode === "monthly" ? " / month" : " this week";
     return `${formatCurrency(amount, initialCurrency)}${suffix}`;
   }, [initialCurrency, initialMode, plan]);
+  const userTimeZone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", []);
+  const schedule = useMemo(() => getPlanSchedule(plan), [plan]);
+  const selectedTimeZone = showIST ? "Asia/Kolkata" : userTimeZone;
+  const nextSessionLabel = useMemo(
+    () =>
+      new Intl.DateTimeFormat("en-GB", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: selectedTimeZone
+      }).format(schedule.nextOccurrence),
+    [schedule.nextOccurrence, selectedTimeZone]
+  );
+  const cutoffLabel = useMemo(
+    () =>
+      new Intl.DateTimeFormat("en-GB", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: selectedTimeZone
+      }).format(schedule.cutoffAt),
+    [schedule.cutoffAt, selectedTimeZone]
+  );
+  const nextBillingDate = useMemo(() => {
+    const billingDate = new Date();
+    billingDate.setDate(billingDate.getDate() + trialDays);
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric"
+    }).format(billingDate);
+  }, [trialDays]);
 
   async function startCheckout() {
     if (loading) return;
@@ -59,6 +100,7 @@ export default function SubscribeCheckoutPanel({
           plan: plan.id,
           mode: initialMode,
           fullName,
+          familyNames,
           gotra,
           intention,
           whatsappOptIn,
@@ -115,8 +157,23 @@ export default function SubscribeCheckoutPanel({
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sagar-rose">Selected plan</p>
           <p className="mt-1 text-lg font-semibold text-sagar-ink">{plan.title}</p>
           <p className="mt-1 text-sm text-sagar-ink/70">{renewalLabel}</p>
+          <p className="mt-1 text-xs text-sagar-ink/65">
+            Next puja: {nextSessionLabel}
+          </p>
+          <p className="mt-1 text-xs text-sagar-ink/65">
+            Name cutoff: {cutoffLabel}
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowIST((value) => !value)}
+            className="mt-1 text-xs font-semibold text-sagar-ember hover:text-sagar-saffron"
+          >
+            {showIST ? "Switch to local time" : "Switch to IST"}
+          </button>
           {initialMode === "monthly" ? (
-            <p className="mt-1 text-xs text-sagar-ink/65">No charge today. Auto-renews after {trialDays} days. Cancel anytime.</p>
+            <p className="mt-1 text-xs text-sagar-ink/65">
+              No charge today. Auto-renews after {trialDays} days. Next billing date: {nextBillingDate}. Cancel anytime.
+            </p>
           ) : (
             <p className="mt-1 text-xs text-sagar-ink/65">Single seva booking. No recurring charge.</p>
           )}
@@ -149,6 +206,16 @@ export default function SubscribeCheckoutPanel({
             className="mt-1 w-full rounded-xl border border-sagar-amber/30 px-3 py-2 outline-none focus:border-sagar-saffron"
             placeholder="Your full name"
             required
+          />
+        </label>
+        <label className="block text-sm text-sagar-ink/80">
+          Family names (optional)
+          <input
+            type="text"
+            value={familyNames}
+            onChange={(event) => setFamilyNames(event.target.value)}
+            className="mt-1 w-full rounded-xl border border-sagar-amber/30 px-3 py-2 outline-none focus:border-sagar-saffron"
+            placeholder="Comma separated names"
           />
         </label>
         <label className="block text-sm text-sagar-ink/80">

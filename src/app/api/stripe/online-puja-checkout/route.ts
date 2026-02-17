@@ -7,6 +7,7 @@ type CheckoutBody = {
   plan?: "ganesh" | "shani";
   mode?: "monthly" | "once";
   fullName?: string;
+  familyNames?: string;
   gotra?: string;
   intention?: string;
   whatsappOptIn?: boolean;
@@ -74,6 +75,7 @@ export async function POST(request: Request) {
     plan,
     mode,
     full_name: body.fullName.trim(),
+    family_names: body.familyNames?.trim() || "",
     gotra: body.gotra?.trim() || "",
     intention: body.intention?.trim() || "",
     whatsapp_opt_in: body.whatsappOptIn ? "1" : "0",

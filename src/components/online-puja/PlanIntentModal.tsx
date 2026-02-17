@@ -6,6 +6,7 @@ import type { MembershipMode } from "@/app/online-puja/plans";
 
 export type PlanIntentPayload = {
   fullName: string;
+  familyNames: string;
   gotra: string;
   intention: string;
   whatsappOptIn: boolean;
@@ -34,6 +35,7 @@ export default function PlanIntentModal({ open, planTitle, mode, onClose, onCont
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [mounted, setMounted] = useState(false);
   const [fullName, setFullName] = useState("");
+  const [familyNames, setFamilyNames] = useState("");
   const [gotra, setGotra] = useState("");
   const [intention, setIntention] = useState("career");
   const [whatsappOptIn, setWhatsappOptIn] = useState(false);
@@ -111,6 +113,16 @@ export default function PlanIntentModal({ open, planTitle, mode, onClose, onCont
             />
           </label>
           <label className="block text-sm text-sagar-ink/80">
+            Family names (optional)
+            <input
+              type="text"
+              value={familyNames}
+              onChange={(event) => setFamilyNames(event.target.value)}
+              className="mt-1 w-full rounded-xl border border-sagar-amber/30 px-3 py-2 text-sm outline-none focus:border-sagar-saffron"
+              placeholder="Comma separated names"
+            />
+          </label>
+          <label className="block text-sm text-sagar-ink/80">
             Gotra (optional)
             <input
               type="text"
@@ -159,6 +171,7 @@ export default function PlanIntentModal({ open, planTitle, mode, onClose, onCont
               if (!fullName.trim()) return;
               onContinue({
                 fullName: fullName.trim(),
+                familyNames: familyNames.trim(),
                 gotra: gotra.trim(),
                 intention,
                 whatsappOptIn

@@ -15,6 +15,7 @@ type SearchParams = {
   mode?: string;
   email?: string;
   name?: string;
+  family?: string;
   gotra?: string;
   intention?: string;
   wa?: string;
@@ -47,6 +48,7 @@ export default function SubscribePage({ searchParams }: { searchParams: SearchPa
         prefill={{
           email: searchParams.email,
           fullName: searchParams.name,
+          familyNames: searchParams.family,
           gotra: searchParams.gotra,
           intention: searchParams.intention,
           whatsappOptIn: searchParams.wa === "1",

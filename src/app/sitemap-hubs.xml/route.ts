@@ -23,6 +23,8 @@ export async function GET() {
     "/choghadiya",
     "/live",
     "/online-puja",
+    "/online-puja/ganesh-weekly",
+    "/online-puja/shani-weekly",
     "/about",
     "/contact",
     "/privacy",

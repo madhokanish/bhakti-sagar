@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { formatCurrency, getPlanSchedule, type MembershipMode, type WeeklyPlan } from "@/app/online-puja/plans";
 import type { SupportedCurrency } from "@/lib/subscription";
 import CutoffCountdown from "@/components/online-puja/CutoffCountdown";
@@ -31,6 +31,7 @@ function formatTime(date: Date, timeZone: string) {
 export default function WeeklyPlanCard({ plan, mode, currency, locale, onPrimaryClick, onCardClick }: Props) {
   const userTimeZone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", []);
   const schedule = useMemo(() => getPlanSchedule(plan), [plan]);
+  const [showIST, setShowIST] = useState(false);
   const monthlyPrice = formatCurrency(plan.priceMonthly[currency], currency, locale);
   const oncePrice = formatCurrency(plan.priceOnce[currency], currency, locale);
 
@@ -52,10 +53,31 @@ export default function WeeklyPlanCard({ plan, mode, currency, locale, onPrimary
         </div>
 
         <div className="grid gap-2 rounded-2xl border border-sagar-amber/20 bg-sagar-cream/45 p-3 text-sm text-sagar-ink/78">
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-full border border-sagar-amber/35 bg-white px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-sagar-ink/80">
+              Every {plan.dayOfWeek === 3 ? "Wednesday" : "Saturday"}
+            </span>
+            <span className="rounded-full border border-sagar-amber/35 bg-white px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-sagar-ink/80">
+              4 pujas per month included
+            </span>
+          </div>
           <p>
-            <span className="font-semibold text-sagar-ink">Next puja:</span> {formatTime(schedule.nextOccurrence, userTimeZone)}
+            <span className="font-semibold text-sagar-ink">Next puja:</span>{" "}
+            {formatTime(schedule.nextOccurrence, showIST ? "Asia/Kolkata" : userTimeZone)}
           </p>
-          <p className="text-xs text-sagar-ink/65">IST: {formatTime(schedule.nextOccurrence, "Asia/Kolkata")}</p>
+          <button
+            type="button"
+            className="w-fit text-xs font-semibold text-sagar-ember hover:text-sagar-saffron"
+            onClick={(event) => {
+              event.stopPropagation();
+              setShowIST((value) => !value);
+            }}
+          >
+            {showIST ? "Switch to local time" : "Switch to IST"}
+          </button>
+          <p className="text-xs text-sagar-ink/65">
+            IST: {formatTime(schedule.nextOccurrence, "Asia/Kolkata")}
+          </p>
           <p className="text-xs text-sagar-ink/65">Temple city: {plan.locationText}</p>
         </div>
 
@@ -65,7 +87,7 @@ export default function WeeklyPlanCard({ plan, mode, currency, locale, onPrimary
           {mode === "membership" ? (
             <>
               <p className="text-xl font-semibold text-sagar-ink">{monthlyPrice} / month</p>
-              <p className="text-xs text-sagar-ink/65">Includes 4 weekly pujas</p>
+              <p className="text-xs text-sagar-ink/65">Included in membership</p>
             </>
           ) : (
             <>
@@ -93,11 +115,11 @@ export default function WeeklyPlanCard({ plan, mode, currency, locale, onPrimary
             {mode === "membership" ? `Join ${plan.deity} membership` : `Book ${plan.deity} once`}
           </button>
           <Link
-            href={`#plan-${plan.id}`}
+            href={`/online-puja/${plan.slug}`}
             onClick={(event) => event.stopPropagation()}
             className="text-sm font-semibold text-sagar-ember hover:text-sagar-saffron"
           >
-            See details
+            Learn more
           </Link>
         </div>
       </div>

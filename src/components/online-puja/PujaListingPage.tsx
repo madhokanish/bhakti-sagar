@@ -78,6 +78,7 @@ function serializeIntent(
   params.set("plan", plan.id);
   params.set("mode", toSubscribeMode(mode));
   params.set("name", payload.fullName);
+  if (payload.familyNames) params.set("family", payload.familyNames);
   if (payload.gotra) params.set("gotra", payload.gotra);
   if (payload.intention) params.set("intention", payload.intention);
   if (payload.whatsappOptIn) params.set("wa", "1");
@@ -104,7 +105,7 @@ export default function PujaListingPage({ initialCurrency, secondaryPujas, suppo
 
   useEffect(() => {
     const lastVisit = window.localStorage.getItem("online_puja_last_visit_at");
-    trackEvent("online_puja_page_view", {
+    trackEvent("online_puja_view", {
       page: "/online-puja",
       return_visit: Boolean(lastVisit)
     });
@@ -148,7 +149,7 @@ export default function PujaListingPage({ initialCurrency, secondaryPujas, suppo
   function openIntent(plan: WeeklyPlan, source: "hero" | "card" | "sticky") {
     setSelectedPlanId(plan.id);
     setIntentOpen(true);
-    trackEvent("online_puja_cta_click", {
+    trackEvent("membership_cta_click", {
       action: mode === "membership" ? "join" : "book_once",
       plan: plan.id,
       source
@@ -156,9 +157,10 @@ export default function PujaListingPage({ initialCurrency, secondaryPujas, suppo
   }
 
   function onIntentContinue(payload: PlanIntentPayload) {
-    trackEvent("online_puja_intent_submit", {
+    trackEvent("intent_submit", {
       plan: selectedPlan.id,
       mode,
+      family_names_added: Boolean(payload.familyNames),
       intention: payload.intention,
       whatsapp_opt_in: payload.whatsappOptIn
     });
@@ -175,7 +177,7 @@ export default function PujaListingPage({ initialCurrency, secondaryPujas, suppo
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Online Puja</p>
         <h1 className="mt-2 max-w-3xl text-4xl font-serif leading-tight text-sagar-ink md:text-5xl">Weekly Puja Membership</h1>
         <p className="mt-3 max-w-3xl text-base text-sagar-ink/75 md:text-lg">
-          Your name included every week. Live from temple. Replay included. Cancel anytime.
+          4 pujas every month in your name. Live from temple. Replay and certificate. Cancel anytime.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <button
@@ -186,7 +188,7 @@ export default function PujaListingPage({ initialCurrency, secondaryPujas, suppo
             }}
             className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-sagar-saffron px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-sagar-ember"
           >
-            Start membership
+            Choose your membership
           </button>
           <button
             type="button"
@@ -200,6 +202,17 @@ export default function PujaListingPage({ initialCurrency, secondaryPujas, suppo
           </button>
         </div>
         <p className="mt-4 text-sm text-sagar-ink/68">Temple seva from home, with clear deliverables every week.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="rounded-full border border-sagar-amber/35 bg-white px-3 py-1 text-xs font-semibold text-sagar-ink/75">
+            Temple verified
+          </span>
+          <span className="rounded-full border border-sagar-amber/35 bg-white px-3 py-1 text-xs font-semibold text-sagar-ink/75">
+            Secure payments
+          </span>
+          <span className="rounded-full border border-sagar-amber/35 bg-white px-3 py-1 text-xs font-semibold text-sagar-ink/75">
+            Support on WhatsApp and email
+          </span>
+        </div>
       </section>
 
       <div className="mt-4">
@@ -216,7 +229,7 @@ export default function PujaListingPage({ initialCurrency, secondaryPujas, suppo
             locale={locale}
             onCardClick={(selected) => {
               setSelectedPlanId(selected.id);
-              trackEvent("online_puja_plan_click", { plan: selected.id, mode });
+              trackEvent("membership_card_click", { plan: selected.id, mode });
             }}
             onPrimaryClick={(selected) => openIntent(selected, "card")}
           />

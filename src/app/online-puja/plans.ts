@@ -28,7 +28,7 @@ export type WeeklyPlan = {
 export const WEEKLY_PLANS: WeeklyPlan[] = [
   {
     id: "ganesh",
-    slug: "ganesh",
+    slug: "ganesh-weekly",
     deity: "Ganesh",
     title: "Weekly Ganesh Vighnaharta Puja",
     subtitle: "For auspicious beginnings and steady progress.",
@@ -49,7 +49,7 @@ export const WEEKLY_PLANS: WeeklyPlan[] = [
   },
   {
     id: "shani",
-    slug: "shani",
+    slug: "shani-weekly",
     deity: "Shani",
     title: "Weekly Shani Dev Puja",
     subtitle: "A Saturday ritual to seek stability, discipline, and relief during difficult periods.",

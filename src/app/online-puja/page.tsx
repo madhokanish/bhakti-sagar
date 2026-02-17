@@ -48,7 +48,7 @@ export default async function OnlinePujaIndexPage() {
       priceCurrency: "GBP",
       price: plan.priceMonthly.GBP.toFixed(2),
       availability: "https://schema.org/InStock",
-      url: `https://bhakti-sagar.com/subscribe?plan=${plan.id}&mode=monthly`
+      url: `https://bhakti-sagar.com/online-puja/${plan.slug}`
     }
   }));
 

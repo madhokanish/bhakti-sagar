@@ -7,6 +7,7 @@ import { WEEKLY_PLANS } from "@/app/online-puja/plans";
 import { trackEvent } from "@/lib/analytics";
 import { getDeityName } from "@/lib/terminology";
 import FAQAccordion from "@/components/online-puja/FAQAccordion";
+import TrustStack from "@/components/onlinePuja/TrustStack";
 
 type Props = {
   supportEmail: string;
@@ -53,11 +54,12 @@ export default function PujaListingPage({ supportEmail }: Props) {
   return (
     <div className="container pb-16 pt-6 md:pt-10">
       <section className="rounded-[2rem] border border-sagar-amber/25 bg-gradient-to-br from-white via-sagar-cream/60 to-sagar-sand/65 p-6 shadow-sagar-soft md:p-9">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Online Puja</p>
-        <h1 className="mt-2 text-4xl font-serif leading-tight text-sagar-ink md:text-5xl">Weekly Online Puja Membership</h1>
+        <h2 className="mt-2 text-2xl font-serif leading-tight text-sagar-ink md:text-3xl">Weekly Online Puja Membership</h2>
         <p className="mt-3 max-w-3xl text-base text-sagar-ink/75 md:text-lg">
-          4 pujas per month with your name and gotra in sankalp. Join online puja for Lord Ganesh Puja or Shani Dev Puja with live access,
-          replay, certificate updates, and weekly sankalp with your name and gotra.
+          4 temple pujas every month, performed with your name and gotra in the sankalp.
+        </p>
+        <p className="mt-3 max-w-3xl text-base text-sagar-ink/75 md:text-lg">
+          Join live from the mandir, or watch later with replay access. You also get puja updates and a digital certificate when available.
         </p>
       </section>
 
@@ -110,6 +112,8 @@ export default function PujaListingPage({ supportEmail }: Props) {
           );
         })}
       </section>
+
+      <TrustStack className="mt-6" />
 
       <section className="mt-6 grid gap-3 rounded-3xl border border-sagar-amber/20 bg-sagar-cream/35 p-4 text-center text-sm text-sagar-ink/82 md:grid-cols-3">
         <div className="rounded-2xl border border-sagar-amber/20 bg-white/90 p-3">Weekly ritual handled for you</div>

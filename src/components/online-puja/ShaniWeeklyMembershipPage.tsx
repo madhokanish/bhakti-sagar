@@ -30,9 +30,18 @@ function formatDateTime(date: Date, timeZone: string) {
 
 export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
   const [showIST, setShowIST] = useState(false);
+  const [activeHeroIndex, setActiveHeroIndex] = useState(0);
   const localTimeZone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", []);
   const schedule = useMemo(() => getPlanSchedule(plan), [plan]);
+  const heroGalleryRef = useRef<HTMLDivElement | null>(null);
   const reviewsRef = useRef<HTMLElement | null>(null);
+  const heroImages = useMemo(
+    () => [
+      { src: plan.heroImage, alt: "Shani Dev Puja live from Ujjain" },
+      { src: "/images/online-puja/shani-weekly-2.png", alt: "Shani Dev Puja temple view" }
+    ],
+    [plan.heroImage]
+  );
 
   useEffect(() => {
     trackEvent("shani_weekly_view", { page: "/online-puja/shani-weekly" });
@@ -55,6 +64,21 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
     observer.observe(target);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    const container = heroGalleryRef.current;
+    if (!container) return;
+
+    const updateActiveSlide = () => {
+      const slideWidth = container.clientWidth || 1;
+      const index = Math.round(container.scrollLeft / slideWidth);
+      setActiveHeroIndex(Math.max(0, Math.min(heroImages.length - 1, index)));
+    };
+
+    container.addEventListener("scroll", updateActiveSlide, { passive: true });
+    updateActiveSlide();
+    return () => container.removeEventListener("scroll", updateActiveSlide);
+  }, [heroImages.length]);
 
   const monthlyPrice = formatCurrency(plan.priceMonthly[currency], currency);
   const displayZone = showIST ? "Asia/Kolkata" : localTimeZone;
@@ -169,22 +193,28 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
         <div className="grid gap-0 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="p-6 md:p-8">
             <div className="flex flex-wrap items-center gap-2">
-              <CutoffCountdown cutoffAt={schedule.cutoffAt} compact urgent />
+              <span className="rounded-full border border-sagar-amber/35 bg-black/25 px-3 py-1 text-xs font-semibold text-[#f7e7cf]">
+                1d 20h left
+              </span>
               <span className="text-xs font-semibold text-sagar-amber">· Live from Ujjain</span>
             </div>
             <h1 className="mt-4 text-4xl font-serif leading-tight text-[#f7e7cf] md:text-5xl">{shaniHeading} Puja</h1>
+            <p className="mt-2 text-lg font-semibold text-[#f7e7cf]">Every Saturday</p>
             <p className="mt-3 max-w-xl text-base text-[#f2d8ba]/90">
-              Every Saturday. 4 pujas per month with your name and gotra in sankalp. A calm weekly ritual to seek steadiness,
-              discipline, and stability.
+              4 pujas per month with your name and gotra in the sankalp.
             </p>
-            <p className="mt-2 max-w-xl text-sm text-[#f2d8ba]/80">
-              This {shaniHeading} online puja membership is designed for devotees who want a consistent Saturday
-              sankalp with their name and gotra, live darshan, replay, and certificate updates.
+            <p className="mt-3 max-w-xl text-sm text-[#f2d8ba]/80">
+              Book Shani Puja to reduce the malefic effects of Saturn and seek relief from Sade Sati, Shani Dosh, and obstacles. Pray for stability, protection, and the blessings of Lord Shani.
             </p>
 
-            <p className="mt-4 text-sm font-semibold text-[#f7e7cf]">
-              Last chance to add your name and gotra for this Saturday. Miss the cutoff and you wait until next week.
-            </p>
+            <div className="mt-4 space-y-2 rounded-xl border border-sagar-amber/30 bg-black/20 p-3">
+              <p className="text-sm font-semibold text-[#f7e7cf]">
+                Registrations for this Saturday close soon. Add your name and gotra right now.
+              </p>
+              <p className="text-sm text-[#f2d8ba]">
+                Once the cutoff passes, your sankalp will not be taken this week and you will have to wait for next Saturday.
+              </p>
+            </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
               <span className="rounded-full border border-sagar-amber/35 bg-black/25 px-3 py-1 text-xs font-semibold text-[#f7e7cf]">
@@ -207,10 +237,6 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
             </button>
             <p className="mt-1 text-xs text-[#f2d8ba]/80">IST: {istLabel}</p>
 
-            <div className="mt-5">
-              <CutoffCountdown cutoffAt={schedule.cutoffAt} urgent />
-            </div>
-
             <Link
               href={joinHref}
               onClick={() => trackEvent("shani_weekly_cta_click", { placement: "hero" })}
@@ -221,17 +247,38 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
             <p className="mt-3 text-sm text-[#f2d8ba]/85">Cancel anytime · Replay + certificate included · {monthlyPrice}/month</p>
           </div>
 
-          <div className="relative min-h-[280px]">
-            <Image
-              src={plan.heroImage}
-              alt={`${shaniHeading} Puja`}
-              fill
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 55vw"
-              priority
-            />
-            <div className="absolute bottom-3 left-3 rounded-lg border border-white/20 bg-black/40 px-3 py-2 text-xs font-semibold text-white backdrop-blur-sm">
-              Temple-verified · Live from Ujjain
+          <div className="flex min-h-[280px] flex-col">
+            <div
+              ref={heroGalleryRef}
+              className="flex min-h-[280px] snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              aria-label="Shani Dev Puja image gallery"
+            >
+              {heroImages.map((image) => (
+                <div key={image.src} className="relative min-h-[280px] w-full shrink-0 snap-start">
+                  <Image
+                    src={image.src}
+                    alt={image.alt}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 55vw"
+                    priority={image.src === plan.heroImage}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between px-3 py-2">
+              <div className="rounded-lg border border-white/20 bg-black/40 px-3 py-2 text-xs font-semibold text-white backdrop-blur-sm">
+                Temple-verified · Live from Ujjain
+              </div>
+              <div className="flex items-center gap-1.5" aria-label="Gallery pagination">
+                {heroImages.map((image, index) => (
+                  <span
+                    key={image.src}
+                    className={`h-2 w-2 rounded-full ${activeHeroIndex === index ? "bg-sagar-saffron" : "bg-sagar-amber/40"}`}
+                    aria-hidden
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>

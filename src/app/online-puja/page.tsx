@@ -4,6 +4,7 @@ import { breadcrumbJsonLd, faqJsonLd } from "@/lib/schema";
 import { WEEKLY_PLANS } from "@/app/online-puja/plans";
 import { DEITY_NAMES } from "@/lib/terminology";
 import PujaListingPage from "@/components/online-puja/PujaListingPage";
+import { youtubeTrust } from "../../../content/onlinePuja/socialProof";
 
 export const metadata: Metadata = buildMetadata({
   title: "Online Puja Membership | Lord Ganesh Puja & Shani Dev Puja",
@@ -64,12 +65,21 @@ export default async function OnlinePujaIndexPage() {
     }
   }));
 
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Bhakti Sagar",
+    url: "https://bhakti-sagar.com",
+    sameAs: [youtubeTrust.channelUrl]
+  };
+
   return (
     <>
       <PujaListingPage supportEmail={supportEmail} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faq) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
     </>
   );
 }

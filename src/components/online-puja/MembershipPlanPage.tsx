@@ -9,6 +9,7 @@ import { getDeityName } from "@/lib/terminology";
 import { formatCurrency, getPlanSchedule, type WeeklyPlan } from "@/app/online-puja/plans";
 import FAQAccordion from "@/components/online-puja/FAQAccordion";
 import MobileStickyCTA from "@/components/online-puja/MobileStickyCTA";
+import TrustStack from "@/components/onlinePuja/TrustStack";
 
 type Props = {
   plan: WeeklyPlan;
@@ -148,6 +149,8 @@ export default function MembershipPlanPage({ plan, currency }: Props) {
           </div>
         </div>
       </section>
+
+      <TrustStack className="mt-6" />
 
       <section className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white p-5 shadow-sagar-soft" id="deliverables">
         <h2 className="text-2xl font-serif text-sagar-ink">Deliverables every week</h2>

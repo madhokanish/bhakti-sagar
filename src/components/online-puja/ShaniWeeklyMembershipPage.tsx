@@ -7,6 +7,7 @@ import { formatCurrency, getPlanSchedule, type WeeklyPlan } from "@/app/online-p
 import CutoffCountdown from "@/components/online-puja/CutoffCountdown";
 import FAQAccordion from "@/components/online-puja/FAQAccordion";
 import MobileStickyCTA from "@/components/online-puja/MobileStickyCTA";
+import TrustStack from "@/components/onlinePuja/TrustStack";
 import { trackEvent } from "@/lib/analytics";
 import { getDeityName } from "@/lib/terminology";
 import type { SupportedCurrency } from "@/lib/subscription";
@@ -247,14 +248,14 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
             <p className="mt-3 text-sm text-[#f2d8ba]/85">Cancel anytime · Replay + certificate included · {monthlyPrice}/month</p>
           </div>
 
-          <div className="flex min-h-[280px] flex-col">
+          <div className="relative min-h-[280px]">
             <div
               ref={heroGalleryRef}
-              className="flex min-h-[280px] snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              className="absolute inset-0 flex snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
               aria-label="Shani Dev Puja image gallery"
             >
               {heroImages.map((image) => (
-                <div key={image.src} className="relative min-h-[280px] w-full shrink-0 snap-start">
+                <div key={image.src} className="relative h-full min-w-full snap-start">
                   <Image
                     src={image.src}
                     alt={image.alt}
@@ -266,23 +267,23 @@ export default function ShaniWeeklyMembershipPage({ plan, currency }: Props) {
                 </div>
               ))}
             </div>
-            <div className="flex items-center justify-between px-3 py-2">
-              <div className="rounded-lg border border-white/20 bg-black/40 px-3 py-2 text-xs font-semibold text-white backdrop-blur-sm">
-                Temple-verified · Live from Ujjain
-              </div>
-              <div className="flex items-center gap-1.5" aria-label="Gallery pagination">
-                {heroImages.map((image, index) => (
-                  <span
-                    key={image.src}
-                    className={`h-2 w-2 rounded-full ${activeHeroIndex === index ? "bg-sagar-saffron" : "bg-sagar-amber/40"}`}
-                    aria-hidden
-                  />
-                ))}
-              </div>
+            <div className="absolute bottom-3 left-3 rounded-lg border border-white/20 bg-black/40 px-3 py-2 text-xs font-semibold text-white backdrop-blur-sm">
+              Temple-verified · Live from Ujjain
+            </div>
+            <div className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 px-2.5 py-2 backdrop-blur-sm" aria-label="Gallery pagination">
+              {heroImages.map((image, index) => (
+                <span
+                  key={image.src}
+                  className={`h-2 w-2 rounded-full ${activeHeroIndex === index ? "bg-sagar-saffron" : "bg-sagar-amber/50"}`}
+                  aria-hidden
+                />
+              ))}
             </div>
           </div>
         </div>
       </section>
+
+      <TrustStack className="mt-6" />
 
       <section className="relative mt-8 overflow-hidden rounded-3xl border border-sagar-amber/20 bg-gradient-to-br from-[#fffbf5] via-[#fdf6eb] to-[#f9edd9] p-6 shadow-sagar-soft md:p-8">
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-sagar-gold/10 blur-3xl" />

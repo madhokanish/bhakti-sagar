@@ -7,7 +7,7 @@ import SubscribeCheckoutPanel from "@/components/online-puja/SubscribeCheckoutPa
 export const metadata: Metadata = buildMetadata({
   title: "Weekly Puja Membership Checkout",
   description:
-    `Start ${DEITY_NAMES.ganesh.heading} or ${DEITY_NAMES.shani.heading} Weekly Puja Membership with trial access, clear deliverables, and self-serve cancellation.`,
+    `Start ${DEITY_NAMES.ganesh.heading} or ${DEITY_NAMES.shani.heading} Weekly Puja Membership with clear deliverables and self-serve cancellation.`,
   pathname: "/subscribe"
 });
 
@@ -21,8 +21,6 @@ type SearchParams = {
   wa?: string;
   returnTo?: string;
 };
-
-const trialDays = Number.parseInt(process.env.ONLINE_PUJA_TRIAL_DAYS?.trim() || "7", 10) || 7;
 
 export default function SubscribePage({ searchParams }: { searchParams: SearchParams }) {
   const initialCurrency = getCurrencyForRequest();
@@ -42,7 +40,6 @@ export default function SubscribePage({ searchParams }: { searchParams: SearchPa
       <SubscribeCheckoutPanel
         initialPlan={initialPlan}
         initialCurrency={initialCurrency}
-        trialDays={trialDays}
         prefill={{
           email: searchParams.email,
           fullName: searchParams.name,

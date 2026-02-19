@@ -73,7 +73,7 @@ export default function PaywallModal({ open, onClose, featureName, returnTo, pri
 
   if (!open) return null;
 
-  async function startTrial() {
+  async function startCheckout() {
     if (loading) return;
     setError("");
     if (!email.trim()) {
@@ -93,9 +93,9 @@ export default function PaywallModal({ open, onClose, featureName, returnTo, pri
       });
       const data = (await response.json()) as { url?: string; error?: string };
       if (!response.ok || !data.url) {
-        throw new Error(data.error || "Unable to start free trial.");
+        throw new Error(data.error || "Unable to start checkout.");
       }
-      trackEvent("trial_started", { feature: featureName });
+      trackEvent("checkout_start", { feature: featureName });
       window.location.href = data.url;
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "Unable to continue.");
@@ -113,11 +113,11 @@ export default function PaywallModal({ open, onClose, featureName, returnTo, pri
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-serif text-sagar-ink">Start your 14 day free trial</h2>
+            <h2 className="text-3xl font-serif text-sagar-ink">Start your membership</h2>
             <p className="mt-2 text-sm text-sagar-ink/72">
               Premium access for Live Darshan 24x7, Online Puja booking, and member-only features.
             </p>
-            <p className="mt-2 text-base font-semibold text-sagar-ink">Then {priceLabel} per month</p>
+            <p className="mt-2 text-base font-semibold text-sagar-ink">{priceLabel} per month</p>
           </div>
           <button
             type="button"
@@ -129,9 +129,9 @@ export default function PaywallModal({ open, onClose, featureName, returnTo, pri
         </div>
 
         <ul className="mt-4 space-y-1.5 text-sm text-sagar-ink/78">
-          <li>• No charge today</li>
+          <li>• Secure checkout</li>
           <li>• Cancel anytime</li>
-          <li>• We will remind you before the trial ends</li>
+          <li>• Auto renews monthly</li>
         </ul>
 
         <label className="mt-4 block text-sm text-sagar-ink/80">
@@ -150,11 +150,11 @@ export default function PaywallModal({ open, onClose, featureName, returnTo, pri
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={startTrial}
+            onClick={startCheckout}
             disabled={loading}
             className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-sagar-saffron px-6 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Redirecting..." : "Start free trial"}
+            {loading ? "Redirecting..." : "Proceed to checkout"}
           </button>
           <button
             type="button"

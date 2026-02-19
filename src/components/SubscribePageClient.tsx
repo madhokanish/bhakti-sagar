@@ -31,7 +31,7 @@ export default function SubscribePageClient({ currency }: Props) {
   const [portalError, setPortalError] = useState("");
   const priceLabel = useMemo(() => formatPrice(currency), [currency]);
 
-  async function startTrial() {
+  async function startMembershipCheckout() {
     if (loading) return;
     setLoading(true);
     setError("");
@@ -47,9 +47,9 @@ export default function SubscribePageClient({ currency }: Props) {
       });
       const data = (await response.json()) as { url?: string; error?: string };
       if (!response.ok || !data.url) {
-        throw new Error(data.error || "Unable to start trial.");
+        throw new Error(data.error || "Unable to start checkout.");
       }
-      trackEvent("trial_started", { source: "subscribe_page", currency });
+      trackEvent("checkout_start", { source: "subscribe_page", currency });
       window.location.href = data.url;
     } catch (checkoutError) {
       setError(checkoutError instanceof Error ? checkoutError.message : "Unable to continue.");
@@ -82,16 +82,16 @@ export default function SubscribePageClient({ currency }: Props) {
   return (
     <section className="mx-auto max-w-2xl rounded-3xl border border-sagar-amber/20 bg-white p-6 shadow-sagar-soft md:p-8">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sagar-rose">Membership</p>
-      <h1 className="mt-2 text-4xl font-serif text-sagar-ink md:text-5xl">Start your 14 day free trial</h1>
+      <h1 className="mt-2 text-4xl font-serif text-sagar-ink md:text-5xl">Start your membership</h1>
       <p className="mt-3 text-base text-sagar-ink/75">
         Access Live Darshan and Online Puja booking with one membership.
       </p>
 
       <div className="mt-4 rounded-2xl border border-sagar-amber/20 bg-sagar-cream/40 p-4">
-        <p className="text-lg font-semibold text-sagar-ink">Then {priceLabel} per month</p>
+        <p className="text-lg font-semibold text-sagar-ink">{priceLabel} per month</p>
         <ul className="mt-2 space-y-1 text-sm text-sagar-ink/78">
-          <li>• No charge today</li>
-          <li>• Auto renews monthly after 14 days</li>
+          <li>• Secure checkout</li>
+          <li>• Auto renews monthly</li>
           <li>• Cancel anytime from billing settings</li>
         </ul>
       </div>
@@ -113,11 +113,11 @@ export default function SubscribePageClient({ currency }: Props) {
       <div className="mt-5 flex flex-wrap gap-3">
         <button
           type="button"
-          onClick={startTrial}
+          onClick={startMembershipCheckout}
           disabled={loading}
           className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-sagar-saffron px-6 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Redirecting..." : "Start free trial"}
+          {loading ? "Redirecting..." : "Proceed to checkout"}
         </button>
         <button
           type="button"

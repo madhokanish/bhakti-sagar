@@ -21,7 +21,7 @@ export async function sendTrialReminderEmail(payload: TrialReminderPayload) {
     return { sent: false, reason: "RESEND_API_KEY is not configured." };
   }
 
-  const trialDate = new Intl.DateTimeFormat("en-GB", {
+  const renewalDate = new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric"
@@ -30,11 +30,11 @@ export async function sendTrialReminderEmail(payload: TrialReminderPayload) {
   const body = {
     from: getFromAddress(),
     to: [payload.email],
-    subject: "Your Bhakti Sagar free trial is ending soon",
+    subject: "Your Bhakti Sagar membership billing reminder",
     html: `
       <p>Namaste,</p>
-      <p>Your Bhakti Sagar trial ends on <strong>${trialDate}</strong>.</p>
-      <p>After the trial, your membership renews at <strong>${payload.renewalPrice} per month</strong>.</p>
+      <p>Your Bhakti Sagar membership renews on <strong>${renewalDate}</strong>.</p>
+      <p>Renewal amount is <strong>${payload.renewalPrice} per month</strong>.</p>
       <p>You can cancel anytime from your billing portal:</p>
       <p><a href="${payload.manageUrl}">${payload.manageUrl}</a></p>
       <p>With gratitude,<br/>Bhakti Sagar</p>

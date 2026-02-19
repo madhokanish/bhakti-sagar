@@ -9,7 +9,6 @@ import { formatCurrency, getPlanById, getPlanSchedule } from "@/app/online-puja/
 type Props = {
   initialPlan: "ganesh" | "shani";
   initialCurrency: SupportedCurrency;
-  trialDays: number;
   prefill: {
     email?: string;
     fullName?: string;
@@ -24,7 +23,6 @@ type Props = {
 export default function SubscribeCheckoutPanel({
   initialPlan,
   initialCurrency,
-  trialDays,
   prefill
 }: Props) {
   const [email, setEmail] = useState(prefill.email || "");
@@ -75,13 +73,13 @@ export default function SubscribeCheckoutPanel({
   );
   const nextBillingDate = useMemo(() => {
     const billingDate = new Date();
-    billingDate.setDate(billingDate.getDate() + trialDays);
+    billingDate.setMonth(billingDate.getMonth() + 1);
     return new Intl.DateTimeFormat("en-GB", {
       day: "numeric",
       month: "short",
       year: "numeric"
     }).format(billingDate);
-  }, [trialDays]);
+  }, []);
 
   async function startCheckout() {
     if (loading) return;
@@ -167,7 +165,7 @@ export default function SubscribeCheckoutPanel({
             {showIST ? "Switch to local time" : "Switch to IST"}
           </button>
           <p className="mt-1 text-xs text-sagar-ink/65">
-            No charge today. Auto-renews after {trialDays} days. Next billing date: {nextBillingDate}. Cancel anytime.
+            Auto-renews monthly. Next billing date: {nextBillingDate}. Cancel anytime.
           </p>
         </div>
         <ul className="space-y-1 text-sm text-sagar-ink/75">
@@ -258,7 +256,7 @@ export default function SubscribeCheckoutPanel({
           disabled={loading}
           className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-sagar-saffron px-6 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Redirecting..." : `Start ${trialDays}-day trial`}
+          {loading ? "Redirecting..." : "Proceed to checkout"}
         </button>
         <button
           type="button"

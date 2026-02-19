@@ -52,7 +52,7 @@ export async function GET(request: Request) {
   }
 
   const subscription = await resolveSubscription(stripe, session);
-  const subscriptionStatus = subscription?.status || "trialing";
+  const subscriptionStatus = subscription?.status || "active";
 
   const user = await upsertUserSubscription({
     email,
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
     currentPeriodEnd: toDate(readSubscriptionTimestamp(subscription, "current_period_end"))
   });
 
-  const response = NextResponse.redirect(new URL(`${returnTo}?trial=started`, request.url));
+  const response = NextResponse.redirect(new URL(`${returnTo}?membership=started`, request.url));
   setSubscriptionSessionCookie(
     response,
     buildSessionPayload({

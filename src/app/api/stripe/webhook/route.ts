@@ -70,13 +70,13 @@ export async function POST(request: Request) {
         const session = event.data.object as Stripe.Checkout.Session;
         const email = session.customer_details?.email || session.customer_email || null;
         if (email) {
-          await upsertUserSubscription({
-            email,
-            stripeCustomerId:
-              typeof session.customer === "string" ? session.customer : session.customer?.id ?? null,
-            subscriptionStatus: session.mode === "subscription" ? "trialing" : undefined,
-            currency: session.currency?.toUpperCase() || undefined
-          });
+            await upsertUserSubscription({
+              email,
+              stripeCustomerId:
+                typeof session.customer === "string" ? session.customer : session.customer?.id ?? null,
+              subscriptionStatus: session.mode === "subscription" ? "active" : undefined,
+              currency: session.currency?.toUpperCase() || undefined
+            });
         }
         break;
       }

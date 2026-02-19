@@ -22,11 +22,6 @@ function getAppUrl() {
   return process.env.APP_URL?.trim() || "http://localhost:3000";
 }
 
-function getTrialDays() {
-  const raw = Number.parseInt(process.env.ONLINE_PUJA_TRIAL_DAYS?.trim() || "7", 10);
-  return Number.isFinite(raw) && raw > 0 ? raw : 7;
-}
-
 function getPlanPriceId(plan: "ganesh" | "shani") {
   const envKey =
     plan === "ganesh"
@@ -85,7 +80,6 @@ export async function POST(request: Request) {
     customer_email: email,
     metadata,
     subscription_data: {
-      trial_period_days: getTrialDays(),
       metadata
     },
     success_url: `${appUrl}/online-puja/success?session_id={CHECKOUT_SESSION_ID}&plan=${plan}`,

@@ -12,7 +12,8 @@ type Props = {
   prefill: {
     email?: string;
     fullName?: string;
-    familyNames?: string;
+    residence?: string;
+    phoneNumber?: string;
     gotra?: string;
     intention?: string;
     whatsappOptIn?: boolean;
@@ -27,7 +28,8 @@ export default function SubscribeCheckoutPanel({
 }: Props) {
   const [email, setEmail] = useState(prefill.email || "");
   const [fullName, setFullName] = useState(prefill.fullName || "");
-  const [familyNames, setFamilyNames] = useState(prefill.familyNames || "");
+  const [residence, setResidence] = useState(prefill.residence || "");
+  const [phoneNumber, setPhoneNumber] = useState(prefill.phoneNumber || "");
   const [gotra, setGotra] = useState(prefill.gotra || "");
   const [intention, setIntention] = useState(prefill.intention || "career");
   const [whatsappOptIn, setWhatsappOptIn] = useState(Boolean(prefill.whatsappOptIn));
@@ -94,7 +96,8 @@ export default function SubscribeCheckoutPanel({
           email,
           plan: plan.id,
           fullName,
-          familyNames,
+          residence,
+          phoneNumber,
           gotra,
           intention,
           whatsappOptIn,
@@ -199,13 +202,24 @@ export default function SubscribeCheckoutPanel({
           />
         </label>
         <label className="block text-sm text-sagar-ink/80">
-          Family names (optional)
+          Residence (city and country, optional)
           <input
             type="text"
-            value={familyNames}
-            onChange={(event) => setFamilyNames(event.target.value)}
+            value={residence}
+            onChange={(event) => setResidence(event.target.value)}
             className="mt-1 w-full rounded-xl border border-sagar-amber/30 px-3 py-2 outline-none focus:border-sagar-saffron"
-            placeholder="Comma separated names"
+            placeholder="e.g., London, UK"
+          />
+        </label>
+        <label className="block text-sm text-sagar-ink/80">
+          Phone number
+          <input
+            type="tel"
+            value={phoneNumber}
+            onChange={(event) => setPhoneNumber(event.target.value)}
+            className="mt-1 w-full rounded-xl border border-sagar-amber/30 px-3 py-2 outline-none focus:border-sagar-saffron"
+            placeholder="e.g., +44 7XXX XXXXXX"
+            required
           />
         </label>
         <label className="block text-sm text-sagar-ink/80">
@@ -258,19 +272,24 @@ export default function SubscribeCheckoutPanel({
         >
           {loading ? "Redirecting..." : "Proceed to checkout"}
         </button>
-        <button
-          type="button"
-          onClick={openPortal}
-          disabled={portalLoading}
-          className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-sagar-amber/30 px-6 py-2 text-sm font-semibold text-sagar-ink/75"
-        >
-          {portalLoading ? "Opening..." : "Manage subscription"}
-        </button>
+        {plan.id !== "shani" ? (
+          <button
+            type="button"
+            onClick={openPortal}
+            disabled={portalLoading}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-sagar-amber/30 px-6 py-2 text-sm font-semibold text-sagar-ink/75"
+          >
+            {portalLoading ? "Opening..." : "Manage subscription"}
+          </button>
+        ) : null}
       </div>
 
       <p className="mt-4 text-xs text-sagar-ink/60">
         By continuing, you agree to our <Link href="/terms" className="underline underline-offset-2">Terms</Link> and{" "}
         <Link href="/privacy" className="underline underline-offset-2">Privacy Policy</Link>.
+      </p>
+      <p className="mt-2 text-xs text-sagar-ink/58">
+        Transactions are powered by Stripe, a leading secure payment provider.
       </p>
     </section>
   );

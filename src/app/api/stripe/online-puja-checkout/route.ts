@@ -6,7 +6,8 @@ type CheckoutBody = {
   email?: string;
   plan?: "ganesh" | "shani";
   fullName?: string;
-  familyNames?: string;
+  residence?: string;
+  phoneNumber?: string;
   gotra?: string;
   intention?: string;
   whatsappOptIn?: boolean;
@@ -45,6 +46,9 @@ export async function POST(request: Request) {
   if (!body.fullName?.trim()) {
     return NextResponse.json({ error: "Please enter your full name." }, { status: 400 });
   }
+  if (!body.phoneNumber?.trim()) {
+    return NextResponse.json({ error: "Please enter your phone number." }, { status: 400 });
+  }
 
   const priceId = getPlanPriceId(plan);
   if (!priceId) {
@@ -64,7 +68,8 @@ export async function POST(request: Request) {
     plan,
     mode: "monthly",
     full_name: body.fullName.trim(),
-    family_names: body.familyNames?.trim() || "",
+    residence: body.residence?.trim() || "",
+    phone_number: body.phoneNumber.trim(),
     gotra: body.gotra?.trim() || "",
     intention: body.intention?.trim() || "",
     whatsapp_opt_in: body.whatsappOptIn ? "1" : "0",

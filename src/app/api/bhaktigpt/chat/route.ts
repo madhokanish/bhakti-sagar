@@ -466,6 +466,53 @@ async function fetchGuideHistory(conversationId: string) {
     .map((item) => ({ role: item.role as "user" | "assistant", content: item.content }));
 }
 
+async function ensureKrishnaConversationOpener(conversationId: string) {
+  const existingAssistant = await prisma.bhaktiGptMessage.findFirst({
+    where: {
+      conversationId,
+      role: "assistant"
+    },
+    orderBy: {
+      createdAt: "asc"
+    },
+    select: {
+      id: true,
+      content: true,
+      createdAt: true
+    }
+  });
+
+  if (existingAssistant) {
+    return {
+      id: existingAssistant.id,
+      role: "assistant",
+      content: existingAssistant.content,
+      createdAt: existingAssistant.createdAt.toISOString()
+    } as ChatMessage;
+  }
+
+  const opener = getKrishnaOpenerForConversation(conversationId);
+  const created = await prisma.bhaktiGptMessage.create({
+    data: {
+      conversationId,
+      role: "assistant",
+      content: opener
+    },
+    select: {
+      id: true,
+      content: true,
+      createdAt: true
+    }
+  });
+
+  return {
+    id: created.id,
+    role: "assistant",
+    content: created.content,
+    createdAt: created.createdAt.toISOString()
+  } as ChatMessage;
+}
+
 async function createOpenAiStream(params: {
   guideId: BhaktiGuideId;
   history: Array<{ role: "user" | "assistant"; content: string }>;
@@ -780,9 +827,24 @@ export async function GET(request: Request) {
           content: item.content,
           createdAt: item.createdAt.toISOString()
         }));
+
+        if (guideId === "krishna" && messages.length === 0) {
+          const openerMessage = await ensureKrishnaConversationOpener(activeConversationId);
+          messages = [openerMessage];
+        }
       }
     } catch (error) {
       console.error("[BhaktiGPT][GET] Falling back to empty chat data.", error);
+      if (guideId === "krishna" && messages.length === 0) {
+        messages = [
+          {
+            id: "krishna-opener-fallback",
+            role: "assistant",
+            content: getKrishnaOpenerForConversation("krishna-fallback"),
+            createdAt: new Date().toISOString()
+          }
+        ];
+      }
     }
 
     const response = NextResponse.json({
@@ -920,6 +982,15 @@ export async function POST(request: Request) {
     } catch (error) {
       persistConversation = false;
       console.error("[BhaktiGPT][POST] Falling back to stateless mode.", error);
+      if (body.guideId === "krishna") {
+        history = [
+          {
+            role: "assistant",
+            content: getKrishnaOpenerForConversation("krishna-fallback")
+          },
+          { role: "user", content: userMessage }
+        ];
+      }
     }
 
     const guideId = body.guideId;

@@ -268,7 +268,7 @@ export async function POST(request: Request) {
 
     const isCrisis = detectCrisisIntent(userMessage);
 
-    let conversationId: string = body.conversationId ?? `fallback_${Date.now()}`;
+    let conversationId: string | null = body.conversationId ?? null;
     let conversationTitle = userMessage.slice(0, 80);
     let shouldPersistAssistant = false;
 
@@ -346,18 +346,19 @@ export async function POST(request: Request) {
           history
         });
 
-    if (shouldPersistAssistant) {
+    const persistedConversationId = conversationId;
+    if (shouldPersistAssistant && persistedConversationId) {
       try {
         await prisma.bhaktiGptMessage.create({
           data: {
-            conversationId,
+            conversationId: persistedConversationId,
             role: "assistant",
             content: assistantMessage
           }
         });
 
         await prisma.bhaktiGptConversation.update({
-          where: { id: conversationId },
+          where: { id: persistedConversationId },
           data: {
             updatedAt: new Date(),
             title: conversationTitle

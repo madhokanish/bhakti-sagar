@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { BHAKTI_GUIDES, BHAKTIGPT_DISCLAIMER } from "@/lib/bhaktigpt/guides";
+import { BHAKTI_GUIDE_LIST, BHAKTIGPT_DISCLAIMER } from "@/lib/bhaktigpt/guides";
 import { buildMetadata } from "@/lib/seo";
 import BhaktiTrackedLink from "@/components/bhaktigpt/BhaktiTrackedLink";
 import BhaktiGptPageView from "@/components/bhaktigpt/BhaktiGptPageView";
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   ...buildMetadata({
     title: "BhaktiGPT - Devotional AI Guidance",
     description:
-      "Chat with Shani Dev GPT, Shri Lakshmi Ji GPT, and Shri Krishna Ji GPT for calm devotional guidance rooted in dharma.",
+      "Chat with Shri Krishna, Shani Dev, and Goddess Lakshmi for calm devotional guidance rooted in dharma.",
     pathname: "/bhaktigpt",
     keywords: ["BhaktiGPT", "devotional AI", "gita guidance", "online spiritual guidance"]
   })
@@ -59,7 +59,7 @@ export default function BhaktiGptLandingPage() {
           Guidance for life, rooted in dharma.
         </h1>
         <p className="mt-4 max-w-3xl text-base leading-relaxed text-sagar-ink/80">
-          BhaktiGPT is an AI guide inspired by Shani, Lakshmi, and Krishna&apos;s Gita teachings. It helps you reflect, find clarity, and take the next right step.
+          BhaktiGPT is an AI guide inspired by Shani Dev, Goddess Lakshmi, and Shri Krishna&apos;s Gita teachings. It helps you reflect, find clarity, and take the next right step.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <BhaktiTrackedLink
@@ -96,25 +96,34 @@ export default function BhaktiGptLandingPage() {
         </p>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-3">
-          {Object.values(BHAKTI_GUIDES).map((guide) => (
-            <BhaktiTrackedLink
-              key={guide.id}
-              href={`/bhaktigpt/chat?guide=${guide.id}`}
-              eventName="selected_guide"
-              eventParams={{ guideId: guide.id, source: "landing_card" }}
-              className="group block overflow-hidden rounded-3xl border border-sagar-amber/22 bg-white/90 shadow-sagar-soft transition hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(65,30,10,0.45)]"
-            >
-              <div className="relative aspect-[4/5] overflow-hidden">
+          {BHAKTI_GUIDE_LIST.map((guide) => {
+            const isKrishna = guide.id === "krishna";
+            return (
+              <BhaktiTrackedLink
+                key={guide.id}
+                href={`/bhaktigpt/chat?guide=${guide.id}`}
+                eventName="selected_guide"
+                eventParams={{ guideId: guide.id, source: "landing_card" }}
+                className={`group block overflow-hidden rounded-3xl border border-sagar-amber/22 bg-white/90 shadow-sagar-soft transition hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(65,30,10,0.45)] ${
+                  isKrishna ? "lg:col-span-2" : ""
+                }`}
+              >
+                <div className={`relative overflow-hidden ${isKrishna ? "aspect-[16/9]" : "aspect-[4/5]"}`}>
                 <Image
                   src={guide.imageSrc}
                   alt={guide.imageAlt}
                   fill
-                  sizes="(max-width: 1024px) 100vw, 33vw"
+                  sizes={isKrishna ? "(max-width: 1024px) 100vw, 66vw" : "(max-width: 1024px) 100vw, 33vw"}
                   className="object-cover transition duration-500 group-hover:scale-[1.04]"
-                  priority={guide.id === "krishna"}
+                  priority={isKrishna}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#2f1408]/90 via-[#2f1408]/25 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-4">
+                  {isKrishna ? (
+                    <span className="mb-2 inline-flex rounded-full border border-white/40 bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white">
+                      Featured Guide
+                    </span>
+                  ) : null}
                   <h3 className="text-2xl font-serif text-white">{guide.name}</h3>
                   <p className="mt-1 text-sm text-white/85">{guide.subtitle}</p>
                 </div>
@@ -136,8 +145,9 @@ export default function BhaktiGptLandingPage() {
                   Connect with {guide.name}
                 </span>
               </div>
-            </BhaktiTrackedLink>
-          ))}
+              </BhaktiTrackedLink>
+            );
+          })}
         </div>
       </section>
 

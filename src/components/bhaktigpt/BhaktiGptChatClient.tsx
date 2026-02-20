@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trackEvent } from "@/lib/analytics";
 import {
+  BHAKTI_GUIDE_LIST,
   BHAKTI_GUIDES,
   BHAKTIGPT_DISCLAIMER,
   isGuideId,
@@ -131,7 +132,7 @@ function GuidePicker({ onPick }: { onPick: (guideId: BhaktiGuideId) => void }) {
       </header>
 
       <div className="grid gap-4 md:grid-cols-3">
-        {Object.values(BHAKTI_GUIDES).map((guide) => (
+        {BHAKTI_GUIDE_LIST.map((guide) => (
           <button
             key={guide.id}
             type="button"
@@ -449,7 +450,7 @@ export default function BhaktiGptChatClient() {
           </button>
 
           <div className="mt-4 space-y-2">
-            {Object.values(BHAKTI_GUIDES).map((guide) => {
+            {BHAKTI_GUIDE_LIST.map((guide) => {
               const active = guide.id === selectedGuideId;
               return (
                 <button

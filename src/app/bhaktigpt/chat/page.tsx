@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   ...buildMetadata({
     title: "BhaktiGPT Chat",
     description:
-      "Chat with devotional AI guides inspired by Shani Dev, Shri Lakshmi Ji, and Shri Krishna Ji teachings.",
+      "Chat with devotional AI guides inspired by Shri Krishna, Shani Dev, and Goddess Lakshmi teachings.",
     pathname: "/bhaktigpt/chat"
   })
 };

@@ -35,9 +35,38 @@ export const BHAKTIGPT_DISCLAIMER =
   "BhaktiGPT is an AI guide inspired by tradition and scriptures. It is not a deity and does not provide predictions. For medical, legal, or financial investing advice, consult a qualified professional.";
 
 export const BHAKTI_GUIDES: Record<BhaktiGuideId, BhaktiGuide> = {
+  krishna: {
+    id: "krishna",
+    name: "Shri Krishna",
+    subtitle: "Clarity in tough decisions",
+    shortDescription:
+      "I help you choose your next right step through duty, equanimity, and practical Gita-inspired decision clarity.",
+    imageSrc: "/images/bhaktigpt/krishna-gpt.png",
+    imageAlt: "Shri Krishna Ji inspired devotional guide artwork",
+    promptChips: [
+      "I have two difficult options. How should I decide?",
+      "How do I act without anxiety about results?",
+      "Give me a 5 minute Gita reflection for mental clarity."
+    ],
+    about: {
+      canHelpWith: [
+        "Decision clarity from Gita principles",
+        "Balancing duty and emotional pressure",
+        "Action plans with equanimity"
+      ],
+      cannotHelpWith: [
+        "Absolute commands on major life choices",
+        "Future prediction or certainty",
+        "Professional legal or medical guidance"
+      ]
+    },
+    systemPrompt: `${STYLE_CONTRACT}
+
+${KRISHNA_SYSTEM_PROMPT}`
+  },
   shani: {
     id: "shani",
-    name: "Shani Dev GPT",
+    name: "Shani Dev",
     subtitle: "Discipline through setbacks",
     shortDescription:
       "I help you transform fear and stagnation into disciplined, steady progress with calm devotional structure.",
@@ -84,7 +113,7 @@ Keep the tone personal and conversational.`
   },
   lakshmi: {
     id: "lakshmi",
-    name: "Shri Lakshmi Ji GPT",
+    name: "Goddess Lakshmi",
     subtitle: "Prosperity with steadiness",
     shortDescription:
       "I help you replace scarcity anxiety with grounded prosperity habits, gratitude, and compassionate stewardship.",
@@ -121,37 +150,11 @@ Prosperity as stability and peace; Sri Sukta as all-round prosperity; right givi
 Tone rules:
 Warm, reassuring, non flashy; never promise money outcomes; no investment picks; no shame.
 Use practical language and one spiritual anchor only.`
-  },
-  krishna: {
-    id: "krishna",
-    name: "Shri Krishna Ji GPT",
-    subtitle: "Clarity in tough decisions",
-    shortDescription:
-      "I help you choose your next right step through duty, equanimity, and practical Gita-inspired decision clarity.",
-    imageSrc: "/images/bhaktigpt/krishna-gpt.png",
-    imageAlt: "Shri Krishna Ji inspired devotional guide artwork",
-    promptChips: [
-      "I have two difficult options. How should I decide?",
-      "How do I act without anxiety about results?",
-      "Give me a 5 minute Gita reflection for mental clarity."
-    ],
-    about: {
-      canHelpWith: [
-        "Decision clarity from Gita principles",
-        "Balancing duty and emotional pressure",
-        "Action plans with equanimity"
-      ],
-      cannotHelpWith: [
-        "Absolute commands on major life choices",
-        "Future prediction or certainty",
-        "Professional legal or medical guidance"
-      ]
-    },
-    systemPrompt: `${STYLE_CONTRACT}
-
-${KRISHNA_SYSTEM_PROMPT}`
   }
 };
+
+export const BHAKTI_GUIDE_ORDER: BhaktiGuideId[] = ["krishna", "shani", "lakshmi"];
+export const BHAKTI_GUIDE_LIST = BHAKTI_GUIDE_ORDER.map((id) => BHAKTI_GUIDES[id]);
 
 export function isGuideId(value: string): value is BhaktiGuideId {
   return value === "shani" || value === "lakshmi" || value === "krishna";

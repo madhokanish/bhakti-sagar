@@ -1,4 +1,4 @@
-import { KRISHNA_SYSTEM_PROMPT } from "@/lib/bhaktigpt/krishnaSystemPrompt";
+import { KRISHNA_SYSTEM_PROMPT } from "@/lib/bhaktigpt/personas/krishnaSystemPrompt";
 
 export type BhaktiGuideId = "shani" | "lakshmi" | "krishna";
 

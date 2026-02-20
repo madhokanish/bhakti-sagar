@@ -184,27 +184,40 @@ export default function BhaktiGptChatClient() {
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   const updateGuideQuery = useCallback(
-    (guideId: BhaktiGuideId, keepConversationId?: string | null) => {
+    (
+      guideId: BhaktiGuideId,
+      keepConversationId?: string | null,
+      options?: { forceNewConversation?: boolean }
+    ) => {
       const params = new URLSearchParams(searchParams.toString());
       params.set("guide", guideId);
       if (keepConversationId) {
         params.set("conversationId", keepConversationId);
+        params.delete("new");
+      } else if (options?.forceNewConversation) {
+        params.set("new", "1");
       } else {
         params.delete("conversationId");
+        params.delete("new");
       }
       router.replace(`/bhaktigpt/chat?${params.toString()}`);
     },
     [router, searchParams]
   );
 
-  const loadGuideConversation = useCallback(async (guideId: BhaktiGuideId, preferredConversationId?: string | null) => {
+  const loadGuideConversation = useCallback(async (
+    guideId: BhaktiGuideId,
+    preferredConversationId?: string | null,
+    forceNewConversation = false
+  ) => {
     setLoadState("loading");
     setLoadError(null);
     setComposerError(null);
 
     try {
       const conversationQuery = preferredConversationId ? `&conversationId=${preferredConversationId}` : "";
-      const response = await fetch(`/api/bhaktigpt/chat?guideId=${guideId}${conversationQuery}`, {
+      const newQuery = forceNewConversation ? "&new=1" : "";
+      const response = await fetch(`/api/bhaktigpt/chat?guideId=${guideId}${conversationQuery}${newQuery}`, {
         method: "GET",
         cache: "no-store"
       });
@@ -224,6 +237,8 @@ export default function BhaktiGptChatClient() {
       setConversationId(nextConversationId);
       if (nextConversationId) {
         updateGuideQuery(guideId, nextConversationId);
+      } else if (forceNewConversation) {
+        updateGuideQuery(guideId, null, { forceNewConversation: true });
       }
       setLoadState("ready");
     } catch (error) {
@@ -242,7 +257,8 @@ export default function BhaktiGptChatClient() {
     }
 
     const preferredConversationId = searchParams.get("conversationId");
-    void loadGuideConversation(selectedGuideId, preferredConversationId);
+    const forceNewConversation = searchParams.get("new") === "1";
+    void loadGuideConversation(selectedGuideId, preferredConversationId, forceNewConversation);
   }, [selectedGuideId, loadGuideConversation, searchParams]);
 
   useEffect(() => {
@@ -269,9 +285,14 @@ export default function BhaktiGptChatClient() {
     setConversationId(null);
     setMessages([]);
     setComposerError(null);
-    updateGuideQuery(selectedGuideId, null);
+    if (selectedGuideId === "krishna") {
+      void loadGuideConversation(selectedGuideId, null, true);
+    } else {
+      updateGuideQuery(selectedGuideId, null, { forceNewConversation: true });
+      setLoadState("ready");
+    }
     setTimeout(() => composerRef.current?.focus(), 20);
-  }, [selectedGuideId, updateGuideQuery]);
+  }, [loadGuideConversation, selectedGuideId, updateGuideQuery]);
 
   const sendMessage = useCallback(
     async (prefilled?: string) => {
@@ -312,6 +333,7 @@ export default function BhaktiGptChatClient() {
           body: JSON.stringify({
             guideId: selectedGuideId,
             conversationId,
+            forceNewConversation: conversationId === null && messages.length === 0,
             message: value
           })
         });
@@ -399,7 +421,7 @@ export default function BhaktiGptChatClient() {
         setIsStreaming(false);
       }
     },
-    [conversationId, inputValue, isStreaming, selectedGuideId, updateGuideQuery]
+    [conversationId, inputValue, isStreaming, messages.length, selectedGuideId, updateGuideQuery]
   );
 
   if (!selectedGuideId || !selectedGuide) {

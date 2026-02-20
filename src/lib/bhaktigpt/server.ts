@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 export const BHAKTIGPT_COOKIE = "bs_bhaktigpt_session";
 const ANON_LIMIT = 3;
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 90;
+const ENFORCE_ANON_LIMIT = false;
 
 type ParsedAnonCookie = {
   sessionId: string;
@@ -97,6 +98,14 @@ export async function resolveBhaktiIdentity(): Promise<BhaktiIdentity> {
 }
 
 export function getAnonLimitInfo(messageCount: number) {
+  if (!ENFORCE_ANON_LIMIT) {
+    return {
+      remaining: 999,
+      max: 999,
+      used: 0
+    };
+  }
+
   return {
     remaining: Math.max(ANON_LIMIT - messageCount, 0),
     max: ANON_LIMIT,
@@ -171,12 +180,16 @@ export async function getUsageForIdentity(identity: BhaktiIdentity) {
 
   return {
     messageCount: count,
-    limitReached: count >= ANON_LIMIT,
+    limitReached: ENFORCE_ANON_LIMIT ? count >= ANON_LIMIT : false,
     ...getAnonLimitInfo(count)
   };
 }
 
 export async function incrementAnonymousUsage(sessionId: string) {
+  if (!ENFORCE_ANON_LIMIT) {
+    return 0;
+  }
+
   try {
     const usage = await prisma.bhaktiGptUsage.upsert({
       where: { sessionId },

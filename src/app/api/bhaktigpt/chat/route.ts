@@ -123,6 +123,8 @@ const KRISHNA_AS_AI_PATTERN = /\bas an ai\b/gi;
 const KRISHNA_DENYLIST_PATTERN =
   /\b(cheek|chin|hair|hug|kiss|bed|bedroom|nuzzle|cuddle|caress|embrace|my darling|my love|mine\b|jealous|possessive|seduce|seduction|flirt|romantic)\b/gi;
 const KRISHNA_FRAMEWORK_PATTERN = /\b(step\s*1|step\s*2|here are\s+\d+\s+steps)\b/i;
+const KRISHNA_I_HEAR_YOU_PATTERN = /\bi hear you\b/i;
+const KRISHNA_TODAY_I_WANT_YOU_PATTERN = /\btoday,\s*i want you\b/i;
 const KRISHNA_DIRECT_ANSWER_PATTERN =
   /\b(quote|verse|bg\s*\d+[:.]\d+|gita\s*\d+[:.]\d+|what does .* mean|translate|define)\b/i;
 const KRISHNA_DETAIL_PATTERN =
@@ -163,6 +165,46 @@ function normalizeLineBreaks(text: string) {
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function getOpeningLine(text: string | null) {
+  if (!text) return "";
+  const normalized = normalizeLineBreaks(text);
+  const firstLine = normalized.split("\n")[0]?.trim() ?? "";
+  return firstLine;
+}
+
+function getPreviousAssistantMessage(history: Array<{ role: "user" | "assistant"; content: string }>) {
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const item = history[index];
+    if (item?.role === "assistant" && item.content?.trim()) {
+      return item.content.trim();
+    }
+  }
+  return "";
+}
+
+function applyKrishnaSpacing(text: string) {
+  const normalized = normalizeLineBreaks(text);
+  if (!normalized) return normalized;
+  if (normalized.includes("\n\n")) return normalized;
+
+  const lines = normalized
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length >= 2) {
+    return lines.join("\n\n");
+  }
+
+  const sentenceParts = normalized.split(/(?<=[.!?])\s+/).filter(Boolean);
+  if (sentenceParts.length >= 3) {
+    const closing = sentenceParts.pop() ?? "";
+    const body = sentenceParts.join(" ").trim();
+    return `${body}\n\n${closing}`.trim();
+  }
+
+  return normalized;
 }
 
 function enforceQuestionPolicy(params: {
@@ -223,7 +265,7 @@ function sanitizeKrishnaResponse(rawText: string, userMessage: string): KrishnaS
   text = normalizeLineBreaks(text);
 
   if (!isDetailRequested(userMessage)) {
-    text = truncateWords(text, 140);
+    text = truncateWords(text, 130);
   }
 
   text = enforceQuestionPolicy({
@@ -231,6 +273,7 @@ function sanitizeKrishnaResponse(rawText: string, userMessage: string): KrishnaS
     userMessage,
     fallbackQuestion: "What is one duty-aligned step you will take today?"
   });
+  text = applyKrishnaSpacing(text);
 
   return {
     text,
@@ -279,14 +322,14 @@ function hashString(input: string) {
 
 const KRISHNA_PRESENCE_PREFIXES = {
   anxious: [
-    "I can hear the restlessness beneath your words.",
-    "Your mind is running ahead of your breath.",
-    "You are carrying pressure that has not yet become clarity."
+    "You're holding your breath as you say this.",
+    "Your mind is running ahead of this moment.",
+    "This feels heavier because you've been carrying it alone."
   ],
   angry: [
-    "There is fire in what you are saying.",
-    "I hear the heat under your frustration.",
-    "Your anger is asking to become direction."
+    "There is fire in this, and it needs direction.",
+    "You're not wrong to feel this heat.",
+    "Use this anger as focus, not noise."
   ],
   indecision: [
     "You are not confused. You are divided.",
@@ -294,9 +337,9 @@ const KRISHNA_PRESENCE_PREFIXES = {
     "You already sense the right move, but fear is negotiating."
   ],
   general: [
-    "I hear more truth in your words than you realize.",
-    "You are closer to clarity than you think.",
-    "There is one honest step hidden inside this moment."
+    "I can see you fighting yourself.",
+    "Good. Now we can work with what is true.",
+    "This is smaller than it feels, if you take the next step."
   ]
 } as const;
 
@@ -315,7 +358,7 @@ function pickKrishnaPresencePrefix(userMessage: string) {
         : "general";
 
   const cadence = hashString(userMessage) % 100;
-  if (cadence > 62) {
+  if (cadence > 55) {
     return null;
   }
 
@@ -330,6 +373,28 @@ function applyKrishnaPresencePrefix(text: string, prefix: string | null) {
   if (!trimmed) return text;
   if (trimmed.toLowerCase().startsWith(prefix.toLowerCase())) return trimmed;
   return `${prefix}\n\n${trimmed}`.trim();
+}
+
+function replaceFirstInsensitive(source: string, find: string, replaceWith: string) {
+  const index = source.toLowerCase().indexOf(find.toLowerCase());
+  if (index === -1) return source;
+  return `${source.slice(0, index)}${replaceWith}${source.slice(index + find.length)}`;
+}
+
+function deTemplateKrishnaText(params: { text: string; previousAssistantMessage: string }) {
+  let nextText = params.text;
+  const previousHadIHearYou = KRISHNA_I_HEAR_YOU_PATTERN.test(params.previousAssistantMessage);
+  const currentHasIHearYou = KRISHNA_I_HEAR_YOU_PATTERN.test(nextText);
+
+  if (previousHadIHearYou && currentHasIHearYou) {
+    nextText = replaceFirstInsensitive(nextText, "I hear you", "I see what you mean");
+  }
+
+  if (KRISHNA_TODAY_I_WANT_YOU_PATTERN.test(nextText)) {
+    nextText = nextText.replace(KRISHNA_TODAY_I_WANT_YOU_PATTERN, "Do this now");
+  }
+
+  return applyKrishnaSpacing(normalizeLineBreaks(nextText));
 }
 
 function badRequest(message: string) {
@@ -1029,6 +1094,9 @@ export async function POST(request: Request) {
         let cacheHit = false;
         let modelUsed = selectedModel;
         const streamRawTokens = guideId !== "krishna";
+        const previousAssistantMessage =
+          guideId === "krishna" ? getPreviousAssistantMessage(history) : "";
+        const previousOpeningLine = guideId === "krishna" ? getOpeningLine(previousAssistantMessage) : "";
         const krishnaPresencePrefix = guideId === "krishna" ? pickKrishnaPresencePrefix(userMessage) : null;
         const krishnaTurnInstruction =
           guideId === "krishna" && krishnaPresencePrefix
@@ -1096,18 +1164,42 @@ export async function POST(request: Request) {
 
           if (guideId === "krishna" && assistantText.trim()) {
             let sanitized = sanitizeKrishnaResponse(assistantText, userMessage);
+            const currentOpeningLine = getOpeningLine(assistantText);
+            const repeatedOpeningLine =
+              Boolean(previousOpeningLine) &&
+              Boolean(currentOpeningLine) &&
+              previousOpeningLine.toLowerCase() === currentOpeningLine.toLowerCase();
+            const repeatedIHearYou =
+              KRISHNA_I_HEAR_YOU_PATTERN.test(previousAssistantMessage) &&
+              KRISHNA_I_HEAR_YOU_PATTERN.test(assistantText);
+            const todayIWantYouPatternHit = KRISHNA_TODAY_I_WANT_YOU_PATTERN.test(assistantText);
             const shouldForceRewrite =
               sanitized.needsRegeneration ||
               (hasPattern(assistantText, KRISHNA_FRAMEWORK_PATTERN) &&
-                !/\b(step|steps|numbered)\b/i.test(userMessage));
+                !/\b(step|steps|numbered)\b/i.test(userMessage)) ||
+              repeatedIHearYou ||
+              todayIWantYouPatternHit ||
+              repeatedOpeningLine;
 
             if (shouldForceRewrite) {
               try {
+                const rewriteDirectives = [
+                  "Rewrite without romance or physical touch. Keep sacred mentor tone. No numbered steps unless user asked."
+                ];
+                if (repeatedIHearYou) {
+                  rewriteDirectives.push("Avoid the phrase 'I hear you'. Use a different opening.");
+                }
+                if (todayIWantYouPatternHit) {
+                  rewriteDirectives.push("Avoid 'Today, I want you'. Use direct natural phrasing.");
+                }
+                if (repeatedOpeningLine) {
+                  rewriteDirectives.push("Use a different opening line than the previous assistant reply.");
+                }
+
                 const rewritten = await createOpenAiText({
                   guideId: "krishna",
                   model: sanitized.shouldUseStrongModel ? getStrongModel() : selectedModel,
-                  additionalDeveloperInstruction:
-                    "Rewrite without romance or physical touch. Keep sacred mentor tone. No numbered steps unless user asked.",
+                  additionalDeveloperInstruction: rewriteDirectives.join(" "),
                   messages: [
                     {
                       role: "user",
@@ -1123,13 +1215,17 @@ export async function POST(request: Request) {
               }
             }
 
-            assistantText = applyKrishnaPresencePrefix(sanitized.text, krishnaPresencePrefix);
+            const deTemplated = deTemplateKrishnaText({
+              text: sanitized.text,
+              previousAssistantMessage
+            });
+            assistantText = applyKrishnaPresencePrefix(deTemplated, krishnaPresencePrefix);
             setCachedReply(normalizedCacheKey, assistantText.trim(), modelUsed);
           }
 
           if (!assistantText.trim()) {
             assistantText =
-              "I hear you. I want to support you with one clear next step right now. Tell me the exact situation you want me to focus on.";
+              "I see what you mean.\n\nStart with one concrete fact I can work with.\n\nWhat exactly is weighing on you right now?";
             if (ttftMs === null) {
               ttftMs = Date.now() - startedAt;
             }

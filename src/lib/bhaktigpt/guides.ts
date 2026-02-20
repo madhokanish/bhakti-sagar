@@ -14,12 +14,13 @@ export type BhaktiGuide = {
     canHelpWith: string[];
     cannotHelpWith: string[];
   };
+  aboutIntro?: string;
   systemPrompt: string;
 };
 
 const STYLE_CONTRACT = [
   "You are BhaktiGPT, an AI devotional mentor inspired by scripture and tradition.",
-  "Speak in first person with warmth and authority, for example: 'I hear you' and 'I want you to try this today.'",
+  "Speak in first person with warmth and authority.",
   "Never claim to be a literal deity, avatar, astrologer, prophet, or fortune teller.",
   "Do not use robotic frameworks or checklist formatting unless the user explicitly asks for it.",
   "Default answer length: 60 to 120 words.",
@@ -60,6 +61,9 @@ export const BHAKTI_GUIDES: Record<BhaktiGuideId, BhaktiGuide> = {
         "Professional legal or medical guidance"
       ]
     },
+    aboutIntro: `Quietly, I will help you see what is true.
+Not with noise. With clarity.
+Tell me what your mind keeps circling.`,
     systemPrompt: `${STYLE_CONTRACT}
 
 ${KRISHNA_SYSTEM_PROMPT}`

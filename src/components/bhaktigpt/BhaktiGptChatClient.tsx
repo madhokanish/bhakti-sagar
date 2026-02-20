@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trackEvent } from "@/lib/analytics";
@@ -55,6 +55,37 @@ function generateLocalId() {
     return crypto.randomUUID();
   }
   return `msg_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+}
+
+function renderMessageContent(content: string, options?: { krishnaPrefix?: boolean }) {
+  const normalized = content.replace(/\r\n/g, "\n").trim();
+  if (!normalized) return null;
+
+  const paragraphs = normalized
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  return (
+    <div className="space-y-3">
+      {paragraphs.map((paragraph, paragraphIndex) => {
+        const lines = paragraph.split("\n");
+        const showKrishnaPrefix = Boolean(options?.krishnaPrefix && paragraphIndex === 0);
+
+        return (
+          <p key={`${paragraphIndex}-${paragraph.slice(0, 16)}`} className="leading-relaxed text-inherit">
+            {showKrishnaPrefix ? <span className="mr-1.5 align-middle text-base">🦚</span> : null}
+            {lines.map((line, lineIndex) => (
+              <Fragment key={`${lineIndex}-${line.slice(0, 12)}`}>
+                {line}
+                {lineIndex < lines.length - 1 ? <br /> : null}
+              </Fragment>
+            ))}
+          </p>
+        );
+      })}
+    </div>
+  );
 }
 
 function parseSseBlock(block: string): StreamEvent | null {
@@ -400,7 +431,7 @@ export default function BhaktiGptChatClient() {
 
         if (!streamedText.trim()) {
           const fallback =
-            "I hear you. I want to guide you clearly, and I need one more detail to help well. What part of this situation feels most difficult right now?";
+            "I see what you mean.\n\nGive me one concrete detail, and I will guide you clearly.\n\nWhat is the sharpest part of this situation right now?";
           setMessages((prev) =>
             prev.map((item) => (item.id === assistantMessageId ? { ...item, content: fallback } : item))
           );
@@ -527,7 +558,10 @@ export default function BhaktiGptChatClient() {
                   />
                 </span>
                 <div>
-                  <p className="text-sm font-semibold text-sagar-ink">{selectedGuide.name}</p>
+                  <p className="text-sm font-semibold text-sagar-ink">
+                    {selectedGuideId === "krishna" ? "🦚 " : null}
+                    {selectedGuide.name}
+                  </p>
                   <p className="text-xs text-sagar-ink/70">{selectedGuide.subtitle}</p>
                 </div>
               </div>
@@ -603,7 +637,9 @@ export default function BhaktiGptChatClient() {
                           <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember" />
                         </span>
                       ) : (
-                        <p className="whitespace-pre-line">{message.content}</p>
+                        renderMessageContent(message.content, {
+                          krishnaPrefix: selectedGuideId === "krishna" && message.role === "assistant"
+                        })
                       )}
                     </article>
                   );
@@ -670,8 +706,12 @@ export default function BhaktiGptChatClient() {
           <div className="w-full max-w-lg rounded-3xl border border-sagar-amber/25 bg-white p-5 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.55)]">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-sagar-ink">About {selectedGuide.name}</h2>
-                <p className="mt-1 text-sm text-sagar-ink/70">{selectedGuide.shortDescription}</p>
+                <h2 className="text-lg font-semibold text-sagar-ink">
+                  {selectedGuideId === "krishna" ? "About 🦚 Shri Krishna" : `About ${selectedGuide.name}`}
+                </h2>
+                <p className="mt-1 text-sm whitespace-pre-line text-sagar-ink/70">
+                  {selectedGuide.aboutIntro ?? selectedGuide.shortDescription}
+                </p>
               </div>
               <button
                 type="button"

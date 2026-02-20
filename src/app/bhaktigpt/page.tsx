@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import GuideCard from "@/components/bhaktigpt/GuideCard";
 import {
   BHAKTI_GUIDES,
   BHAKTIGPT_DISCLAIMER,
   type BhaktiGuideId
 } from "@/lib/bhaktigpt/guides";
-import BhaktiTrackedLink from "@/components/bhaktigpt/BhaktiTrackedLink";
 import { buildMetadata } from "@/lib/seo";
 import BhaktiGptPageView from "@/components/bhaktigpt/BhaktiGptPageView";
 
@@ -89,16 +87,6 @@ export default function BhaktiGptLandingPage() {
           <p className="mt-3 text-base text-sagar-ink/75 sm:text-lg">
             Speak with AI guides inspired by sacred teachings for clarity, strength, and devotion.
           </p>
-          <div className="mt-5">
-            <BhaktiTrackedLink
-              href="/bhaktigpt/chat"
-              eventName="viewed_bhaktigpt"
-              eventParams={{ action: "browse_guides_click", source: "cards_header" }}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-sagar-amber/40 bg-white px-6 py-2.5 text-sm font-semibold text-sagar-ink/85 transition hover:bg-sagar-cream/60"
-            >
-              Browse Guides
-            </BhaktiTrackedLink>
-          </div>
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">

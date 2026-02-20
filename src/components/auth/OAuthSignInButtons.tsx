@@ -5,10 +5,14 @@ import { signIn } from "next-auth/react";
 
 type OAuthSignInButtonsProps = {
   callbackUrl: string;
+  emailEnabled?: boolean;
 };
 
-export default function OAuthSignInButtons({ callbackUrl }: OAuthSignInButtonsProps) {
+export default function OAuthSignInButtons({ callbackUrl, emailEnabled = false }: OAuthSignInButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<"google" | "apple" | null>(null);
+  const [email, setEmail] = useState("");
+  const [emailMessage, setEmailMessage] = useState<string | null>(null);
+  const [emailLoading, setEmailLoading] = useState(false);
 
   async function handleSignIn(provider: "google" | "apple") {
     if (loadingProvider) return;
@@ -21,6 +25,32 @@ export default function OAuthSignInButtons({ callbackUrl }: OAuthSignInButtonsPr
   }
 
   const isLoading = (provider: "google" | "apple") => loadingProvider === provider;
+
+  async function handleEmailSignIn() {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setEmailMessage("Enter your email to continue.");
+      return;
+    }
+
+    setEmailLoading(true);
+    setEmailMessage(null);
+    try {
+      const result = await signIn("nodemailer", {
+        email: normalizedEmail,
+        callbackUrl,
+        redirect: false
+      });
+
+      if (result?.error) {
+        setEmailMessage("Unable to send sign-in link. Please try again.");
+      } else {
+        setEmailMessage("Check your email for a secure sign-in link.");
+      }
+    } finally {
+      setEmailLoading(false);
+    }
+  }
 
   return (
     <div className="space-y-3">
@@ -63,6 +93,33 @@ export default function OAuthSignInButtons({ callbackUrl }: OAuthSignInButtonsPr
         </svg>
         {isLoading("apple") ? "Connecting Apple..." : "Continue with Apple"}
       </button>
+
+      {emailEnabled ? (
+        <div className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/35 p-3">
+          <label htmlFor="signin-email" className="mb-2 block text-xs font-semibold text-sagar-ink/75">
+            Continue with Email
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="signin-email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@example.com"
+              className="w-full rounded-xl border border-sagar-amber/30 bg-white px-3 py-2 text-sm text-sagar-ink outline-none focus:border-sagar-saffron/60"
+            />
+            <button
+              type="button"
+              onClick={handleEmailSignIn}
+              disabled={emailLoading}
+              className="rounded-xl border border-sagar-amber/35 bg-white px-3 py-2 text-sm font-semibold text-sagar-ink hover:border-sagar-saffron/55 disabled:cursor-not-allowed disabled:opacity-65"
+            >
+              {emailLoading ? "Sending..." : "Send link"}
+            </button>
+          </div>
+          {emailMessage ? <p className="mt-2 text-xs text-sagar-ink/70">{emailMessage}</p> : null}
+        </div>
+      ) : null}
     </div>
   );
 }

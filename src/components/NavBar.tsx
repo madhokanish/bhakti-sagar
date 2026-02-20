@@ -13,6 +13,7 @@ export default function NavBar() {
   const avatarInitial = avatarLabel.slice(0, 1).toUpperCase();
   const navItems = [
     { href: "/online-puja", label: "Online Puja", featured: true },
+    { href: "/bhaktigpt", label: "BhaktiGPT", featured: false },
     { href: "/aartis", label: "Aartis", featured: false },
     { href: "/choghadiya", label: "Choghadiya", featured: false },
     { href: "/live", label: "Live Darshan", featured: false }

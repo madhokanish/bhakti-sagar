@@ -28,6 +28,9 @@ function resolveErrorMessage(error: string | undefined) {
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
   const session = await auth();
+  const emailEnabled = Boolean(
+    process.env.SMTP_HOST?.trim() && process.env.SMTP_USER?.trim() && process.env.SMTP_PASS?.trim()
+  );
 
   if (session?.user?.id) {
     redirect("/account");
@@ -73,7 +76,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         ) : null}
 
         <div className="mt-6">
-          <OAuthSignInButtons callbackUrl={callbackUrl} />
+          <OAuthSignInButtons callbackUrl={callbackUrl} emailEnabled={emailEnabled} />
         </div>
 
         <p className="mt-5 text-xs leading-relaxed text-sagar-ink/65">

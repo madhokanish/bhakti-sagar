@@ -119,3 +119,18 @@ If SMTP is missing, the API now returns which env keys are missing.
 
 Aartis and categories live in `src/data/aartis.json` and `src/data/categories.json`.
 Replace the placeholder `youtubeUrl` values with real URLs to enable embeds.
+
+## BhaktiGPT (MVP)
+
+- Routes:
+  - `/bhaktigpt` landing page
+  - `/bhaktigpt/chat` chat experience
+  - `/api/bhaktigpt/chat` server-side chat + gating endpoint
+- Required env:
+  - `OPENAI_API_KEY`
+  - `OPENAI_MODEL` (or `OPENAI_MODEL_BHAKTIGPT`)
+  - `SESSION_SECRET` (for signed anonymous session cookie)
+- Gating behavior:
+  - Logged-out users can send up to 3 total user messages.
+  - After that, chat is blocked until sign in.
+  - Signed-in users have unlimited messages.

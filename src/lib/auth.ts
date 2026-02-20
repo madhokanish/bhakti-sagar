@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import Apple from "next-auth/providers/apple";
+import EmailProvider from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
@@ -110,7 +111,24 @@ const authConfig: NextAuthConfig = {
     Apple({
       clientId: process.env.APPLE_ID ?? "",
       clientSecret: createAppleClientSecret()
-    })
+    }),
+    ...(process.env.SMTP_HOST?.trim() &&
+    process.env.SMTP_USER?.trim() &&
+    process.env.SMTP_PASS?.trim()
+      ? [
+          EmailProvider({
+            server: {
+              host: process.env.SMTP_HOST,
+              port: Number(process.env.SMTP_PORT || "587"),
+              auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+              }
+            },
+            from: process.env.SMTP_FROM || process.env.SMTP_USER
+          })
+        ]
+      : [])
   ],
   callbacks: {
     async signIn({ user, account }) {

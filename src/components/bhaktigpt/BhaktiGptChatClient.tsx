@@ -34,6 +34,16 @@ type InitialResponse = {
   limitReached: boolean;
 };
 
+async function parseJsonSafe(response: Response) {
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 function generateLocalId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
@@ -88,10 +98,16 @@ export default function BhaktiGptChatClient() {
       try {
         const query = targetConversationId ? `?conversationId=${targetConversationId}` : "";
         const response = await fetch(`/api/bhaktigpt/chat${query}`, { method: "GET", cache: "no-store" });
+        const raw = await parseJsonSafe(response);
         if (!response.ok) {
+          const message =
+            (raw && typeof raw.error === "string" && raw.error) || "Unable to load chat.";
+          throw new Error(message);
+        }
+        if (!raw) {
           throw new Error("Unable to load chat.");
         }
-        const data = (await response.json()) as InitialResponse;
+        const data = raw as unknown as InitialResponse;
         setConversations(data.conversations);
         setMessages(data.messages);
         setIsAuthenticated(data.isAuthenticated);
@@ -163,13 +179,19 @@ export default function BhaktiGptChatClient() {
         })
       });
 
-      const data = await response.json();
+      const data = await parseJsonSafe(response);
 
       if (!response.ok) {
-        throw new Error(data?.error || "Unable to send message.");
+        const message =
+          (data && typeof data.error === "string" && data.error) || "Unable to send message.";
+        throw new Error(message);
       }
 
-      if (data.limitReached) {
+      if (!data) {
+        throw new Error("Unable to send message.");
+      }
+
+      if (data.limitReached === true) {
         setShowGateModal(true);
         setFreeRemaining(0);
         setFreeUsed(3);
@@ -183,16 +205,21 @@ export default function BhaktiGptChatClient() {
         content: value,
         createdAt: new Date().toISOString()
       };
+      const assistantText =
+        typeof data.assistantMessage === "string"
+          ? data.assistantMessage
+          : "I hear you. Please try again in a moment.";
+
       const assistantMessage: ChatMessage = {
         id: generateLocalId(),
         role: "assistant",
-        content: data.assistantMessage,
+        content: assistantText,
         createdAt: new Date().toISOString()
       };
 
       setMessages((prev) => [...prev, userMessage, assistantMessage]);
 
-      if (data.conversationId && data.conversationId !== conversationId) {
+      if (typeof data.conversationId === "string" && data.conversationId !== conversationId) {
         setConversationId(data.conversationId);
         updateUrl({ guide: selectedGuide, conversationId: data.conversationId });
       }
@@ -208,7 +235,7 @@ export default function BhaktiGptChatClient() {
         if (typeof data.used === "number") setFreeUsed(data.used);
       }
 
-      if (!conversationId) {
+      if (!conversationId && typeof data.conversationId === "string") {
         void loadInitial(data.conversationId);
       }
 

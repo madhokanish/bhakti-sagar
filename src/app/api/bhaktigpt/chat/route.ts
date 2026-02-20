@@ -124,22 +124,77 @@ async function fetchAssistantMessage(params: {
 }
 
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const conversationId = url.searchParams.get("conversationId");
-  const identity = await resolveBhaktiIdentity();
+  try {
+    const url = new URL(request.url);
+    const conversationId = url.searchParams.get("conversationId");
+    const identity = await resolveBhaktiIdentity();
 
-  const baseWhere = identity.userId
-    ? { userId: identity.userId }
-    : identity.anonSessionId
-      ? { sessionId: identity.anonSessionId }
-      : null;
+    const baseWhere = identity.userId
+      ? { userId: identity.userId }
+      : identity.anonSessionId
+        ? { sessionId: identity.anonSessionId }
+        : null;
 
-  const usage = await getUsageForIdentity(identity);
+    const usage = await getUsageForIdentity(identity);
 
-  if (!baseWhere) {
+    if (!baseWhere) {
+      const response = NextResponse.json({
+        conversations: [],
+        messages: [],
+        isAuthenticated: identity.isAuthenticated,
+        remaining: usage.remaining,
+        used: usage.used,
+        limitReached: usage.limitReached,
+        disclaimer: BHAKTIGPT_DISCLAIMER
+      });
+
+      if (identity.needsCookieSet && identity.cookieValue) {
+        setBhaktiCookie(response, identity.cookieValue);
+      }
+
+      return response;
+    }
+
+    const conversations = await prisma.bhaktiGptConversation.findMany({
+      where: baseWhere,
+      orderBy: { updatedAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        guideId: true,
+        title: true,
+        updatedAt: true
+      }
+    });
+
+    let messages: Array<{ id: string; role: string; content: string; createdAt: string }> = [];
+
+    if (conversationId) {
+      const conversation = await findConversationForIdentity({
+        conversationId,
+        userId: identity.userId,
+        sessionId: identity.anonSessionId
+      });
+
+      if (conversation) {
+        const dbMessages = await prisma.bhaktiGptMessage.findMany({
+          where: { conversationId: conversation.id },
+          orderBy: { createdAt: "asc" },
+          select: { id: true, role: true, content: true, createdAt: true }
+        });
+
+        messages = dbMessages.map((item) => ({
+          id: item.id,
+          role: item.role,
+          content: item.content,
+          createdAt: item.createdAt.toISOString()
+        }));
+      }
+    }
+
     const response = NextResponse.json({
-      conversations: [],
-      messages: [],
+      conversations,
+      messages,
       isAuthenticated: identity.isAuthenticated,
       remaining: usage.remaining,
       used: usage.used,
@@ -152,195 +207,162 @@ export async function GET(request: Request) {
     }
 
     return response;
+  } catch (error) {
+    console.error("[BhaktiGPT][GET] failed", error);
+    return NextResponse.json(
+      { error: "Unable to load chat right now. Please refresh and try again." },
+      { status: 500 }
+    );
   }
-
-  const conversations = await prisma.bhaktiGptConversation.findMany({
-    where: baseWhere,
-    orderBy: { updatedAt: "desc" },
-    take: 20,
-    select: {
-      id: true,
-      guideId: true,
-      title: true,
-      updatedAt: true
-    }
-  });
-
-  let messages: Array<{ id: string; role: string; content: string; createdAt: string }> = [];
-
-  if (conversationId) {
-    const conversation = await findConversationForIdentity({
-      conversationId,
-      userId: identity.userId,
-      sessionId: identity.anonSessionId
-    });
-
-    if (conversation) {
-      const dbMessages = await prisma.bhaktiGptMessage.findMany({
-        where: { conversationId: conversation.id },
-        orderBy: { createdAt: "asc" },
-        select: { id: true, role: true, content: true, createdAt: true }
-      });
-
-      messages = dbMessages.map((item) => ({
-        id: item.id,
-        role: item.role,
-        content: item.content,
-        createdAt: item.createdAt.toISOString()
-      }));
-    }
-  }
-
-  const response = NextResponse.json({
-    conversations,
-    messages,
-    isAuthenticated: identity.isAuthenticated,
-    remaining: usage.remaining,
-    used: usage.used,
-    limitReached: usage.limitReached,
-    disclaimer: BHAKTIGPT_DISCLAIMER
-  });
-
-  if (identity.needsCookieSet && identity.cookieValue) {
-    setBhaktiCookie(response, identity.cookieValue);
-  }
-
-  return response;
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as Partial<ChatRequest>;
+  try {
+    const body = (await request.json()) as Partial<ChatRequest>;
 
-  if (!body?.guideId || !isGuideId(body.guideId)) {
-    return badRequest("Invalid guideId.");
-  }
+    if (!body?.guideId || !isGuideId(body.guideId)) {
+      return badRequest("Invalid guideId.");
+    }
 
-  const userMessage = body.message?.trim();
-  if (!userMessage) {
-    return badRequest("Message is required.");
-  }
+    const userMessage = body.message?.trim();
+    if (!userMessage) {
+      return badRequest("Message is required.");
+    }
 
-  const identity = await resolveBhaktiIdentity();
-  const rateKey = identity.userId || identity.anonSessionId || "anonymous";
-  if (isRateLimited(`bhaktigpt:${rateKey}`)) {
-    return NextResponse.json({ error: "Too many requests. Please wait and try again." }, { status: 429 });
-  }
+    const identity = await resolveBhaktiIdentity();
+    const rateKey = identity.userId || identity.anonSessionId || "anonymous";
+    if (isRateLimited(`bhaktigpt:${rateKey}`)) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait and try again." },
+        { status: 429 }
+      );
+    }
 
-  const usage = await getUsageForIdentity(identity);
+    const usage = await getUsageForIdentity(identity);
 
-  if (!identity.isAuthenticated && usage.limitReached) {
-    trackServerEvent("hit_gate", { reason: "free_limit", guideId: body.guideId });
-    const gateResponse = NextResponse.json({
-      limitReached: true,
-      remaining: 0,
-      conversationId: body.conversationId ?? null,
+    if (!identity.isAuthenticated && usage.limitReached) {
+      trackServerEvent("hit_gate", { reason: "free_limit", guideId: body.guideId });
+      const gateResponse = NextResponse.json({
+        limitReached: true,
+        remaining: 0,
+        conversationId: body.conversationId ?? null,
+        disclaimer: BHAKTIGPT_DISCLAIMER
+      });
+
+      if (identity.needsCookieSet && identity.cookieValue) {
+        setBhaktiCookie(gateResponse, identity.cookieValue);
+      }
+
+      return gateResponse;
+    }
+
+    const isCrisis = detectCrisisIntent(userMessage);
+
+    const existing = body.conversationId
+      ? await findConversationForIdentity({
+          conversationId: body.conversationId,
+          userId: identity.userId,
+          sessionId: identity.anonSessionId
+        })
+      : null;
+
+    const conversation =
+      existing ||
+      (await prisma.bhaktiGptConversation.create({
+        data: {
+          guideId: body.guideId,
+          title: userMessage.slice(0, 80),
+          userId: identity.userId,
+          sessionId: identity.userId ? null : identity.anonSessionId
+        }
+      }));
+
+    if (conversation.guideId !== body.guideId) {
+      await prisma.bhaktiGptConversation.update({
+        where: { id: conversation.id },
+        data: { guideId: body.guideId }
+      });
+    }
+
+    await prisma.bhaktiGptMessage.create({
+      data: {
+        conversationId: conversation.id,
+        role: "user",
+        content: userMessage
+      }
+    });
+
+    let nextRemaining = usage.remaining;
+    if (!identity.isAuthenticated && identity.anonSessionId) {
+      const count = await incrementAnonymousUsage(identity.anonSessionId);
+      nextRemaining = Math.max(3 - count, 0);
+    }
+
+    const historyRows = await prisma.bhaktiGptMessage.findMany({
+      where: { conversationId: conversation.id },
+      orderBy: { createdAt: "asc" },
+      take: 10,
+      select: {
+        role: true,
+        content: true
+      }
+    });
+
+    const history = historyRows
+      .filter((item) => item.role === "user" || item.role === "assistant")
+      .map((item) => ({ role: item.role as "user" | "assistant", content: item.content }));
+
+    const assistantMessage = isCrisis
+      ? crisisSupportResponse()
+      : await fetchAssistantMessage({
+          guideId: body.guideId,
+          history
+        });
+
+    await prisma.bhaktiGptMessage.create({
+      data: {
+        conversationId: conversation.id,
+        role: "assistant",
+        content: assistantMessage
+      }
+    });
+
+    await prisma.bhaktiGptConversation.update({
+      where: { id: conversation.id },
+      data: {
+        updatedAt: new Date(),
+        title: conversation.title || userMessage.slice(0, 80)
+      }
+    });
+
+    trackServerEvent("sent_message", {
+      guideId: body.guideId,
+      isAuthenticated: identity.isAuthenticated,
+      crisisHandled: isCrisis
+    });
+
+    const response = NextResponse.json({
+      assistantMessage,
+      conversationId: conversation.id,
+      limitReached: false,
+      remaining: identity.isAuthenticated ? null : nextRemaining,
+      used: identity.isAuthenticated ? null : 3 - nextRemaining,
       disclaimer: BHAKTIGPT_DISCLAIMER
     });
 
     if (identity.needsCookieSet && identity.cookieValue) {
-      setBhaktiCookie(gateResponse, identity.cookieValue);
+      setBhaktiCookie(response, identity.cookieValue);
     }
 
-    return gateResponse;
+    return response;
+  } catch (error) {
+    console.error("[BhaktiGPT][POST] failed", error);
+    return NextResponse.json(
+      {
+        error:
+          "Unable to process your message right now. If this continues, database migration may still be pending."
+      },
+      { status: 500 }
+    );
   }
-
-  const isCrisis = detectCrisisIntent(userMessage);
-
-  const existing = body.conversationId
-    ? await findConversationForIdentity({
-        conversationId: body.conversationId,
-        userId: identity.userId,
-        sessionId: identity.anonSessionId
-      })
-    : null;
-
-  const conversation =
-    existing ||
-    (await prisma.bhaktiGptConversation.create({
-      data: {
-        guideId: body.guideId,
-        title: userMessage.slice(0, 80),
-        userId: identity.userId,
-        sessionId: identity.userId ? null : identity.anonSessionId
-      }
-    }));
-
-  if (conversation.guideId !== body.guideId) {
-    await prisma.bhaktiGptConversation.update({
-      where: { id: conversation.id },
-      data: { guideId: body.guideId }
-    });
-  }
-
-  await prisma.bhaktiGptMessage.create({
-    data: {
-      conversationId: conversation.id,
-      role: "user",
-      content: userMessage
-    }
-  });
-
-  let nextRemaining = usage.remaining;
-  if (!identity.isAuthenticated && identity.anonSessionId) {
-    const count = await incrementAnonymousUsage(identity.anonSessionId);
-    nextRemaining = Math.max(3 - count, 0);
-  }
-
-  const historyRows = await prisma.bhaktiGptMessage.findMany({
-    where: { conversationId: conversation.id },
-    orderBy: { createdAt: "asc" },
-    take: 10,
-    select: {
-      role: true,
-      content: true
-    }
-  });
-
-  const history = historyRows
-    .filter((item) => item.role === "user" || item.role === "assistant")
-    .map((item) => ({ role: item.role as "user" | "assistant", content: item.content }));
-
-  const assistantMessage = isCrisis
-    ? crisisSupportResponse()
-    : await fetchAssistantMessage({
-        guideId: body.guideId,
-        history
-      });
-
-  await prisma.bhaktiGptMessage.create({
-    data: {
-      conversationId: conversation.id,
-      role: "assistant",
-      content: assistantMessage
-    }
-  });
-
-  await prisma.bhaktiGptConversation.update({
-    where: { id: conversation.id },
-    data: {
-      updatedAt: new Date(),
-      title: conversation.title || userMessage.slice(0, 80)
-    }
-  });
-
-  trackServerEvent("sent_message", {
-    guideId: body.guideId,
-    isAuthenticated: identity.isAuthenticated,
-    crisisHandled: isCrisis
-  });
-
-  const response = NextResponse.json({
-    assistantMessage,
-    conversationId: conversation.id,
-    limitReached: false,
-    remaining: identity.isAuthenticated ? null : nextRemaining,
-    used: identity.isAuthenticated ? null : 3 - nextRemaining,
-    disclaimer: BHAKTIGPT_DISCLAIMER
-  });
-
-  if (identity.needsCookieSet && identity.cookieValue) {
-    setBhaktiCookie(response, identity.cookieValue);
-  }
-
-  return response;
 }

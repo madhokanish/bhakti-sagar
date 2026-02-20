@@ -67,7 +67,15 @@ export type BhaktiIdentity = {
 };
 
 export async function resolveBhaktiIdentity(): Promise<BhaktiIdentity> {
-  const session = await auth();
+  let sessionUserId: string | null = null;
+  try {
+    const session = await auth();
+    sessionUserId = session?.user?.id ?? null;
+  } catch (error) {
+    // Keep BhaktiGPT available in anonymous mode even if auth/session tables are unavailable.
+    console.error("[BhaktiGPT] Auth unavailable, falling back to anonymous mode.", error);
+  }
+
   const cookieStore = cookies();
   const parsed = decodeCookiePayload(cookieStore.get(BHAKTIGPT_COOKIE)?.value);
 
@@ -80,8 +88,8 @@ export async function resolveBhaktiIdentity(): Promise<BhaktiIdentity> {
   };
 
   return {
-    isAuthenticated: Boolean(session?.user?.id),
-    userId: session?.user?.id ?? null,
+    isAuthenticated: Boolean(sessionUserId),
+    userId: sessionUserId,
     anonSessionId: sessionId,
     needsCookieSet,
     cookieValue: needsCookieSet ? encodeCookiePayload(payload) : null
@@ -96,17 +104,49 @@ export function getAnonLimitInfo(messageCount: number) {
   };
 }
 
+const globalUsageFallback = globalThis as unknown as {
+  bhaktiUsageFallbackMap?: Map<string, number>;
+};
+
+function getUsageFallbackMap() {
+  if (!globalUsageFallback.bhaktiUsageFallbackMap) {
+    globalUsageFallback.bhaktiUsageFallbackMap = new Map<string, number>();
+  }
+  return globalUsageFallback.bhaktiUsageFallbackMap;
+}
+
+function getUsageFallbackKey(identity: BhaktiIdentity) {
+  if (identity.userId) return `user:${identity.userId}`;
+  if (identity.anonSessionId) return `session:${identity.anonSessionId}`;
+  return null;
+}
+
+function getFallbackCount(identity: BhaktiIdentity) {
+  const key = getUsageFallbackKey(identity);
+  if (!key) return 0;
+  return getUsageFallbackMap().get(key) ?? 0;
+}
+
 export async function getUsageForIdentity(identity: BhaktiIdentity) {
   if (identity.isAuthenticated && identity.userId) {
-    const usage = await prisma.bhaktiGptUsage.findUnique({
-      where: { userId: identity.userId }
-    });
+    try {
+      const usage = await prisma.bhaktiGptUsage.findUnique({
+        where: { userId: identity.userId }
+      });
 
-    return {
-      messageCount: usage?.messageCount ?? 0,
-      limitReached: false,
-      ...getAnonLimitInfo(0)
-    };
+      return {
+        messageCount: usage?.messageCount ?? 0,
+        limitReached: false,
+        ...getAnonLimitInfo(0)
+      };
+    } catch (error) {
+      console.error("[BhaktiGPT] Usage lookup failed for authenticated user.", error);
+      return {
+        messageCount: getFallbackCount(identity),
+        limitReached: false,
+        ...getAnonLimitInfo(0)
+      };
+    }
   }
 
   if (!identity.anonSessionId) {
@@ -117,11 +157,18 @@ export async function getUsageForIdentity(identity: BhaktiIdentity) {
     };
   }
 
-  const usage = await prisma.bhaktiGptUsage.findUnique({
-    where: { sessionId: identity.anonSessionId }
-  });
+  let count = 0;
+  try {
+    const usage = await prisma.bhaktiGptUsage.findUnique({
+      where: { sessionId: identity.anonSessionId }
+    });
 
-  const count = usage?.messageCount ?? 0;
+    count = usage?.messageCount ?? 0;
+  } catch (error) {
+    console.error("[BhaktiGPT] Usage lookup failed for anonymous session.", error);
+    count = getFallbackCount(identity);
+  }
+
   return {
     messageCount: count,
     limitReached: count >= ANON_LIMIT,
@@ -130,21 +177,30 @@ export async function getUsageForIdentity(identity: BhaktiIdentity) {
 }
 
 export async function incrementAnonymousUsage(sessionId: string) {
-  const usage = await prisma.bhaktiGptUsage.upsert({
-    where: { sessionId },
-    update: {
-      messageCount: { increment: 1 }
-    },
-    create: {
-      sessionId,
-      messageCount: 1
-    },
-    select: {
-      messageCount: true
-    }
-  });
+  try {
+    const usage = await prisma.bhaktiGptUsage.upsert({
+      where: { sessionId },
+      update: {
+        messageCount: { increment: 1 }
+      },
+      create: {
+        sessionId,
+        messageCount: 1
+      },
+      select: {
+        messageCount: true
+      }
+    });
 
-  return usage.messageCount;
+    return usage.messageCount;
+  } catch (error) {
+    console.error("[BhaktiGPT] Usage increment failed for anonymous session.", error);
+    const fallbackKey = `session:${sessionId}`;
+    const map = getUsageFallbackMap();
+    const next = (map.get(fallbackKey) ?? 0) + 1;
+    map.set(fallbackKey, next);
+    return next;
+  }
 }
 
 const globalRateLimit = globalThis as unknown as {

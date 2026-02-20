@@ -155,41 +155,51 @@ export async function GET(request: Request) {
       return response;
     }
 
-    const conversations = await prisma.bhaktiGptConversation.findMany({
-      where: baseWhere,
-      orderBy: { updatedAt: "desc" },
-      take: 20,
-      select: {
-        id: true,
-        guideId: true,
-        title: true,
-        updatedAt: true
-      }
-    });
-
+    let conversations: Array<{
+      id: string;
+      guideId: string;
+      title: string | null;
+      updatedAt: Date;
+    }> = [];
     let messages: Array<{ id: string; role: string; content: string; createdAt: string }> = [];
 
-    if (conversationId) {
-      const conversation = await findConversationForIdentity({
-        conversationId,
-        userId: identity.userId,
-        sessionId: identity.anonSessionId
+    try {
+      conversations = await prisma.bhaktiGptConversation.findMany({
+        where: baseWhere,
+        orderBy: { updatedAt: "desc" },
+        take: 20,
+        select: {
+          id: true,
+          guideId: true,
+          title: true,
+          updatedAt: true
+        }
       });
 
-      if (conversation) {
-        const dbMessages = await prisma.bhaktiGptMessage.findMany({
-          where: { conversationId: conversation.id },
-          orderBy: { createdAt: "asc" },
-          select: { id: true, role: true, content: true, createdAt: true }
+      if (conversationId) {
+        const conversation = await findConversationForIdentity({
+          conversationId,
+          userId: identity.userId,
+          sessionId: identity.anonSessionId
         });
 
-        messages = dbMessages.map((item) => ({
-          id: item.id,
-          role: item.role,
-          content: item.content,
-          createdAt: item.createdAt.toISOString()
-        }));
+        if (conversation) {
+          const dbMessages = await prisma.bhaktiGptMessage.findMany({
+            where: { conversationId: conversation.id },
+            orderBy: { createdAt: "asc" },
+            select: { id: true, role: true, content: true, createdAt: true }
+          });
+
+          messages = dbMessages.map((item) => ({
+            id: item.id,
+            role: item.role,
+            content: item.content,
+            createdAt: item.createdAt.toISOString()
+          }));
+        }
       }
+    } catch (error) {
+      console.error("[BhaktiGPT][GET] Falling back to no-history mode.", error);
     }
 
     const response = NextResponse.json({
@@ -258,39 +268,9 @@ export async function POST(request: Request) {
 
     const isCrisis = detectCrisisIntent(userMessage);
 
-    const existing = body.conversationId
-      ? await findConversationForIdentity({
-          conversationId: body.conversationId,
-          userId: identity.userId,
-          sessionId: identity.anonSessionId
-        })
-      : null;
-
-    const conversation =
-      existing ||
-      (await prisma.bhaktiGptConversation.create({
-        data: {
-          guideId: body.guideId,
-          title: userMessage.slice(0, 80),
-          userId: identity.userId,
-          sessionId: identity.userId ? null : identity.anonSessionId
-        }
-      }));
-
-    if (conversation.guideId !== body.guideId) {
-      await prisma.bhaktiGptConversation.update({
-        where: { id: conversation.id },
-        data: { guideId: body.guideId }
-      });
-    }
-
-    await prisma.bhaktiGptMessage.create({
-      data: {
-        conversationId: conversation.id,
-        role: "user",
-        content: userMessage
-      }
-    });
+    let conversationId: string = body.conversationId ?? `fallback_${Date.now()}`;
+    let conversationTitle = userMessage.slice(0, 80);
+    let shouldPersistAssistant = false;
 
     let nextRemaining = usage.remaining;
     if (!identity.isAuthenticated && identity.anonSessionId) {
@@ -298,19 +278,66 @@ export async function POST(request: Request) {
       nextRemaining = Math.max(3 - count, 0);
     }
 
-    const historyRows = await prisma.bhaktiGptMessage.findMany({
-      where: { conversationId: conversation.id },
-      orderBy: { createdAt: "asc" },
-      take: 10,
-      select: {
-        role: true,
-        content: true
-      }
-    });
+    let history: Array<{ role: "user" | "assistant"; content: string }> = [
+      { role: "user", content: userMessage }
+    ];
 
-    const history = historyRows
-      .filter((item) => item.role === "user" || item.role === "assistant")
-      .map((item) => ({ role: item.role as "user" | "assistant", content: item.content }));
+    try {
+      const existing = body.conversationId
+        ? await findConversationForIdentity({
+            conversationId: body.conversationId,
+            userId: identity.userId,
+            sessionId: identity.anonSessionId
+          })
+        : null;
+
+      const conversation =
+        existing ||
+        (await prisma.bhaktiGptConversation.create({
+          data: {
+            guideId: body.guideId,
+            title: userMessage.slice(0, 80),
+            userId: identity.userId,
+            sessionId: identity.userId ? null : identity.anonSessionId
+          }
+        }));
+
+      conversationId = conversation.id;
+      conversationTitle = conversation.title || userMessage.slice(0, 80);
+
+      if (conversation.guideId !== body.guideId) {
+        await prisma.bhaktiGptConversation.update({
+          where: { id: conversation.id },
+          data: { guideId: body.guideId }
+        });
+      }
+
+      await prisma.bhaktiGptMessage.create({
+        data: {
+          conversationId: conversation.id,
+          role: "user",
+          content: userMessage
+        }
+      });
+
+      const historyRows = await prisma.bhaktiGptMessage.findMany({
+        where: { conversationId: conversation.id },
+        orderBy: { createdAt: "asc" },
+        take: 10,
+        select: {
+          role: true,
+          content: true
+        }
+      });
+
+      history = historyRows
+        .filter((item) => item.role === "user" || item.role === "assistant")
+        .map((item) => ({ role: item.role as "user" | "assistant", content: item.content }));
+
+      shouldPersistAssistant = true;
+    } catch (error) {
+      console.error("[BhaktiGPT][POST] Falling back to stateless response mode.", error);
+    }
 
     const assistantMessage = isCrisis
       ? crisisSupportResponse()
@@ -319,21 +346,27 @@ export async function POST(request: Request) {
           history
         });
 
-    await prisma.bhaktiGptMessage.create({
-      data: {
-        conversationId: conversation.id,
-        role: "assistant",
-        content: assistantMessage
-      }
-    });
+    if (shouldPersistAssistant) {
+      try {
+        await prisma.bhaktiGptMessage.create({
+          data: {
+            conversationId,
+            role: "assistant",
+            content: assistantMessage
+          }
+        });
 
-    await prisma.bhaktiGptConversation.update({
-      where: { id: conversation.id },
-      data: {
-        updatedAt: new Date(),
-        title: conversation.title || userMessage.slice(0, 80)
+        await prisma.bhaktiGptConversation.update({
+          where: { id: conversationId },
+          data: {
+            updatedAt: new Date(),
+            title: conversationTitle
+          }
+        });
+      } catch (error) {
+        console.error("[BhaktiGPT][POST] Assistant persistence failed.", error);
       }
-    });
+    }
 
     trackServerEvent("sent_message", {
       guideId: body.guideId,
@@ -343,7 +376,7 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({
       assistantMessage,
-      conversationId: conversation.id,
+      conversationId,
       limitReached: false,
       remaining: identity.isAuthenticated ? null : nextRemaining,
       used: identity.isAuthenticated ? null : 3 - nextRemaining,
@@ -359,8 +392,7 @@ export async function POST(request: Request) {
     console.error("[BhaktiGPT][POST] failed", error);
     return NextResponse.json(
       {
-        error:
-          "Unable to process your message right now. If this continues, database migration may still be pending."
+        error: "Unable to process your message right now. Please try again in a few seconds."
       },
       { status: 500 }
     );

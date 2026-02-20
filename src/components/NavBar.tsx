@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import Logo from "@/components/Logo";
 
 export default function NavBar() {
   const [scrolled, setScrolled] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
   const { data: session, status } = useSession();
   const isAuthenticated = Boolean(session?.user?.id);
   const avatarLabel = session?.user?.name || session?.user?.email || "Account";
@@ -26,8 +27,20 @@ export default function NavBar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useLayoutEffect(() => {
+    const updateNavHeight = () => {
+      const height = headerRef.current?.offsetHeight ?? 0;
+      document.documentElement.style.setProperty("--nav-height", `${height}px`);
+    };
+
+    updateNavHeight();
+    window.addEventListener("resize", updateNavHeight);
+    return () => window.removeEventListener("resize", updateNavHeight);
+  }, []);
+
   return (
     <header
+      ref={headerRef}
       style={{ top: "var(--promo-ribbon-height, 0px)" }}
       className={`sticky z-40 border-b border-sagar-amber/18 bg-white/90 backdrop-blur transition-shadow ${
         scrolled ? "shadow-[0_10px_30px_-24px_rgba(44,20,10,0.5)]" : "shadow-none"

@@ -15,29 +15,19 @@ export const metadata: Metadata = {
 
 export default function BhaktiGptChatPage() {
   return (
-    <div className="px-0 py-0 md:px-4 md:py-4">
+    <div
+      className="fixed inset-x-0 bottom-0 z-30 overflow-hidden bg-transparent"
+      style={{ top: "calc(var(--promo-ribbon-height, 0px) + var(--nav-height, 0px))" }}
+    >
       <BhaktiGptPageView page="chat" />
-      <section className="mx-2 mb-2 rounded-2xl border border-sagar-amber/20 bg-white/85 p-2 shadow-sagar-soft md:mx-0 md:mb-3 md:p-3">
-        <div className="flex flex-wrap gap-2 text-xs text-sagar-ink/75">
-          <span className="rounded-full border border-sagar-amber/20 bg-sagar-cream/50 px-2.5 py-1">
-            Inspired by scriptures and tradition
-          </span>
-          <span className="rounded-full border border-sagar-amber/20 bg-sagar-cream/50 px-2.5 py-1">
-            Private chats, secure by design
-          </span>
-          <span className="rounded-full border border-sagar-amber/20 bg-sagar-cream/50 px-2.5 py-1">
-            No fear, no predictions
-          </span>
-        </div>
-      </section>
       <Suspense
         fallback={
-          <div className="mx-2 rounded-3xl border border-sagar-amber/20 bg-white/88 p-6 text-sm text-sagar-ink/70 shadow-sagar-soft md:mx-0">
+          <div className="h-full rounded-none border border-sagar-amber/20 bg-white/88 p-6 text-sm text-sagar-ink/70 shadow-sagar-soft md:rounded-3xl md:mx-4 md:my-2">
             Loading BhaktiGPT chat...
           </div>
         }
       >
-        <div className="mx-0 md:mx-0">
+        <div className="h-full md:px-4 md:py-2">
           <BhaktiGptChatClient />
         </div>
       </Suspense>

@@ -415,7 +415,7 @@ export default function BhaktiGptChatClient() {
 
   return (
     <>
-      <section className="grid h-[calc(100dvh-7.5rem)] min-h-[38rem] overflow-hidden rounded-none border border-sagar-amber/20 bg-white/95 shadow-sagar-soft md:grid-cols-[18rem_1fr] md:rounded-3xl">
+      <section className="grid h-full min-h-0 overflow-hidden rounded-none border border-sagar-amber/20 bg-white/95 shadow-sagar-soft md:grid-cols-[18rem_1fr] md:rounded-3xl">
         <aside className="hidden border-r border-sagar-amber/20 bg-sagar-cream/30 p-3 md:flex md:flex-col">
           <h2 className="px-2 text-sm font-semibold uppercase tracking-[0.12em] text-sagar-rose">BhaktiGPT</h2>
           <button
@@ -555,19 +555,6 @@ export default function BhaktiGptChatClient() {
                   <p className="text-sm font-semibold text-sagar-ink">Start your conversation with {selectedGuide.name}</p>
                   <p className="mt-1 text-sm text-sagar-ink/75">{selectedGuide.shortDescription}</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {selectedGuide.promptChips.map((chip) => (
-                    <button
-                      key={chip}
-                      type="button"
-                      onClick={() => void sendMessage(chip)}
-                      disabled={isStreaming}
-                      className="rounded-full border border-sagar-amber/30 bg-white px-3 py-1.5 text-xs text-sagar-ink/85 transition hover:border-sagar-saffron/45 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {chip}
-                    </button>
-                  ))}
-                </div>
                 <p className="text-xs text-sagar-ink/60">{BHAKTIGPT_DISCLAIMER}</p>
               </div>
             ) : null}
@@ -601,20 +588,22 @@ export default function BhaktiGptChatClient() {
               : null}
           </div>
 
-          <div className="border-t border-sagar-amber/20 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
-            <div className="mb-2 flex flex-wrap gap-2">
-              {selectedGuide.promptChips.map((chip) => (
-                <button
-                  key={chip}
-                  type="button"
-                  onClick={() => void sendMessage(chip)}
-                  disabled={isStreaming}
-                  className="rounded-full border border-sagar-amber/28 bg-white px-3 py-1.5 text-xs text-sagar-ink/80 transition hover:border-sagar-saffron/45 hover:bg-sagar-cream/50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {chip}
-                </button>
-              ))}
-            </div>
+          <div className="sticky bottom-0 z-10 border-t border-sagar-amber/20 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
+            {loadState === "ready" && messages.length === 0 ? (
+              <div className="mb-2 flex flex-wrap gap-2">
+                {selectedGuide.promptChips.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => void sendMessage(chip)}
+                    disabled={isStreaming}
+                    className="rounded-full border border-sagar-amber/28 bg-white px-3 py-1.5 text-xs text-sagar-ink/80 transition hover:border-sagar-saffron/45 hover:bg-sagar-cream/50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
             <div className="flex gap-2">
               <textarea

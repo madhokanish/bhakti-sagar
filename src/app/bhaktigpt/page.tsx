@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { BHAKTI_GUIDES, BHAKTIGPT_DISCLAIMER } from "@/lib/bhaktigpt/guides";
 import { buildMetadata } from "@/lib/seo";
 import BhaktiTrackedLink from "@/components/bhaktigpt/BhaktiTrackedLink";
@@ -87,35 +88,55 @@ export default function BhaktiGptLandingPage() {
 
       <section className="mt-8">
         <div className="flex items-end justify-between gap-3">
-          <h2 className="text-3xl font-serif text-sagar-ink">Choose your guide</h2>
+          <h2 className="text-3xl font-serif text-sagar-ink">Seek guidance from divine avatars</h2>
           <Link href="/bhaktigpt/chat" className="text-sm font-semibold text-sagar-ember hover:text-sagar-saffron">Open chat</Link>
         </div>
+        <p className="mt-2 text-sm text-sagar-ink/70">
+          Speak with AI guides inspired by dharmic teachings for wisdom, reflection, and next-step clarity.
+        </p>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-3">
           {Object.values(BHAKTI_GUIDES).map((guide) => (
-            <article key={guide.id} className="rounded-3xl border border-sagar-amber/22 bg-white/90 p-4 shadow-sagar-soft">
-              <h3 className="text-xl font-semibold text-sagar-ink">{guide.name}</h3>
-              <p className="mt-1 text-sm text-sagar-ink/75">{guide.subtitle}</p>
-              <p className="mt-3 text-sm text-sagar-ink/75">{guide.shortDescription}</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {guide.promptChips.map((chip) => (
-                  <span
-                    key={chip}
-                    className="rounded-full border border-sagar-amber/28 bg-sagar-cream/45 px-3 py-1 text-xs text-sagar-ink/85"
-                  >
-                    {chip}
-                  </span>
-                ))}
+            <BhaktiTrackedLink
+              key={guide.id}
+              href={`/bhaktigpt/chat?guide=${guide.id}`}
+              eventName="selected_guide"
+              eventParams={{ guideId: guide.id, source: "landing_card" }}
+              className="group block overflow-hidden rounded-3xl border border-sagar-amber/22 bg-white/90 shadow-sagar-soft transition hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(65,30,10,0.45)]"
+            >
+              <div className="relative aspect-[4/5] overflow-hidden">
+                <Image
+                  src={guide.imageSrc}
+                  alt={guide.imageAlt}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 33vw"
+                  className="object-cover transition duration-500 group-hover:scale-[1.04]"
+                  priority={guide.id === "krishna"}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#2f1408]/90 via-[#2f1408]/25 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-4">
+                  <h3 className="text-2xl font-serif text-white">{guide.name}</h3>
+                  <p className="mt-1 text-sm text-white/85">{guide.subtitle}</p>
+                </div>
               </div>
-              <BhaktiTrackedLink
-                href={`/bhaktigpt/chat?guide=${guide.id}`}
-                eventName="selected_guide"
-                eventParams={{ guideId: guide.id, source: "landing_card" }}
-                className="mt-4 inline-flex min-h-[42px] items-center justify-center rounded-full bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember"
-              >
-                Chat with {guide.name}
-              </BhaktiTrackedLink>
-            </article>
+
+              <div className="p-4">
+                <p className="text-sm text-sagar-ink/78">{guide.shortDescription}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {guide.promptChips.slice(0, 2).map((chip) => (
+                    <span
+                      key={chip}
+                      className="rounded-full border border-sagar-amber/28 bg-sagar-cream/45 px-3 py-1 text-xs text-sagar-ink/85"
+                    >
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+                <span className="mt-4 inline-flex min-h-[42px] items-center justify-center rounded-full bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition group-hover:bg-sagar-ember">
+                  Connect with {guide.name}
+                </span>
+              </div>
+            </BhaktiTrackedLink>
           ))}
         </div>
       </section>

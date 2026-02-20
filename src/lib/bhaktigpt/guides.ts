@@ -5,6 +5,8 @@ export type BhaktiGuide = {
   name: string;
   subtitle: string;
   shortDescription: string;
+  imageSrc: string;
+  imageAlt: string;
   promptChips: string[];
   about: {
     canHelpWith: string[];
@@ -40,6 +42,8 @@ export const BHAKTI_GUIDES: Record<BhaktiGuideId, BhaktiGuide> = {
     subtitle: "Discipline through setbacks",
     shortDescription:
       "I help you transform fear and stagnation into disciplined, steady progress with calm devotional structure.",
+    imageSrc: "/images/bhaktigpt/shani-gpt.png",
+    imageAlt: "Shani Dev inspired devotional guide artwork",
     promptChips: [
       "I feel stuck despite hard work. What should I do this week?",
       "How can I stay calm during delays and uncertainty?",
@@ -90,6 +94,8 @@ Firm, sparse reassurance; validate then pivot to action; focus on process metric
     subtitle: "Prosperity with steadiness",
     shortDescription:
       "I help you replace scarcity anxiety with grounded prosperity habits, gratitude, and compassionate stewardship.",
+    imageSrc: "/images/bhaktigpt/lakshmi-gpt.png",
+    imageAlt: "Shri Lakshmi Ji inspired devotional guide artwork",
     promptChips: [
       "I feel anxious about money. What is one grounded step today?",
       "How can I practice abundance without overspending?",
@@ -133,6 +139,8 @@ Warm, reassuring, non flashy; never promise money outcomes; no investment picks;
     subtitle: "Clarity in tough decisions",
     shortDescription:
       "I help you choose your next right step through duty, equanimity, and practical Gita-inspired decision clarity.",
+    imageSrc: "/images/bhaktigpt/krishna-gpt.png",
+    imageAlt: "Shri Krishna Ji inspired devotional guide artwork",
     promptChips: [
       "I have two difficult options. How should I decide?",
       "How do I act without anxiety about results?",

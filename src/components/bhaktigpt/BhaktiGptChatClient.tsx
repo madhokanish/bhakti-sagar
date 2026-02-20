@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trackEvent } from "@/lib/analytics";
@@ -269,14 +270,28 @@ export default function BhaktiGptChatClient() {
                 key={item.id}
                 type="button"
                 onClick={() => handleGuideChange(item.id)}
-                className={`w-full rounded-xl border px-3 py-2.5 text-left transition ${
+                className={`w-full rounded-xl border p-2 text-left transition ${
                   active
-                    ? "border-sagar-saffron/45 bg-sagar-cream/70"
+                    ? "border-sagar-saffron/45 bg-sagar-cream/70 shadow-[0_8px_20px_-16px_rgba(94,46,16,0.6)]"
                     : "border-sagar-amber/20 bg-white hover:border-sagar-amber/45"
                 }`}
               >
-                <p className="text-sm font-semibold text-sagar-ink">{item.name}</p>
-                <p className="mt-0.5 text-xs text-sagar-ink/70">{item.subtitle}</p>
+                <span className="flex items-center gap-2.5">
+                  <span className="relative h-10 w-10 overflow-hidden rounded-lg border border-sagar-amber/25">
+                    <Image
+                      src={item.imageSrc}
+                      alt={item.imageAlt}
+                      fill
+                      className="object-cover"
+                      sizes="40px"
+                      loading="lazy"
+                    />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold text-sagar-ink">{item.name}</span>
+                    <span className="mt-0.5 block text-xs text-sagar-ink/70">{item.subtitle}</span>
+                  </span>
+                </span>
               </button>
             );
           })}
@@ -312,9 +327,21 @@ export default function BhaktiGptChatClient() {
 
       <section className="flex min-h-[68vh] flex-col rounded-3xl border border-sagar-amber/20 bg-white/88 shadow-sagar-soft">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-sagar-amber/15 px-4 py-4 sm:px-6">
-          <div>
-            <h1 className="text-lg font-semibold text-sagar-ink">{guide.name}</h1>
-            <p className="text-sm text-sagar-ink/70">{guide.subtitle}</p>
+          <div className="flex items-center gap-3">
+            <span className="relative h-11 w-11 overflow-hidden rounded-xl border border-sagar-amber/25">
+              <Image
+                src={guide.imageSrc}
+                alt={guide.imageAlt}
+                fill
+                className="object-cover"
+                sizes="44px"
+                priority
+              />
+            </span>
+            <div>
+              <h1 className="text-lg font-semibold text-sagar-ink">{guide.name}</h1>
+              <p className="text-sm text-sagar-ink/70">{guide.subtitle}</p>
+            </div>
           </div>
           <button
             type="button"
@@ -331,11 +358,25 @@ export default function BhaktiGptChatClient() {
               Loading your chat...
             </div>
           ) : messages.length === 0 ? (
-            <div className="rounded-2xl border border-sagar-amber/15 bg-sagar-cream/45 p-4 text-sm text-sagar-ink/75">
-              <p>
-                {guide.shortDescription}
-              </p>
-              <p className="mt-3 text-xs text-sagar-ink/65">{BHAKTIGPT_DISCLAIMER}</p>
+            <div className="overflow-hidden rounded-2xl border border-sagar-amber/15 bg-sagar-cream/45 text-sm text-sagar-ink/75">
+              <div className="relative h-44">
+                <Image
+                  src={guide.imageSrc}
+                  alt={guide.imageAlt}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 720px"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#2f1408]/85 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-3 text-white">
+                  <p className="text-base font-semibold">{guide.name}</p>
+                  <p className="text-xs text-white/85">{guide.subtitle}</p>
+                </div>
+              </div>
+              <div className="p-4">
+                <p>{guide.shortDescription}</p>
+                <p className="mt-3 text-xs text-sagar-ink/65">{BHAKTIGPT_DISCLAIMER}</p>
+              </div>
             </div>
           ) : (
             messages.map((message) => (

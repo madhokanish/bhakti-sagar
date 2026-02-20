@@ -367,6 +367,28 @@ function chunkTextForStream(text: string, chunkSize = 40) {
   return chunks;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function emitWordStream(
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  text: string,
+  options?: { wordsPerChunk?: number; delayMs?: number }
+) {
+  const wordsPerChunk = Math.max(1, options?.wordsPerChunk ?? 1);
+  const delayMs = Math.max(0, options?.delayMs ?? 14);
+  const chunks = chunkTextForStream(text, wordsPerChunk);
+
+  for (let index = 0; index < chunks.length; index += 1) {
+    const chunk = chunks[index];
+    streamSseEvent(controller, "token", { text: chunk });
+    if (delayMs > 0 && index < chunks.length - 1) {
+      await sleep(delayMs);
+    }
+  }
+}
+
 async function findConversationForIdentity(params: {
   conversationId: string;
   userId: string | null;
@@ -1026,17 +1048,19 @@ export async function POST(request: Request) {
           if (isCrisis) {
             assistantText = crisisSupportResponse();
             ttftMs = Date.now() - startedAt;
-            for (const token of chunkTextForStream(assistantText, 26)) {
-              streamSseEvent(controller, "token", { text: token });
-            }
+            await emitWordStream(controller, assistantText, {
+              wordsPerChunk: 1,
+              delayMs: 12
+            });
           } else if (cached) {
             cacheHit = true;
             modelUsed = cached.model;
             ttftMs = Date.now() - startedAt;
-            for (const token of chunkTextForStream(cached.value, 20)) {
-              assistantText += token;
-              streamSseEvent(controller, "token", { text: token });
-            }
+            assistantText = cached.value;
+            await emitWordStream(controller, cached.value, {
+              wordsPerChunk: 1,
+              delayMs: 10
+            });
           } else {
             const reader = await createOpenAiStream({
               guideId,
@@ -1110,7 +1134,10 @@ export async function POST(request: Request) {
               ttftMs = Date.now() - startedAt;
             }
             if (streamRawTokens) {
-              streamSseEvent(controller, "token", { text: assistantText });
+              await emitWordStream(controller, assistantText, {
+                wordsPerChunk: 1,
+                delayMs: 12
+              });
             }
           }
 
@@ -1118,9 +1145,10 @@ export async function POST(request: Request) {
             if (ttftMs === null) {
               ttftMs = Date.now() - startedAt;
             }
-            for (const token of chunkTextForStream(assistantText, 20)) {
-              streamSseEvent(controller, "token", { text: token });
-            }
+            await emitWordStream(controller, assistantText, {
+              wordsPerChunk: 1,
+              delayMs: 10
+            });
           }
 
           if (persistConversation && conversationId) {

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import NavBar from "@/components/NavBar";
 import PromoRibbon from "@/components/PromoRibbon";
 import Footer from "@/components/Footer";
+import AuthSessionProvider from "@/components/AuthSessionProvider";
 import { buildMetadata, getRequestLanguage, siteConfig } from "@/lib/seo";
 import { Analytics } from "@vercel/analytics/react";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/schema";
@@ -36,21 +37,23 @@ export default function RootLayout({
   return (
     <html lang={lang}>
       <body className="font-sans">
-        <div className="relative min-h-screen overflow-hidden">
-          <PromoRibbon />
-          <NavBar />
-          <main className="pb-12">{children}</main>
-          <Footer />
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
-          />
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(webJsonLd) }}
-          />
-          <Analytics />
-        </div>
+        <AuthSessionProvider>
+          <div className="relative min-h-screen overflow-hidden">
+            <PromoRibbon />
+            <NavBar />
+            <main className="pb-12">{children}</main>
+            <Footer />
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+            />
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(webJsonLd) }}
+            />
+            <Analytics />
+          </div>
+        </AuthSessionProvider>
         <Script id="consent-default" strategy="beforeInteractive" data-cookieconsent="ignore">
           {`
             window.dataLayer = window.dataLayer || [];

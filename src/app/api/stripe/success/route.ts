@@ -63,13 +63,14 @@ export async function GET(request: Request) {
     trialEnd: toDate(readSubscriptionTimestamp(subscription, "trial_end")),
     currentPeriodEnd: toDate(readSubscriptionTimestamp(subscription, "current_period_end"))
   });
+  const sessionEmail = user.email ?? email.toLowerCase();
 
   const response = NextResponse.redirect(new URL(`${returnTo}?membership=started`, request.url));
   setSubscriptionSessionCookie(
     response,
     buildSessionPayload({
       userId: user.id,
-      email: user.email,
+      email: sessionEmail,
       status: hasSubscriptionEntitlement(subscriptionStatus) ? subscriptionStatus : "inactive",
       entitled: hasSubscriptionEntitlement(subscriptionStatus)
     })

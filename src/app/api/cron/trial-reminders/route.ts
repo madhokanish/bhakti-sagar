@@ -41,6 +41,7 @@ export async function GET(request: Request) {
 
     for (const user of users) {
       if (!hasSubscriptionEntitlement(user.subscriptionStatus)) continue;
+      if (!user.email) continue;
       const currency = (user.currency || "GBP") as SupportedCurrency;
       const sendResult = await sendTrialReminderEmail({
         email: user.email,

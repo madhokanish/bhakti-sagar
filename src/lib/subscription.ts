@@ -124,6 +124,10 @@ export async function updateSubscriptionByCustomerId(input: {
 }
 
 export function toSubscriptionSessionPayload(user: User): SubscriptionSessionPayload {
+  if (!user.email) {
+    throw new Error("Cannot build subscription session for user without an email.");
+  }
+
   return buildSessionPayload({
     userId: user.id,
     email: user.email,

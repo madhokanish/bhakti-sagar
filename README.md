@@ -26,6 +26,53 @@ npm run dev
 
 See `.env.example` for required values. Set `OPENAI_MODEL` to the model you want to use.
 
+### Authentication (Google and Apple)
+
+This project uses NextAuth (Auth.js) + Prisma adapter for OAuth sign-in.
+
+Required variables:
+
+- `DATABASE_URL`
+- `NEXTAUTH_URL`
+- `NEXTAUTH_SECRET`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `APPLE_ID`
+- `APPLE_TEAM_ID`
+- `APPLE_PRIVATE_KEY`
+- `APPLE_KEY_ID`
+- `APPLE_CLIENT_SECRET` (optional override if you pre-generate Apple JWT secret)
+
+Setup notes:
+
+1. Copy env template: `cp .env.example .env.local`
+2. Fill OAuth credentials in `.env.local`
+3. Generate Prisma client: `npm run prisma:generate`
+4. Apply schema to DB (dev): `npm run prisma:push`
+5. Start app: `npm run dev`
+
+Apple local-dev note:
+
+- Apple Sign In does not support plain localhost callback URLs.
+- For local testing, use a secure tunnel (for example `ngrok`) and set that URL in Apple + `NEXTAUTH_URL`.
+
+Routes:
+
+- `/signin` OAuth entry page
+- `/account` user account page (protected)
+- `/api/auth/[...nextauth]` NextAuth route handler
+
+Testing checklist:
+
+- Google login works and returns to `/account`
+- Apple login works and returns to `/account`
+- First login creates `User` + `UserProfile`
+- Re-login does not create duplicate `UserProfile`
+- Session persists after refresh
+- Sign out works from `/account`
+- `/account` redirects to `/signin` when logged out
+- Existing public pages still load
+
 ### Online Puja Email Service Setup
 
 The `/api/online-puja-interest` endpoint sends form submissions via SMTP using `nodemailer`.

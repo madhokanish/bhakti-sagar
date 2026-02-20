@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
-import { BHAKTI_GUIDE_LIST, BHAKTIGPT_DISCLAIMER } from "@/lib/bhaktigpt/guides";
-import { buildMetadata } from "@/lib/seo";
+import GuideCard from "@/components/bhaktigpt/GuideCard";
+import {
+  BHAKTI_GUIDES,
+  BHAKTIGPT_DISCLAIMER,
+  type BhaktiGuideId
+} from "@/lib/bhaktigpt/guides";
 import BhaktiTrackedLink from "@/components/bhaktigpt/BhaktiTrackedLink";
+import { buildMetadata } from "@/lib/seo";
 import BhaktiGptPageView from "@/components/bhaktigpt/BhaktiGptPageView";
 
 export const metadata: Metadata = {
@@ -46,6 +50,30 @@ const faqs = [
   {
     q: "Can I delete my data?",
     a: "Yes, data deletion controls can be added to account settings. For now, request support through contact page."
+  }
+];
+
+const GUIDE_CARD_CONFIG: Array<{
+  guideId: BhaktiGuideId;
+  title: string;
+  subtitle: string;
+  featured?: boolean;
+}> = [
+  {
+    guideId: "krishna",
+    title: "Shri Krishna",
+    subtitle: "Clarity in tough decisions",
+    featured: true
+  },
+  {
+    guideId: "shani",
+    title: "Shani Dev",
+    subtitle: "Discipline through setbacks"
+  },
+  {
+    guideId: "lakshmi",
+    title: "Maa Lakshmi",
+    subtitle: "Prosperity with gratitude"
   }
 ];
 
@@ -95,57 +123,19 @@ export default function BhaktiGptLandingPage() {
           Speak with AI guides inspired by dharmic teachings for wisdom, reflection, and next-step clarity.
         </p>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-3">
-          {BHAKTI_GUIDE_LIST.map((guide) => {
-            const isKrishna = guide.id === "krishna";
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {GUIDE_CARD_CONFIG.map((card) => {
+            const guide = BHAKTI_GUIDES[card.guideId];
             return (
-              <BhaktiTrackedLink
-                key={guide.id}
-                href={`/bhaktigpt/chat?guide=${guide.id}`}
-                eventName="selected_guide"
-                eventParams={{ guideId: guide.id, source: "landing_card" }}
-                className={`group block overflow-hidden rounded-3xl border border-sagar-amber/22 bg-white/90 shadow-sagar-soft transition hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(65,30,10,0.45)] ${
-                  isKrishna ? "lg:col-span-2" : ""
-                }`}
-              >
-                <div className={`relative overflow-hidden ${isKrishna ? "aspect-[16/9]" : "aspect-[4/5]"}`}>
-                <Image
-                  src={guide.imageSrc}
-                  alt={guide.imageAlt}
-                  fill
-                  sizes={isKrishna ? "(max-width: 1024px) 100vw, 66vw" : "(max-width: 1024px) 100vw, 33vw"}
-                  className="object-cover transition duration-500 group-hover:scale-[1.04]"
-                  priority={isKrishna}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#2f1408]/90 via-[#2f1408]/25 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 p-4">
-                  {isKrishna ? (
-                    <span className="mb-2 inline-flex rounded-full border border-white/40 bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white">
-                      Featured Guide
-                    </span>
-                  ) : null}
-                  <h3 className="text-2xl font-serif text-white">{guide.name}</h3>
-                  <p className="mt-1 text-sm text-white/85">{guide.subtitle}</p>
-                </div>
-              </div>
-
-              <div className="p-4">
-                <p className="text-sm text-sagar-ink/78">{guide.shortDescription}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {guide.promptChips.slice(0, 2).map((chip) => (
-                    <span
-                      key={chip}
-                      className="rounded-full border border-sagar-amber/28 bg-sagar-cream/45 px-3 py-1 text-xs text-sagar-ink/85"
-                    >
-                      {chip}
-                    </span>
-                  ))}
-                </div>
-                <span className="mt-4 inline-flex min-h-[42px] items-center justify-center rounded-full bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition group-hover:bg-sagar-ember">
-                  Connect with {guide.name}
-                </span>
-              </div>
-              </BhaktiTrackedLink>
+              <GuideCard
+                key={card.guideId}
+                guideId={card.guideId}
+                title={card.title}
+                subtitle={card.subtitle}
+                imageSrc={guide.imageSrc}
+                imageAlt={guide.imageAlt}
+                featured={card.featured}
+              />
             );
           })}
         </div>

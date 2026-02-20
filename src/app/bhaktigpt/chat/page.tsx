@@ -15,9 +15,9 @@ export const metadata: Metadata = {
 
 export default function BhaktiGptChatPage() {
   return (
-    <div className="container py-4 pb-12 md:py-6">
+    <div className="px-0 py-0 md:px-4 md:py-4">
       <BhaktiGptPageView page="chat" />
-      <section className="mb-4 rounded-2xl border border-sagar-amber/20 bg-white/85 p-3 shadow-sagar-soft">
+      <section className="mx-2 mb-2 rounded-2xl border border-sagar-amber/20 bg-white/85 p-2 shadow-sagar-soft md:mx-0 md:mb-3 md:p-3">
         <div className="flex flex-wrap gap-2 text-xs text-sagar-ink/75">
           <span className="rounded-full border border-sagar-amber/20 bg-sagar-cream/50 px-2.5 py-1">
             Inspired by scriptures and tradition
@@ -32,12 +32,14 @@ export default function BhaktiGptChatPage() {
       </section>
       <Suspense
         fallback={
-          <div className="rounded-3xl border border-sagar-amber/20 bg-white/88 p-6 text-sm text-sagar-ink/70 shadow-sagar-soft">
+          <div className="mx-2 rounded-3xl border border-sagar-amber/20 bg-white/88 p-6 text-sm text-sagar-ink/70 shadow-sagar-soft md:mx-0">
             Loading BhaktiGPT chat...
           </div>
         }
       >
-        <BhaktiGptChatClient />
+        <div className="mx-0 md:mx-0">
+          <BhaktiGptChatClient />
+        </div>
       </Suspense>
     </div>
   );

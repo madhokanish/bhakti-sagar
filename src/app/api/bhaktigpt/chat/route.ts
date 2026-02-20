@@ -381,17 +381,18 @@ function replaceFirstInsensitive(source: string, find: string, replaceWith: stri
   return `${source.slice(0, index)}${replaceWith}${source.slice(index + find.length)}`;
 }
 
-function deTemplateKrishnaText(params: { text: string; previousAssistantMessage: string }) {
+function deTemplateKrishnaText(params: { text: string }) {
   let nextText = params.text;
-  const previousHadIHearYou = KRISHNA_I_HEAR_YOU_PATTERN.test(params.previousAssistantMessage);
   const currentHasIHearYou = KRISHNA_I_HEAR_YOU_PATTERN.test(nextText);
 
-  if (previousHadIHearYou && currentHasIHearYou) {
+  if (currentHasIHearYou) {
     nextText = replaceFirstInsensitive(nextText, "I hear you", "I see what you mean");
+    nextText = nextText.replace(/\bI hear you\b/gi, "I see what you mean");
   }
 
   if (KRISHNA_TODAY_I_WANT_YOU_PATTERN.test(nextText)) {
     nextText = nextText.replace(KRISHNA_TODAY_I_WANT_YOU_PATTERN, "Do this now");
+    nextText = nextText.replace(/\bToday,\s*I want you\b/gi, "Do this now");
   }
 
   return applyKrishnaSpacing(normalizeLineBreaks(nextText));
@@ -1172,11 +1173,13 @@ export async function POST(request: Request) {
             const repeatedIHearYou =
               KRISHNA_I_HEAR_YOU_PATTERN.test(previousAssistantMessage) &&
               KRISHNA_I_HEAR_YOU_PATTERN.test(assistantText);
+            const hasIHearYou = KRISHNA_I_HEAR_YOU_PATTERN.test(assistantText);
             const todayIWantYouPatternHit = KRISHNA_TODAY_I_WANT_YOU_PATTERN.test(assistantText);
             const shouldForceRewrite =
               sanitized.needsRegeneration ||
               (hasPattern(assistantText, KRISHNA_FRAMEWORK_PATTERN) &&
                 !/\b(step|steps|numbered)\b/i.test(userMessage)) ||
+              hasIHearYou ||
               repeatedIHearYou ||
               todayIWantYouPatternHit ||
               repeatedOpeningLine;
@@ -1186,7 +1189,7 @@ export async function POST(request: Request) {
                 const rewriteDirectives = [
                   "Rewrite without romance or physical touch. Keep sacred mentor tone. No numbered steps unless user asked."
                 ];
-                if (repeatedIHearYou) {
+                if (hasIHearYou || repeatedIHearYou) {
                   rewriteDirectives.push("Avoid the phrase 'I hear you'. Use a different opening.");
                 }
                 if (todayIWantYouPatternHit) {
@@ -1215,10 +1218,7 @@ export async function POST(request: Request) {
               }
             }
 
-            const deTemplated = deTemplateKrishnaText({
-              text: sanitized.text,
-              previousAssistantMessage
-            });
+            const deTemplated = deTemplateKrishnaText({ text: sanitized.text });
             assistantText = applyKrishnaPresencePrefix(deTemplated, krishnaPresencePrefix);
             setCachedReply(normalizedCacheKey, assistantText.trim(), modelUsed);
           }

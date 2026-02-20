@@ -15,19 +15,16 @@ export const metadata: Metadata = {
 
 export default function BhaktiGptChatPage() {
   return (
-    <div
-      className="fixed inset-x-0 bottom-0 z-30 overflow-hidden bg-transparent"
-      style={{ top: "calc(var(--promo-ribbon-height, 0px) + var(--nav-height, 0px))" }}
-    >
+    <div className="fixed inset-x-0 bottom-0 z-30 overflow-hidden bg-white" style={{ top: "var(--nav-height, 0px)" }}>
       <BhaktiGptPageView page="chat" />
       <Suspense
         fallback={
-          <div className="h-full rounded-none border border-sagar-amber/20 bg-white/88 p-6 text-sm text-sagar-ink/70 shadow-sagar-soft md:rounded-3xl md:mx-4 md:my-2">
+          <div className="h-full rounded-none border border-sagar-amber/20 bg-white p-6 text-sm text-sagar-ink/70 shadow-sagar-soft">
             Loading BhaktiGPT chat...
           </div>
         }
       >
-        <div className="h-full md:px-4 md:py-2">
+        <div className="h-full bg-white">
           <BhaktiGptChatClient />
         </div>
       </Suspense>

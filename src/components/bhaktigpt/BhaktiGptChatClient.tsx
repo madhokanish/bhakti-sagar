@@ -58,11 +58,22 @@ function generateLocalId() {
   return `msg_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 }
 
-function renderMessageContent(content: string) {
+function renderMessageContent(content: string, options?: { autoParagraph?: boolean }) {
   const normalized = content.replace(/\r\n/g, "\n").trim();
   if (!normalized) return null;
 
-  const paragraphs = normalized
+  let formatted = normalized;
+  if (options?.autoParagraph && !formatted.includes("\n")) {
+    const sentenceParts = formatted
+      .split(/(?<=[.!?])\s+(?=[A-Z0-9"'])/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+    if (sentenceParts.length >= 2) {
+      formatted = sentenceParts.join("\n\n");
+    }
+  }
+
+  const paragraphs = formatted
     .split(/\n{2,}/)
     .map((part) => part.trim())
     .filter(Boolean);
@@ -698,7 +709,7 @@ export default function BhaktiGptChatClient() {
                               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember" />
                             </span>
                           ) : (
-                            renderMessageContent(message.content)
+                            renderMessageContent(message.content, { autoParagraph: true })
                           )}
                         </article>
                       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -29,11 +29,20 @@ type ConversationSummary = {
 type InitialResponse = {
   conversations: ConversationSummary[];
   messages: ChatMessage[];
+  conversationId: string | null;
   isAuthenticated: boolean;
   remaining: number;
   used: number;
   limitReached: boolean;
 };
+
+type StreamEventPayload = Record<string, unknown>;
+type StreamEvent = {
+  event: string;
+  data: StreamEventPayload | null;
+};
+
+type LoadState = "loading" | "ready" | "error";
 
 async function parseJsonSafe(response: Response) {
   const text = await response.text();
@@ -49,364 +58,533 @@ function generateLocalId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
   }
-  return `msg_${Date.now()}`;
+  return `msg_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 }
 
-function formatUpdatedAt(dateString: string) {
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "numeric",
-    month: "short",
-    hour: "numeric",
-    minute: "2-digit"
-  }).format(new Date(dateString));
+function parseSseBlock(block: string): StreamEvent | null {
+  const lines = block.split("\n").filter(Boolean);
+  if (lines.length === 0) return null;
+
+  let eventName = "message";
+  const dataLines: string[] = [];
+
+  for (const line of lines) {
+    if (line.startsWith("event:")) {
+      eventName = line.slice(6).trim();
+      continue;
+    }
+    if (line.startsWith("data:")) {
+      dataLines.push(line.slice(5).trim());
+    }
+  }
+
+  if (dataLines.length === 0) return null;
+
+  const dataText = dataLines.join("\n");
+  try {
+    return {
+      event: eventName,
+      data: JSON.parse(dataText) as StreamEventPayload
+    };
+  } catch {
+    return {
+      event: eventName,
+      data: { value: dataText }
+    };
+  }
+}
+
+async function consumeSseStream(response: Response, onEvent: (event: StreamEvent) => void) {
+  if (!response.body) {
+    throw new Error("Stream body is not available.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let boundary = buffer.indexOf("\n\n");
+    while (boundary !== -1) {
+      const block = buffer.slice(0, boundary);
+      buffer = buffer.slice(boundary + 2);
+      boundary = buffer.indexOf("\n\n");
+
+      const parsed = parseSseBlock(block);
+      if (parsed) onEvent(parsed);
+    }
+  }
+
+  if (buffer.trim()) {
+    const parsed = parseSseBlock(buffer);
+    if (parsed) onEvent(parsed);
+  }
+}
+
+function GuidePicker({ onPick }: { onPick: (guideId: BhaktiGuideId) => void }) {
+  return (
+    <div className="grid gap-4 md:grid-cols-3">
+      {Object.values(BHAKTI_GUIDES).map((guide) => (
+        <button
+          key={guide.id}
+          type="button"
+          onClick={() => onPick(guide.id)}
+          className="overflow-hidden rounded-2xl border border-sagar-amber/20 bg-white text-left shadow-sagar-soft transition hover:-translate-y-0.5 hover:border-sagar-saffron/45"
+        >
+          <div className="relative h-44">
+            <Image
+              src={guide.imageSrc}
+              alt={guide.imageAlt}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 33vw"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#2f1408]/80 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-3 text-white">
+              <p className="text-sm font-semibold">{guide.name}</p>
+              <p className="text-xs text-white/90">{guide.subtitle}</p>
+            </div>
+          </div>
+          <div className="p-4">
+            <p className="text-sm text-sagar-ink/80">{guide.shortDescription}</p>
+            <span className="mt-3 inline-flex rounded-full bg-sagar-cream px-3 py-1 text-xs font-semibold text-sagar-ember">
+              Open chat
+            </span>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export default function BhaktiGptChatClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const guideParam = searchParams.get("guide");
-  const conversationParam = searchParams.get("conversationId");
+  const selectedGuideId = isGuideId(guideParam ?? "") ? (guideParam as BhaktiGuideId) : null;
+  const selectedGuide = selectedGuideId ? BHAKTI_GUIDES[selectedGuideId] : null;
 
-  const initialGuide: BhaktiGuideId = isGuideId(guideParam ?? "")
-    ? (guideParam as BhaktiGuideId)
-    : "krishna";
-
-  const [selectedGuide, setSelectedGuide] = useState<BhaktiGuideId>(initialGuide);
-  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [composerError, setComposerError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [conversationId, setConversationId] = useState<string | null>(conversationParam);
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState("");
-  const [loadingInitial, setLoadingInitial] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [freeUsed, setFreeUsed] = useState(0);
-  const [freeRemaining, setFreeRemaining] = useState(3);
+  const [freeRemaining, setFreeRemaining] = useState(999);
   const [showGateModal, setShowGateModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
 
-  const guide = BHAKTI_GUIDES[selectedGuide];
+  const messagesRef = useRef<HTMLDivElement | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   const callbackUrl = useMemo(() => {
     if (typeof window === "undefined") return "/bhaktigpt/chat";
     return window.location.href;
   }, []);
 
-  const loadInitial = useCallback(
-    async (targetConversationId?: string | null) => {
-      setLoadingInitial(true);
-      setError(null);
-      try {
-        const query = targetConversationId ? `?conversationId=${targetConversationId}` : "";
-        const response = await fetch(`/api/bhaktigpt/chat${query}`, { method: "GET", cache: "no-store" });
-        const raw = await parseJsonSafe(response);
-        if (!response.ok) {
-          const message =
-            (raw && typeof raw.error === "string" && raw.error) || "Unable to load chat.";
-          throw new Error(message);
-        }
-        if (!raw) {
-          throw new Error("Unable to load chat.");
-        }
-        const data = raw as unknown as InitialResponse;
-        setConversations(data.conversations);
-        setMessages(data.messages);
-        setIsAuthenticated(data.isAuthenticated);
-        setFreeRemaining(data.remaining ?? 0);
-        setFreeUsed(data.used ?? 0);
-        if (targetConversationId && data.messages.length === 0) {
-          setConversationId(null);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unable to load chat.");
-      } finally {
-        setLoadingInitial(false);
-      }
+  const updateGuideQuery = useCallback(
+    (guideId: BhaktiGuideId) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("guide", guideId);
+      params.delete("conversationId");
+      router.replace(`/bhaktigpt/chat?${params.toString()}`);
     },
-    []
+    [router, searchParams]
   );
 
-  useEffect(() => {
-    void loadInitial(conversationParam);
-  }, [conversationParam, loadInitial]);
-
-  useEffect(() => {
-    setSelectedGuide(initialGuide);
-  }, [initialGuide]);
-
-  function updateUrl(next: { guide?: BhaktiGuideId; conversationId?: string | null }) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (next.guide) params.set("guide", next.guide);
-    if (next.conversationId) params.set("conversationId", next.conversationId);
-    else params.delete("conversationId");
-    router.replace(`/bhaktigpt/chat?${params.toString()}`);
-  }
-
-  function handleGuideChange(nextGuide: BhaktiGuideId) {
-    setSelectedGuide(nextGuide);
-    trackEvent("selected_guide", { guideId: nextGuide });
-    updateUrl({ guide: nextGuide, conversationId: conversationId });
-  }
-
-  async function openConversation(id: string, guideId: BhaktiGuideId) {
-    setConversationId(id);
-    setSelectedGuide(guideId);
-    updateUrl({ guide: guideId, conversationId: id });
-    await loadInitial(id);
-  }
-
-  function startNewChat() {
-    setConversationId(null);
-    setMessages([]);
-    setError(null);
-    updateUrl({ guide: selectedGuide, conversationId: null });
-  }
-
-  async function sendMessage(prefilled?: string) {
-    const value = (prefilled ?? inputValue).trim();
-    if (!value || sending) return;
-
-    setSending(true);
-    setError(null);
+  const loadGuideConversation = useCallback(async (guideId: BhaktiGuideId) => {
+    setLoadState("loading");
+    setLoadError(null);
+    setComposerError(null);
 
     try {
-      const response = await fetch("/api/bhaktigpt/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          guideId: selectedGuide,
-          conversationId,
-          message: value
-        })
+      const response = await fetch(`/api/bhaktigpt/chat?guideId=${guideId}`, {
+        method: "GET",
+        cache: "no-store"
       });
-
-      const data = await parseJsonSafe(response);
-
+      const raw = await parseJsonSafe(response);
       if (!response.ok) {
-        const message =
-          (data && typeof data.error === "string" && data.error) || "Unable to send message.";
-        throw new Error(message);
+        const errorMessage =
+          (raw && typeof raw.error === "string" && raw.error) ||
+          "Unable to load chat right now.";
+        throw new Error(errorMessage);
       }
+      if (!raw) throw new Error("Unable to load chat right now.");
 
-      if (!data) {
-        throw new Error("Unable to send message.");
-      }
+      const data = raw as unknown as InitialResponse;
+      setConversations(data.conversations || []);
+      setMessages(data.messages || []);
+      setConversationId(data.conversationId || null);
+      setIsAuthenticated(Boolean(data.isAuthenticated));
+      setFreeRemaining(typeof data.remaining === "number" ? data.remaining : 999);
+      setFreeUsed(typeof data.used === "number" ? data.used : 0);
+      setLoadState("ready");
+    } catch (error) {
+      setLoadState("error");
+      setLoadError(error instanceof Error ? error.message : "Unable to load chat right now.");
+    }
+  }, []);
 
-      if (data.limitReached === true) {
-        setShowGateModal(true);
-        setFreeRemaining(0);
-        setFreeUsed(3);
-        trackEvent("hit_gate", { guideId: selectedGuide });
-        return;
-      }
+  useEffect(() => {
+    if (!selectedGuideId) {
+      setLoadState("ready");
+      setMessages([]);
+      setConversationId(null);
+      setConversations([]);
+      return;
+    }
+    void loadGuideConversation(selectedGuideId);
+  }, [selectedGuideId, loadGuideConversation]);
 
+  useEffect(() => {
+    const container = messagesRef.current;
+    if (!container) return;
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: "smooth"
+    });
+  }, [messages, isStreaming, loadState]);
+
+  const startNewChat = useCallback(() => {
+    setConversationId(null);
+    setMessages([]);
+    setComposerError(null);
+    setShowGateModal(false);
+    setTimeout(() => composerRef.current?.focus(), 20);
+  }, []);
+
+  const sendMessage = useCallback(
+    async (prefilled?: string) => {
+      if (!selectedGuideId) return;
+
+      const value = (prefilled ?? inputValue).trim();
+      if (!value || isStreaming) return;
+
+      const userMessageId = generateLocalId();
+      const assistantMessageId = generateLocalId();
       const userMessage: ChatMessage = {
-        id: generateLocalId(),
+        id: userMessageId,
         role: "user",
         content: value,
         createdAt: new Date().toISOString()
       };
-      const assistantText =
-        typeof data.assistantMessage === "string"
-          ? data.assistantMessage
-          : "I hear you. Please try again in a moment.";
-
-      const assistantMessage: ChatMessage = {
-        id: generateLocalId(),
+      const assistantPlaceholder: ChatMessage = {
+        id: assistantMessageId,
         role: "assistant",
-        content: assistantText,
+        content: "",
         createdAt: new Date().toISOString()
       };
 
-      setMessages((prev) => [...prev, userMessage, assistantMessage]);
+      setComposerError(null);
+      setIsStreaming(true);
+      setMessages((prev) => [...prev, userMessage, assistantPlaceholder]);
+      if (!prefilled) setInputValue("");
 
-      if (typeof data.conversationId === "string" && data.conversationId !== conversationId) {
-        setConversationId(data.conversationId);
-        updateUrl({ guide: selectedGuide, conversationId: data.conversationId });
-      }
+      let streamedText = "";
 
-      if (!isAuthenticated) {
-        if (typeof data.remaining === "number") {
-          setFreeRemaining(data.remaining);
-          if (data.remaining <= 0) {
-            setShowGateModal(true);
-            trackEvent("hit_gate", { guideId: selectedGuide, reason: "limit_reached_after_send" });
-          }
+      try {
+        const response = await fetch("/api/bhaktigpt/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "text/event-stream"
+          },
+          body: JSON.stringify({
+            guideId: selectedGuideId,
+            conversationId,
+            message: value
+          })
+        });
+
+        if (!response.ok) {
+          const raw = await parseJsonSafe(response);
+          const message =
+            (raw && typeof raw.error === "string" && raw.error) || "Unable to send message.";
+          throw new Error(message);
         }
-        if (typeof data.used === "number") setFreeUsed(data.used);
-      }
 
-      if (!conversationId && typeof data.conversationId === "string") {
-        void loadInitial(data.conversationId);
-      }
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("text/event-stream")) {
+          const raw = await parseJsonSafe(response);
+          if (!raw) throw new Error("Invalid chat response.");
+          if (raw.limitReached === true) {
+            setShowGateModal(true);
+            setFreeRemaining(0);
+            setFreeUsed(3);
+            trackEvent("hit_gate", { guideId: selectedGuideId });
+            return;
+          }
 
-      setInputValue("");
-      trackEvent("sent_message", { guideId: selectedGuide, authenticated: isAuthenticated });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to send message.");
-    } finally {
-      setSending(false);
-    }
+          const assistantMessage =
+            typeof raw.assistantMessage === "string" ? raw.assistantMessage : "";
+          streamedText = assistantMessage;
+          setMessages((prev) =>
+            prev.map((item) =>
+              item.id === assistantMessageId ? { ...item, content: assistantMessage } : item
+            )
+          );
+          if (typeof raw.conversationId === "string") {
+            setConversationId(raw.conversationId);
+          }
+          return;
+        }
+
+        await consumeSseStream(response, (event) => {
+          const data = event.data || {};
+
+          if (event.event === "meta") {
+            if (typeof data.conversationId === "string") {
+              setConversationId(data.conversationId);
+            }
+            if (typeof data.remaining === "number") setFreeRemaining(data.remaining);
+            if (typeof data.used === "number") setFreeUsed(data.used);
+            return;
+          }
+
+          if (event.event === "token") {
+            const chunk = typeof data.text === "string" ? data.text : "";
+            if (!chunk) return;
+            streamedText += chunk;
+            setMessages((prev) =>
+              prev.map((item) =>
+                item.id === assistantMessageId ? { ...item, content: streamedText } : item
+              )
+            );
+            return;
+          }
+
+          if (event.event === "done") {
+            if (typeof data.conversationId === "string") {
+              setConversationId(data.conversationId);
+            }
+            if (typeof data.remaining === "number") setFreeRemaining(data.remaining);
+            if (typeof data.used === "number") setFreeUsed(data.used);
+            return;
+          }
+
+          if (event.event === "gate") {
+            setShowGateModal(true);
+            setFreeRemaining(0);
+            setFreeUsed(3);
+            trackEvent("hit_gate", { guideId: selectedGuideId });
+            return;
+          }
+
+          if (event.event === "error") {
+            const message =
+              typeof data.message === "string"
+                ? data.message
+                : "Unable to process your message right now.";
+            throw new Error(message);
+          }
+        });
+
+        if (!streamedText.trim()) {
+          const fallback =
+            "I hear you. I want to guide you clearly, and I need one more detail to help well. What part of this situation feels most difficult right now?";
+          setMessages((prev) =>
+            prev.map((item) => (item.id === assistantMessageId ? { ...item, content: fallback } : item))
+          );
+        }
+
+        trackEvent("sent_message", { guideId: selectedGuideId, authenticated: isAuthenticated });
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unable to process your message right now.";
+        setComposerError(errorMessage);
+        setMessages((prev) =>
+          prev.map((item) =>
+            item.id === assistantMessageId
+              ? { ...item, content: "I could not respond just now. Please send that again." }
+              : item
+          )
+        );
+      } finally {
+        setIsStreaming(false);
+      }
+    },
+    [conversationId, inputValue, isAuthenticated, isStreaming, selectedGuideId]
+  );
+
+  if (!selectedGuideId || !selectedGuide) {
+    return (
+      <section className="space-y-4 rounded-3xl border border-sagar-amber/20 bg-white/90 p-5 shadow-sagar-soft">
+        <header>
+          <h1 className="text-2xl font-semibold text-sagar-ink">Choose your BhaktiGPT guide</h1>
+          <p className="mt-2 text-sm text-sagar-ink/75">
+            Select one guide to begin. Each guide keeps a separate conversation and memory.
+          </p>
+        </header>
+        <GuidePicker
+          onPick={(guideId) => {
+            trackEvent("selected_guide", { guideId, source: "guide_picker" });
+            updateGuideQuery(guideId);
+          }}
+        />
+      </section>
+    );
   }
 
-  const subtleCounter = !isAuthenticated && freeUsed >= 2;
+  const showSubtleCounter = !isAuthenticated && freeRemaining <= 3;
 
   return (
-    <div className="grid min-h-[calc(100vh-14rem)] gap-4 lg:grid-cols-[18rem_1fr]">
-      <aside className="rounded-3xl border border-sagar-amber/20 bg-white/85 p-4 shadow-sagar-soft">
-        <button
-          type="button"
-          onClick={startNewChat}
-          className="mb-4 w-full rounded-xl bg-sagar-saffron px-3 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember"
-        >
-          New chat
-        </button>
-
-        <div className="space-y-2">
-          {Object.values(BHAKTI_GUIDES).map((item) => {
-            const active = item.id === selectedGuide;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => handleGuideChange(item.id)}
-                className={`w-full rounded-xl border p-2 text-left transition ${
-                  active
-                    ? "border-sagar-saffron/45 bg-sagar-cream/70 shadow-[0_8px_20px_-16px_rgba(94,46,16,0.6)]"
-                    : "border-sagar-amber/20 bg-white hover:border-sagar-amber/45"
-                }`}
-              >
-                <span className="flex items-center gap-2.5">
-                  <span className="relative h-10 w-10 overflow-hidden rounded-lg border border-sagar-amber/25">
-                    <Image
-                      src={item.imageSrc}
-                      alt={item.imageAlt}
-                      fill
-                      className="object-cover"
-                      sizes="40px"
-                      loading="lazy"
-                    />
-                  </span>
-                  <span>
-                    <span className="block text-sm font-semibold text-sagar-ink">{item.name}</span>
-                    <span className="mt-0.5 block text-xs text-sagar-ink/70">{item.subtitle}</span>
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-5 border-t border-sagar-amber/20 pt-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sagar-rose">Recent chats</p>
-          <div className="mt-2 space-y-2">
-            {conversations.length === 0 ? (
-              <p className="text-xs text-sagar-ink/65">No chats yet.</p>
-            ) : (
-              conversations.slice(0, 8).map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => openConversation(item.id, item.guideId)}
-                  className={`w-full rounded-xl border px-2.5 py-2 text-left transition ${
-                    item.id === conversationId
-                      ? "border-sagar-saffron/40 bg-sagar-cream/65"
-                      : "border-sagar-amber/20 bg-white hover:border-sagar-amber/45"
-                  }`}
-                >
-                  <p className="line-clamp-2 text-xs font-medium text-sagar-ink">
-                    {item.title || "Untitled reflection"}
-                  </p>
-                  <p className="mt-1 text-[11px] text-sagar-ink/60">{formatUpdatedAt(item.updatedAt)}</p>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      </aside>
-
-      <section className="flex min-h-[68vh] flex-col rounded-3xl border border-sagar-amber/20 bg-white/88 shadow-sagar-soft">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-sagar-amber/15 px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <span className="relative h-11 w-11 overflow-hidden rounded-xl border border-sagar-amber/25">
-              <Image
-                src={guide.imageSrc}
-                alt={guide.imageAlt}
-                fill
-                className="object-cover"
-                sizes="44px"
-                priority
-              />
-            </span>
-            <div>
-              <h1 className="text-lg font-semibold text-sagar-ink">{guide.name}</h1>
-              <p className="text-sm text-sagar-ink/70">{guide.subtitle}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowAboutModal(true)}
-            className="text-xs font-semibold uppercase tracking-[0.14em] text-sagar-ember hover:text-sagar-saffron"
-          >
-            About this guide
-          </button>
-        </header>
-
-        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
-          {loadingInitial ? (
-            <div className="rounded-2xl border border-sagar-amber/15 bg-sagar-cream/45 p-4 text-sm text-sagar-ink/70">
-              Loading your chat...
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="overflow-hidden rounded-2xl border border-sagar-amber/15 bg-sagar-cream/45 text-sm text-sagar-ink/75">
-              <div className="relative h-44">
+    <>
+      <section className="relative flex h-[calc(100vh-12.5rem)] min-h-[34rem] flex-col overflow-hidden rounded-3xl border border-sagar-amber/20 bg-white/90 shadow-sagar-soft">
+        <header className="border-b border-sagar-amber/20 px-4 py-4 sm:px-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="relative h-11 w-11 overflow-hidden rounded-xl border border-sagar-amber/25">
                 <Image
-                  src={guide.imageSrc}
-                  alt={guide.imageAlt}
+                  src={selectedGuide.imageSrc}
+                  alt={selectedGuide.imageAlt}
                   fill
                   className="object-cover"
-                  sizes="(max-width: 1024px) 100vw, 720px"
+                  sizes="44px"
+                  priority
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#2f1408]/85 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 p-3 text-white">
-                  <p className="text-base font-semibold">{guide.name}</p>
-                  <p className="text-xs text-white/85">{guide.subtitle}</p>
-                </div>
-              </div>
-              <div className="p-4">
-                <p>{guide.shortDescription}</p>
-                <p className="mt-3 text-xs text-sagar-ink/65">{BHAKTIGPT_DISCLAIMER}</p>
+              </span>
+              <div>
+                <h1 className="text-lg font-semibold text-sagar-ink">{selectedGuide.name}</h1>
+                <p className="text-sm text-sagar-ink/70">{selectedGuide.subtitle}</p>
               </div>
             </div>
-          ) : (
-            messages.map((message) => (
-              <article
-                key={message.id}
-                className={`max-w-3xl rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                  message.role === "user"
-                    ? "ml-auto border border-sagar-saffron/35 bg-sagar-saffron/10 text-sagar-ink"
-                    : "border border-sagar-amber/20 bg-white text-sagar-ink/90"
-                }`}
-              >
-                <p className="whitespace-pre-line">{message.content}</p>
-              </article>
-            ))
-          )}
-          {error ? (
-            <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-              {error}
-            </p>
+            <button
+              type="button"
+              onClick={startNewChat}
+              className="rounded-full border border-sagar-amber/30 bg-white px-3 py-1.5 text-xs font-semibold text-sagar-ink/80 transition hover:border-sagar-saffron/45"
+            >
+              New chat
+            </button>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {Object.values(BHAKTI_GUIDES).map((guide) => {
+              const active = guide.id === selectedGuideId;
+              return (
+                <button
+                  key={guide.id}
+                  type="button"
+                  onClick={() => {
+                    if (guide.id === selectedGuideId) return;
+                    trackEvent("selected_guide", { guideId: guide.id, source: "chat_header" });
+                    updateGuideQuery(guide.id);
+                  }}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                    active
+                      ? "border-sagar-saffron/50 bg-sagar-cream text-sagar-ember"
+                      : "border-sagar-amber/25 bg-white text-sagar-ink/70 hover:border-sagar-amber/45"
+                  }`}
+                >
+                  {guide.name}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setShowAboutModal(true)}
+              className="rounded-full border border-sagar-amber/25 px-3 py-1.5 text-xs font-semibold text-sagar-ink/70 hover:border-sagar-saffron/45"
+            >
+              About this guide
+            </button>
+            {conversations.length > 0 ? (
+              <span className="ml-auto text-[11px] text-sagar-ink/55">
+                {conversations.length} saved thread{conversations.length > 1 ? "s" : ""}
+              </span>
+            ) : null}
+          </div>
+        </header>
+
+        <div ref={messagesRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
+          {loadState === "loading" ? (
+            <div className="space-y-3">
+              <div className="h-16 w-2/3 animate-pulse rounded-2xl bg-sagar-cream/70" />
+              <div className="ml-auto h-14 w-1/2 animate-pulse rounded-2xl bg-sagar-saffron/15" />
+              <div className="h-16 w-3/5 animate-pulse rounded-2xl bg-sagar-cream/70" />
+            </div>
           ) : null}
+
+          {loadState === "error" ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+              <p>{loadError}</p>
+              <button
+                type="button"
+                onClick={() => void loadGuideConversation(selectedGuideId)}
+                className="mt-3 rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700"
+              >
+                Retry
+              </button>
+            </div>
+          ) : null}
+
+          {loadState === "ready" && messages.length === 0 ? (
+            <div className="space-y-4 rounded-2xl border border-sagar-amber/20 bg-sagar-cream/40 p-4">
+              <div>
+                <p className="text-sm font-semibold text-sagar-ink">Start your conversation with {selectedGuide.name}</p>
+                <p className="mt-1 text-sm text-sagar-ink/75">{selectedGuide.shortDescription}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedGuide.promptChips.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => void sendMessage(chip)}
+                    disabled={isStreaming}
+                    className="rounded-full border border-sagar-amber/30 bg-white px-3 py-1.5 text-xs text-sagar-ink/85 transition hover:border-sagar-saffron/45 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-sagar-ink/60">{BHAKTIGPT_DISCLAIMER}</p>
+            </div>
+          ) : null}
+
+          {loadState === "ready"
+            ? messages.map((message) => {
+                const isAssistantTyping =
+                  message.role === "assistant" && isStreaming && message.content.trim().length === 0;
+
+                return (
+                  <article
+                    key={message.id}
+                    className={`max-w-3xl rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                      message.role === "user"
+                        ? "ml-auto border border-sagar-saffron/35 bg-sagar-saffron/10 text-sagar-ink"
+                        : "border border-sagar-amber/20 bg-white text-sagar-ink/90"
+                    }`}
+                  >
+                    {isAssistantTyping ? (
+                      <span className="inline-flex items-center gap-1 text-sagar-ink/70">
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember [animation-delay:-0.2s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember [animation-delay:-0.1s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember" />
+                      </span>
+                    ) : (
+                      <p className="whitespace-pre-line">{message.content}</p>
+                    )}
+                  </article>
+                );
+              })
+            : null}
         </div>
 
-        <div className="border-t border-sagar-amber/15 px-4 py-3 sm:px-6">
+        <div className="sticky bottom-0 border-t border-sagar-amber/20 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
           <div className="mb-2 flex flex-wrap gap-2">
-            {guide.promptChips.map((chip) => (
+            {selectedGuide.promptChips.map((chip) => (
               <button
                 key={chip}
                 type="button"
-                onClick={() => sendMessage(chip)}
-                disabled={sending || (!isAuthenticated && freeRemaining <= 0)}
+                onClick={() => void sendMessage(chip)}
+                disabled={isStreaming}
                 className="rounded-full border border-sagar-amber/28 bg-white px-3 py-1.5 text-xs text-sagar-ink/80 transition hover:border-sagar-saffron/45 hover:bg-sagar-cream/50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {chip}
@@ -416,25 +594,32 @@ export default function BhaktiGptChatClient() {
 
           <div className="flex gap-2">
             <textarea
+              ref={composerRef}
               value={inputValue}
               onChange={(event) => setInputValue(event.target.value)}
               rows={2}
               placeholder="Share what is on your mind..."
-              disabled={sending || (!isAuthenticated && freeRemaining <= 0)}
+              disabled={isStreaming}
               className="w-full resize-none rounded-xl border border-sagar-amber/25 bg-white px-3 py-2 text-sm text-sagar-ink outline-none transition focus:border-sagar-saffron/60"
             />
             <button
               type="button"
-              onClick={() => sendMessage()}
-              disabled={sending || !inputValue.trim() || (!isAuthenticated && freeRemaining <= 0)}
+              onClick={() => void sendMessage()}
+              disabled={isStreaming || !inputValue.trim()}
               className="h-fit rounded-xl bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {sending ? "Sending..." : "Send"}
+              {isStreaming ? "Sending..." : "Send"}
             </button>
           </div>
 
-          {subtleCounter ? (
+          {showSubtleCounter ? (
             <p className="mt-2 text-xs text-sagar-ink/70">{freeUsed} of 3 free messages used.</p>
+          ) : null}
+
+          {composerError ? (
+            <p className="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              {composerError}
+            </p>
           ) : null}
         </div>
       </section>
@@ -444,8 +629,8 @@ export default function BhaktiGptChatClient() {
           <div className="w-full max-w-lg rounded-3xl border border-sagar-amber/25 bg-white p-5 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.55)]">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-sagar-ink">About {guide.name}</h2>
-                <p className="mt-1 text-sm text-sagar-ink/70">{guide.shortDescription}</p>
+                <h2 className="text-lg font-semibold text-sagar-ink">About {selectedGuide.name}</h2>
+                <p className="mt-1 text-sm text-sagar-ink/70">{selectedGuide.shortDescription}</p>
               </div>
               <button
                 type="button"
@@ -460,7 +645,7 @@ export default function BhaktiGptChatClient() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-sagar-rose">Can help with</p>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-sagar-ink/80">
-                  {guide.about.canHelpWith.map((item) => (
+                  {selectedGuide.about.canHelpWith.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
@@ -468,7 +653,7 @@ export default function BhaktiGptChatClient() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-sagar-rose">Cannot do</p>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-sagar-ink/80">
-                  {guide.about.cannotHelpWith.map((item) => (
+                  {selectedGuide.about.cannotHelpWith.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
@@ -536,6 +721,6 @@ export default function BhaktiGptChatClient() {
           </div>
         </div>
       ) : null}
-    </div>
+    </>
   );
 }

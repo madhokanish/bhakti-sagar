@@ -25,12 +25,118 @@ type ChatRequest = {
   message: string;
 };
 
+type GuideConversationSummary = {
+  id: string;
+  guideId: BhaktiGuideId;
+  title: string | null;
+  updatedAt: string;
+};
+
+type ChatMessage = {
+  id: string;
+  role: string;
+  content: string;
+  createdAt: string;
+};
+
+type StreamingMetaEvent = {
+  conversationId: string | null;
+  remaining: number | null;
+  used: number | null;
+  model: string;
+  cacheHit: boolean;
+};
+
+const encoder = new TextEncoder();
+const REPLY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+type ReplyCacheEntry = {
+  value: string;
+  createdAt: number;
+  model: string;
+};
+
+const globalReplyCache = globalThis as unknown as {
+  bhaktiReplyCache?: Map<string, ReplyCacheEntry>;
+};
+
+function getReplyCache() {
+  if (!globalReplyCache.bhaktiReplyCache) {
+    globalReplyCache.bhaktiReplyCache = new Map<string, ReplyCacheEntry>();
+  }
+  return globalReplyCache.bhaktiReplyCache;
+}
+
+function getFastModel() {
+  return (
+    process.env.OPENAI_MODEL_BHAKTIGPT_FAST?.trim() ||
+    process.env.OPENAI_MODEL_BHAKTIGPT?.trim() ||
+    process.env.OPENAI_MODEL?.trim() ||
+    "gpt-4.1-mini"
+  );
+}
+
+function getStrongModel() {
+  return process.env.OPENAI_MODEL_BHAKTIGPT_STRONG?.trim() || getFastModel();
+}
+
+function shouldUseStrongModel(message: string) {
+  const lowered = message.toLowerCase();
+  const questionCount = (message.match(/\?/g) || []).length;
+  const detailedHints = [
+    "detailed",
+    "in detail",
+    "step by step",
+    "full plan",
+    "checklist",
+    "roadmap",
+    "compare",
+    "pros and cons",
+    "long explanation"
+  ];
+
+  if (message.length > 400 || questionCount >= 2) return true;
+  return detailedHints.some((hint) => lowered.includes(hint));
+}
+
+function normalizePrompt(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildCacheKey(guideId: BhaktiGuideId, message: string) {
+  return `${guideId}:${normalizePrompt(message)}`;
+}
+
+function getCachedReply(key: string) {
+  const entry = getReplyCache().get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.createdAt > REPLY_CACHE_TTL_MS) {
+    getReplyCache().delete(key);
+    return null;
+  }
+  return entry;
+}
+
+function setCachedReply(key: string, value: string, model: string) {
+  getReplyCache().set(key, {
+    value,
+    model,
+    createdAt: Date.now()
+  });
+}
+
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
 }
 
-function getModel() {
-  return process.env.OPENAI_MODEL_BHAKTIGPT?.trim() || process.env.OPENAI_MODEL?.trim() || "gpt-4.1-mini";
+function buildIdentityWhere(params: { userId: string | null; sessionId: string | null }) {
+  if (params.userId) return { userId: params.userId };
+  if (params.sessionId) return { sessionId: params.sessionId };
+  return null;
 }
 
 function setBhaktiCookie(response: NextResponse, cookieValue: string) {
@@ -43,16 +149,33 @@ function setBhaktiCookie(response: NextResponse, cookieValue: string) {
   });
 }
 
+function streamSseEvent(controller: ReadableStreamDefaultController<Uint8Array>, event: string, data: unknown) {
+  controller.enqueue(encoder.encode(`event: ${event}\n`));
+  controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+}
+
+function chunkTextForStream(text: string, chunkSize = 40) {
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+  const chunks: string[] = [];
+  for (let i = 0; i < words.length; i += chunkSize) {
+    chunks.push(`${words.slice(i, i + chunkSize).join(" ")}${i + chunkSize < words.length ? " " : ""}`);
+  }
+  return chunks;
+}
+
 async function findConversationForIdentity(params: {
   conversationId: string;
   userId: string | null;
   sessionId: string | null;
+  guideId?: BhaktiGuideId;
 }) {
   const conversation = await prisma.bhaktiGptConversation.findUnique({
     where: { id: params.conversationId }
   });
 
   if (!conversation) return null;
+  if (params.guideId && conversation.guideId !== params.guideId) return null;
 
   if (params.userId) {
     if (conversation.userId === params.userId) return conversation;
@@ -77,17 +200,50 @@ async function findConversationForIdentity(params: {
   return null;
 }
 
-async function fetchAssistantMessage(params: {
+async function findLatestGuideConversation(params: {
+  userId: string | null;
+  sessionId: string | null;
+  guideId: BhaktiGuideId;
+}) {
+  const where = buildIdentityWhere({
+    userId: params.userId,
+    sessionId: params.sessionId
+  });
+  if (!where) return null;
+
+  return prisma.bhaktiGptConversation.findFirst({
+    where: {
+      ...where,
+      guideId: params.guideId
+    },
+    orderBy: { updatedAt: "desc" }
+  });
+}
+
+async function fetchGuideHistory(conversationId: string) {
+  const rows = await prisma.bhaktiGptMessage.findMany({
+    where: { conversationId },
+    orderBy: { createdAt: "asc" },
+    take: 12,
+    select: { role: true, content: true }
+  });
+
+  return rows
+    .filter((item) => item.role === "user" || item.role === "assistant")
+    .map((item) => ({ role: item.role as "user" | "assistant", content: item.content }));
+}
+
+async function createOpenAiStream(params: {
   guideId: BhaktiGuideId;
   history: Array<{ role: "user" | "assistant"; content: string }>;
+  model: string;
 }) {
-  const guide = getGuide(params.guideId);
   const apiKey = process.env.OPENAI_API_KEY?.trim();
-
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is not configured.");
   }
 
+  const guide = getGuide(params.guideId);
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -95,9 +251,13 @@ async function fetchAssistantMessage(params: {
       Authorization: `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: getModel(),
-      temperature: 0.4,
-      max_tokens: 480,
+      model: params.model,
+      temperature: 0.5,
+      max_tokens: 420,
+      stream: true,
+      stream_options: {
+        include_usage: true
+      },
       messages: [
         {
           role: "system",
@@ -113,34 +273,100 @@ async function fetchAssistantMessage(params: {
     throw new Error(`OpenAI request failed: ${errorBody}`);
   }
 
-  const data = await response.json();
-  const content = data?.choices?.[0]?.message?.content?.trim();
-
-  if (!content) {
-    throw new Error("Empty response from model.");
+  if (!response.body) {
+    throw new Error("OpenAI stream body is missing.");
   }
 
-  return content;
+  return response.body.getReader();
+}
+
+async function consumeOpenAiSse(params: {
+  reader: ReadableStreamDefaultReader<Uint8Array>;
+  onToken: (token: string) => void;
+  onFirstToken: () => void;
+}) {
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let firstTokenSeen = false;
+  let usage: { completion_tokens?: number } | null = null;
+  let fullText = "";
+
+  while (true) {
+    const { value, done } = await params.reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    let boundary = buffer.indexOf("\n\n");
+    while (boundary !== -1) {
+      const block = buffer.slice(0, boundary);
+      buffer = buffer.slice(boundary + 2);
+      boundary = buffer.indexOf("\n\n");
+
+      const lines = block
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      for (const line of lines) {
+        if (!line.startsWith("data:")) continue;
+        const payload = line.slice(5).trim();
+        if (payload === "[DONE]") {
+          continue;
+        }
+
+        try {
+          const parsed = JSON.parse(payload) as {
+            choices?: Array<{ delta?: { content?: string } }>;
+            usage?: { completion_tokens?: number };
+          };
+
+          if (parsed.usage) {
+            usage = parsed.usage;
+          }
+
+          const token = parsed.choices?.[0]?.delta?.content ?? "";
+          if (!token) continue;
+
+          if (!firstTokenSeen) {
+            firstTokenSeen = true;
+            params.onFirstToken();
+          }
+
+          fullText += token;
+          params.onToken(token);
+        } catch {
+          // ignore malformed SSE fragments
+        }
+      }
+    }
+  }
+
+  return {
+    fullText: fullText.trim(),
+    completionTokens: usage?.completion_tokens ?? null
+  };
 }
 
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    const conversationId = url.searchParams.get("conversationId");
+    const conversationIdParam = url.searchParams.get("conversationId");
+    const guideParam = url.searchParams.get("guideId");
+    const guideId = guideParam && isGuideId(guideParam) ? guideParam : null;
+
     const identity = await resolveBhaktiIdentity();
-
-    const baseWhere = identity.userId
-      ? { userId: identity.userId }
-      : identity.anonSessionId
-        ? { sessionId: identity.anonSessionId }
-        : null;
-
     const usage = await getUsageForIdentity(identity);
+    const where = buildIdentityWhere({
+      userId: identity.userId,
+      sessionId: identity.anonSessionId
+    });
 
-    if (!baseWhere) {
+    if (!where) {
       const response = NextResponse.json({
-        conversations: [],
-        messages: [],
+        conversations: [] as GuideConversationSummary[],
+        messages: [] as ChatMessage[],
+        conversationId: null,
         isAuthenticated: identity.isAuthenticated,
         remaining: usage.remaining,
         used: usage.used,
@@ -151,23 +377,21 @@ export async function GET(request: Request) {
       if (identity.needsCookieSet && identity.cookieValue) {
         setBhaktiCookie(response, identity.cookieValue);
       }
-
       return response;
     }
 
-    let conversations: Array<{
-      id: string;
-      guideId: string;
-      title: string | null;
-      updatedAt: Date;
-    }> = [];
-    let messages: Array<{ id: string; role: string; content: string; createdAt: string }> = [];
+    let conversations: GuideConversationSummary[] = [];
+    let messages: ChatMessage[] = [];
+    let activeConversationId: string | null = null;
 
     try {
-      conversations = await prisma.bhaktiGptConversation.findMany({
-        where: baseWhere,
+      const dbConversations = await prisma.bhaktiGptConversation.findMany({
+        where: {
+          ...where,
+          ...(guideId ? { guideId } : {})
+        },
         orderBy: { updatedAt: "desc" },
-        take: 20,
+        take: 15,
         select: {
           id: true,
           guideId: true,
@@ -176,35 +400,53 @@ export async function GET(request: Request) {
         }
       });
 
-      if (conversationId) {
-        const conversation = await findConversationForIdentity({
-          conversationId,
+      const typedConversations = dbConversations.filter(
+        (item): item is typeof item & { guideId: BhaktiGuideId } => isGuideId(item.guideId)
+      );
+
+      conversations = typedConversations.map((item) => ({
+        id: item.id,
+        guideId: item.guideId,
+        title: item.title,
+        updatedAt: item.updatedAt.toISOString()
+      }));
+
+      if (conversationIdParam) {
+        const existing = await findConversationForIdentity({
+          conversationId: conversationIdParam,
           userId: identity.userId,
-          sessionId: identity.anonSessionId
+          sessionId: identity.anonSessionId,
+          guideId: guideId ?? undefined
+        });
+        activeConversationId = existing?.id ?? null;
+      }
+
+      if (!activeConversationId && conversations.length > 0) {
+        activeConversationId = conversations[0].id;
+      }
+
+      if (activeConversationId) {
+        const dbMessages = await prisma.bhaktiGptMessage.findMany({
+          where: { conversationId: activeConversationId },
+          orderBy: { createdAt: "asc" },
+          select: { id: true, role: true, content: true, createdAt: true }
         });
 
-        if (conversation) {
-          const dbMessages = await prisma.bhaktiGptMessage.findMany({
-            where: { conversationId: conversation.id },
-            orderBy: { createdAt: "asc" },
-            select: { id: true, role: true, content: true, createdAt: true }
-          });
-
-          messages = dbMessages.map((item) => ({
-            id: item.id,
-            role: item.role,
-            content: item.content,
-            createdAt: item.createdAt.toISOString()
-          }));
-        }
+        messages = dbMessages.map((item) => ({
+          id: item.id,
+          role: item.role,
+          content: item.content,
+          createdAt: item.createdAt.toISOString()
+        }));
       }
     } catch (error) {
-      console.error("[BhaktiGPT][GET] Falling back to no-history mode.", error);
+      console.error("[BhaktiGPT][GET] Falling back to empty chat data.", error);
     }
 
     const response = NextResponse.json({
       conversations,
       messages,
+      conversationId: activeConversationId,
       isAuthenticated: identity.isAuthenticated,
       remaining: usage.remaining,
       used: usage.used,
@@ -240,6 +482,8 @@ export async function POST(request: Request) {
     }
 
     const identity = await resolveBhaktiIdentity();
+    const usage = await getUsageForIdentity(identity);
+
     const rateKey = identity.userId || identity.anonSessionId || "anonymous";
     if (isRateLimited(`bhaktigpt:${rateKey}`)) {
       return NextResponse.json(
@@ -248,62 +492,71 @@ export async function POST(request: Request) {
       );
     }
 
-    const usage = await getUsageForIdentity(identity);
-
     if (!identity.isAuthenticated && usage.limitReached) {
       trackServerEvent("hit_gate", { reason: "free_limit", guideId: body.guideId });
       const gateResponse = NextResponse.json({
         limitReached: true,
         remaining: 0,
+        used: 3,
         conversationId: body.conversationId ?? null,
         disclaimer: BHAKTIGPT_DISCLAIMER
       });
-
       if (identity.needsCookieSet && identity.cookieValue) {
         setBhaktiCookie(gateResponse, identity.cookieValue);
       }
-
       return gateResponse;
     }
 
-    const isCrisis = detectCrisisIntent(userMessage);
-
-    let conversationId: string | null = body.conversationId ?? null;
-    let conversationTitle = userMessage.slice(0, 80);
-    let shouldPersistAssistant = false;
-
-    let nextRemaining = usage.remaining;
+    let remaining = usage.remaining;
+    let used = usage.used;
     if (!identity.isAuthenticated && identity.anonSessionId) {
       const count = await incrementAnonymousUsage(identity.anonSessionId);
-      nextRemaining = Math.max(3 - count, 0);
+      remaining = Math.max(3 - count, 0);
+      used = 3 - remaining;
     }
 
+    const startedAt = Date.now();
+    let conversationId: string | null = null;
+    let conversationTitle = userMessage.slice(0, 80);
+    let persistConversation = false;
     let history: Array<{ role: "user" | "assistant"; content: string }> = [
       { role: "user", content: userMessage }
     ];
 
     try {
-      const existing = body.conversationId
-        ? await findConversationForIdentity({
-            conversationId: body.conversationId,
-            userId: identity.userId,
-            sessionId: identity.anonSessionId
-          })
-        : null;
+      const existing =
+        body.conversationId &&
+        (await findConversationForIdentity({
+          conversationId: body.conversationId,
+          userId: identity.userId,
+          sessionId: identity.anonSessionId,
+          guideId: body.guideId
+        }));
+
+      const latestForGuide =
+        !existing &&
+        !body.conversationId &&
+        (await findLatestGuideConversation({
+          userId: identity.userId,
+          sessionId: identity.anonSessionId,
+          guideId: body.guideId
+        }));
 
       const conversation =
         existing ||
+        latestForGuide ||
         (await prisma.bhaktiGptConversation.create({
           data: {
             guideId: body.guideId,
-            title: userMessage.slice(0, 80),
+            title: conversationTitle,
             userId: identity.userId,
             sessionId: identity.userId ? null : identity.anonSessionId
           }
         }));
 
       conversationId = conversation.id;
-      conversationTitle = conversation.title || userMessage.slice(0, 80);
+      conversationTitle = conversation.title || conversationTitle;
+      persistConversation = true;
 
       if (conversation.guideId !== body.guideId) {
         await prisma.bhaktiGptConversation.update({
@@ -320,68 +573,160 @@ export async function POST(request: Request) {
         }
       });
 
-      const historyRows = await prisma.bhaktiGptMessage.findMany({
-        where: { conversationId: conversation.id },
-        orderBy: { createdAt: "asc" },
-        take: 10,
-        select: {
-          role: true,
-          content: true
-        }
-      });
-
-      history = historyRows
-        .filter((item) => item.role === "user" || item.role === "assistant")
-        .map((item) => ({ role: item.role as "user" | "assistant", content: item.content }));
-
-      shouldPersistAssistant = true;
+      history = await fetchGuideHistory(conversation.id);
     } catch (error) {
-      console.error("[BhaktiGPT][POST] Falling back to stateless response mode.", error);
+      persistConversation = false;
+      console.error("[BhaktiGPT][POST] Falling back to stateless mode.", error);
     }
 
-    const assistantMessage = isCrisis
-      ? crisisSupportResponse()
-      : await fetchAssistantMessage({
-          guideId: body.guideId,
-          history
-        });
+    const guideId = body.guideId;
+    const normalizedCacheKey = buildCacheKey(guideId, userMessage);
+    const cached = getCachedReply(normalizedCacheKey);
+    const isCrisis = detectCrisisIntent(userMessage);
+    const selectedModel = shouldUseStrongModel(userMessage) ? getStrongModel() : getFastModel();
 
-    const persistedConversationId = conversationId;
-    if (shouldPersistAssistant && persistedConversationId) {
-      try {
-        await prisma.bhaktiGptMessage.create({
-          data: {
-            conversationId: persistedConversationId,
-            role: "assistant",
-            content: assistantMessage
-          }
-        });
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        let assistantText = "";
+        let ttftMs: number | null = null;
+        let completionTokens: number | null = null;
+        let cacheHit = false;
+        let modelUsed = selectedModel;
 
-        await prisma.bhaktiGptConversation.update({
-          where: { id: persistedConversationId },
-          data: {
-            updatedAt: new Date(),
-            title: conversationTitle
+        const metaPayload: StreamingMetaEvent = {
+          conversationId,
+          remaining: identity.isAuthenticated ? null : remaining,
+          used: identity.isAuthenticated ? null : used,
+          model: modelUsed,
+          cacheHit: false
+        };
+        streamSseEvent(controller, "meta", metaPayload);
+
+        try {
+          if (isCrisis) {
+            assistantText = crisisSupportResponse();
+            ttftMs = Date.now() - startedAt;
+            for (const token of chunkTextForStream(assistantText, 26)) {
+              streamSseEvent(controller, "token", { text: token });
+            }
+          } else if (cached) {
+            cacheHit = true;
+            modelUsed = cached.model;
+            ttftMs = Date.now() - startedAt;
+            for (const token of chunkTextForStream(cached.value, 20)) {
+              assistantText += token;
+              streamSseEvent(controller, "token", { text: token });
+            }
+          } else {
+            const reader = await createOpenAiStream({
+              guideId,
+              history,
+              model: selectedModel
+            });
+
+            const openAiResult = await consumeOpenAiSse({
+              reader,
+              onFirstToken: () => {
+                if (ttftMs === null) {
+                  ttftMs = Date.now() - startedAt;
+                }
+              },
+              onToken: (token) => {
+                assistantText += token;
+                streamSseEvent(controller, "token", { text: token });
+              }
+            });
+
+            completionTokens = openAiResult.completionTokens;
+            if (!assistantText.trim()) {
+              assistantText = openAiResult.fullText;
+            }
+
+            if (assistantText.trim()) {
+              setCachedReply(normalizedCacheKey, assistantText.trim(), selectedModel);
+            }
           }
-        });
-      } catch (error) {
-        console.error("[BhaktiGPT][POST] Assistant persistence failed.", error);
+
+          if (!assistantText.trim()) {
+            assistantText =
+              "I hear you. I want to support you with one clear next step right now. Tell me the exact situation you want me to focus on.";
+            if (ttftMs === null) {
+              ttftMs = Date.now() - startedAt;
+            }
+            streamSseEvent(controller, "token", { text: assistantText });
+          }
+
+          if (persistConversation && conversationId) {
+            try {
+              await prisma.bhaktiGptMessage.create({
+                data: {
+                  conversationId,
+                  role: "assistant",
+                  content: assistantText.trim()
+                }
+              });
+
+              await prisma.bhaktiGptConversation.update({
+                where: { id: conversationId },
+                data: {
+                  updatedAt: new Date(),
+                  title: conversationTitle || userMessage.slice(0, 80)
+                }
+              });
+            } catch (error) {
+              console.error("[BhaktiGPT][POST] Could not persist assistant message.", error);
+            }
+          }
+
+          const totalMs = Date.now() - startedAt;
+          const approxTokens =
+            completionTokens ?? Math.max(1, Math.ceil(assistantText.trim().length / 4));
+
+          trackServerEvent("bhaktigpt_latency", {
+            guideId,
+            model: modelUsed,
+            cacheHit,
+            ttftMs: ttftMs ?? totalMs,
+            totalMs,
+            completionTokens: approxTokens
+          });
+
+          streamSseEvent(controller, "done", {
+            conversationId,
+            remaining: identity.isAuthenticated ? null : remaining,
+            used: identity.isAuthenticated ? null : used,
+            model: modelUsed,
+            cacheHit
+          });
+        } catch (error) {
+          const totalMs = Date.now() - startedAt;
+          const message = error instanceof Error ? error.message : "Unable to complete response.";
+
+          trackServerEvent("bhaktigpt_error", {
+            guideId,
+            model: modelUsed,
+            cacheHit,
+            totalMs,
+            error: message
+          });
+
+          console.error("[BhaktiGPT][POST] streaming failed", error);
+          streamSseEvent(controller, "error", {
+            message: "Unable to process your message right now. Please try again in a few seconds."
+          });
+        } finally {
+          controller.close();
+        }
       }
-    }
-
-    trackServerEvent("sent_message", {
-      guideId: body.guideId,
-      isAuthenticated: identity.isAuthenticated,
-      crisisHandled: isCrisis
     });
 
-    const response = NextResponse.json({
-      assistantMessage,
-      conversationId,
-      limitReached: false,
-      remaining: identity.isAuthenticated ? null : nextRemaining,
-      used: identity.isAuthenticated ? null : 3 - nextRemaining,
-      disclaimer: BHAKTIGPT_DISCLAIMER
+    const response = new NextResponse(stream, {
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+        "X-Accel-Buffering": "no"
+      }
     });
 
     if (identity.needsCookieSet && identity.cookieValue) {
@@ -392,9 +737,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[BhaktiGPT][POST] failed", error);
     return NextResponse.json(
-      {
-        error: "Unable to process your message right now. Please try again in a few seconds."
-      },
+      { error: "Unable to process your message right now. Please try again in a few seconds." },
       { status: 500 }
     );
   }

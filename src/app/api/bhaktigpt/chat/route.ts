@@ -6,6 +6,7 @@ import {
   isGuideId,
   type BhaktiGuideId
 } from "@/lib/bhaktigpt/guides";
+import { KRISHNA_SECONDARY_GUARD } from "@/lib/bhaktigpt/krishnaSystemPrompt";
 import {
   BHAKTIGPT_COOKIE,
   crisisSupportResponse,
@@ -80,23 +81,102 @@ function getStrongModel() {
   return process.env.OPENAI_MODEL_BHAKTIGPT_STRONG?.trim() || getFastModel();
 }
 
-function shouldUseStrongModel(message: string) {
+function shouldUseStrongModel(guideId: BhaktiGuideId, message: string) {
   const lowered = message.toLowerCase();
-  const questionCount = (message.match(/\?/g) || []).length;
-  const detailedHints = [
-    "detailed",
-    "in detail",
-    "step by step",
-    "full plan",
-    "checklist",
-    "roadmap",
-    "compare",
-    "pros and cons",
-    "long explanation"
-  ];
+  if (guideId === "krishna") {
+    const krishnaEscalationHints = [
+      "deep philosophical breakdown",
+      "long essay",
+      "verse by verse",
+      "verse-by-verse",
+      "detailed gita explanation",
+      "chapter by chapter"
+    ];
+    return krishnaEscalationHints.some((hint) => lowered.includes(hint));
+  }
 
-  if (message.length > 400 || questionCount >= 2) return true;
-  return detailedHints.some((hint) => lowered.includes(hint));
+  const questionCount = (message.match(/\?/g) || []).length;
+  return message.length > 420 || questionCount >= 3;
+}
+
+function isDetailRequested(message: string) {
+  const lowered = message.toLowerCase();
+  return (
+    lowered.includes("detail") ||
+    lowered.includes("detailed") ||
+    lowered.includes("long essay") ||
+    lowered.includes("verse by verse") ||
+    lowered.includes("deep explanation")
+  );
+}
+
+const KRISHNA_THIRD_PERSON_PATTERN =
+  /\b(krishna|lord krishna)\s+(would|will|can|could|says?|said|advises?|recommends?|thinks)\b/gi;
+const KRISHNA_AS_AI_PATTERN = /\bas an ai\b/gi;
+const KRISHNA_SENSUAL_PATTERN =
+  /\b(cheek|hug|kiss|bed|bedroom|chin|sensual|flirt|flirtatious|romantic|cuddle|caress|embrace)\b/gi;
+
+function hasPattern(text: string, pattern: RegExp) {
+  pattern.lastIndex = 0;
+  return pattern.test(text);
+}
+
+function enforceSingleReflectiveQuestion(text: string, fallbackQuestion: string) {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return fallbackQuestion;
+
+  const allQuestions = normalized.match(/[^?]*\?/g)?.map((item) => item.trim()).filter(Boolean) ?? [];
+  const lastQuestion = allQuestions.length > 0 ? allQuestions[allQuestions.length - 1] : fallbackQuestion;
+
+  let body = normalized.replace(/[^?]*\?/g, " ").replace(/\s+/g, " ").trim();
+  body = body.replace(/[?]+/g, "").trim();
+  body = body.replace(/[.!]+$/, "").trim();
+
+  return `${body ? `${body}. ` : ""}${lastQuestion.endsWith("?") ? lastQuestion : `${lastQuestion}?`}`.trim();
+}
+
+function truncateWords(text: string, maxWords: number) {
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length <= maxWords) return text.trim();
+  return words.slice(0, maxWords).join(" ").trim();
+}
+
+type KrishnaSanitizeResult = {
+  text: string;
+  needsRegeneration: boolean;
+};
+
+function sanitizeKrishnaResponse(rawText: string, userMessage: string): KrishnaSanitizeResult {
+  let text = rawText.trim();
+  let needsRegeneration = false;
+
+  if (hasPattern(text, KRISHNA_AS_AI_PATTERN)) {
+    text = text.replace(new RegExp(KRISHNA_AS_AI_PATTERN.source, "gi"), "I");
+    needsRegeneration = true;
+  }
+
+  if (hasPattern(text, KRISHNA_THIRD_PERSON_PATTERN)) {
+    text = text.replace(new RegExp(KRISHNA_THIRD_PERSON_PATTERN.source, "gi"), "I");
+    needsRegeneration = true;
+  }
+
+  if (hasPattern(text, KRISHNA_SENSUAL_PATTERN)) {
+    text = text.replace(new RegExp(KRISHNA_SENSUAL_PATTERN.source, "gi"), "");
+    needsRegeneration = true;
+  }
+
+  const detailRequested = isDetailRequested(userMessage);
+  if (!detailRequested) {
+    text = truncateWords(text, 120);
+  }
+
+  const fallbackQuestion = "What is one duty-aligned step you can take today?";
+  text = enforceSingleReflectiveQuestion(text, fallbackQuestion);
+
+  return {
+    text,
+    needsRegeneration
+  };
 }
 
 function normalizePrompt(value: string) {
@@ -244,6 +324,22 @@ async function createOpenAiStream(params: {
   }
 
   const guide = getGuide(params.guideId);
+  const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+    {
+      role: "system",
+      content: `${guide.systemPrompt}\n\nMandatory disclaimer for user-facing context:\n${BHAKTIGPT_DISCLAIMER}`
+    }
+  ];
+
+  if (params.guideId === "krishna") {
+    messages.push({
+      role: "system",
+      content: KRISHNA_SECONDARY_GUARD
+    });
+  }
+
+  messages.push(...params.history);
+
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -258,13 +354,7 @@ async function createOpenAiStream(params: {
       stream_options: {
         include_usage: true
       },
-      messages: [
-        {
-          role: "system",
-          content: `${guide.systemPrompt}\n\nMandatory disclaimer for user-facing context:\n${BHAKTIGPT_DISCLAIMER}`
-        },
-        ...params.history
-      ]
+      messages
     })
   });
 
@@ -278,6 +368,65 @@ async function createOpenAiStream(params: {
   }
 
   return response.body.getReader();
+}
+
+async function createOpenAiText(params: {
+  guideId: BhaktiGuideId;
+  model: string;
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+}) {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not configured.");
+  }
+
+  const guide = getGuide(params.guideId);
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: params.model,
+      temperature: 0.4,
+      max_tokens: 420,
+      messages: [
+        {
+          role: "system",
+          content: `${guide.systemPrompt}\n\nMandatory disclaimer for user-facing context:\n${BHAKTIGPT_DISCLAIMER}`
+        },
+        ...(params.guideId === "krishna"
+          ? [
+              {
+                role: "system" as const,
+                content: KRISHNA_SECONDARY_GUARD
+              }
+            ]
+          : []),
+        ...params.messages
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`OpenAI request failed: ${errorBody}`);
+  }
+
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { completion_tokens?: number };
+  };
+  const content = data.choices?.[0]?.message?.content?.trim() ?? "";
+  if (!content) {
+    throw new Error("Empty response from model.");
+  }
+
+  return {
+    text: content,
+    completionTokens: data.usage?.completion_tokens ?? null
+  };
 }
 
 async function consumeOpenAiSse(params: {
@@ -583,7 +732,7 @@ export async function POST(request: Request) {
     const normalizedCacheKey = buildCacheKey(guideId, userMessage);
     const cached = getCachedReply(normalizedCacheKey);
     const isCrisis = detectCrisisIntent(userMessage);
-    const selectedModel = shouldUseStrongModel(userMessage) ? getStrongModel() : getFastModel();
+    const selectedModel = shouldUseStrongModel(guideId, userMessage) ? getStrongModel() : getFastModel();
 
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
@@ -592,6 +741,7 @@ export async function POST(request: Request) {
         let completionTokens: number | null = null;
         let cacheHit = false;
         let modelUsed = selectedModel;
+        const streamRawTokens = guideId !== "krishna";
 
         const metaPayload: StreamingMetaEvent = {
           conversationId,
@@ -633,7 +783,9 @@ export async function POST(request: Request) {
               },
               onToken: (token) => {
                 assistantText += token;
-                streamSseEvent(controller, "token", { text: token });
+                if (streamRawTokens) {
+                  streamSseEvent(controller, "token", { text: token });
+                }
               }
             });
 
@@ -647,13 +799,51 @@ export async function POST(request: Request) {
             }
           }
 
+          if (guideId === "krishna" && assistantText.trim()) {
+            let sanitized = sanitizeKrishnaResponse(assistantText, userMessage);
+
+            if (sanitized.needsRegeneration) {
+              try {
+                const rewritten = await createOpenAiText({
+                  guideId: "krishna",
+                  model: getStrongModel(),
+                  messages: [
+                    {
+                      role: "user",
+                      content: `Rewrite this reply so it is devotional, calm, first-person Krishna mentor voice, 60-120 words unless detail is requested, no third-person self-reference, no sensual language, and end with exactly one reflective question.\n\nUser message: ${userMessage}\n\nDraft reply: ${assistantText}`
+                    }
+                  ]
+                });
+                modelUsed = getStrongModel();
+                completionTokens = rewritten.completionTokens;
+                sanitized = sanitizeKrishnaResponse(rewritten.text, userMessage);
+              } catch (error) {
+                console.error("[BhaktiGPT][POST] Krishna regeneration failed.", error);
+              }
+            }
+
+            assistantText = sanitized.text;
+            setCachedReply(normalizedCacheKey, assistantText.trim(), modelUsed);
+          }
+
           if (!assistantText.trim()) {
             assistantText =
               "I hear you. I want to support you with one clear next step right now. Tell me the exact situation you want me to focus on.";
             if (ttftMs === null) {
               ttftMs = Date.now() - startedAt;
             }
-            streamSseEvent(controller, "token", { text: assistantText });
+            if (streamRawTokens) {
+              streamSseEvent(controller, "token", { text: assistantText });
+            }
+          }
+
+          if (!streamRawTokens) {
+            if (ttftMs === null) {
+              ttftMs = Date.now() - startedAt;
+            }
+            for (const token of chunkTextForStream(assistantText, 20)) {
+              streamSseEvent(controller, "token", { text: token });
+            }
           }
 
           if (persistConversation && conversationId) {

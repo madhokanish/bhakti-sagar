@@ -81,47 +81,25 @@ export default function BhaktiGptLandingPage() {
   return (
     <div className="container pb-14 pt-4 md:pt-6">
       <BhaktiGptPageView page="landing" />
-      <section className="rounded-3xl border border-sagar-amber/20 bg-gradient-to-br from-[#fff8ee] via-[#fff4e7] to-[#f8e2c7] p-6 shadow-sagar-soft md:p-10">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sagar-rose">BhaktiGPT</p>
-        <h1 className="mt-2 max-w-[18ch] text-4xl font-serif leading-tight text-sagar-ink sm:text-5xl">
-          Guidance for life, rooted in dharma.
-        </h1>
-        <p className="mt-4 max-w-3xl text-base leading-relaxed text-sagar-ink/80">
-          BhaktiGPT is an AI guide inspired by Shani Dev, Goddess Lakshmi, and Shri Krishna&apos;s Gita teachings. It helps you reflect, find clarity, and take the next right step.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <BhaktiTrackedLink
-            href="/bhaktigpt/chat"
-            eventName="viewed_bhaktigpt"
-            eventParams={{ action: "start_chat_click", source: "hero" }}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-sagar-saffron px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-sagar-ember"
-          >
-            Start BhaktiGPT
-          </BhaktiTrackedLink>
-          <a
-            href="#how-it-works"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-sagar-amber/35 bg-white px-6 py-2.5 text-sm font-semibold text-sagar-ink/80 transition hover:bg-sagar-cream/60"
-          >
-            How it works
-          </a>
+      <section className="mt-3">
+        <div className="mx-auto max-w-3xl text-center">
+          <h1 className="text-4xl font-serif text-sagar-ink sm:text-5xl">
+            Seek guidance from divine wisdom
+          </h1>
+          <p className="mt-3 text-base text-sagar-ink/75 sm:text-lg">
+            Speak with AI guides inspired by sacred teachings for clarity, strength, and devotion.
+          </p>
+          <div className="mt-5">
+            <BhaktiTrackedLink
+              href="/bhaktigpt/chat"
+              eventName="viewed_bhaktigpt"
+              eventParams={{ action: "browse_guides_click", source: "cards_header" }}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-sagar-amber/40 bg-white px-6 py-2.5 text-sm font-semibold text-sagar-ink/85 transition hover:bg-sagar-cream/60"
+            >
+              Browse Guides
+            </BhaktiTrackedLink>
+          </div>
         </div>
-      </section>
-
-      <section className="mt-5 grid gap-3 rounded-3xl border border-sagar-amber/20 bg-white/85 p-4 text-sm text-sagar-ink/80 shadow-sagar-soft sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-sagar-amber/15 bg-sagar-cream/50 px-3 py-3">Inspired by scriptures and tradition</div>
-        <div className="rounded-2xl border border-sagar-amber/15 bg-sagar-cream/50 px-3 py-3">Private chats, secure by design</div>
-        <div className="rounded-2xl border border-sagar-amber/15 bg-sagar-cream/50 px-3 py-3">Used by devotees worldwide</div>
-        <div className="rounded-2xl border border-sagar-amber/15 bg-sagar-cream/50 px-3 py-3">No fear, no predictions</div>
-      </section>
-
-      <section className="mt-8">
-        <div className="flex items-end justify-between gap-3">
-          <h2 className="text-3xl font-serif text-sagar-ink">Seek guidance from divine avatars</h2>
-          <Link href="/bhaktigpt/chat" className="text-sm font-semibold text-sagar-ember hover:text-sagar-saffron">Open chat</Link>
-        </div>
-        <p className="mt-2 text-sm text-sagar-ink/70">
-          Speak with AI guides inspired by dharmic teachings for wisdom, reflection, and next-step clarity.
-        </p>
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {GUIDE_CARD_CONFIG.map((card) => {

@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trackEvent } from "@/lib/analytics";
+import { getGuideConfig } from "@/lib/bhaktigpt/guideConfig";
 import {
   BHAKTI_GUIDE_LIST,
   BHAKTI_GUIDES,
@@ -57,7 +58,7 @@ function generateLocalId() {
   return `msg_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 }
 
-function renderMessageContent(content: string, options?: { krishnaPrefix?: boolean }) {
+function renderMessageContent(content: string) {
   const normalized = content.replace(/\r\n/g, "\n").trim();
   if (!normalized) return null;
 
@@ -70,11 +71,9 @@ function renderMessageContent(content: string, options?: { krishnaPrefix?: boole
     <div className="space-y-3">
       {paragraphs.map((paragraph, paragraphIndex) => {
         const lines = paragraph.split("\n");
-        const showKrishnaPrefix = Boolean(options?.krishnaPrefix && paragraphIndex === 0);
 
         return (
           <p key={`${paragraphIndex}-${paragraph.slice(0, 16)}`} className="leading-relaxed text-inherit">
-            {showKrishnaPrefix ? <span className="mr-1.5 align-middle text-base">🦚</span> : null}
             {lines.map((line, lineIndex) => (
               <Fragment key={`${lineIndex}-${line.slice(0, 12)}`}>
                 {line}
@@ -85,6 +84,47 @@ function renderMessageContent(content: string, options?: { krishnaPrefix?: boole
         );
       })}
     </div>
+  );
+}
+
+function GuideAvatar({
+  guideId,
+  size = "md",
+  className = ""
+}: {
+  guideId: BhaktiGuideId;
+  size?: "sm" | "md";
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const config = getGuideConfig(guideId);
+  const initial = config.displayName.charAt(0).toUpperCase();
+  const sizeClass = size === "sm" ? "h-8 w-8" : "h-10 w-10";
+
+  if (failed) {
+    return (
+      <span
+        className={`inline-flex ${sizeClass} items-center justify-center rounded-full border border-sagar-amber/30 bg-sagar-cream text-xs font-semibold text-sagar-ink ${className}`}
+      >
+        {initial}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={`relative inline-block ${sizeClass} overflow-hidden rounded-full border border-sagar-amber/30 shadow-[0_6px_16px_-12px_rgba(0,0,0,0.5)] ${className}`}
+    >
+      <Image
+        src={config.avatarPath}
+        alt={`${config.displayName} avatar`}
+        fill
+        sizes={size === "sm" ? "32px" : "40px"}
+        className="object-cover"
+        style={{ objectPosition: config.avatarObjectPosition ?? "50% 20%" }}
+        onError={() => setFailed(true)}
+      />
+    </span>
   );
 }
 
@@ -199,8 +239,10 @@ export default function BhaktiGptChatClient() {
   const searchParams = useSearchParams();
 
   const guideParam = searchParams.get("guide");
+  const prefillParam = searchParams.get("prefill");
   const selectedGuideId = isGuideId(guideParam ?? "") ? (guideParam as BhaktiGuideId) : null;
   const selectedGuide = selectedGuideId ? BHAKTI_GUIDES[selectedGuideId] : null;
+  const selectedGuideConfig = selectedGuideId ? getGuideConfig(selectedGuideId) : null;
 
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -211,9 +253,14 @@ export default function BhaktiGptChatClient() {
   const [inputValue, setInputValue] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showSignInPrompt, setShowSignInPrompt] = useState(false);
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  const handledPrefillRef = useRef<string | null>(null);
+  const focusComposer = useCallback(() => {
+    requestAnimationFrame(() => composerRef.current?.focus());
+  }, []);
 
   const updateGuideQuery = useCallback(
     (
@@ -273,11 +320,12 @@ export default function BhaktiGptChatClient() {
         updateGuideQuery(guideId, null, { forceNewConversation: true });
       }
       setLoadState("ready");
+      focusComposer();
     } catch (error) {
       setLoadState("error");
       setLoadError(error instanceof Error ? error.message : "Unable to load chat right now.");
     }
-  }, [updateGuideQuery]);
+  }, [focusComposer, updateGuideQuery]);
 
   useEffect(() => {
     if (!selectedGuideId) {
@@ -294,6 +342,21 @@ export default function BhaktiGptChatClient() {
   }, [selectedGuideId, loadGuideConversation, searchParams]);
 
   useEffect(() => {
+    if (!selectedGuideId || !prefillParam) return;
+
+    const prefillKey = `${selectedGuideId}:${prefillParam}`;
+    if (handledPrefillRef.current === prefillKey) return;
+
+    handledPrefillRef.current = prefillKey;
+    setInputValue((current) => (current.trim().length ? current : prefillParam));
+    requestAnimationFrame(() => composerRef.current?.focus());
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("prefill");
+    router.replace(`/bhaktigpt/chat?${params.toString()}`);
+  }, [prefillParam, router, searchParams, selectedGuideId]);
+
+  useEffect(() => {
     const container = messagesRef.current;
     if (!container) return;
     container.scrollTo({
@@ -301,6 +364,12 @@ export default function BhaktiGptChatClient() {
       behavior: "smooth"
     });
   }, [messages, isStreaming, loadState]);
+
+  useEffect(() => {
+    if (selectedGuideId && loadState === "ready") {
+      focusComposer();
+    }
+  }, [focusComposer, loadState, selectedGuideId]);
 
   const openConversation = useCallback(
     async (id: string) => {
@@ -323,8 +392,8 @@ export default function BhaktiGptChatClient() {
       updateGuideQuery(selectedGuideId, null, { forceNewConversation: true });
       setLoadState("ready");
     }
-    setTimeout(() => composerRef.current?.focus(), 20);
-  }, [loadGuideConversation, selectedGuideId, updateGuideQuery]);
+    focusComposer();
+  }, [focusComposer, loadGuideConversation, selectedGuideId, updateGuideQuery]);
 
   const sendMessage = useCallback(
     async (prefilled?: string) => {
@@ -351,7 +420,8 @@ export default function BhaktiGptChatClient() {
       setComposerError(null);
       setIsStreaming(true);
       setMessages((prev) => [...prev, userMessage, assistantPlaceholder]);
-      if (!prefilled) setInputValue("");
+      setInputValue("");
+      focusComposer();
 
       let streamedText = "";
 
@@ -381,6 +451,11 @@ export default function BhaktiGptChatClient() {
         if (!contentType.includes("text/event-stream")) {
           const raw = await parseJsonSafe(response);
           if (!raw) throw new Error("Invalid chat response.");
+          if (raw.limitReached === true) {
+            setShowSignInPrompt(true);
+            setMessages((prev) => prev.filter((item) => item.id !== assistantMessageId));
+            return;
+          }
 
           const assistantMessage =
             typeof raw.assistantMessage === "string" ? raw.assistantMessage : "";
@@ -451,9 +526,18 @@ export default function BhaktiGptChatClient() {
         );
       } finally {
         setIsStreaming(false);
+        focusComposer();
       }
     },
-    [conversationId, inputValue, isStreaming, messages.length, selectedGuideId, updateGuideQuery]
+    [
+      conversationId,
+      focusComposer,
+      inputValue,
+      isStreaming,
+      messages.length,
+      selectedGuideId,
+      updateGuideQuery
+    ]
   );
 
   if (!selectedGuideId || !selectedGuide) {
@@ -483,6 +567,7 @@ export default function BhaktiGptChatClient() {
           <div className="mt-4 space-y-2">
             {BHAKTI_GUIDE_LIST.map((guide) => {
               const active = guide.id === selectedGuideId;
+              const guideConfig = getGuideConfig(guide.id);
               return (
                 <button
                   key={guide.id}
@@ -499,18 +584,10 @@ export default function BhaktiGptChatClient() {
                   }`}
                 >
                   <span className="flex items-center gap-2.5">
-                    <span className="relative h-9 w-9 overflow-hidden rounded-lg border border-sagar-amber/25">
-                      <Image
-                        src={guide.imageSrc}
-                        alt={guide.imageAlt}
-                        fill
-                        className="object-cover"
-                        sizes="36px"
-                      />
-                    </span>
+                    <GuideAvatar guideId={guide.id} size="sm" className="rounded-lg" />
                     <span>
-                      <span className="block text-sm font-semibold text-sagar-ink">{guide.name}</span>
-                      <span className="block text-xs text-sagar-ink/65">{guide.subtitle}</span>
+                      <span className="block text-sm font-semibold text-sagar-ink">{guideConfig.displayName}</span>
+                      <span className="block text-xs text-sagar-ink/65">{guideConfig.subtitle}</span>
                     </span>
                   </span>
                 </button>
@@ -547,22 +624,10 @@ export default function BhaktiGptChatClient() {
           <header className="border-b border-sagar-amber/20 px-4 py-3 sm:px-6">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <span className="relative h-10 w-10 overflow-hidden rounded-xl border border-sagar-amber/25">
-                  <Image
-                    src={selectedGuide.imageSrc}
-                    alt={selectedGuide.imageAlt}
-                    fill
-                    className="object-cover"
-                    sizes="40px"
-                    priority
-                  />
-                </span>
+                <GuideAvatar guideId={selectedGuideId} size="sm" className="md:h-10 md:w-10" />
                 <div>
-                  <p className="text-sm font-semibold text-sagar-ink">
-                    {selectedGuideId === "krishna" ? "🦚 " : null}
-                    {selectedGuide.name}
-                  </p>
-                  <p className="text-xs text-sagar-ink/70">{selectedGuide.subtitle}</p>
+                  <p className="text-sm font-semibold text-sagar-ink">{selectedGuideConfig?.displayName}</p>
+                  <p className="text-xs text-sagar-ink/70">{selectedGuideConfig?.subtitle}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -621,26 +686,31 @@ export default function BhaktiGptChatClient() {
                   const isAssistantTyping =
                     message.role === "assistant" && isStreaming && message.content.trim().length === 0;
 
+                  if (message.role === "assistant") {
+                    return (
+                      <div key={message.id} className="flex max-w-3xl items-start gap-3 md:gap-4">
+                        <GuideAvatar guideId={selectedGuideId} size="sm" className="mt-0.5 shrink-0 md:h-10 md:w-10" />
+                        <article className="w-full rounded-2xl border border-sagar-amber/20 bg-white px-4 py-3 text-sm leading-relaxed text-sagar-ink/90">
+                          {isAssistantTyping ? (
+                            <span className="inline-flex items-center gap-1 text-sagar-ink/70">
+                              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember [animation-delay:-0.2s]" />
+                              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember [animation-delay:-0.1s]" />
+                              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember" />
+                            </span>
+                          ) : (
+                            renderMessageContent(message.content)
+                          )}
+                        </article>
+                      </div>
+                    );
+                  }
+
                   return (
                     <article
                       key={message.id}
-                      className={`max-w-3xl rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                        message.role === "user"
-                          ? "ml-auto border border-sagar-saffron/35 bg-sagar-saffron/10 text-sagar-ink"
-                          : "border border-sagar-amber/20 bg-white text-sagar-ink/90"
-                      }`}
+                      className="ml-auto max-w-3xl rounded-2xl border border-sagar-saffron/35 bg-sagar-saffron/10 px-4 py-3 text-sm leading-relaxed text-sagar-ink"
                     >
-                      {isAssistantTyping ? (
-                        <span className="inline-flex items-center gap-1 text-sagar-ink/70">
-                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember [animation-delay:-0.2s]" />
-                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember [animation-delay:-0.1s]" />
-                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember" />
-                        </span>
-                      ) : (
-                        renderMessageContent(message.content, {
-                          krishnaPrefix: selectedGuideId === "krishna" && message.role === "assistant"
-                        })
-                      )}
+                      {renderMessageContent(message.content)}
                     </article>
                   );
                 })
@@ -670,6 +740,7 @@ export default function BhaktiGptChatClient() {
                 value={inputValue}
                 onChange={(event) => setInputValue(event.target.value)}
                 onKeyDown={(event) => {
+                  if (event.nativeEvent.isComposing) return;
                   if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();
                     if (!isStreaming && inputValue.trim()) {
@@ -679,7 +750,6 @@ export default function BhaktiGptChatClient() {
                 }}
                 rows={2}
                 placeholder="Type your message..."
-                disabled={isStreaming}
                 className="w-full resize-none rounded-xl border border-sagar-amber/25 bg-white px-3 py-2 text-sm text-sagar-ink outline-none transition focus:border-sagar-saffron/60"
               />
               <button
@@ -706,9 +776,7 @@ export default function BhaktiGptChatClient() {
           <div className="w-full max-w-lg rounded-3xl border border-sagar-amber/25 bg-white p-5 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.55)]">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-sagar-ink">
-                  {selectedGuideId === "krishna" ? "About 🦚 Shri Krishna" : `About ${selectedGuide.name}`}
-                </h2>
+                <h2 className="text-lg font-semibold text-sagar-ink">{`About ${selectedGuideConfig?.displayName ?? selectedGuide.name}`}</h2>
                 <p className="mt-1 text-sm whitespace-pre-line text-sagar-ink/70">
                   {selectedGuide.aboutIntro ?? selectedGuide.shortDescription}
                 </p>
@@ -744,6 +812,32 @@ export default function BhaktiGptChatClient() {
             <p className="mt-4 rounded-xl border border-sagar-amber/20 bg-sagar-cream/50 px-3 py-2 text-xs text-sagar-ink/75">
               {BHAKTIGPT_DISCLAIMER}
             </p>
+          </div>
+        </div>
+      ) : null}
+
+      {showSignInPrompt ? (
+        <div className="fixed inset-0 z-[96] flex items-center justify-center bg-sagar-ink/40 p-4">
+          <div className="w-full max-w-md rounded-3xl border border-sagar-amber/25 bg-white p-5 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.55)]">
+            <h2 className="text-xl font-serif text-sagar-ink">Continue your darshan</h2>
+            <p className="mt-2 text-sm text-sagar-ink/75">
+              You have used your free messages for now. Sign in to continue your devotional conversation.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a
+                href="/signin?callbackUrl=/bhaktigpt/chat"
+                className="rounded-full bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember"
+              >
+                Sign in to continue
+              </a>
+              <button
+                type="button"
+                onClick={() => setShowSignInPrompt(false)}
+                className="rounded-full border border-sagar-amber/30 px-4 py-2 text-sm font-semibold text-sagar-ink/80"
+              >
+                Maybe later
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

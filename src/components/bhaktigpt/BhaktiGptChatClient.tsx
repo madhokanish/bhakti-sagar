@@ -618,39 +618,21 @@ export default function BhaktiGptChatClient() {
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
-    const scrollY = window.scrollY;
-
     const previousHtmlOverflow = html.style.overflow;
     const previousHtmlOverscroll = html.style.overscrollBehavior;
     const previousBodyOverflow = body.style.overflow;
     const previousBodyOverscroll = body.style.overscrollBehavior;
-    const previousBodyPosition = body.style.position;
-    const previousBodyTop = body.style.top;
-    const previousBodyLeft = body.style.left;
-    const previousBodyRight = body.style.right;
-    const previousBodyWidth = body.style.width;
 
     html.style.overflow = "hidden";
     html.style.overscrollBehavior = "none";
     body.style.overflow = "hidden";
     body.style.overscrollBehavior = "none";
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.left = "0";
-    body.style.right = "0";
-    body.style.width = "100%";
 
     return () => {
       html.style.overflow = previousHtmlOverflow;
       html.style.overscrollBehavior = previousHtmlOverscroll;
       body.style.overflow = previousBodyOverflow;
       body.style.overscrollBehavior = previousBodyOverscroll;
-      body.style.position = previousBodyPosition;
-      body.style.top = previousBodyTop;
-      body.style.left = previousBodyLeft;
-      body.style.right = previousBodyRight;
-      body.style.width = previousBodyWidth;
-      window.scrollTo(0, scrollY);
     };
   }, []);
 
@@ -676,18 +658,16 @@ export default function BhaktiGptChatClient() {
   useEffect(() => {
     const root = document.documentElement;
     const updateChatViewportHeight = () => {
-      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const viewportHeight = window.innerHeight;
       root.style.setProperty("--chat-vh", `${Math.round(viewportHeight)}px`);
     };
     updateChatViewportHeight();
     window.addEventListener("resize", updateChatViewportHeight);
     window.addEventListener("orientationchange", updateChatViewportHeight);
-    window.visualViewport?.addEventListener("resize", updateChatViewportHeight);
     return () => {
       root.style.removeProperty("--chat-vh");
       window.removeEventListener("resize", updateChatViewportHeight);
       window.removeEventListener("orientationchange", updateChatViewportHeight);
-      window.visualViewport?.removeEventListener("resize", updateChatViewportHeight);
     };
   }, []);
 
@@ -1256,7 +1236,6 @@ export default function BhaktiGptChatClient() {
                 onChange={(event) => setInputValue(event.target.value)}
                 onFocus={() => {
                   requestAnimationFrame(() => {
-                    window.scrollTo(0, 0);
                     if (shouldAutoScrollRef.current) {
                       scrollMessagesToBottom("auto", true);
                     }

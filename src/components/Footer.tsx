@@ -1,6 +1,6 @@
 export default function Footer() {
   return (
-    <footer className="mt-16 border-t border-sagar-amber/20 bg-sagar-cream/70">
+    <footer className="global-footer mt-16 border-t border-sagar-amber/20 bg-sagar-cream/70">
       <div className="container flex flex-col gap-6 py-10 text-sm text-sagar-ink/70 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="font-serif text-lg text-sagar-ink">Bhakti Sagar</p>

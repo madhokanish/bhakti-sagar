@@ -100,7 +100,7 @@ function renderLineWithLinks(line: string, keyPrefix: string) {
           href={href}
           target="_blank"
           rel="noreferrer"
-          className="break-all underline underline-offset-2 transition hover:text-sagar-ember"
+          className="max-w-full break-all underline underline-offset-2 transition hover:text-sagar-ember"
         >
           {href}
         </a>
@@ -131,7 +131,7 @@ function renderMessageContent(content: string, options?: { autoParagraph?: boole
     .filter(Boolean);
 
   return (
-    <div className="space-y-3 break-words [overflow-wrap:anywhere] [word-break:break-word] [&_a]:break-all [&_code]:break-words [&_pre]:max-w-full [&_pre]:overflow-x-auto">
+    <div className="max-w-full space-y-3 break-words [overflow-wrap:anywhere] [word-break:break-word] [&_a]:break-all [&_code]:max-w-full [&_code]:break-words [&_p]:max-w-full [&_pre]:max-w-full [&_pre]:overflow-x-auto">
       {paragraphs.map((paragraph, paragraphIndex) => {
         const lines = paragraph.split("\n");
 
@@ -323,6 +323,31 @@ export default function BhaktiGptChatClient() {
   const composerShellRef = useRef<HTMLDivElement | null>(null);
   const handledPrefillRef = useRef<string | null>(null);
   const [composerHeight, setComposerHeight] = useState(124);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    const previousNavHeight = root.style.getPropertyValue("--nav-height");
+    const previousRibbonHeight = root.style.getPropertyValue("--promo-ribbon-height");
+
+    body.setAttribute("data-bhaktigpt-chat", "on");
+    root.style.setProperty("--nav-height", "0px");
+    root.style.setProperty("--promo-ribbon-height", "0px");
+
+    return () => {
+      body.removeAttribute("data-bhaktigpt-chat");
+      if (previousNavHeight) {
+        root.style.setProperty("--nav-height", previousNavHeight);
+      } else {
+        root.style.removeProperty("--nav-height");
+      }
+      if (previousRibbonHeight) {
+        root.style.setProperty("--promo-ribbon-height", previousRibbonHeight);
+      } else {
+        root.style.removeProperty("--promo-ribbon-height");
+      }
+    };
+  }, []);
 
   const focusComposer = useCallback(() => {
     requestAnimationFrame(() => composerRef.current?.focus());
@@ -670,7 +695,7 @@ export default function BhaktiGptChatClient() {
 
   return (
     <>
-      <section className="grid h-full min-h-0 min-w-0 overflow-hidden rounded-none bg-white md:grid-cols-[18rem_1fr] md:rounded-3xl md:border md:border-sagar-amber/20 md:bg-white/95 md:shadow-sagar-soft">
+      <section className="grid h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-hidden rounded-none bg-white md:grid-cols-[18rem_1fr] md:rounded-3xl md:border md:border-sagar-amber/20 md:bg-white/95 md:shadow-sagar-soft">
         <aside className="hidden border-r border-sagar-amber/20 bg-sagar-cream/30 p-3 md:flex md:flex-col">
           <h2 className="px-2 text-sm font-semibold uppercase tracking-[0.12em] text-sagar-rose">BhaktiGPT</h2>
           <button
@@ -738,9 +763,9 @@ export default function BhaktiGptChatClient() {
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
-          <header className="sticky top-0 z-20 border-b border-sagar-amber/20 bg-white/95 px-3 py-2.5 backdrop-blur sm:px-6 sm:py-3">
+          <header className="shrink-0 border-b border-sagar-amber/20 bg-white px-3 py-2.5 sm:px-6 sm:py-3">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <button
                   type="button"
                   onClick={handleBack}
@@ -761,8 +786,8 @@ export default function BhaktiGptChatClient() {
                   </svg>
                 </button>
                 <GuideAvatar guideId={selectedGuideId} size="sm" className="md:h-10 md:w-10" />
-                <div>
-                  <p className="text-sm font-semibold text-sagar-ink">{selectedGuideConfig?.displayName}</p>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-sagar-ink">{selectedGuideConfig?.displayName}</p>
                   <p className="text-[11px] text-sagar-ink/65">Online guide</p>
                 </div>
               </div>
@@ -787,7 +812,7 @@ export default function BhaktiGptChatClient() {
 
           <div
             ref={messagesRef}
-            className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden overscroll-y-contain px-3 py-3 text-[15px] leading-7 sm:px-6 sm:py-4 sm:text-base"
+            className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-3 py-3 text-[15px] leading-7 [overscroll-behavior-y:contain] [touch-action:pan-y] sm:px-6 sm:py-4 sm:text-base"
             style={{ paddingBottom: `${composerHeight + 24}px` }}
           >
             {loadState === "loading" ? (
@@ -845,7 +870,7 @@ export default function BhaktiGptChatClient() {
                     return (
                       <div key={message.id} className="flex w-full max-w-[85%] min-w-0 items-start gap-3 sm:max-w-[80%] md:gap-4">
                         <GuideAvatar guideId={selectedGuideId} size="sm" className="mt-0.5 shrink-0 md:h-10 md:w-10" />
-                        <div className="w-full">
+                        <div className="min-w-0 w-full">
                           <article className="w-full min-w-0 rounded-2xl border border-sagar-amber/20 bg-white px-4 py-3 text-[15px] leading-7 text-sagar-ink/90 sm:text-base">
                             {isAssistantTyping ? (
                               <span className="inline-flex items-center gap-1 text-sagar-ink/70">
@@ -885,7 +910,7 @@ export default function BhaktiGptChatClient() {
 
           <div
             ref={composerShellRef}
-            className="sticky bottom-0 z-20 border-t border-sagar-amber/20 bg-white px-3 pt-2 pb-[calc(12px+env(safe-area-inset-bottom))] sm:px-6 sm:pt-3"
+            className="shrink-0 border-t border-sagar-amber/20 bg-white px-3 pt-2 pb-[calc(12px+env(safe-area-inset-bottom))] sm:px-6 sm:pt-3"
           >
             <div className="flex gap-2">
               <textarea

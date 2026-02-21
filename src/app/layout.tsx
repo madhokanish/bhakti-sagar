@@ -41,7 +41,7 @@ export default function RootLayout({
           <div className="relative min-h-screen overflow-hidden">
             <PromoRibbon />
             <NavBar />
-            <main className="pb-12">{children}</main>
+            <main className="global-main pb-12">{children}</main>
             <Footer />
             <script
               type="application/ld+json"

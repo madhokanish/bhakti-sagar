@@ -15,10 +15,7 @@ export const metadata: Metadata = {
 
 export default function BhaktiGptChatPage() {
   return (
-    <div
-      className="fixed inset-x-0 z-30 overflow-x-hidden overflow-y-hidden bg-white [height:calc(100dvh-var(--nav-height,0px))] [max-height:calc(100dvh-var(--nav-height,0px))]"
-      style={{ top: "var(--nav-height, 0px)" }}
-    >
+    <div className="fixed inset-0 z-30 h-screen overflow-hidden bg-white [height:100dvh]">
       <BhaktiGptPageView page="chat" />
       <Suspense
         fallback={

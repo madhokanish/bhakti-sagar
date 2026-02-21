@@ -15,6 +15,21 @@ body {
   min-height: 100vh;
 }
 
+body[data-bhaktigpt-chat="on"] {
+  background: #fff;
+  overflow: hidden;
+}
+
+body[data-bhaktigpt-chat="on"] .global-ribbon,
+body[data-bhaktigpt-chat="on"] .global-nav,
+body[data-bhaktigpt-chat="on"] .global-footer {
+  display: none !important;
+}
+
+body[data-bhaktigpt-chat="on"] .global-main {
+  padding-bottom: 0 !important;
+}
+
 ::selection {
   background: rgba(229, 122, 31, 0.3);
 }

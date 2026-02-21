@@ -56,7 +56,7 @@ export default function PromoRibbon() {
   return (
     <div
       ref={ref}
-      className="sticky top-0 z-50 border-b border-sagar-amber/20 bg-sagar-cream/95 px-4 py-[calc(0.35rem+env(safe-area-inset-top)/2)] text-xs text-sagar-ink/80 backdrop-blur"
+      className="global-ribbon sticky top-0 z-50 border-b border-sagar-amber/20 bg-sagar-cream/95 px-4 py-[calc(0.35rem+env(safe-area-inset-top)/2)] text-xs text-sagar-ink/80 backdrop-blur"
     >
       <div className="container flex items-center justify-between gap-3">
         <div className="min-w-0">

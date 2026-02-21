@@ -1048,11 +1048,12 @@ export default function BhaktiGptChatClient() {
             ref={headerShellRef}
             className="absolute inset-x-0 top-0 z-20 border-b border-[color:var(--border)] bg-[color:var(--surface)] px-3 pb-2 pt-[calc(env(safe-area-inset-top)+8px)] shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:px-5"
           >
-            <div className="grid grid-cols-[auto,1fr,auto] items-center gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2 md:gap-3">
               <button
                 type="button"
                 onClick={handleBack}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)]"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)] md:hidden"
                 aria-label={t("chat_back")}
               >
                 <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true" fill="none">
@@ -1060,9 +1061,9 @@ export default function BhaktiGptChatClient() {
                 </svg>
               </button>
 
-              <div className="flex min-w-0 items-center justify-center gap-2">
+              <div className="flex min-w-0 items-center gap-2">
                 <GuideAvatar guideId={selectedGuideId} size="sm" />
-                <div className="min-w-0 text-center">
+                <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-[color:var(--text)]">
                     {selectedGuideLocalized?.name ?? selectedGuideConfig?.displayName}
                   </p>
@@ -1071,7 +1072,16 @@ export default function BhaktiGptChatClient() {
                   </p>
                 </div>
               </div>
+              </div>
 
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAboutModal(true)}
+                  className="hidden min-h-11 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-xs font-semibold text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)] md:inline-flex"
+                >
+                  {t("chat_about")}
+                </button>
               <button
                 type="button"
                 onClick={startNewChat}
@@ -1083,14 +1093,7 @@ export default function BhaktiGptChatClient() {
                 </svg>
               </button>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setShowAboutModal(true)}
-              className="mt-2 hidden min-h-11 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-xs font-semibold text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)] sm:inline-flex"
-            >
-              {t("chat_about")}
-            </button>
+            </div>
           </header>
 
           {isGuideSwitching ? (

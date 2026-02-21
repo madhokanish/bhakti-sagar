@@ -4,10 +4,9 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import Logo from "@/components/Logo";
 import AuthModalTrigger from "@/components/auth/AuthModalTrigger";
-import LanguageToggle from "@/components/LanguageToggle";
 
 export default function NavBar() {
   const t = useTranslations();
@@ -17,11 +16,9 @@ export default function NavBar() {
   const headerRef = useRef<HTMLElement | null>(null);
   const { data: session, status } = useSession();
   const pathname = usePathname();
-  const locale = useLocale();
   const callbackUrl = pathname || "/";
   const isChatRoute = pathname?.includes("/bhaktigpt/chat");
-  const activeLocale = locale === "hi" ? "hi" : "en";
-  const localePrefix = `/${activeLocale}`;
+  const localePrefix = "/en";
 
   const isAuthenticated = Boolean(session?.user?.id);
   const avatarLabel = session?.user?.name || session?.user?.email || "Account";
@@ -123,7 +120,6 @@ export default function NavBar() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
-          <LanguageToggle />
           {status === "loading" ? (
             <div className="h-9 w-20 animate-pulse rounded-full bg-sagar-cream/70" />
           ) : isAuthenticated ? (
@@ -202,8 +198,7 @@ export default function NavBar() {
             id="mobile-nav-drawer"
             className="absolute right-4 top-[calc(var(--nav-height,56px)+8px)] w-64 rounded-2xl border border-sagar-amber/20 bg-white p-3 text-sm text-sagar-ink/75 shadow-sagar-soft"
           >
-            <div className="mb-2 flex items-center justify-between px-1">
-              <LanguageToggle />
+            <div className="mb-2 flex items-center justify-end px-1">
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}

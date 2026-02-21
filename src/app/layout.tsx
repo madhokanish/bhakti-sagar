@@ -4,19 +4,11 @@ import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import AuthSessionProvider from "@/components/AuthSessionProvider";
 import AuthModalProvider from "@/components/auth/AuthModalProvider";
-import { buildMetadata, getRequestLanguage, siteConfig } from "@/lib/seo";
+import { buildMetadata, siteConfig } from "@/lib/seo";
 import { Analytics } from "@vercel/analytics/react";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/schema";
 import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
-import { headers } from "next/headers";
-import { Noto_Sans_Devanagari } from "next/font/google";
-
-const notoSansDevanagari = Noto_Sans_Devanagari({
-  subsets: ["devanagari"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap"
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -40,17 +32,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const lang = getRequestLanguage();
-  const locale = headers().get("x-lang") === "hi" ? "hi" : "en";
-  const messages = locale === "hi" ? require("../messages/hi.json") : require("../messages/en.json");
+  const locale = "en";
+  const messages = require("../messages/en.json");
   const orgJsonLd = organizationJsonLd();
-  const webJsonLd = websiteJsonLd(locale);
+  const webJsonLd = websiteJsonLd("en");
 
   return (
-    <html lang={lang}>
-      <body
-        className={`font-sans ${locale === "hi" ? `${notoSansDevanagari.className} text-[1.05rem] leading-[1.75]` : ""}`}
-      >
+    <html lang="en">
+      <body className="font-sans">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <AuthSessionProvider>
             <AuthModalProvider>

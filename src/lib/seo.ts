@@ -12,20 +12,20 @@ export const siteConfig = {
 };
 
 export const supportedLanguages: { code: string; label: string }[] = [
-  { code: "en", label: "English" },
-  { code: "hi", label: "Hindi" }
+  { code: "en", label: "English" }
 ];
 
 export type SeoLocale = "en" | "hi";
 
-export function getRequestLanguage(defaultLang: "en" | "hi" = "en") {
+export function getRequestLanguage(defaultLang: "en" | "hi" = "en"): "en" | "hi" {
   try {
     const lang = headers().get("x-lang");
-    if (lang === "hi" || lang === "en") return lang;
+    if (lang === "en") return "en";
   } catch {
     // ignore
   }
-  return defaultLang;
+  void defaultLang;
+  return "en";
 }
 
 export function toTitle(title: string) {
@@ -67,15 +67,14 @@ function splitLocalePath(pathname: string) {
 }
 
 export function buildAlternates(pathname: string) {
-  const { locale, basePath } = splitLocalePath(pathname);
-  const canonicalPath = `/${locale}${basePath === "/" ? "" : basePath}`;
+  const { basePath } = splitLocalePath(pathname);
+  const canonicalPath = `/en${basePath === "/" ? "" : basePath}`;
   const alternates: { canonical: string; languages?: Record<string, string> } = {
     canonical: absoluteUrl(canonicalPath)
   };
   if (supportedLanguages.length > 0) {
     alternates.languages = {
-      en: absoluteUrl(`/en${basePath === "/" ? "" : basePath}`),
-      "hi-IN": absoluteUrl(`/hi${basePath === "/" ? "" : basePath}`)
+      en: absoluteUrl(`/en${basePath === "/" ? "" : basePath}`)
     };
   }
   return alternates;

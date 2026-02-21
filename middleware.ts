@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const supportedLangs = ["en", "hi"];
 const AUTH_SESSION_COOKIE_NAMES = [
   "authjs.session-token",
   "__Secure-authjs.session-token",
@@ -16,50 +15,88 @@ function hasAuthSessionCookie(request: NextRequest) {
   });
 }
 
-function getPreferredLocale(request: NextRequest, firstSegment?: string) {
-  if (firstSegment && supportedLangs.includes(firstSegment)) {
-    return firstSegment;
+function withEnPrefix(pathname: string) {
+  if (pathname === "/") return "/en";
+  return `/en${pathname.startsWith("/") ? "" : "/"}${pathname}`;
+}
+
+function stripLocalePrefix(pathname: string) {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments[0] === "en" || segments[0] === "hi") {
+    const rest = segments.slice(1).join("/");
+    return rest ? `/${rest}` : "/";
   }
-  const preferred = request.cookies.get("NEXT_LOCALE")?.value;
-  if (preferred && supportedLangs.includes(preferred)) {
-    return preferred;
+  return pathname;
+}
+
+function withEnglishHeaders(request: NextRequest, response: NextResponse) {
+  const headers = new Headers(request.headers);
+  headers.set("x-lang", "en");
+  const nextResponse = NextResponse.next({ request: { headers } });
+
+  for (const [key, value] of response.headers.entries()) {
+    nextResponse.headers.set(key, value);
   }
-  return "en";
+
+  nextResponse.cookies.set("NEXT_LOCALE", "en", {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax"
+  });
+
+  return nextResponse;
 }
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
   if (pathname.length > 1 && pathname.endsWith("/")) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = pathname.slice(0, -1);
     return NextResponse.redirect(redirectUrl, 301);
   }
 
+  if (pathname === "/") {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/en";
+    const response = NextResponse.redirect(redirectUrl, 302);
+    response.cookies.set("NEXT_LOCALE", "en", {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax"
+    });
+    return response;
+  }
+
   const segments = pathname.split("/").filter(Boolean);
   const first = segments[0];
 
-  // Canonicalize the root to a locale-prefixed route.
-  if (pathname === "/") {
-    const preferred = request.cookies.get("NEXT_LOCALE")?.value;
-    const locale = preferred && supportedLangs.includes(preferred) ? preferred : "en";
+  if (first === "hi") {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = `/${locale}`;
-    return NextResponse.redirect(redirectUrl, 302);
+    const rest = segments.slice(1).join("/");
+    redirectUrl.pathname = rest ? `/en/${rest}` : "/en";
+    const response = NextResponse.redirect(redirectUrl, 302);
+    response.cookies.set("NEXT_LOCALE", "en", {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax"
+    });
+    return response;
   }
 
-  // Enforce locale-prefixed routes for all other pages.
-  if (!first || !supportedLangs.includes(first)) {
-    const preferred = request.cookies.get("NEXT_LOCALE")?.value;
-    const locale = preferred && supportedLangs.includes(preferred) ? preferred : "en";
+  if (first !== "en") {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = `/${locale}${pathname.startsWith("/") ? "" : "/"}${pathname}`;
-    return NextResponse.redirect(redirectUrl, 302);
+    redirectUrl.pathname = withEnPrefix(pathname);
+    const response = NextResponse.redirect(redirectUrl, 302);
+    response.cookies.set("NEXT_LOCALE", "en", {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax"
+    });
+    return response;
   }
-  const normalizedPathRaw =
-    first && supportedLangs.includes(first)
-      ? `/${segments.slice(1).join("/") || ""}`.replace(/\/$/, "") || "/"
-      : pathname;
-  const normalizedPath = normalizedPathRaw.replace(/\/$/, "") || "/";
+
+  const normalizedPath = stripLocalePrefix(pathname).replace(/\/$/, "") || "/";
 
   if (
     normalizedPath === "/live" ||
@@ -73,23 +110,17 @@ export function middleware(request: NextRequest) {
     normalizedPath === "/bhaktigpt/lakshmi" ||
     normalizedPath === "/bhaktigpt/shani-dev"
   ) {
-    const locale = getPreferredLocale(request, first);
     const redirectUrl = request.nextUrl.clone();
-    if (normalizedPath === "/bhaktigpt/krishna") {
-      redirectUrl.pathname = `/${locale}/bhaktigpt/chat`;
-      redirectUrl.search = "?guide=krishna";
-    } else if (normalizedPath === "/bhaktigpt/lakshmi") {
-      redirectUrl.pathname = `/${locale}/bhaktigpt/chat`;
+    redirectUrl.pathname = "/en/bhaktigpt/chat";
+    if (normalizedPath === "/bhaktigpt/lakshmi") {
       redirectUrl.search = "?guide=lakshmi";
     } else if (normalizedPath === "/bhaktigpt/shani-dev") {
-      redirectUrl.pathname = `/${locale}/bhaktigpt/chat`;
       redirectUrl.search = "?guide=shani";
     } else {
-      redirectUrl.pathname = `/${locale}/bhaktigpt/chat`;
       redirectUrl.search = "?guide=krishna";
     }
     const response = NextResponse.redirect(redirectUrl, 301);
-    response.cookies.set("NEXT_LOCALE", locale, {
+    response.cookies.set("NEXT_LOCALE", "en", {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
       sameSite: "lax"
@@ -98,13 +129,12 @@ export function middleware(request: NextRequest) {
   }
 
   if ((normalizedPath === "/account" || normalizedPath === "/profile") && !hasAuthSessionCookie(request)) {
-    const locale = getPreferredLocale(request, first);
     const authUrl = request.nextUrl.clone();
-    authUrl.pathname = `/${locale}`;
+    authUrl.pathname = "/en";
     authUrl.searchParams.set("auth", "1");
-    authUrl.searchParams.set("callbackUrl", `/${locale}/profile`);
-    const response = NextResponse.redirect(authUrl);
-    response.cookies.set("NEXT_LOCALE", locale, {
+    authUrl.searchParams.set("callbackUrl", "/en/profile");
+    const response = NextResponse.redirect(authUrl, 302);
+    response.cookies.set("NEXT_LOCALE", "en", {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
       sameSite: "lax"
@@ -112,21 +142,7 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  if (first && supportedLangs.includes(first)) {
-    const headers = new Headers(request.headers);
-    headers.set("x-lang", first);
-    const response = NextResponse.next({ request: { headers } });
-    response.cookies.set("NEXT_LOCALE", first, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-      sameSite: "lax"
-    });
-    return response;
-  }
-
-  const headers = new Headers(request.headers);
-  headers.set("x-lang", "en");
-  return NextResponse.next({ request: { headers } });
+  return withEnglishHeaders(request, NextResponse.next());
 }
 
 export const config = {

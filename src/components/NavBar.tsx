@@ -1,20 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useLocale, useTranslations } from "next-intl";
 import Logo from "@/components/Logo";
 import AuthModalTrigger from "@/components/auth/AuthModalTrigger";
-import { BRAND_LOGO_PATH } from "@/lib/brand";
 import LanguageToggle from "@/components/LanguageToggle";
 
 export default function NavBar() {
   const t = useTranslations();
   const [scrolled, setScrolled] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
   const { data: session, status } = useSession();
   const pathname = usePathname();
@@ -38,13 +37,19 @@ export default function NavBar() {
   ] as const;
 
   useEffect(() => {
+    if (isChatRoute) return;
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [isChatRoute]);
 
   useLayoutEffect(() => {
+    if (isChatRoute) {
+      document.documentElement.style.setProperty("--nav-height", "0px");
+      return;
+    }
+
     const updateNavHeight = () => {
       const height = headerRef.current?.offsetHeight ?? 0;
       document.documentElement.style.setProperty("--nav-height", `${height}px`);
@@ -53,7 +58,33 @@ export default function NavBar() {
     updateNavHeight();
     window.addEventListener("resize", updateNavHeight);
     return () => window.removeEventListener("resize", updateNavHeight);
-  }, []);
+  }, [isChatRoute]);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mobileMenuOpen]);
 
   async function handleSignOut() {
     if (isSigningOut) return;
@@ -62,7 +93,12 @@ export default function NavBar() {
       await signOut({ callbackUrl: `${localePrefix}` });
     } finally {
       setIsSigningOut(false);
+      setMobileMenuOpen(false);
     }
+  }
+
+  if (isChatRoute) {
+    return null;
   }
 
   return (
@@ -72,26 +108,8 @@ export default function NavBar() {
         scrolled ? "shadow-[0_10px_30px_-24px_rgba(44,20,10,0.5)]" : "shadow-none"
       }`}
     >
-      <div className={`container relative flex items-center justify-between gap-4 ${isChatRoute ? "py-1.5 md:py-2.5" : "py-2.5"}`}>
-        {isChatRoute ? (
-          <>
-            <Link href={localePrefix} aria-label="Bhakti Chat home" className="relative block h-9 w-9 md:hidden">
-              <Image
-                src={BRAND_LOGO_PATH}
-                alt="Bhakti Chat"
-                fill
-                className="object-contain"
-                sizes="36px"
-                priority
-              />
-            </Link>
-            <div className="hidden md:block">
-              <Logo href={localePrefix} />
-            </div>
-          </>
-        ) : (
-          <Logo href={localePrefix} />
-        )}
+      <div className="container relative flex items-center justify-between gap-4 py-2.5">
+        <Logo href={localePrefix} />
 
         <nav
           aria-label="Primary navigation"
@@ -157,60 +175,85 @@ export default function NavBar() {
         </div>
 
         <div className="md:hidden">
-          <details>
-            <summary
-              className={`flex items-center justify-center rounded-full border border-sagar-amber/30 bg-white text-sagar-ink/70 ${
-                isChatRoute ? "h-9 w-9" : "h-10 w-10"
-              }`}
-            >
-              <span className="sr-only">Open menu</span>
-              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
-                <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </summary>
-            <div className="absolute right-6 mt-2 w-56 rounded-2xl border border-sagar-amber/20 bg-white p-3 text-sm text-sagar-ink/75 shadow-sagar-soft">
-              <div className="mb-2 px-1">
-                <LanguageToggle />
-              </div>
-              {isAuthenticated ? (
-                <>
-                  <Link
-                    href={`${localePrefix}/profile`}
-                    className="mb-1 block rounded-xl bg-sagar-cream/60 px-3 py-2 font-semibold text-sagar-ink/85 transition hover:text-sagar-ember"
-                  >
-                    {t("nav_profile")}
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => void handleSignOut()}
-                    disabled={isSigningOut}
-                    className="mb-2 block w-full rounded-xl bg-sagar-cream/60 px-3 py-2 text-left font-semibold text-sagar-ink/85 transition hover:text-sagar-ember disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isSigningOut ? t("nav_logging_out") : t("nav_logout")}
-                  </button>
-                </>
-              ) : (
-                <AuthModalTrigger
-                  callbackUrl={callbackUrl}
-                  className="mb-1 block w-full rounded-xl bg-sagar-cream/60 px-3 py-2 text-left font-semibold text-sagar-ink/85 transition hover:text-sagar-ember"
-                >
-                  {t("nav_login")}
-                </AuthModalTrigger>
-              )}
-
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="mb-1 block rounded-xl px-3 py-2 transition hover:bg-sagar-cream/70 hover:text-sagar-ember"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          </details>
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-sagar-amber/30 bg-white text-sagar-ink/70"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-nav-drawer"
+            aria-label="Open menu"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
+              <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
         </div>
       </div>
+
+      {mobileMenuOpen ? (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={() => setMobileMenuOpen(false)}
+            className="absolute inset-0 bg-black/35"
+          />
+          <div
+            id="mobile-nav-drawer"
+            className="absolute right-4 top-[calc(var(--nav-height,56px)+8px)] w-64 rounded-2xl border border-sagar-amber/20 bg-white p-3 text-sm text-sagar-ink/75 shadow-sagar-soft"
+          >
+            <div className="mb-2 flex items-center justify-between px-1">
+              <LanguageToggle />
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-md px-2 py-1 text-xs font-semibold text-sagar-ink/65 hover:bg-sagar-cream/60"
+              >
+                {t("common_close")}
+              </button>
+            </div>
+
+            {isAuthenticated ? (
+              <>
+                <Link
+                  href={`${localePrefix}/profile`}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="mb-1 block rounded-xl bg-sagar-cream/60 px-3 py-2 font-semibold text-sagar-ink/85 transition hover:text-sagar-ember"
+                >
+                  {t("nav_profile")}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => void handleSignOut()}
+                  disabled={isSigningOut}
+                  className="mb-2 block w-full rounded-xl bg-sagar-cream/60 px-3 py-2 text-left font-semibold text-sagar-ink/85 transition hover:text-sagar-ember disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSigningOut ? t("nav_logging_out") : t("nav_logout")}
+                </button>
+              </>
+            ) : (
+              <AuthModalTrigger
+                callbackUrl={callbackUrl}
+                onClick={() => setMobileMenuOpen(false)}
+                className="mb-1 block w-full rounded-xl bg-sagar-cream/60 px-3 py-2 text-left font-semibold text-sagar-ink/85 transition hover:text-sagar-ember"
+              >
+                {t("nav_login")}
+              </AuthModalTrigger>
+            )}
+
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className="mb-1 block rounded-xl px-3 py-2 transition hover:bg-sagar-cream/70 hover:text-sagar-ember"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </header>
   );
 }

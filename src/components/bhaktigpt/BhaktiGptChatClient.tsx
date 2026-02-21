@@ -464,12 +464,14 @@ export default function BhaktiGptChatClient() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
+  const headerShellRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const composerShellRef = useRef<HTMLDivElement | null>(null);
   const handledPrefillRef = useRef<string | null>(null);
   const guideSnapshotRef = useRef<Partial<Record<BhaktiGuideId, InitialResponse>>>({});
   const loadStateRef = useRef<LoadState>("loading");
   const shouldAutoScrollRef = useRef(true);
+  const [headerHeight, setHeaderHeight] = useState(84);
   const [composerHeight, setComposerHeight] = useState(124);
 
   const suggestedPrompts = MOBILE_SUGGESTED_PROMPTS.map((key) => t(key));
@@ -614,13 +616,41 @@ export default function BhaktiGptChatClient() {
   }, [focusComposer, updateGuideQuery, t]);
 
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
+    const html = document.documentElement;
+    const body = document.body;
+    const scrollY = window.scrollY;
+
+    const previousHtmlOverflow = html.style.overflow;
+    const previousHtmlOverscroll = html.style.overscrollBehavior;
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyOverscroll = body.style.overscrollBehavior;
+    const previousBodyPosition = body.style.position;
+    const previousBodyTop = body.style.top;
+    const previousBodyLeft = body.style.left;
+    const previousBodyRight = body.style.right;
+    const previousBodyWidth = body.style.width;
+
+    html.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
+    body.style.overflow = "hidden";
+    body.style.overscrollBehavior = "none";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+
     return () => {
-      document.body.style.overflow = previousOverflow;
-      document.documentElement.style.overflow = previousHtmlOverflow;
+      html.style.overflow = previousHtmlOverflow;
+      html.style.overscrollBehavior = previousHtmlOverscroll;
+      body.style.overflow = previousBodyOverflow;
+      body.style.overscrollBehavior = previousBodyOverscroll;
+      body.style.position = previousBodyPosition;
+      body.style.top = previousBodyTop;
+      body.style.left = previousBodyLeft;
+      body.style.right = previousBodyRight;
+      body.style.width = previousBodyWidth;
+      window.scrollTo(0, scrollY);
     };
   }, []);
 
@@ -653,13 +683,11 @@ export default function BhaktiGptChatClient() {
     window.addEventListener("resize", updateChatViewportHeight);
     window.addEventListener("orientationchange", updateChatViewportHeight);
     window.visualViewport?.addEventListener("resize", updateChatViewportHeight);
-    window.visualViewport?.addEventListener("scroll", updateChatViewportHeight);
     return () => {
       root.style.removeProperty("--chat-vh");
       window.removeEventListener("resize", updateChatViewportHeight);
       window.removeEventListener("orientationchange", updateChatViewportHeight);
       window.visualViewport?.removeEventListener("resize", updateChatViewportHeight);
-      window.visualViewport?.removeEventListener("scroll", updateChatViewportHeight);
     };
   }, []);
 
@@ -713,6 +741,25 @@ export default function BhaktiGptChatClient() {
   useEffect(() => {
     syncComposerHeight();
   }, [inputValue, syncComposerHeight]);
+
+  useEffect(() => {
+    const header = headerShellRef.current;
+    if (!header) return;
+
+    const updateHeight = () => {
+      setHeaderHeight(header.offsetHeight);
+    };
+    updateHeight();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(updateHeight);
+      observer.observe(header);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener("resize", updateHeight);
+    return () => window.removeEventListener("resize", updateHeight);
+  }, []);
 
   useEffect(() => {
     const shell = composerShellRef.current;
@@ -773,6 +820,14 @@ export default function BhaktiGptChatClient() {
     }
     focusComposer();
   }, [focusComposer, loadGuideConversation, selectedGuideId, updateGuideQuery]);
+
+  const handleBack = useCallback(() => {
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push(localePrefix);
+  }, [localePrefix, router]);
 
   const sendMessage = useCallback(
     async (prefilled?: string) => {
@@ -1009,45 +1064,60 @@ export default function BhaktiGptChatClient() {
         </aside>
 
         <div className="relative flex min-h-0 min-w-0 flex-col overflow-hidden">
-          <header className="sticky top-0 z-20 border-b border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 sm:px-5 sm:py-2.5">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <GuideAvatar guideId={selectedGuideId} size="sm" className="md:h-10 md:w-10" />
-                <div>
-                  <p className="text-sm font-semibold text-[color:var(--text)]">{selectedGuideLocalized?.name ?? selectedGuideConfig?.displayName}</p>
-                  <p className="text-[11px] text-[color:var(--text-muted)]">{t("chat_online_guide")}</p>
+          <header
+            ref={headerShellRef}
+            className="absolute inset-x-0 top-0 z-20 border-b border-[color:var(--border)] bg-[color:var(--surface)] px-3 pb-2 pt-[calc(env(safe-area-inset-top)+8px)] shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:px-5"
+          >
+            <div className="grid grid-cols-[auto,1fr,auto] items-center gap-2">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)]"
+                aria-label={t("chat_back")}
+              >
+                <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true" fill="none">
+                  <path d="M12.5 4.5 7 10l5.5 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+
+              <div className="flex min-w-0 items-center justify-center gap-2">
+                <GuideAvatar guideId={selectedGuideId} size="sm" />
+                <div className="min-w-0 text-center">
+                  <p className="truncate text-sm font-semibold text-[color:var(--text)]">
+                    {selectedGuideLocalized?.name ?? selectedGuideConfig?.displayName}
+                  </p>
+                  <p className="truncate text-[11px] text-[color:var(--text-muted)]">
+                    {t("brand_name")} • {t("chat_online_guide")}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={startNewChat}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)] sm:h-auto sm:w-auto sm:min-h-11 sm:px-3 sm:py-2 sm:text-xs sm:font-semibold"
-                  aria-label={t("chat_new")}
-                >
-                  <svg
-                    viewBox="0 0 20 20"
-                    className="h-4 w-4 sm:mr-1"
-                    aria-hidden="true"
-                    fill="none"
-                  >
-                    <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                  </svg>
-                  <span className="hidden sm:inline">{t("chat_new")}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAboutModal(true)}
-                  className="hidden min-h-11 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-xs font-semibold text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)] sm:inline-flex"
-                >
-                  {t("chat_about")}
-                </button>
-              </div>
+
+              <button
+                type="button"
+                onClick={startNewChat}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)]"
+                aria-label={t("chat_new")}
+              >
+                <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true" fill="none">
+                  <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+              </button>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAboutModal(true)}
+              className="mt-2 hidden min-h-11 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-xs font-semibold text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)] sm:inline-flex"
+            >
+              {t("chat_about")}
+            </button>
           </header>
 
           {isGuideSwitching ? (
-            <div className="border-b border-[color:var(--border)] bg-[color:var(--surface-2)] px-3 py-1.5 text-xs text-[color:var(--text-muted)] sm:px-5">
+            <div
+              className="absolute inset-x-0 z-[19] border-b border-[color:var(--border)] bg-[color:var(--surface-2)] px-3 py-1.5 text-xs text-[color:var(--text-muted)] sm:px-5"
+              style={{ top: `${headerHeight}px` }}
+            >
               <span className="inline-flex items-center gap-2">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[color:var(--text-muted)]" />
                 {t("chat_switching_guide")}
@@ -1058,7 +1128,10 @@ export default function BhaktiGptChatClient() {
           <div
             ref={messagesRef}
             className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden bg-[color:var(--bg)] px-3 py-3 text-[16px] leading-[1.6] [overflow-wrap:anywhere] [word-break:break-word] [overscroll-behavior-y:contain] sm:px-5 sm:py-4 md:text-[15px] lg:text-[16px]"
-            style={{ paddingBottom: `${composerHeight + 24}px` }}
+            style={{
+              paddingTop: `${headerHeight + (isGuideSwitching ? 34 : 10)}px`,
+              paddingBottom: `${composerHeight + 18}px`
+            }}
           >
             {isOffline ? (
               <div className="rounded-[12px] border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-xs text-[color:var(--text-muted)]">
@@ -1174,13 +1247,21 @@ export default function BhaktiGptChatClient() {
 
           <div
             ref={composerShellRef}
-            className="sticky bottom-0 z-20 border-t border-[color:var(--border)] bg-[color:var(--surface)] px-3 pt-2 pb-[calc(10px+env(safe-area-inset-bottom))] shadow-[0_-1px_0_0_rgba(0,0,0,0.03)] sm:px-5 sm:pt-3"
+            className="absolute inset-x-0 bottom-0 z-20 border-t border-[color:var(--border)] bg-[color:var(--surface)] px-3 pt-2 pb-[calc(10px+env(safe-area-inset-bottom))] shadow-[0_-1px_0_0_rgba(0,0,0,0.03)] sm:px-5 sm:pt-3"
           >
             <div className="flex gap-2">
               <textarea
                 ref={composerRef}
                 value={inputValue}
                 onChange={(event) => setInputValue(event.target.value)}
+                onFocus={() => {
+                  requestAnimationFrame(() => {
+                    window.scrollTo(0, 0);
+                    if (shouldAutoScrollRef.current) {
+                      scrollMessagesToBottom("auto", true);
+                    }
+                  });
+                }}
                 onKeyDown={(event) => {
                   if (event.nativeEvent.isComposing) return;
                   if (event.key === "Enter" && !event.shiftKey) {

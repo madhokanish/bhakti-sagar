@@ -7,6 +7,8 @@ export default function robots() {
       allow: "/",
       disallow: [
         "/api/",
+        "/_next/",
+        "/internal/",
         "/signin",
         "/profile",
         "/account",

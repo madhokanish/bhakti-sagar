@@ -44,7 +44,7 @@ export default function RootLayout({
   const locale = headers().get("x-lang") === "hi" ? "hi" : "en";
   const messages = locale === "hi" ? require("../messages/hi.json") : require("../messages/en.json");
   const orgJsonLd = organizationJsonLd();
-  const webJsonLd = websiteJsonLd();
+  const webJsonLd = websiteJsonLd(locale);
 
   return (
     <html lang={lang}>

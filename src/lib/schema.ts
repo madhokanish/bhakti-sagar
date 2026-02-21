@@ -14,17 +14,18 @@ export function organizationJsonLd() {
   };
 }
 
-export function websiteJsonLd() {
+export function websiteJsonLd(locale: "en" | "hi" = "en") {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: siteConfig.name,
     alternateName: "Bhakti Chat",
     description: siteConfig.description,
-    url: siteConfig.url,
+    url: `${siteConfig.url}/${locale}`,
+    inLanguage: locale === "hi" ? "hi-IN" : "en",
     potentialAction: {
       "@type": "SearchAction",
-      target: `${siteConfig.url}/aartis?q={search_term_string}`,
+      target: `${siteConfig.url}/${locale}/aartis?q={search_term_string}`,
       "query-input": "required name=search_term_string"
     }
   };
@@ -46,11 +47,13 @@ export function breadcrumbJsonLd(items: { name: string; url: string }[]) {
 export function webPageJsonLd({
   name,
   description,
-  url
+  url,
+  inLanguage = "en"
 }: {
   name: string;
   description: string;
   url: string;
+  inLanguage?: string;
 }) {
   return {
     "@context": "https://schema.org",
@@ -58,7 +61,7 @@ export function webPageJsonLd({
     name,
     description,
     url,
-    inLanguage: "en",
+    inLanguage,
     isPartOf: {
       "@type": "WebSite",
       name: siteConfig.name,
@@ -93,7 +96,7 @@ export function articleJsonLd({
     datePublished,
     dateModified,
     author: {
-      "@type": "Person",
+      "@type": "Organization",
       name: authorName
     },
     publisher: {

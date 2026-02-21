@@ -16,6 +16,8 @@ export const supportedLanguages: { code: string; label: string }[] = [
   { code: "hi", label: "Hindi" }
 ];
 
+export type SeoLocale = "en" | "hi";
+
 export function getRequestLanguage(defaultLang: "en" | "hi" = "en") {
   try {
     const lang = headers().get("x-lang");
@@ -38,18 +40,66 @@ export function absoluteUrl(path: string) {
   return `${siteConfig.url}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+function normalizePath(pathname: string) {
+  if (!pathname) return "/";
+  const withSlash = pathname.startsWith("/") ? pathname : `/${pathname}`;
+  if (withSlash.length > 1 && withSlash.endsWith("/")) {
+    return withSlash.slice(0, -1);
+  }
+  return withSlash;
+}
+
+function splitLocalePath(pathname: string) {
+  const normalized = normalizePath(pathname);
+  const parts = normalized.split("/").filter(Boolean);
+  const first = parts[0];
+  if (first === "en" || first === "hi") {
+    const base = parts.length > 1 ? `/${parts.slice(1).join("/")}` : "/";
+    return {
+      locale: first as SeoLocale,
+      basePath: normalizePath(base)
+    };
+  }
+  return {
+    locale: "en" as SeoLocale,
+    basePath: normalized
+  };
+}
+
 export function buildAlternates(pathname: string) {
-  const cleanPath = pathname.startsWith("/") ? pathname : `/${pathname}`;
+  const { locale, basePath } = splitLocalePath(pathname);
+  const canonicalPath = `/${locale}${basePath === "/" ? "" : basePath}`;
   const alternates: { canonical: string; languages?: Record<string, string> } = {
-    canonical: absoluteUrl(cleanPath)
+    canonical: absoluteUrl(canonicalPath)
   };
   if (supportedLanguages.length > 0) {
-    alternates.languages = supportedLanguages.reduce<Record<string, string>>((acc, lang) => {
-      acc[lang.code] = absoluteUrl(`/${lang.code}${cleanPath}`);
-      return acc;
-    }, {});
+    alternates.languages = {
+      en: absoluteUrl(`/en${basePath === "/" ? "" : basePath}`),
+      "hi-IN": absoluteUrl(`/hi${basePath === "/" ? "" : basePath}`)
+    };
   }
   return alternates;
+}
+
+export function buildLocalizedMetadata(params: {
+  locale: SeoLocale;
+  path: string;
+  title: string;
+  description?: string;
+  ogImage?: string;
+  noindex?: boolean;
+  keywords?: string[];
+}): Metadata {
+  const normalizedBasePath = normalizePath(params.path);
+  const localizedPath = `/${params.locale}${normalizedBasePath === "/" ? "" : normalizedBasePath}`;
+  return buildMetadata({
+    title: params.title,
+    description: params.description,
+    pathname: localizedPath,
+    ogImage: params.ogImage,
+    noindex: params.noindex,
+    keywords: params.keywords
+  });
 }
 
 export function buildMetadata({

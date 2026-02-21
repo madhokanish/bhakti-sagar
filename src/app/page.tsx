@@ -64,6 +64,28 @@ export default async function HomePage() {
           </Link>
         </p>
       </section>
+
+      <section className="mt-8 rounded-2xl border border-sagar-amber/20 bg-white/80 p-5">
+        <h2 className="text-lg font-serif text-sagar-ink">
+          {locale === "hi" ? "देवता ज्ञान हब" : "Deity knowledge hubs"}
+        </h2>
+        <p className="mt-2 text-sm text-sagar-ink/75">
+          {locale === "hi"
+            ? "गहन पढ़ाई और लंबी साधना के लिए इन हिंदी पेजों से शुरुआत करें।"
+            : "Start here for deeper reading and long-form devotional guidance."}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold">
+          <Link href={`${localePrefix}/krishna`} className="text-sagar-ember hover:text-sagar-saffron">
+            {locale === "hi" ? "श्री कृष्ण हब" : "Shri Krishna hub"}
+          </Link>
+          <Link href={`${localePrefix}/lakshmi`} className="text-sagar-ember hover:text-sagar-saffron">
+            {locale === "hi" ? "लक्ष्मी जी हब" : "Lakshmi Ji hub"}
+          </Link>
+          <Link href={`${localePrefix}/shani`} className="text-sagar-ember hover:text-sagar-saffron">
+            {locale === "hi" ? "शनि देव हब" : "Shani Dev hub"}
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

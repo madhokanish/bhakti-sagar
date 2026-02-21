@@ -398,6 +398,7 @@ export default function BhaktiGptChatClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname() || "/";
+  const searchParamsKey = searchParams.toString();
   const { openAuthModal } = useAuthModal();
   const localeSegment = pathname.split("/").filter(Boolean)[0];
   const localePrefix = localeSegment === "hi" || localeSegment === "en" ? `/${localeSegment}` : "";
@@ -422,7 +423,7 @@ export default function BhaktiGptChatClient() {
     imageAlt: guide.imageAlt
   }));
   const signInCallbackUrl = (() => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParamsKey);
     params.delete("auth");
     params.delete("callbackUrl");
     const query = params.toString();
@@ -444,6 +445,7 @@ export default function BhaktiGptChatClient() {
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const composerShellRef = useRef<HTMLDivElement | null>(null);
   const handledPrefillRef = useRef<string | null>(null);
+  const guideSnapshotRef = useRef<Partial<Record<BhaktiGuideId, InitialResponse>>>({});
   const [composerHeight, setComposerHeight] = useState(124);
 
   const suggestedPrompts = MOBILE_SUGGESTED_PROMPTS.map((key) => t(key));
@@ -483,7 +485,7 @@ export default function BhaktiGptChatClient() {
       keepConversationId?: string | null,
       options?: { forceNewConversation?: boolean }
     ) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParamsKey);
       params.set("guide", guideId);
       if (keepConversationId) {
         params.set("conversationId", keepConversationId);
@@ -496,7 +498,7 @@ export default function BhaktiGptChatClient() {
       }
       router.replace(`${localePrefix}/bhaktigpt/chat?${params.toString()}`);
     },
-    [router, searchParams, localePrefix]
+    [router, searchParamsKey, localePrefix]
   );
 
   const loadGuideConversation = useCallback(async (
@@ -504,7 +506,23 @@ export default function BhaktiGptChatClient() {
     preferredConversationId?: string | null,
     forceNewConversation = false
   ) => {
-    setLoadState("loading");
+    const cached = guideSnapshotRef.current[guideId];
+    const canUseCache =
+      Boolean(cached) &&
+      !forceNewConversation &&
+      (!preferredConversationId || preferredConversationId === cached?.conversationId);
+
+    if (canUseCache && cached) {
+      setConversations(cached.conversations || []);
+      setMessages(cached.messages || []);
+      setConversationId(cached.conversationId || null);
+      setLoadState("ready");
+    } else {
+      setLoadState("loading");
+      setConversations([]);
+      setMessages([]);
+      setConversationId(null);
+    }
     setLoadError(null);
     setComposerError(null);
 
@@ -529,6 +547,11 @@ export default function BhaktiGptChatClient() {
       setConversations(data.conversations || []);
       setMessages(data.messages || []);
       setConversationId(nextConversationId);
+      guideSnapshotRef.current[guideId] = {
+        conversations: data.conversations || [],
+        messages: data.messages || [],
+        conversationId: nextConversationId
+      };
       if (nextConversationId) {
         updateGuideQuery(guideId, nextConversationId);
       } else if (forceNewConversation) {
@@ -559,10 +582,11 @@ export default function BhaktiGptChatClient() {
       return;
     }
 
-    const preferredConversationId = searchParams.get("conversationId");
-    const forceNewConversation = searchParams.get("new") === "1";
+    const params = new URLSearchParams(searchParamsKey);
+    const preferredConversationId = params.get("conversationId");
+    const forceNewConversation = params.get("new") === "1";
     void loadGuideConversation(selectedGuideId, preferredConversationId, forceNewConversation);
-  }, [selectedGuideId, loadGuideConversation, searchParams]);
+  }, [selectedGuideId, loadGuideConversation, searchParamsKey]);
 
   useEffect(() => {
     if (!selectedGuideId || !prefillParam) return;
@@ -574,10 +598,10 @@ export default function BhaktiGptChatClient() {
     setInputValue((current) => (current.trim().length ? current : prefillParam));
     requestAnimationFrame(() => composerRef.current?.focus());
 
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParamsKey);
     params.delete("prefill");
     router.replace(`${localePrefix}/bhaktigpt/chat?${params.toString()}`);
-  }, [prefillParam, router, searchParams, selectedGuideId, localePrefix]);
+  }, [prefillParam, router, searchParamsKey, selectedGuideId, localePrefix]);
 
   useEffect(() => {
     if (loadState !== "ready") return;
@@ -909,7 +933,8 @@ export default function BhaktiGptChatClient() {
             style={{ paddingBottom: `${composerHeight + 24}px` }}
           >
             {loadState === "loading" ? (
-              <div className="space-y-3">
+              <div className="space-y-3 rounded-2xl border border-sagar-amber/20 bg-sagar-cream/30 p-4">
+                <p className="text-sm font-medium text-sagar-ink/75">{t("chat_loading_thread")}</p>
                 <div className="h-16 w-2/3 animate-pulse rounded-2xl bg-sagar-cream/70" />
                 <div className="ml-auto h-14 w-1/2 animate-pulse rounded-2xl bg-sagar-saffron/15" />
                 <div className="h-16 w-3/5 animate-pulse rounded-2xl bg-sagar-cream/70" />

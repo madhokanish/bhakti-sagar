@@ -28,11 +28,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function BhaktiGptChatPage() {
   return (
     <div
-      className="fixed inset-x-0 z-30 flex min-h-0 flex-col overflow-x-hidden overflow-y-hidden bg-white [height:calc(100dvh-var(--nav-height,0px))] [max-height:calc(100dvh-var(--nav-height,0px))]"
+      className="fixed inset-x-0 z-30 flex min-h-0 flex-col overflow-x-hidden overflow-y-hidden bg-[#F7F7F8] [height:calc(var(--chat-vh,100dvh)-var(--nav-height,0px))] [max-height:calc(var(--chat-vh,100dvh)-var(--nav-height,0px))]"
       style={{ top: "var(--nav-height, 0px)" }}
     >
       <BhaktiGptPageView page="chat" />
-      <div className="h-full bg-white">
+      <div className="h-full bg-[#F7F7F8]">
         <BhaktiGptChatClient />
       </div>
     </div>

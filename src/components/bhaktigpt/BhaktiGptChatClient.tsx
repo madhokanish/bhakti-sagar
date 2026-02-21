@@ -41,6 +41,14 @@ type StreamEvent = {
 
 type LoadState = "loading" | "ready" | "error";
 
+const MOBILE_SUGGESTED_PROMPTS = [
+  "I feel stuck, help me take the next step",
+  "I am anxious about money, what should I focus on",
+  "I need clarity on a decision"
+];
+const CHAT_DISCLAIMER =
+  "Inspired by scripture and traditions. Not medical, legal, or financial advice.";
+
 async function parseJsonSafe(response: Response) {
   const text = await response.text();
   if (!text) return null;
@@ -56,6 +64,50 @@ function generateLocalId() {
     return crypto.randomUUID();
   }
   return `msg_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+}
+
+function formatMessageTime(value?: string) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function splitLinkSuffix(rawUrl: string) {
+  const match = rawUrl.match(/[),.!?;:]+$/);
+  if (!match) {
+    return { href: rawUrl, suffix: "" };
+  }
+  const suffix = match[0];
+  return {
+    href: rawUrl.slice(0, -suffix.length),
+    suffix
+  };
+}
+
+function renderLineWithLinks(line: string, keyPrefix: string) {
+  const urlPattern = /(https?:\/\/[^\s]+)/g;
+  const parts = line.split(urlPattern);
+  return parts.map((part, index) => {
+    if (!/^https?:\/\//.test(part)) {
+      return <Fragment key={`${keyPrefix}-text-${index}`}>{part}</Fragment>;
+    }
+
+    const { href, suffix } = splitLinkSuffix(part);
+    return (
+      <Fragment key={`${keyPrefix}-link-${index}`}>
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="break-all underline underline-offset-2 transition hover:text-sagar-ember"
+        >
+          {href}
+        </a>
+        {suffix}
+      </Fragment>
+    );
+  });
 }
 
 function renderMessageContent(content: string, options?: { autoParagraph?: boolean }) {
@@ -79,7 +131,7 @@ function renderMessageContent(content: string, options?: { autoParagraph?: boole
     .filter(Boolean);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 break-words [overflow-wrap:anywhere] [word-break:break-word] [&_a]:break-all [&_code]:break-words [&_pre]:max-w-full [&_pre]:overflow-x-auto">
       {paragraphs.map((paragraph, paragraphIndex) => {
         const lines = paragraph.split("\n");
 
@@ -87,7 +139,7 @@ function renderMessageContent(content: string, options?: { autoParagraph?: boole
           <p key={`${paragraphIndex}-${paragraph.slice(0, 16)}`} className="leading-relaxed text-inherit">
             {lines.map((line, lineIndex) => (
               <Fragment key={`${lineIndex}-${line.slice(0, 12)}`}>
-                {line}
+                {renderLineWithLinks(line, `${paragraphIndex}-${lineIndex}`)}
                 {lineIndex < lines.length - 1 ? <br /> : null}
               </Fragment>
             ))}
@@ -268,9 +320,35 @@ export default function BhaktiGptChatClient() {
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  const composerShellRef = useRef<HTMLDivElement | null>(null);
   const handledPrefillRef = useRef<string | null>(null);
+  const [composerHeight, setComposerHeight] = useState(124);
+
   const focusComposer = useCallback(() => {
     requestAnimationFrame(() => composerRef.current?.focus());
+  }, []);
+
+  const scrollMessagesToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
+    const container = messagesRef.current;
+    if (!container) return;
+    requestAnimationFrame(() => {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior
+      });
+    });
+  }, []);
+
+  const syncComposerHeight = useCallback(() => {
+    const textarea = composerRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "auto";
+    const lineHeight = 24;
+    const maxHeight = lineHeight * 4 + 16;
+    const nextHeight = Math.min(textarea.scrollHeight, maxHeight);
+    textarea.style.height = `${Math.max(nextHeight, lineHeight + 16)}px`;
+    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden";
   }, []);
 
   const updateGuideQuery = useCallback(
@@ -368,19 +446,39 @@ export default function BhaktiGptChatClient() {
   }, [prefillParam, router, searchParams, selectedGuideId]);
 
   useEffect(() => {
-    const container = messagesRef.current;
-    if (!container) return;
-    container.scrollTo({
-      top: container.scrollHeight,
-      behavior: "smooth"
-    });
-  }, [messages, isStreaming, loadState]);
+    if (loadState !== "ready") return;
+    scrollMessagesToBottom(isStreaming ? "auto" : "smooth");
+  }, [isStreaming, loadState, messages, scrollMessagesToBottom]);
 
   useEffect(() => {
     if (selectedGuideId && loadState === "ready") {
       focusComposer();
+      syncComposerHeight();
     }
-  }, [focusComposer, loadState, selectedGuideId]);
+  }, [focusComposer, loadState, selectedGuideId, syncComposerHeight]);
+
+  useEffect(() => {
+    syncComposerHeight();
+  }, [inputValue, syncComposerHeight]);
+
+  useEffect(() => {
+    const shell = composerShellRef.current;
+    if (!shell) return;
+
+    const updateHeight = () => {
+      setComposerHeight(shell.offsetHeight);
+    };
+    updateHeight();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(updateHeight);
+      observer.observe(shell);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener("resize", updateHeight);
+    return () => window.removeEventListener("resize", updateHeight);
+  }, []);
 
   const openConversation = useCallback(
     async (id: string) => {
@@ -405,6 +503,14 @@ export default function BhaktiGptChatClient() {
     }
     focusComposer();
   }, [focusComposer, loadGuideConversation, selectedGuideId, updateGuideQuery]);
+
+  const handleBack = useCallback(() => {
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push("/");
+  }, [router]);
 
   const sendMessage = useCallback(
     async (prefilled?: string) => {
@@ -564,7 +670,7 @@ export default function BhaktiGptChatClient() {
 
   return (
     <>
-      <section className="grid h-full min-h-0 overflow-hidden rounded-none border border-sagar-amber/20 bg-white/95 shadow-sagar-soft md:grid-cols-[18rem_1fr] md:rounded-3xl">
+      <section className="grid h-full min-h-0 min-w-0 overflow-hidden rounded-none bg-white md:grid-cols-[18rem_1fr] md:rounded-3xl md:border md:border-sagar-amber/20 md:bg-white/95 md:shadow-sagar-soft">
         <aside className="hidden border-r border-sagar-amber/20 bg-sagar-cream/30 p-3 md:flex md:flex-col">
           <h2 className="px-2 text-sm font-semibold uppercase tracking-[0.12em] text-sagar-rose">BhaktiGPT</h2>
           <button
@@ -631,28 +737,47 @@ export default function BhaktiGptChatClient() {
           </div>
         </aside>
 
-        <div className="flex min-h-0 flex-col">
-          <header className="border-b border-sagar-amber/20 px-4 py-3 sm:px-6">
+        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+          <header className="sticky top-0 z-20 border-b border-sagar-amber/20 bg-white/95 px-3 py-2.5 backdrop-blur sm:px-6 sm:py-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-sagar-amber/30 text-sagar-ink/80 md:hidden"
+                  aria-label="Go back"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="h-5 w-5"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M11.78 3.22a.75.75 0 0 1 0 1.06L6.06 10l5.72 5.72a.75.75 0 0 1-1.06 1.06l-6.25-6.25a.75.75 0 0 1 0-1.06l6.25-6.25a.75.75 0 0 1 1.06 0Z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
                 <GuideAvatar guideId={selectedGuideId} size="sm" className="md:h-10 md:w-10" />
                 <div>
                   <p className="text-sm font-semibold text-sagar-ink">{selectedGuideConfig?.displayName}</p>
-                  <p className="text-xs text-sagar-ink/70">{selectedGuideConfig?.subtitle}</p>
+                  <p className="text-[11px] text-sagar-ink/65">Online guide</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={startNewChat}
-                  className="rounded-full border border-sagar-amber/30 px-3 py-1.5 text-xs font-semibold text-sagar-ink/80 md:hidden"
+                  className="rounded-full border border-sagar-amber/30 px-3 py-2 text-xs font-semibold text-sagar-ink/80"
                 >
                   New chat
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAboutModal(true)}
-                  className="rounded-full border border-sagar-amber/30 px-3 py-1.5 text-xs font-semibold text-sagar-ink/80"
+                  className="hidden rounded-full border border-sagar-amber/30 px-3 py-2 text-xs font-semibold text-sagar-ink/80 sm:inline-flex"
                 >
                   About
                 </button>
@@ -660,7 +785,11 @@ export default function BhaktiGptChatClient() {
             </div>
           </header>
 
-          <div ref={messagesRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
+          <div
+            ref={messagesRef}
+            className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden overscroll-y-contain px-3 py-3 text-[15px] leading-7 sm:px-6 sm:py-4 sm:text-base"
+            style={{ paddingBottom: `${composerHeight + 24}px` }}
+          >
             {loadState === "loading" ? (
               <div className="space-y-3">
                 <div className="h-16 w-2/3 animate-pulse rounded-2xl bg-sagar-cream/70" />
@@ -683,10 +812,25 @@ export default function BhaktiGptChatClient() {
             ) : null}
 
             {loadState === "ready" && messages.length === 0 ? (
-              <div className="space-y-4 rounded-2xl border border-sagar-amber/20 bg-sagar-cream/40 p-4">
+              <div className="space-y-4 rounded-2xl border border-sagar-amber/20 bg-sagar-cream/40 p-4 sm:p-5">
                 <div>
-                  <p className="text-sm font-semibold text-sagar-ink">Start your conversation with {selectedGuide.name}</p>
+                  <p className="text-sm font-semibold text-sagar-ink">
+                    Start your conversation with {selectedGuide.name}
+                  </p>
                   <p className="mt-1 text-sm text-sagar-ink/75">{selectedGuide.shortDescription}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {MOBILE_SUGGESTED_PROMPTS.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => void sendMessage(prompt)}
+                      disabled={isStreaming}
+                      className="min-h-11 rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-left text-xs text-sagar-ink/80 transition hover:border-sagar-saffron/45 hover:bg-sagar-cream/40 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
                 </div>
                 <p className="text-xs text-sagar-ink/60">{BHAKTIGPT_DISCLAIMER}</p>
               </div>
@@ -699,52 +843,50 @@ export default function BhaktiGptChatClient() {
 
                   if (message.role === "assistant") {
                     return (
-                      <div key={message.id} className="flex max-w-3xl items-start gap-3 md:gap-4">
+                      <div key={message.id} className="flex w-full max-w-[85%] min-w-0 items-start gap-3 sm:max-w-[80%] md:gap-4">
                         <GuideAvatar guideId={selectedGuideId} size="sm" className="mt-0.5 shrink-0 md:h-10 md:w-10" />
-                        <article className="w-full rounded-2xl border border-sagar-amber/20 bg-white px-4 py-3 text-sm leading-relaxed text-sagar-ink/90">
-                          {isAssistantTyping ? (
-                            <span className="inline-flex items-center gap-1 text-sagar-ink/70">
-                              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember [animation-delay:-0.2s]" />
-                              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember [animation-delay:-0.1s]" />
-                              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember" />
-                            </span>
-                          ) : (
-                            renderMessageContent(message.content, { autoParagraph: true })
-                          )}
-                        </article>
+                        <div className="w-full">
+                          <article className="w-full min-w-0 rounded-2xl border border-sagar-amber/20 bg-white px-4 py-3 text-[15px] leading-7 text-sagar-ink/90 sm:text-base">
+                            {isAssistantTyping ? (
+                              <span className="inline-flex items-center gap-1 text-sagar-ink/70">
+                                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember [animation-delay:-0.2s]" />
+                                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember [animation-delay:-0.1s]" />
+                                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sagar-ember" />
+                              </span>
+                            ) : (
+                              renderMessageContent(message.content, { autoParagraph: true })
+                            )}
+                          </article>
+                          {formatMessageTime(message.createdAt) ? (
+                            <p className="mt-1 px-1 text-[10px] text-sagar-ink/45">
+                              {formatMessageTime(message.createdAt)}
+                            </p>
+                          ) : null}
+                        </div>
                       </div>
                     );
                   }
 
                   return (
-                    <article
-                      key={message.id}
-                      className="ml-auto max-w-3xl rounded-2xl border border-sagar-saffron/35 bg-sagar-saffron/10 px-4 py-3 text-sm leading-relaxed text-sagar-ink"
-                    >
-                      {renderMessageContent(message.content)}
-                    </article>
+                    <div key={message.id} className="ml-auto max-w-[85%] min-w-0 sm:max-w-[80%]">
+                      <article className="rounded-2xl border border-sagar-saffron/35 bg-sagar-saffron/10 px-4 py-3 text-[15px] leading-7 text-sagar-ink sm:text-base">
+                        {renderMessageContent(message.content)}
+                      </article>
+                      {formatMessageTime(message.createdAt) ? (
+                        <p className="mt-1 px-1 text-right text-[10px] text-sagar-ink/45">
+                          {formatMessageTime(message.createdAt)}
+                        </p>
+                      ) : null}
+                    </div>
                   );
                 })
               : null}
           </div>
 
-          <div className="sticky bottom-0 z-10 border-t border-sagar-amber/20 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
-            {loadState === "ready" && messages.length === 0 ? (
-              <div className="mb-2 flex flex-wrap gap-2">
-                {selectedGuide.promptChips.map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    onClick={() => void sendMessage(chip)}
-                    disabled={isStreaming}
-                    className="rounded-full border border-sagar-amber/28 bg-white px-3 py-1.5 text-xs text-sagar-ink/80 transition hover:border-sagar-saffron/45 hover:bg-sagar-cream/50 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-
+          <div
+            ref={composerShellRef}
+            className="sticky bottom-0 z-20 border-t border-sagar-amber/20 bg-white px-3 pt-2 pb-[calc(12px+env(safe-area-inset-bottom))] sm:px-6 sm:pt-3"
+          >
             <div className="flex gap-2">
               <textarea
                 ref={composerRef}
@@ -759,15 +901,15 @@ export default function BhaktiGptChatClient() {
                     }
                   }
                 }}
-                rows={2}
-                placeholder="Type your message..."
-                className="w-full resize-none rounded-xl border border-sagar-amber/25 bg-white px-3 py-2 text-sm text-sagar-ink outline-none transition focus:border-sagar-saffron/60"
+                rows={1}
+                placeholder="Share what's on your mind..."
+                className="min-h-11 w-full resize-none rounded-xl border border-sagar-amber/25 bg-white px-3 py-2.5 text-[16px] leading-6 text-sagar-ink outline-none transition focus:border-sagar-saffron/60"
               />
               <button
                 type="button"
                 onClick={() => void sendMessage()}
                 disabled={isStreaming || !inputValue.trim()}
-                className="h-fit rounded-xl bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isStreaming ? "Sending..." : "Send"}
               </button>
@@ -778,6 +920,7 @@ export default function BhaktiGptChatClient() {
                 {composerError}
               </p>
             ) : null}
+            <p className="mt-2 text-[11px] leading-5 text-sagar-ink/60">{CHAT_DISCLAIMER}</p>
           </div>
         </div>
       </section>

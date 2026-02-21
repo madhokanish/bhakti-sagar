@@ -7,7 +7,12 @@ import {
   type BhaktiGuideId
 } from "@/lib/bhaktigpt/guides";
 import { getKrishnaOpenerForConversation } from "@/lib/bhaktigpt/krishnaOpeners";
+import { pickKrishnaQuirk } from "@/lib/bhaktigpt/krishnaQuirks";
+import { getLakshmiOpenerForConversation } from "@/lib/bhaktigpt/lakshmiOpeners";
+import { getShaniOpenerForConversation } from "@/lib/bhaktigpt/shaniOpeners";
 import { KRISHNA_SECONDARY_GUARD } from "@/lib/bhaktigpt/personas/krishnaSystemPrompt";
+import { LAKSHMI_SECONDARY_GUARD } from "@/lib/bhaktigpt/personas/lakshmiSystemPrompt";
+import { SHANI_SECONDARY_GUARD } from "@/lib/bhaktigpt/personas/shaniSystemPrompt";
 import {
   BHAKTIGPT_COOKIE,
   crisisSupportResponse,
@@ -49,6 +54,8 @@ type StreamingMetaEvent = {
   model: string;
   cacheHit: boolean;
 };
+
+type KrishnaMode = "casual" | "playful" | "wisdom" | "teachings";
 
 const encoder = new TextEncoder();
 const REPLY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -120,15 +127,36 @@ function isDetailRequested(message: string) {
 const KRISHNA_THIRD_PERSON_PATTERN =
   /\b(krishna|lord krishna)\s+(would|will|can|could|says?|said|advises?|recommends?|thinks)\b/gi;
 const KRISHNA_AS_AI_PATTERN = /\bas an ai\b/gi;
-const KRISHNA_DENYLIST_PATTERN =
-  /\b(cheek|chin|hair|hug|kiss|bed|bedroom|nuzzle|cuddle|caress|embrace|my darling|my love|mine\b|jealous|possessive|seduce|seduction|flirt|romantic)\b/gi;
-const KRISHNA_FRAMEWORK_PATTERN = /\b(step\s*1|step\s*2|here are\s+\d+\s+steps)\b/i;
+const SHARED_ROMANCE_TOUCH_PATTERN =
+  /\b(cheek|chin|hair|hug|kiss|bed|bedroom|nuzzle|cuddle|caress|embrace|my darling|my love|mine|jealous|possessive)\b/gi;
+const SHARED_FRAMEWORK_PATTERN =
+  /\b(step\s*1|step\s*2|step\s*3|here are\s+\d+\s+steps|^\s*\d+\s*[.)])/im;
 const KRISHNA_I_HEAR_YOU_PATTERN = /\bi hear you\b/i;
 const KRISHNA_TODAY_I_WANT_YOU_PATTERN = /\btoday,\s*i want you\b/i;
-const KRISHNA_DIRECT_ANSWER_PATTERN =
+const DIRECT_FACTUAL_PATTERN =
   /\b(quote|verse|bg\s*\d+[:.]\d+|gita\s*\d+[:.]\d+|what does .* mean|translate|define)\b/i;
 const KRISHNA_DETAIL_PATTERN =
   /\b(detail|detailed|long essay|verse by verse|verse-by-verse|deep explanation|deep dive|breakdown)\b/i;
+const MICRO_ACTION_SPLIT_PATTERN =
+  /\b(do this today|start with|write down|choose one|for the next|in the next|set a timer|commit to|take 10 minutes)\b/i;
+const KRISHNA_PLAYFUL_PATTERN =
+  /\b(funny|joke|roast|prank|meme|vrindavan|butter|makhan|flute|bansuri|gopi|radha|mischievous)\b/i;
+const KRISHNA_TEACHINGS_PATTERN =
+  /\b(gita|dharma|karma yoga|bhakti yoga|jnana|jnana yoga|verse|shloka|incarnation|incarnations|avatars?)\b/i;
+const KRISHNA_WISDOM_PATTERN =
+  /\b(anxious|stress|stressed|scared|confused|decision|stuck|depressed|worried|panic|breakup|angry|guilt|regret|fear|sad)\b/i;
+const KRISHNA_SERMON_PHRASES = [
+  "reflect on",
+  "consider",
+  "align with",
+  "take a moment",
+  "breathe deeply",
+  "duty",
+  "attachment",
+  "fruits of action",
+  "one small action",
+  "meditate for a few minutes"
+] as const;
 
 function hasPattern(text: string, pattern: RegExp) {
   pattern.lastIndex = 0;
@@ -141,7 +169,7 @@ function truncateWords(text: string, maxWords: number) {
   return words.slice(0, maxWords).join(" ").trim();
 }
 
-type KrishnaSanitizeResult = {
+type GuideSanitizeResult = {
   text: string;
   needsRegeneration: boolean;
   shouldUseStrongModel: boolean;
@@ -154,9 +182,8 @@ function needsKrishnaRegeneration(params: {
   return (
     hasPattern(params.text, KRISHNA_AS_AI_PATTERN) ||
     hasPattern(params.text, KRISHNA_THIRD_PERSON_PATTERN) ||
-    hasPattern(params.text, KRISHNA_DENYLIST_PATTERN) ||
-    (hasPattern(params.text, KRISHNA_FRAMEWORK_PATTERN) &&
-      !/\b(step|steps|numbered)\b/i.test(params.userMessage))
+    hasPattern(params.text, SHARED_ROMANCE_TOUCH_PATTERN) ||
+    (hasPattern(params.text, SHARED_FRAMEWORK_PATTERN) && !userAskedForSteps(params.userMessage))
   );
 }
 
@@ -184,7 +211,7 @@ function getPreviousAssistantMessage(history: Array<{ role: "user" | "assistant"
   return "";
 }
 
-function applyKrishnaSpacing(text: string) {
+function applyBasicSpacing(text: string) {
   const normalized = normalizeLineBreaks(text);
   if (!normalized) return normalized;
   if (normalized.includes("\n\n")) return normalized;
@@ -198,13 +225,217 @@ function applyKrishnaSpacing(text: string) {
   }
 
   const sentenceParts = normalized.split(/(?<=[.!?])\s+/).filter(Boolean);
-  if (sentenceParts.length >= 3) {
-    const closing = sentenceParts.pop() ?? "";
-    const body = sentenceParts.join(" ").trim();
-    return `${body}\n\n${closing}`.trim();
+  if (sentenceParts.length >= 2) {
+    return sentenceParts.join("\n\n");
+  }
+  return normalized;
+}
+
+function userAskedForSteps(message: string) {
+  return /\b(step|steps|numbered|list|bullet points|framework)\b/i.test(message);
+}
+
+function isDirectFactualRequest(message: string) {
+  return DIRECT_FACTUAL_PATTERN.test(message.toLowerCase());
+}
+
+function getGuideFallbackQuestion(guideId: BhaktiGuideId) {
+  if (guideId === "lakshmi") return "What is the one grounded prosperity action you will complete today?";
+  if (guideId === "shani") return "What commitment will you keep before this day ends?";
+  return "What is one duty-aligned step you will take today?";
+}
+
+function getGuideSecondaryGuard(guideId: BhaktiGuideId) {
+  if (guideId === "lakshmi") return LAKSHMI_SECONDARY_GUARD;
+  if (guideId === "shani") return SHANI_SECONDARY_GUARD;
+  return KRISHNA_SECONDARY_GUARD;
+}
+
+function splitIntoSentences(text: string) {
+  return text
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(/(?<=[.!?])\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function normalizeComparableLine(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[?.!'"`’]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function classifyKrishnaMode(message: string): KrishnaMode {
+  const lowered = message.toLowerCase();
+  if (KRISHNA_TEACHINGS_PATTERN.test(lowered)) return "teachings";
+  if (KRISHNA_WISDOM_PATTERN.test(lowered)) return "wisdom";
+  if (KRISHNA_PLAYFUL_PATTERN.test(lowered)) return "playful";
+  return "casual";
+}
+
+function getKrishnaModeInstruction(params: { mode: KrishnaMode; quirk: string | null }) {
+  if (params.mode === "casual") {
+    return "Answer like a normal person. Be brief. No unsolicited advice. No mandatory question.";
   }
 
-  return normalized;
+  if (params.mode === "playful") {
+    const quirkLine = params.quirk
+      ? `Use this optional Krishna quirk once if natural: "${params.quirk}".`
+      : "Light Krishna flavor is welcome, but keep it casual and natural.";
+    return `Be playful and witty. Light banter. Optional one playful question. No preaching. ${quirkLine}`;
+  }
+
+  if (params.mode === "wisdom") {
+    return "Offer guidance. Keep it concise. Optional micro-action only if it fits. One question max.";
+  }
+
+  return "Explain clearly and concisely. Optional short verse reference. No long lecture unless user asks.";
+}
+
+function getAssistantMessages(history: Array<{ role: "user" | "assistant"; content: string }>) {
+  return history
+    .filter((item) => item.role === "assistant")
+    .map((item) => item.content.trim())
+    .filter(Boolean);
+}
+
+function getRecentAssistantFirstLines(history: Array<{ role: "user" | "assistant"; content: string }>) {
+  return getAssistantMessages(history)
+    .slice(-10)
+    .map((text) => getOpeningLine(text))
+    .filter(Boolean);
+}
+
+function hasKrishnaRepeatedFirstLine(text: string, recentFirstLines: string[]) {
+  const firstLine = getOpeningLine(text);
+  if (!firstLine) return false;
+  const normalizedFirstLine = normalizeComparableLine(firstLine);
+  return recentFirstLines.some((line) => normalizeComparableLine(line) === normalizedFirstLine);
+}
+
+function countKrishnaSermonPhrases(text: string) {
+  const lowered = text.toLowerCase();
+  return KRISHNA_SERMON_PHRASES.reduce((count, phrase) => {
+    return lowered.includes(phrase) ? count + 1 : count;
+  }, 0);
+}
+
+function userAskedDirectQuestion(message: string) {
+  return message.includes("?");
+}
+
+function shouldSuppressKrishnaQuestionEnding(params: {
+  history: Array<{ role: "user" | "assistant"; content: string }>;
+  userMessage: string;
+}) {
+  if (userAskedDirectQuestion(params.userMessage)) return false;
+  const recent = getAssistantMessages(params.history).slice(-3);
+  const endingQuestions = recent.filter((text) => normalizeLineBreaks(text).trim().endsWith("?")).length;
+  return endingQuestions >= 2;
+}
+
+function enforceNoQuestionEnding(text: string) {
+  const normalized = normalizeLineBreaks(text);
+  if (!normalized.endsWith("?")) return normalized;
+  return normalized.replace(/\?+\s*$/, ".").trim();
+}
+
+function formatKrishnaByMode(text: string, mode: KrishnaMode) {
+  const normalized = normalizeLineBreaks(text);
+  if (!normalized) return normalized;
+
+  const fromParagraphs = normalized
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const baseParts =
+    fromParagraphs.length > 1 ? fromParagraphs : splitIntoSentences(normalized.replace(/\n+/g, " "));
+  if (baseParts.length === 0) return normalized;
+
+  const compactParts: string[] = [];
+  const maxBlocks = mode === "casual" || mode === "playful" ? 6 : 8;
+  for (const part of baseParts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    const sentences = splitIntoSentences(trimmed);
+    if ((mode === "casual" || mode === "playful") && sentences.length > 1) {
+      for (const sentence of sentences) {
+        if (compactParts.length >= maxBlocks) break;
+        compactParts.push(sentence.trim());
+      }
+    } else {
+      compactParts.push(trimmed);
+    }
+    if (compactParts.length >= maxBlocks) break;
+  }
+
+  const deduped: string[] = [];
+  const seen = new Set<string>();
+  for (const part of compactParts) {
+    const key = normalizeComparableLine(part);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(part);
+  }
+
+  return normalizeLineBreaks(deduped.slice(0, maxBlocks).join("\n\n"));
+}
+
+function maybeInjectKrishnaQuirk(params: {
+  text: string;
+  mode: KrishnaMode;
+  quirk: string | null;
+  recentAssistantMessages: string[];
+}) {
+  if (params.mode !== "playful" || !params.quirk) return params.text;
+  const normalizedQuirk = normalizeComparableLine(params.quirk);
+  const alreadyUsedInRecent = params.recentAssistantMessages.some(
+    (message) => normalizeComparableLine(message).includes(normalizedQuirk)
+  );
+  if (alreadyUsedInRecent) return params.text;
+  if (normalizeComparableLine(params.text).includes(normalizedQuirk)) return params.text;
+
+  const blocks = normalizeLineBreaks(params.text).split(/\n{2,}/).filter(Boolean);
+  if (blocks.length === 0) return params.quirk;
+  blocks.splice(1, 0, params.quirk);
+  return normalizeLineBreaks(blocks.join("\n\n"));
+}
+
+function sanitizeKrishnaByMode(params: {
+  rawText: string;
+  userMessage: string;
+  mode: KrishnaMode;
+  quirk: string | null;
+  suppressQuestionEnding: boolean;
+  recentAssistantMessages: string[];
+}) {
+  let text = params.rawText.trim();
+  text = text.replace(new RegExp(KRISHNA_AS_AI_PATTERN.source, "gi"), "I");
+  text = text.replace(new RegExp(KRISHNA_THIRD_PERSON_PATTERN.source, "gi"), "I");
+  text = text.replace(new RegExp(SHARED_ROMANCE_TOUCH_PATTERN.source, "gi"), "");
+  text = normalizeLineBreaks(text);
+
+  if (!isDetailRequested(params.userMessage)) {
+    const maxWords = params.mode === "casual" || params.mode === "playful" ? 110 : 170;
+    text = truncateWords(text, maxWords);
+  }
+
+  text = formatKrishnaByMode(text, params.mode);
+  text = maybeInjectKrishnaQuirk({
+    text,
+    mode: params.mode,
+    quirk: params.quirk,
+    recentAssistantMessages: params.recentAssistantMessages
+  });
+
+  if (params.suppressQuestionEnding) {
+    text = enforceNoQuestionEnding(text);
+  }
+
+  return normalizeLineBreaks(text);
 }
 
 function enforceQuestionPolicy(params: {
@@ -213,7 +444,7 @@ function enforceQuestionPolicy(params: {
   fallbackQuestion: string;
 }) {
   const normalized = normalizeLineBreaks(params.text);
-  const isDirectAnswer = KRISHNA_DIRECT_ANSWER_PATTERN.test(params.userMessage.toLowerCase());
+  const isDirectAnswer = isDirectFactualRequest(params.userMessage);
   const questionMatches = [...normalized.matchAll(/[^?]*\?/g)].map((item) => item[0].trim()).filter(Boolean);
 
   if (isDirectAnswer) {
@@ -251,7 +482,120 @@ function enforceQuestionPolicy(params: {
   return `${body ? `${body}. ` : ""}${normalizedQuestion}`.trim();
 }
 
-function sanitizeKrishnaResponse(rawText: string, userMessage: string): KrishnaSanitizeResult {
+function formatResponseWithSpacing(params: {
+  text: string;
+  guideId: BhaktiGuideId;
+  userMessage: string;
+  fallbackQuestion: string;
+}) {
+  const normalized = normalizeLineBreaks(params.text);
+  if (!normalized) return normalized;
+
+  const directFactual = isDirectFactualRequest(params.userMessage);
+  const sentenceParts = splitIntoSentences(normalized.replace(/\n+/g, " "));
+  if (sentenceParts.length === 0) return normalized;
+
+  if (directFactual) {
+    if (normalized.includes("\n\n")) return normalized;
+    const chunks: string[] = [];
+    const first = sentenceParts.shift();
+    if (first) chunks.push(first);
+    if (sentenceParts.length > 0) chunks.push(sentenceParts.join(" "));
+    return normalizeLineBreaks(chunks.join("\n\n"));
+  }
+
+  let finalQuestion =
+    [...sentenceParts].reverse().find((sentence) => sentence.includes("?")) ?? params.fallbackQuestion;
+  finalQuestion = finalQuestion.replace(/\?/g, "").trim();
+  finalQuestion = `${finalQuestion}?`;
+  const comparableFinalQuestion = normalizeComparableLine(finalQuestion);
+
+  const statements = sentenceParts
+    .map((sentence) => sentence.replace(/\?/g, ".").replace(/\s+/g, " ").trim())
+    .filter((sentence) => {
+      if (!sentence) return false;
+      // Prevent echoing the closing question in earlier blocks.
+      return normalizeComparableLine(sentence) !== comparableFinalQuestion;
+    });
+
+  const opening = statements[0] ?? "I hear what you are saying.";
+  const microActionIndex =
+    statements.findIndex((sentence, index) => index > 0 && MICRO_ACTION_SPLIT_PATTERN.test(sentence)) ||
+    -1;
+  const fallbackMicroIndex = statements.length >= 3 ? statements.length - 1 : -1;
+  const effectiveMicroIndex = microActionIndex > 0 ? microActionIndex : fallbackMicroIndex;
+  const microAction =
+    effectiveMicroIndex > 0
+      ? statements[effectiveMicroIndex] ?? ""
+      : "Start with one clear action in the next 10 minutes.";
+  const bodyLines =
+    effectiveMicroIndex > 0
+      ? statements.slice(1, effectiveMicroIndex)
+      : statements.slice(1, Math.max(2, statements.length - 1));
+  const guidance = bodyLines.join(" ").trim() || statements.slice(1).join(" ").trim();
+
+  const blocks = [opening, guidance, microAction, finalQuestion]
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  const seen = new Set<string>();
+  const deduped = blocks.filter((block) => {
+    const key = normalizeComparableLine(block);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return normalizeLineBreaks(deduped.join("\n\n"));
+}
+
+function needsSharedRegeneration(params: { text: string; userMessage: string }) {
+  return (
+    hasPattern(params.text, SHARED_ROMANCE_TOUCH_PATTERN) ||
+    (hasPattern(params.text, SHARED_FRAMEWORK_PATTERN) && !userAskedForSteps(params.userMessage))
+  );
+}
+
+function sanitizeGuideResponse(params: {
+  guideId: BhaktiGuideId;
+  rawText: string;
+  userMessage: string;
+}): GuideSanitizeResult {
+  let text = params.rawText.trim();
+  const shouldUseStrongModel = KRISHNA_DETAIL_PATTERN.test(params.userMessage.toLowerCase());
+  const fallbackQuestion = getGuideFallbackQuestion(params.guideId);
+
+  text = text.replace(/\bI can’t\b/gi, "I cannot");
+  text = text.replace(/\bI can't\b/gi, "I cannot");
+  text = text.replace(new RegExp(SHARED_ROMANCE_TOUCH_PATTERN.source, "gi"), "");
+  text = normalizeLineBreaks(text);
+
+  if (!isDetailRequested(params.userMessage)) {
+    text = truncateWords(text, 160);
+  }
+
+  text = enforceQuestionPolicy({
+    text,
+    userMessage: params.userMessage,
+    fallbackQuestion
+  });
+  text = formatResponseWithSpacing({
+    text,
+    guideId: params.guideId,
+    userMessage: params.userMessage,
+    fallbackQuestion
+  });
+
+  return {
+    text,
+    needsRegeneration: needsSharedRegeneration({
+      text: params.rawText,
+      userMessage: params.userMessage
+    }),
+    shouldUseStrongModel
+  };
+}
+
+function sanitizeKrishnaResponse(rawText: string, userMessage: string): GuideSanitizeResult {
   let text = rawText.trim();
   let needsRegeneration = false;
   const shouldUseStrongModel = KRISHNA_DETAIL_PATTERN.test(userMessage.toLowerCase());
@@ -259,13 +603,11 @@ function sanitizeKrishnaResponse(rawText: string, userMessage: string): KrishnaS
 
   text = text.replace(new RegExp(KRISHNA_AS_AI_PATTERN.source, "gi"), "I");
   text = text.replace(new RegExp(KRISHNA_THIRD_PERSON_PATTERN.source, "gi"), "I");
-  text = text.replace(/\bI can’t\b/gi, "I cannot");
-  text = text.replace(/\bI can't\b/gi, "I cannot");
-  text = text.replace(new RegExp(KRISHNA_DENYLIST_PATTERN.source, "gi"), "");
+  text = text.replace(new RegExp(SHARED_ROMANCE_TOUCH_PATTERN.source, "gi"), "");
   text = normalizeLineBreaks(text);
 
   if (!isDetailRequested(userMessage)) {
-    text = truncateWords(text, 130);
+    text = truncateWords(text, 160);
   }
 
   text = enforceQuestionPolicy({
@@ -273,7 +615,12 @@ function sanitizeKrishnaResponse(rawText: string, userMessage: string): KrishnaS
     userMessage,
     fallbackQuestion: "What is one duty-aligned step you will take today?"
   });
-  text = applyKrishnaSpacing(text);
+  text = formatResponseWithSpacing({
+    text,
+    guideId: "krishna",
+    userMessage,
+    fallbackQuestion: "What is one duty-aligned step you will take today?"
+  });
 
   return {
     text,
@@ -395,7 +742,7 @@ function deTemplateKrishnaText(params: { text: string }) {
     nextText = nextText.replace(/\bToday,\s*I want you\b/gi, "Do this now");
   }
 
-  return applyKrishnaSpacing(normalizeLineBreaks(nextText));
+  return applyBasicSpacing(normalizeLineBreaks(nextText));
 }
 
 function badRequest(message: string) {
@@ -516,7 +863,7 @@ async function createGuideConversation(params: {
   userId: string | null;
   sessionId: string | null;
   title?: string | null;
-  insertKrishnaOpener?: boolean;
+  insertGuideOpener?: boolean;
 }) {
   const conversation = await prisma.bhaktiGptConversation.create({
     data: {
@@ -527,8 +874,8 @@ async function createGuideConversation(params: {
     }
   });
 
-  if (params.guideId === "krishna" && params.insertKrishnaOpener) {
-    const opener = getKrishnaOpenerForConversation(conversation.id);
+  if (params.insertGuideOpener) {
+    const opener = getGuideOpenerForConversation(params.guideId, conversation.id);
     await prisma.bhaktiGptMessage.create({
       data: {
         conversationId: conversation.id,
@@ -545,7 +892,7 @@ async function fetchGuideHistory(conversationId: string) {
   const rows = await prisma.bhaktiGptMessage.findMany({
     where: { conversationId },
     orderBy: { createdAt: "asc" },
-    take: 12,
+    take: 24,
     select: { role: true, content: true }
   });
 
@@ -554,10 +901,19 @@ async function fetchGuideHistory(conversationId: string) {
     .map((item) => ({ role: item.role as "user" | "assistant", content: item.content }));
 }
 
-async function ensureKrishnaConversationOpener(conversationId: string) {
+function getGuideOpenerForConversation(guideId: BhaktiGuideId, conversationId?: string) {
+  if (guideId === "lakshmi") return getLakshmiOpenerForConversation(conversationId);
+  if (guideId === "shani") return getShaniOpenerForConversation(conversationId);
+  return getKrishnaOpenerForConversation(conversationId);
+}
+
+async function ensureGuideConversationOpener(params: {
+  conversationId: string;
+  guideId: BhaktiGuideId;
+}) {
   const existingAssistant = await prisma.bhaktiGptMessage.findFirst({
     where: {
-      conversationId,
+      conversationId: params.conversationId,
       role: "assistant"
     },
     orderBy: {
@@ -579,10 +935,10 @@ async function ensureKrishnaConversationOpener(conversationId: string) {
     } as ChatMessage;
   }
 
-  const opener = getKrishnaOpenerForConversation(conversationId);
+  const opener = getGuideOpenerForConversation(params.guideId, params.conversationId);
   const created = await prisma.bhaktiGptMessage.create({
     data: {
-      conversationId,
+      conversationId: params.conversationId,
       role: "assistant",
       content: opener
     },
@@ -619,14 +975,10 @@ async function createOpenAiStream(params: {
         role: "system",
         content: `${guide.systemPrompt}\n\nMandatory disclaimer for user-facing context:\n${BHAKTIGPT_DISCLAIMER}`
       },
-      ...(params.guideId === "krishna"
-        ? [
-            {
-              role: "developer" as const,
-              content: KRISHNA_SECONDARY_GUARD
-            }
-          ]
-        : []),
+      {
+        role: "developer" as const,
+        content: getGuideSecondaryGuard(params.guideId)
+      },
       ...(params.additionalDeveloperInstruction
         ? [
             {
@@ -695,14 +1047,10 @@ async function createOpenAiText(params: {
           role: "system",
           content: `${guide.systemPrompt}\n\nMandatory disclaimer for user-facing context:\n${BHAKTIGPT_DISCLAIMER}`
         },
-        ...(params.guideId === "krishna"
-          ? [
-              {
-                role: "developer" as const,
-                content: KRISHNA_SECONDARY_GUARD
-              }
-            ]
-          : []),
+        {
+          role: "developer" as const,
+          content: getGuideSecondaryGuard(params.guideId)
+        },
         ...(params.additionalDeveloperInstruction
           ? [
               {
@@ -878,13 +1226,13 @@ export async function GET(request: Request) {
         activeConversationId = existing?.id ?? null;
       }
 
-      if (!activeConversationId && guideId && (forceNewConversation || (guideId === "krishna" && conversations.length === 0))) {
+      if (!activeConversationId && guideId && (forceNewConversation || conversations.length === 0)) {
         const created = await createGuideConversation({
           guideId,
           userId: identity.userId,
           sessionId: identity.anonSessionId,
           title: "New chat",
-          insertKrishnaOpener: guideId === "krishna"
+          insertGuideOpener: true
         });
         activeConversationId = created.id;
         conversations = [
@@ -916,19 +1264,22 @@ export async function GET(request: Request) {
           createdAt: item.createdAt.toISOString()
         }));
 
-        if (guideId === "krishna" && messages.length === 0) {
-          const openerMessage = await ensureKrishnaConversationOpener(activeConversationId);
+        if (guideId && messages.length === 0) {
+          const openerMessage = await ensureGuideConversationOpener({
+            guideId,
+            conversationId: activeConversationId
+          });
           messages = [openerMessage];
         }
       }
     } catch (error) {
       console.error("[BhaktiGPT][GET] Falling back to empty chat data.", error);
-      if (guideId === "krishna" && messages.length === 0) {
+      if (guideId && messages.length === 0) {
         messages = [
           {
-            id: "krishna-opener-fallback",
+            id: `${guideId}-opener-fallback`,
             role: "assistant",
-            content: getKrishnaOpenerForConversation("krishna-fallback"),
+            content: getGuideOpenerForConversation(guideId, `${guideId}-fallback`),
             createdAt: new Date().toISOString()
           }
         ];
@@ -1044,7 +1395,7 @@ export async function POST(request: Request) {
           title: conversationTitle,
           userId: identity.userId,
           sessionId: identity.anonSessionId,
-          insertKrishnaOpener: body.guideId === "krishna"
+          insertGuideOpener: true
         }));
 
       conversationId = conversation.id;
@@ -1070,20 +1421,44 @@ export async function POST(request: Request) {
     } catch (error) {
       persistConversation = false;
       console.error("[BhaktiGPT][POST] Falling back to stateless mode.", error);
-      if (body.guideId === "krishna") {
-        history = [
-          {
-            role: "assistant",
-            content: getKrishnaOpenerForConversation("krishna-fallback")
-          },
-          { role: "user", content: userMessage }
-        ];
-      }
+      history = [
+        {
+          role: "assistant",
+          content: getGuideOpenerForConversation(body.guideId, `${body.guideId}-fallback`)
+        },
+        { role: "user", content: userMessage }
+      ];
     }
 
     const guideId = body.guideId;
+    const krishnaMode: KrishnaMode | null =
+      guideId === "krishna" ? classifyKrishnaMode(userMessage) : null;
+    const krishnaRecentAssistantMessages =
+      guideId === "krishna" ? getAssistantMessages(history).slice(-10) : [];
+    const krishnaRecentFirstLines =
+      guideId === "krishna" ? getRecentAssistantFirstLines(history) : [];
+    const krishnaSelectedQuirk =
+      guideId === "krishna" && krishnaMode === "playful"
+        ? pickKrishnaQuirk({
+            seed: `${conversationId ?? "new"}:${userMessage}:${krishnaRecentAssistantMessages.length}`,
+            recentAssistantMessages: krishnaRecentAssistantMessages,
+            injectionRate: 0.3
+          })
+        : null;
+    const krishnaTurnInstruction =
+      guideId === "krishna" && krishnaMode
+        ? getKrishnaModeInstruction({ mode: krishnaMode, quirk: krishnaSelectedQuirk })
+        : null;
+    const suppressKrishnaQuestionEnding =
+      guideId === "krishna"
+        ? shouldSuppressKrishnaQuestionEnding({
+            history,
+            userMessage
+          })
+        : false;
+    const skipKrishnaCache = guideId === "krishna" && krishnaMode === "playful";
     const normalizedCacheKey = buildCacheKey(guideId, userMessage);
-    const cached = getCachedReply(normalizedCacheKey);
+    const cached = skipKrishnaCache ? null : getCachedReply(normalizedCacheKey);
     const isCrisis = detectCrisisIntent(userMessage);
     const selectedModel = shouldUseStrongModel(guideId, userMessage) ? getStrongModel() : getFastModel();
 
@@ -1094,15 +1469,8 @@ export async function POST(request: Request) {
         let completionTokens: number | null = null;
         let cacheHit = false;
         let modelUsed = selectedModel;
-        const streamRawTokens = guideId !== "krishna";
-        const previousAssistantMessage =
-          guideId === "krishna" ? getPreviousAssistantMessage(history) : "";
-        const previousOpeningLine = guideId === "krishna" ? getOpeningLine(previousAssistantMessage) : "";
-        const krishnaPresencePrefix = guideId === "krishna" ? pickKrishnaPresencePrefix(userMessage) : null;
-        const krishnaTurnInstruction =
-          guideId === "krishna" && krishnaPresencePrefix
-            ? `For this response, begin with this exact one-line presence cue if it fits naturally: "${krishnaPresencePrefix}". Keep it subtle and not theatrical.`
-            : null;
+        const streamRawTokens = false;
+        let regenerationUsed = false;
 
         const metaPayload: StreamingMetaEvent = {
           conversationId,
@@ -1117,19 +1485,11 @@ export async function POST(request: Request) {
           if (isCrisis) {
             assistantText = crisisSupportResponse();
             ttftMs = Date.now() - startedAt;
-            await emitWordStream(controller, assistantText, {
-              wordsPerChunk: 1,
-              delayMs: 12
-            });
           } else if (cached) {
             cacheHit = true;
             modelUsed = cached.model;
             ttftMs = Date.now() - startedAt;
             assistantText = cached.value;
-            await emitWordStream(controller, cached.value, {
-              wordsPerChunk: 1,
-              delayMs: 10
-            });
           } else {
             const reader = await createOpenAiStream({
               guideId,
@@ -1158,69 +1518,127 @@ export async function POST(request: Request) {
               assistantText = openAiResult.fullText;
             }
 
-            if (assistantText.trim()) {
+            if (assistantText.trim() && !skipKrishnaCache) {
               setCachedReply(normalizedCacheKey, assistantText.trim(), selectedModel);
             }
           }
 
-          if (guideId === "krishna" && assistantText.trim()) {
-            let sanitized = sanitizeKrishnaResponse(assistantText, userMessage);
-            const currentOpeningLine = getOpeningLine(assistantText);
-            const repeatedOpeningLine =
-              Boolean(previousOpeningLine) &&
-              Boolean(currentOpeningLine) &&
-              previousOpeningLine.toLowerCase() === currentOpeningLine.toLowerCase();
-            const repeatedIHearYou =
-              KRISHNA_I_HEAR_YOU_PATTERN.test(previousAssistantMessage) &&
-              KRISHNA_I_HEAR_YOU_PATTERN.test(assistantText);
-            const hasIHearYou = KRISHNA_I_HEAR_YOU_PATTERN.test(assistantText);
-            const todayIWantYouPatternHit = KRISHNA_TODAY_I_WANT_YOU_PATTERN.test(assistantText);
-            const shouldForceRewrite =
-              sanitized.needsRegeneration ||
-              (hasPattern(assistantText, KRISHNA_FRAMEWORK_PATTERN) &&
-                !/\b(step|steps|numbered)\b/i.test(userMessage)) ||
-              hasIHearYou ||
-              repeatedIHearYou ||
-              todayIWantYouPatternHit ||
-              repeatedOpeningLine;
+          if (assistantText.trim()) {
+            if (guideId === "krishna" && krishnaMode) {
+              assistantText = sanitizeKrishnaByMode({
+                rawText: assistantText,
+                userMessage,
+                mode: krishnaMode,
+                quirk: krishnaSelectedQuirk,
+                suppressQuestionEnding: suppressKrishnaQuestionEnding,
+                recentAssistantMessages: krishnaRecentAssistantMessages
+              });
 
-            if (shouldForceRewrite) {
-              try {
-                const rewriteDirectives = [
-                  "Rewrite without romance or physical touch. Keep sacred mentor tone. No numbered steps unless user asked."
-                ];
-                if (hasIHearYou || repeatedIHearYou) {
-                  rewriteDirectives.push("Avoid the phrase 'I hear you'. Use a different opening.");
-                }
-                if (todayIWantYouPatternHit) {
-                  rewriteDirectives.push("Avoid 'Today, I want you'. Use direct natural phrasing.");
-                }
-                if (repeatedOpeningLine) {
-                  rewriteDirectives.push("Use a different opening line than the previous assistant reply.");
-                }
+              const sermonHits =
+                krishnaMode === "casual" || krishnaMode === "playful"
+                  ? countKrishnaSermonPhrases(assistantText)
+                  : 0;
+              const repeatedFirstLine = hasKrishnaRepeatedFirstLine(assistantText, krishnaRecentFirstLines);
+              const shouldRewriteForSermon =
+                (krishnaMode === "casual" || krishnaMode === "playful") && sermonHits >= 2;
+              const violatesFramework =
+                hasPattern(assistantText, SHARED_FRAMEWORK_PATTERN) && !userAskedForSteps(userMessage);
+              const hasSafetyViolation =
+                hasPattern(assistantText, KRISHNA_AS_AI_PATTERN) ||
+                hasPattern(assistantText, KRISHNA_THIRD_PERSON_PATTERN) ||
+                hasPattern(assistantText, SHARED_ROMANCE_TOUCH_PATTERN);
 
-                const rewritten = await createOpenAiText({
-                  guideId: "krishna",
-                  model: sanitized.shouldUseStrongModel ? getStrongModel() : selectedModel,
-                  additionalDeveloperInstruction: rewriteDirectives.join(" "),
-                  messages: [
-                    {
-                      role: "user",
-                      content: `Rewrite this Krishna reply so it sounds alive, calm, devotional, and first-person. React first, guide second, include one micro-action, and end with one reflective question unless the user asked a direct factual quote. Remove any romance, touch language, or robotic framework style.\n\nUser message: ${userMessage}\n\nDraft reply: ${assistantText}`
-                    }
-                  ]
-                });
-                modelUsed = sanitized.shouldUseStrongModel ? getStrongModel() : selectedModel;
-                completionTokens = rewritten.completionTokens;
-                sanitized = sanitizeKrishnaResponse(rewritten.text, userMessage);
-              } catch (error) {
-                console.error("[BhaktiGPT][POST] Krishna regeneration failed.", error);
+              const shouldForceRewrite =
+                shouldRewriteForSermon || repeatedFirstLine || violatesFramework || hasSafetyViolation;
+
+              if (shouldForceRewrite && !regenerationUsed) {
+                try {
+                  const rewriteDirectives = [
+                    getKrishnaModeInstruction({ mode: krishnaMode, quirk: krishnaSelectedQuirk }),
+                    "Rewrite respectfully, no romance, no physical touch, keep spacing with blank lines.",
+                    "No numbered steps unless the user explicitly asked for steps."
+                  ];
+                  if (shouldRewriteForSermon) {
+                    rewriteDirectives.push(
+                      "Rewrite in casual/playful mode. Answer directly. No advice language."
+                    );
+                  }
+                  if (repeatedFirstLine) {
+                    rewriteDirectives.push("Avoid repeating earlier phrasing.");
+                  }
+                  if (suppressKrishnaQuestionEnding && !userAskedDirectQuestion(userMessage)) {
+                    rewriteDirectives.push("Do not end this reply with a question.");
+                  }
+
+                  const rewritten = await createOpenAiText({
+                    guideId,
+                    model: selectedModel,
+                    additionalDeveloperInstruction: rewriteDirectives.join(" "),
+                    messages: [
+                      {
+                        role: "user",
+                        content: `Rewrite this Krishna reply with the requested mode and tone.\n\nUser message: ${userMessage}\n\nDraft reply: ${assistantText}`
+                      }
+                    ]
+                  });
+                  modelUsed = selectedModel;
+                  completionTokens = rewritten.completionTokens;
+                  assistantText = sanitizeKrishnaByMode({
+                    rawText: rewritten.text,
+                    userMessage,
+                    mode: krishnaMode,
+                    quirk: krishnaSelectedQuirk,
+                    suppressQuestionEnding: suppressKrishnaQuestionEnding,
+                    recentAssistantMessages: krishnaRecentAssistantMessages
+                  });
+                  regenerationUsed = true;
+                } catch (error) {
+                  console.error("[BhaktiGPT][POST] Krishna rewrite failed.", error);
+                }
               }
+            } else {
+              let sanitized = sanitizeGuideResponse({
+                guideId,
+                rawText: assistantText,
+                userMessage
+              });
+              const shouldForceRewrite =
+                sanitized.needsRegeneration ||
+                (hasPattern(assistantText, SHARED_FRAMEWORK_PATTERN) && !userAskedForSteps(userMessage));
+
+              if (shouldForceRewrite && !regenerationUsed) {
+                try {
+                  const rewritten = await createOpenAiText({
+                    guideId,
+                    model: sanitized.shouldUseStrongModel ? getStrongModel() : selectedModel,
+                    additionalDeveloperInstruction:
+                      "Rewrite respectfully, no romance, no physical touch, keep it grounded, keep spacing with blank lines. No numbered steps unless the user explicitly asked for steps.",
+                    messages: [
+                      {
+                        role: "user",
+                        content: `Rewrite this ${guideId} reply so it is devotional-safe, concise, practical, and formatted as short spaced blocks.\n\nUser message: ${userMessage}\n\nDraft reply: ${assistantText}`
+                      }
+                    ]
+                  });
+                  modelUsed = sanitized.shouldUseStrongModel ? getStrongModel() : selectedModel;
+                  completionTokens = rewritten.completionTokens;
+                  sanitized = sanitizeGuideResponse({
+                    guideId,
+                    rawText: rewritten.text,
+                    userMessage
+                  });
+                  regenerationUsed = true;
+                } catch (error) {
+                  console.error("[BhaktiGPT][POST] rewrite failed.", error);
+                }
+              }
+
+              assistantText = sanitized.text;
             }
 
-            const deTemplated = deTemplateKrishnaText({ text: sanitized.text });
-            assistantText = applyKrishnaPresencePrefix(deTemplated, krishnaPresencePrefix);
-            setCachedReply(normalizedCacheKey, assistantText.trim(), modelUsed);
+            if (!skipKrishnaCache) {
+              setCachedReply(normalizedCacheKey, assistantText.trim(), modelUsed);
+            }
           }
 
           if (!assistantText.trim()) {
@@ -1228,12 +1646,6 @@ export async function POST(request: Request) {
               "I see what you mean.\n\nStart with one concrete fact I can work with.\n\nWhat exactly is weighing on you right now?";
             if (ttftMs === null) {
               ttftMs = Date.now() - startedAt;
-            }
-            if (streamRawTokens) {
-              await emitWordStream(controller, assistantText, {
-                wordsPerChunk: 1,
-                delayMs: 12
-              });
             }
           }
 

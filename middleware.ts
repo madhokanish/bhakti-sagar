@@ -78,7 +78,13 @@ export function middleware(request: NextRequest) {
   if (first && supportedLangs.includes(first)) {
     const headers = new Headers(request.headers);
     headers.set("x-lang", first);
-    return NextResponse.next({ request: { headers } });
+    const response = NextResponse.next({ request: { headers } });
+    response.cookies.set("NEXT_LOCALE", first, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax"
+    });
+    return response;
   }
 
   const headers = new Headers(request.headers);

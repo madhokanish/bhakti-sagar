@@ -10,7 +10,6 @@ import { getGuideConfig } from "@/lib/bhaktigpt/guideConfig";
 import {
   BHAKTI_GUIDE_LIST,
   BHAKTI_GUIDES,
-  BHAKTIGPT_DISCLAIMER,
   isGuideId,
   type BhaktiGuideId
 } from "@/lib/bhaktigpt/guides";
@@ -50,8 +49,8 @@ const MOBILE_SUGGESTED_PROMPTS = [
   "chat_suggested_2",
   "chat_suggested_3"
 ];
-const CHAT_DISCLAIMER =
-  "Inspired by scripture and traditions. Not medical, legal, or financial advice.";
+
+type Translate = (key: string, values?: Record<string, string | number>) => string;
 
 async function parseJsonSafe(response: Response) {
   const text = await response.text();
@@ -89,15 +88,6 @@ function formatConversationStartedAt(value?: string) {
   });
 }
 
-function getConversationLabel(conversation: ConversationSummary) {
-  const title = conversation.title?.trim();
-  if (title && title.toLowerCase() !== "new chat") return title;
-  if (conversation.hasUserMessage) {
-    return formatConversationStartedAt(conversation.createdAt) ?? "New chat";
-  }
-  return "New chat";
-}
-
 function getConversationLabelLocalized(conversation: ConversationSummary, fallbackNewChat: string) {
   const title = conversation.title?.trim();
   if (title && title.toLowerCase() !== "new chat") return title;
@@ -105,6 +95,63 @@ function getConversationLabelLocalized(conversation: ConversationSummary, fallba
     return formatConversationStartedAt(conversation.createdAt) ?? fallbackNewChat;
   }
   return fallbackNewChat;
+}
+
+function getLocalizedGuideContent(guideId: BhaktiGuideId, t: Translate) {
+  if (guideId === "krishna") {
+    return {
+      name: t("chat_guide_krishna_name"),
+      subtitle: t("chat_guide_krishna_subtitle"),
+      shortDescription: t("chat_guide_krishna_short"),
+      aboutIntro: t("chat_guide_krishna_about_intro"),
+      canHelpWith: [
+        t("chat_guide_krishna_can_1"),
+        t("chat_guide_krishna_can_2"),
+        t("chat_guide_krishna_can_3")
+      ],
+      cannotHelpWith: [
+        t("chat_guide_krishna_cannot_1"),
+        t("chat_guide_krishna_cannot_2"),
+        t("chat_guide_krishna_cannot_3")
+      ]
+    };
+  }
+
+  if (guideId === "lakshmi") {
+    return {
+      name: t("chat_guide_lakshmi_name"),
+      subtitle: t("chat_guide_lakshmi_subtitle"),
+      shortDescription: t("chat_guide_lakshmi_short"),
+      aboutIntro: t("chat_guide_lakshmi_about_intro"),
+      canHelpWith: [
+        t("chat_guide_lakshmi_can_1"),
+        t("chat_guide_lakshmi_can_2"),
+        t("chat_guide_lakshmi_can_3")
+      ],
+      cannotHelpWith: [
+        t("chat_guide_lakshmi_cannot_1"),
+        t("chat_guide_lakshmi_cannot_2"),
+        t("chat_guide_lakshmi_cannot_3")
+      ]
+    };
+  }
+
+  return {
+    name: t("chat_guide_shani_name"),
+    subtitle: t("chat_guide_shani_subtitle"),
+    shortDescription: t("chat_guide_shani_short"),
+    aboutIntro: t("chat_guide_shani_about_intro"),
+    canHelpWith: [
+      t("chat_guide_shani_can_1"),
+      t("chat_guide_shani_can_2"),
+      t("chat_guide_shani_can_3")
+    ],
+    cannotHelpWith: [
+      t("chat_guide_shani_cannot_1"),
+      t("chat_guide_shani_cannot_2"),
+      t("chat_guide_shani_cannot_3")
+    ]
+  };
 }
 
 function splitLinkSuffix(rawUrl: string) {
@@ -289,18 +336,33 @@ async function consumeSseStream(response: Response, onEvent: (event: StreamEvent
   }
 }
 
-function GuidePicker({ onPick }: { onPick: (guideId: BhaktiGuideId) => void }) {
+function GuidePicker({
+  onPick,
+  title,
+  subtitle,
+  guides
+}: {
+  onPick: (guideId: BhaktiGuideId) => void;
+  title: string;
+  subtitle: string;
+  guides: Array<{
+    id: BhaktiGuideId;
+    name: string;
+    subtitle: string;
+    shortDescription: string;
+    imageSrc: string;
+    imageAlt: string;
+  }>;
+}) {
   return (
     <section className="space-y-4 rounded-3xl border border-sagar-amber/20 bg-white/90 p-5 shadow-sagar-soft">
       <header>
-        <h1 className="text-2xl font-semibold text-sagar-ink">Choose your Bhakti Chat guide</h1>
-        <p className="mt-2 text-sm text-sagar-ink/75">
-          Pick one guide to start. Each guide has separate chat history and memory.
-        </p>
+        <h1 className="text-2xl font-semibold text-sagar-ink">{title}</h1>
+        <p className="mt-2 text-sm text-sagar-ink/75">{subtitle}</p>
       </header>
 
       <div className="grid gap-4 md:grid-cols-3">
-        {BHAKTI_GUIDE_LIST.map((guide) => (
+        {guides.map((guide) => (
           <button
             key={guide.id}
             type="button"
@@ -345,6 +407,20 @@ export default function BhaktiGptChatClient() {
   const selectedGuideId = isGuideId(guideParam ?? "") ? (guideParam as BhaktiGuideId) : null;
   const selectedGuide = selectedGuideId ? BHAKTI_GUIDES[selectedGuideId] : null;
   const selectedGuideConfig = selectedGuideId ? getGuideConfig(selectedGuideId) : null;
+  const localizedGuideContent = {
+    krishna: getLocalizedGuideContent("krishna", t as Translate),
+    lakshmi: getLocalizedGuideContent("lakshmi", t as Translate),
+    shani: getLocalizedGuideContent("shani", t as Translate)
+  };
+  const selectedGuideLocalized = selectedGuideId ? localizedGuideContent[selectedGuideId] : null;
+  const localizedGuideCards = BHAKTI_GUIDE_LIST.map((guide) => ({
+    id: guide.id,
+    name: localizedGuideContent[guide.id].name,
+    subtitle: localizedGuideContent[guide.id].subtitle,
+    shortDescription: localizedGuideContent[guide.id].shortDescription,
+    imageSrc: guide.imageSrc,
+    imageAlt: guide.imageAlt
+  }));
   const signInCallbackUrl = (() => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("auth");
@@ -371,6 +447,8 @@ export default function BhaktiGptChatClient() {
   const [composerHeight, setComposerHeight] = useState(124);
 
   const suggestedPrompts = MOBILE_SUGGESTED_PROMPTS.map((key) => t(key));
+  const chatDisclaimer = t("chat_disclaimer");
+  const chatDisclaimerLong = t("chat_disclaimer_long");
 
   const focusComposer = useCallback(() => {
     requestAnimationFrame(() => composerRef.current?.focus());
@@ -441,10 +519,10 @@ export default function BhaktiGptChatClient() {
       if (!response.ok) {
         const errorMessage =
           (raw && typeof raw.error === "string" && raw.error) ||
-          "Unable to load chat right now.";
+          t("chat_error_load");
         throw new Error(errorMessage);
       }
-      if (!raw) throw new Error("Unable to load chat right now.");
+      if (!raw) throw new Error(t("chat_error_load"));
 
       const data = raw as unknown as InitialResponse;
       const nextConversationId = data.conversationId || null;
@@ -460,9 +538,9 @@ export default function BhaktiGptChatClient() {
       focusComposer();
     } catch (error) {
       setLoadState("error");
-      setLoadError(error instanceof Error ? error.message : "Unable to load chat right now.");
+      setLoadError(error instanceof Error ? error.message : t("chat_error_load"));
     }
-  }, [focusComposer, updateGuideQuery]);
+  }, [focusComposer, updateGuideQuery, t]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -498,8 +576,8 @@ export default function BhaktiGptChatClient() {
 
     const params = new URLSearchParams(searchParams.toString());
     params.delete("prefill");
-    router.replace(`/bhaktigpt/chat?${params.toString()}`);
-  }, [prefillParam, router, searchParams, selectedGuideId]);
+    router.replace(`${localePrefix}/bhaktigpt/chat?${params.toString()}`);
+  }, [prefillParam, router, searchParams, selectedGuideId, localePrefix]);
 
   useEffect(() => {
     if (loadState !== "ready") return;
@@ -608,14 +686,14 @@ export default function BhaktiGptChatClient() {
         if (!response.ok) {
           const raw = await parseJsonSafe(response);
           const message =
-            (raw && typeof raw.error === "string" && raw.error) || "Unable to send message.";
+            (raw && typeof raw.error === "string" && raw.error) || t("chat_error_send");
           throw new Error(message);
         }
 
         const contentType = response.headers.get("content-type") || "";
         if (!contentType.includes("text/event-stream")) {
           const raw = await parseJsonSafe(response);
-          if (!raw) throw new Error("Invalid chat response.");
+          if (!raw) throw new Error(t("chat_error_invalid_response"));
           if (raw.limitReached === true) {
             setShowSignInPrompt(true);
             setMessages((prev) => prev.filter((item) => item.id !== assistantMessageId));
@@ -664,14 +742,13 @@ export default function BhaktiGptChatClient() {
             const message =
               typeof data.message === "string"
                 ? data.message
-                : "Unable to process your message right now.";
+                : t("chat_error_process");
             throw new Error(message);
           }
         });
 
         if (!streamedText.trim()) {
-          const fallback =
-            "I see what you mean.\n\nGive me one concrete detail, and I will guide you clearly.\n\nWhat is the sharpest part of this situation right now?";
+          const fallback = t("chat_fallback_empty_response");
           setMessages((prev) =>
             prev.map((item) => (item.id === assistantMessageId ? { ...item, content: fallback } : item))
           );
@@ -680,12 +757,12 @@ export default function BhaktiGptChatClient() {
         trackEvent("sent_message", { guideId: selectedGuideId });
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : "Unable to process your message right now.";
+          error instanceof Error ? error.message : t("chat_error_process");
         setComposerError(errorMessage);
         setMessages((prev) =>
           prev.map((item) =>
             item.id === assistantMessageId
-              ? { ...item, content: "I could not respond just now. Please send that again." }
+              ? { ...item, content: t("chat_error_retry_send") }
               : item
           )
         );
@@ -701,13 +778,17 @@ export default function BhaktiGptChatClient() {
       isStreaming,
       messages.length,
       selectedGuideId,
-      updateGuideQuery
+      updateGuideQuery,
+      t
     ]
   );
 
   if (!selectedGuideId || !selectedGuide) {
     return (
       <GuidePicker
+        title={t("chat_choose_guide_title")}
+        subtitle={t("chat_choose_guide_text")}
+        guides={localizedGuideCards}
         onPick={(guideId) => {
           trackEvent("selected_guide", { guideId, source: "guide_picker" });
           updateGuideQuery(guideId);
@@ -732,7 +813,6 @@ export default function BhaktiGptChatClient() {
           <div className="mt-4 space-y-2">
             {BHAKTI_GUIDE_LIST.map((guide) => {
               const active = guide.id === selectedGuideId;
-              const guideConfig = getGuideConfig(guide.id);
               return (
                 <button
                   key={guide.id}
@@ -751,8 +831,8 @@ export default function BhaktiGptChatClient() {
                   <span className="flex items-center gap-2.5">
                     <GuideAvatar guideId={guide.id} size="sm" className="rounded-lg" />
                     <span>
-                      <span className="block text-sm font-semibold text-sagar-ink">{guideConfig.displayName}</span>
-                      <span className="block text-xs text-sagar-ink/65">{guideConfig.subtitle}</span>
+                      <span className="block text-sm font-semibold text-sagar-ink">{localizedGuideContent[guide.id].name}</span>
+                      <span className="block text-xs text-sagar-ink/65">{localizedGuideContent[guide.id].subtitle}</span>
                     </span>
                   </span>
                 </button>
@@ -791,7 +871,7 @@ export default function BhaktiGptChatClient() {
               <div className="flex items-center gap-3">
                 <GuideAvatar guideId={selectedGuideId} size="sm" className="md:h-10 md:w-10" />
                 <div>
-                  <p className="text-sm font-semibold text-sagar-ink">{selectedGuideConfig?.displayName}</p>
+                  <p className="text-sm font-semibold text-sagar-ink">{selectedGuideLocalized?.name ?? selectedGuideConfig?.displayName}</p>
                   <p className="text-[11px] text-sagar-ink/65">{t("chat_online_guide")}</p>
                 </div>
               </div>
@@ -853,9 +933,9 @@ export default function BhaktiGptChatClient() {
               <div className="space-y-4 rounded-2xl border border-sagar-amber/20 bg-sagar-cream/40 p-4 sm:p-5">
                 <div>
                   <p className="text-sm font-semibold text-sagar-ink">
-                    {t("chat_start_with", { name: selectedGuide.name })}
+                    {t("chat_start_with", { name: selectedGuideLocalized?.name ?? selectedGuide.name })}
                   </p>
-                  <p className="mt-1 text-sm text-sagar-ink/75">{selectedGuide.shortDescription}</p>
+                  <p className="mt-1 text-sm text-sagar-ink/75">{selectedGuideLocalized?.shortDescription ?? selectedGuide.shortDescription}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {suggestedPrompts.map((prompt) => (
@@ -870,7 +950,7 @@ export default function BhaktiGptChatClient() {
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-sagar-ink/60">{BHAKTIGPT_DISCLAIMER}</p>
+                <p className="text-xs text-sagar-ink/60">{chatDisclaimerLong}</p>
               </div>
             ) : null}
 
@@ -958,7 +1038,7 @@ export default function BhaktiGptChatClient() {
                 {composerError}
               </p>
             ) : null}
-            <p className="mt-2 text-[11px] leading-5 text-sagar-ink/60">{CHAT_DISCLAIMER}</p>
+            <p className="mt-2 text-[11px] leading-5 text-sagar-ink/60">{chatDisclaimer}</p>
           </div>
         </div>
       </section>
@@ -969,10 +1049,10 @@ export default function BhaktiGptChatClient() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-sagar-ink">
-                  {t("chat_about_title", { name: selectedGuideConfig?.displayName ?? selectedGuide.name })}
+                  {t("chat_about_title", { name: selectedGuideLocalized?.name ?? selectedGuideConfig?.displayName ?? selectedGuide.name })}
                 </h2>
                 <p className="mt-1 text-sm whitespace-pre-line text-sagar-ink/70">
-                  {selectedGuide.aboutIntro ?? selectedGuide.shortDescription}
+                  {selectedGuideLocalized?.aboutIntro ?? selectedGuide.aboutIntro ?? selectedGuide.shortDescription}
                 </p>
               </div>
               <button
@@ -988,7 +1068,7 @@ export default function BhaktiGptChatClient() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-sagar-rose">{t("chat_can_help")}</p>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-sagar-ink/80">
-                  {selectedGuide.about.canHelpWith.map((item) => (
+                  {(selectedGuideLocalized?.canHelpWith ?? selectedGuide.about.canHelpWith).map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
@@ -996,7 +1076,7 @@ export default function BhaktiGptChatClient() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-sagar-rose">{t("chat_cannot")}</p>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-sagar-ink/80">
-                  {selectedGuide.about.cannotHelpWith.map((item) => (
+                  {(selectedGuideLocalized?.cannotHelpWith ?? selectedGuide.about.cannotHelpWith).map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
@@ -1004,7 +1084,7 @@ export default function BhaktiGptChatClient() {
             </div>
 
             <p className="mt-4 rounded-xl border border-sagar-amber/20 bg-sagar-cream/50 px-3 py-2 text-xs text-sagar-ink/75">
-              {BHAKTIGPT_DISCLAIMER}
+              {chatDisclaimerLong}
             </p>
           </div>
         </div>

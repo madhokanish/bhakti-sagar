@@ -1048,20 +1048,22 @@ export default function BhaktiGptChatClient() {
             ref={headerShellRef}
             className="absolute inset-x-0 top-0 z-20 border-b border-[color:var(--border)] bg-[color:var(--surface)] px-3 pb-2 pt-[calc(env(safe-area-inset-top)+8px)] shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:px-5"
           >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2 md:gap-3">
-              <button
-                type="button"
-                onClick={handleBack}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)] md:hidden"
-                aria-label={t("chat_back")}
-              >
-                <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true" fill="none">
-                  <path d="M12.5 4.5 7 10l5.5 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+            <div className="grid grid-cols-[auto,1fr,auto] items-center gap-3">
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="inline-flex min-h-11 items-center justify-center gap-1 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-3 text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)]"
+                  aria-label={t("chat_back")}
+                >
+                  <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true" fill="none">
+                    <path d="M12.5 4.5 7 10l5.5 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span className="hidden text-xs font-semibold sm:inline">{t("chat_back")}</span>
+                </button>
+              </div>
 
-              <div className="flex min-w-0 items-center gap-2">
+              <div className="flex min-w-0 items-center justify-center gap-2">
                 <GuideAvatar guideId={selectedGuideId} size="sm" />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-[color:var(--text)]">
@@ -1072,27 +1074,31 @@ export default function BhaktiGptChatClient() {
                   </p>
                 </div>
               </div>
-              </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowAboutModal(true)}
-                  className="hidden min-h-11 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-xs font-semibold text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)] md:inline-flex"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)]"
+                  aria-label={t("chat_about")}
                 >
-                  {t("chat_about")}
+                  <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true" fill="none">
+                    <circle cx="10" cy="10" r="7.25" stroke="currentColor" strokeWidth="1.5" />
+                    <path d="M10 8.2v4.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    <circle cx="10" cy="5.9" r="0.9" fill="currentColor" />
+                  </svg>
                 </button>
-              <button
-                type="button"
-                onClick={startNewChat}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)]"
-                aria-label={t("chat_new")}
-              >
-                <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true" fill="none">
-                  <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={startNewChat}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)]"
+                  aria-label={t("chat_new")}
+                >
+                  <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true" fill="none">
+                    <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </header>
 

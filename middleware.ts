@@ -76,12 +76,9 @@ export function middleware(request: NextRequest) {
   }
 
   if (first && supportedLangs.includes(first)) {
-    const rewrittenPath = `/${segments.slice(1).join("/")}`;
-    const url = request.nextUrl.clone();
-    url.pathname = rewrittenPath === "/" ? "/" : rewrittenPath;
     const headers = new Headers(request.headers);
     headers.set("x-lang", first);
-    return NextResponse.rewrite(url, { request: { headers } });
+    return NextResponse.next({ request: { headers } });
   }
 
   const headers = new Headers(request.headers);

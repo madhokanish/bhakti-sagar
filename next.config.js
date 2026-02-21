@@ -1,20 +1,9 @@
 /** @type {import('next').NextConfig} */
 const redirects = require("./src/data/redirects.json");
+const withNextIntl = require("next-intl/plugin")("./src/i18n/request.ts");
 
 const nextConfig = {
   reactStrictMode: true,
-  async rewrites() {
-    return [
-      {
-        source: "/en/:path*",
-        destination: "/:path*"
-      },
-      {
-        source: "/hi/:path*",
-        destination: "/:path*"
-      }
-    ];
-  },
   async redirects() {
     return redirects.map((rule) => ({
       source: rule.source,
@@ -24,4 +13,4 @@ const nextConfig = {
   }
 };
 
-module.exports = nextConfig;
+module.exports = withNextIntl(nextConfig);

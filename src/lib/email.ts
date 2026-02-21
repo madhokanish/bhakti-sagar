@@ -12,7 +12,7 @@ function getAppUrl() {
 }
 
 function getFromAddress() {
-  return process.env.RESEND_FROM_EMAIL?.trim() || "Bhakti Sagar <noreply@bhakti-sagar.com>";
+  return process.env.RESEND_FROM_EMAIL?.trim() || "Bhakti Chat <noreply@bhakti-sagar.com>";
 }
 
 export async function sendTrialReminderEmail(payload: TrialReminderPayload) {
@@ -30,14 +30,14 @@ export async function sendTrialReminderEmail(payload: TrialReminderPayload) {
   const body = {
     from: getFromAddress(),
     to: [payload.email],
-    subject: "Your Bhakti Sagar membership billing reminder",
+    subject: "Your Bhakti Chat membership billing reminder",
     html: `
       <p>Namaste,</p>
-      <p>Your Bhakti Sagar membership renews on <strong>${renewalDate}</strong>.</p>
+      <p>Your Bhakti Chat membership renews on <strong>${renewalDate}</strong>.</p>
       <p>Renewal amount is <strong>${payload.renewalPrice} per month</strong>.</p>
       <p>You can cancel anytime from your billing portal:</p>
       <p><a href="${payload.manageUrl}">${payload.manageUrl}</a></p>
-      <p>With gratitude,<br/>Bhakti Sagar</p>
+      <p>With gratitude,<br/>Bhakti Chat</p>
     `
   };
 

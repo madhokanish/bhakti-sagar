@@ -30,7 +30,7 @@ export default function StotrasPage() {
     },
     {
       q: "Are stotras available in English letters?",
-      a: "Bhakti Sagar provides transliteration in English letters where available."
+      a: "Bhakti Chat provides transliteration in English letters where available."
     }
   ]);
 
@@ -46,7 +46,7 @@ export default function StotrasPage() {
           or chanted to focus the mind and heart on devotion.
         </p>
         <p>
-          At Bhakti Sagar, our goal is to make stotras easy to read and understand. Where possible, we
+          At Bhakti Chat, our goal is to make stotras easy to read and understand. Where possible, we
           provide English transliteration alongside Hindi text so anyone can follow the pronunciation.
           We also add short explanations to help you connect with the meaning without overwhelming the
           flow of prayer.

@@ -46,7 +46,7 @@ export default function VratKathaPage() {
           rituals, offerings, and an aarti at the end.
         </p>
         <p>
-          Bhakti Sagar aims to make vrat kathas approachable by providing concise summaries, simple
+          Bhakti Chat aims to make vrat kathas approachable by providing concise summaries, simple
           ritual steps, and links to relevant aartis. Whether you are observing Karva Chauth, Ekadashi,
           or another vrat, you can use these guides to stay focused on devotion without feeling
           overwhelmed by complexity.

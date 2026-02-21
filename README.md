@@ -1,8 +1,8 @@
-# Bhakti Sagar
+# Bhakti Chat
 
-A calm, devotional site for aartis and bhajans. Built with Next.js + Tailwind.
+Bhakti Chat is a Next.js + Prisma devotional platform with Bhakti Chat chat guides.
 
-## Getting Started
+## Local setup
 
 1. Install dependencies
 
@@ -10,127 +10,99 @@ A calm, devotional site for aartis and bhajans. Built with Next.js + Tailwind.
 npm install
 ```
 
-2. Add environment variables
+2. Copy environment template
 
 ```bash
 cp .env.example .env.local
 ```
 
-3. Run the dev server
+3. Generate Prisma client + apply migrations
+
+```bash
+npm run prisma:generate
+npx prisma migrate dev
+```
+
+4. Run app
 
 ```bash
 npm run dev
 ```
 
-## Environment Variables
+## Auth architecture
 
-See `.env.example` for required values. Set `OPENAI_MODEL` to the model you want to use.
+The app uses **Auth.js (NextAuth v5)** with:
 
-### Authentication (Google and Apple)
+- Prisma adapter
+- **Database sessions** (not JWT)
+- Providers: **Google**, **Apple**, **Email magic link**
+- Resend for magic link delivery in production
+- Console magic-link fallback in local dev when `RESEND_API_KEY` is missing
 
-This project uses NextAuth (Auth.js) + Prisma adapter for OAuth sign-in.
+### Important routes
 
-Required variables:
+- `/api/auth/[...nextauth]` Auth.js handler
+- `/?auth=1&callbackUrl=/path` opens the auth modal from any page
+- `/signin` thin compatibility route that redirects to modal flow
+- `/profile` protected profile page
+
+### Environment variables (auth)
+
+Required:
 
 - `DATABASE_URL`
-- `NEXTAUTH_URL`
 - `NEXTAUTH_SECRET`
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
-- `APPLE_ID`
+- `APPLE_CLIENT_ID`
 - `APPLE_TEAM_ID`
-- `APPLE_PRIVATE_KEY`
 - `APPLE_KEY_ID`
-- `APPLE_CLIENT_SECRET` (optional override if you pre-generate Apple JWT secret)
+- `APPLE_PRIVATE_KEY`
 
-Setup notes:
+Recommended:
 
-1. Copy env template: `cp .env.example .env.local`
-2. Fill OAuth credentials in `.env.local`
-3. Generate Prisma client: `npm run prisma:generate`
-4. Apply schema to DB (dev): `npm run prisma:push`
-5. Start app: `npm run dev`
-
-Apple local-dev note:
-
-- Apple Sign In does not support plain localhost callback URLs.
-- For local testing, use a secure tunnel (for example `ngrok`) and set that URL in Apple + `NEXTAUTH_URL`.
-
-Routes:
-
-- `/signin` OAuth entry page
-- `/account` user account page (protected)
-- `/api/auth/[...nextauth]` NextAuth route handler
-
-Testing checklist:
-
-- Google login works and returns to `/account`
-- Apple login works and returns to `/account`
-- First login creates `User` + `UserProfile`
-- Re-login does not create duplicate `UserProfile`
-- Session persists after refresh
-- Sign out works from `/account`
-- `/account` redirects to `/signin` when logged out
-- Existing public pages still load
-
-### Online Puja Email Service Setup
-
-The `/api/online-puja-interest` endpoint sends form submissions via SMTP using `nodemailer`.
-
-Required SMTP variables:
-
-- `SMTP_HOST`
-- `SMTP_PORT` (usually `587` for TLS or `465` for SSL)
-- `SMTP_USER`
-- `SMTP_PASS`
+- `NEXTAUTH_URL` (production canonical URL)
 
 Optional:
 
-- `SMTP_FROM` (defaults to `SMTP_USER`)
-- `ONLINE_PUJA_RECIPIENT_EMAIL` (defaults to `SMTP_USER`)
+- `VERCEL_URL` (Auth.js derives URL when `NEXTAUTH_URL` is unset)
+- `APPLE_CLIENT_SECRET` (manual override for generated Apple client secret)
+- `RESEND_API_KEY` (required for production email sending)
+- `EMAIL_FROM` (default sender)
+- `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` (durable magic-link rate limiting)
 
-Local setup:
-
-```bash
-cp .env.example .env.local
-# Then fill SMTP_* values in .env.local
-```
-
-Vercel production setup:
+Generate a strong auth secret:
 
 ```bash
-vercel env add SMTP_HOST production
-vercel env add SMTP_PORT production
-vercel env add SMTP_USER production
-vercel env add SMTP_PASS production
-vercel env add SMTP_FROM production
-vercel env add ONLINE_PUJA_RECIPIENT_EMAIL production
+openssl rand -base64 32
 ```
 
-After setting env vars, redeploy:
+### Magic-link behavior
 
-```bash
-vercel --prod
-```
+- Email provider id is `email`
+- Subject: `Sign in to Bhakti Chat`
+- Cooldown + limits enforced server-side:
+  - max 5 sends/hour per email
+  - max 10 sends/hour per IP
+  - 30 second resend cooldown
+- Responses are privacy-safe and do not reveal account existence
 
-If SMTP is missing, the API now returns which env keys are missing.
+## Vercel notes
 
-## Content
+- Set all auth env vars in Vercel Project Settings.
+- For preview deployments, if `NEXTAUTH_URL` is unset, runtime derives `https://$VERCEL_URL`.
+- Apple callbacks require a real HTTPS domain configured in Apple Developer settings.
 
-Aartis and categories live in `src/data/aartis.json` and `src/data/categories.json`.
-Replace the placeholder `youtubeUrl` values with real URLs to enable embeds.
+## Bhakti Chat chat
 
-## BhaktiGPT (MVP)
+- `/bhaktigpt/chat` guide chat experience
+- `/api/bhaktigpt/chat` streaming assistant endpoint
+- Anonymous free usage threshold is handled server-side; sign-in unlocks continuity.
 
-- Routes:
-  - `/bhaktigpt` landing page
-  - `/bhaktigpt/chat` chat experience
-  - `/api/bhaktigpt/chat` server-side chat + gating endpoint
-- Required env:
-  - `OPENAI_API_KEY`
-  - `OPENAI_MODEL` (or `OPENAI_MODEL_BHAKTIGPT`)
-  - `SESSION_SECRET` (for signed anonymous session cookie)
-- Gating behavior:
-  - Logged-out users can send up to 3 total user messages.
-  - After that, chat is blocked until sign in.
-  - Signed-in users have unlimited messages.
+## Scripts
+
+- `npm run dev` start local dev server
+- `npm run build` production build
+- `npm run lint` lint
+- `npm run test` tests
+- `npm run prisma:generate` regenerate Prisma client

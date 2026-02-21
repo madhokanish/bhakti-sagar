@@ -2,6 +2,9 @@ import { siteConfig, supportedLanguages } from "@/lib/seo";
 import { festivals } from "@/lib/content";
 
 function withLang(path: string) {
+  if (supportedLanguages.length === 0) {
+    return [`${siteConfig.url}${path}`];
+  }
   return supportedLanguages.map((lang) => `${siteConfig.url}/${lang.code}${path}`);
 }
 

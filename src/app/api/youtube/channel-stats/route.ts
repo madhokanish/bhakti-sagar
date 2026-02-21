@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { youtubeTrust } from "../../../../../content/onlinePuja/socialProof";
 
 type YoutubeStatsPayload = {
   subscribersLabel: string;
@@ -24,8 +23,8 @@ function formatCompactCount(value: string) {
 
 function getFallbackPayload(): YoutubeStatsPayload {
   return {
-    subscribersLabel: youtubeTrust.subscribersLabel,
-    videosLabel: youtubeTrust.videosLabel,
+    subscribersLabel: "100K+ subscribers",
+    videosLabel: "1K+ videos",
     updatedAt: new Date().toISOString()
   };
 }

@@ -3,7 +3,7 @@ export const authors = [
     slug: "anish-madhok",
     name: "Anish Madhok",
     role: "Editor",
-    bio: "Anish curates Bhakti Sagar’s devotional library with a focus on accurate lyrics, accessible meanings, and respectful presentation."
+    bio: "Anish curates Bhakti Chat’s devotional library with a focus on accurate lyrics, accessible meanings, and respectful presentation."
   }
 ];
 

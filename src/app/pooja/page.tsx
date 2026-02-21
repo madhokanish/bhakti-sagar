@@ -29,7 +29,7 @@ export default function PoojaPage() {
             <li>Clean the space and light a diya or candle.</li>
             <li>Offer flowers, water, or fruits with a short prayer.</li>
             <li>Chant a simple mantra or name of the deity.</li>
-            <li>Sing an aarti from Bhakti Sagar.</li>
+            <li>Sing an aarti from Bhakti Chat.</li>
             <li>Offer prasad and close with a moment of silence.</li>
           </ol>
         </div>

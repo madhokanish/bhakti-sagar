@@ -51,7 +51,7 @@ export default function PoojaVidhiPage() {
           end of the pooja as an offering of light and devotion.
         </p>
         <p>
-          Bhakti Sagar provides aarti lyrics, mantras, and simple guidance so you can create a peaceful
+          Bhakti Chat provides aarti lyrics, mantras, and simple guidance so you can create a peaceful
           daily routine. If you are new, start with a short pooja and one aarti, then slowly expand as
           you become comfortable.
         </p>

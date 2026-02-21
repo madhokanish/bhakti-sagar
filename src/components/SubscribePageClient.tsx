@@ -41,7 +41,7 @@ export default function SubscribePageClient({ currency }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
-          returnUrl: "/online-puja",
+          returnUrl: "/",
           currency
         })
       });
@@ -84,7 +84,7 @@ export default function SubscribePageClient({ currency }: Props) {
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sagar-rose">Membership</p>
       <h1 className="mt-2 text-4xl font-serif text-sagar-ink md:text-5xl">Start your membership</h1>
       <p className="mt-3 text-base text-sagar-ink/75">
-        Access Live Darshan and Online Puja booking with one membership.
+        Support Bhakti Chat and continue your devotional routine with premium access.
       </p>
 
       <div className="mt-4 rounded-2xl border border-sagar-amber/20 bg-sagar-cream/40 p-4">

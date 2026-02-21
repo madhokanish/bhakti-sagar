@@ -4,9 +4,9 @@ import SubscribePageClient from "@/components/SubscribePageClient";
 import { getCurrencyForRequest } from "@/lib/subscription";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Manage Subscription | Bhakti Sagar",
+  title: "Manage Subscription | Bhakti Chat",
   description:
-    "Manage your Bhakti Sagar membership billing, payment methods, and cancellation via Stripe Customer Portal.",
+    "Manage your Bhakti Chat membership billing, payment methods, and cancellation via Stripe Customer Portal.",
   pathname: "/manage-subscription"
 });
 

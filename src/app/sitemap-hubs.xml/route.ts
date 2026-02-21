@@ -1,11 +1,9 @@
 import { siteConfig } from "@/lib/seo";
 import { deityHubs, festivals, poojaGuides, mantras, chalisas } from "@/lib/content";
 import { cities } from "@/lib/choghadiyaCities";
-import { getActiveOnlinePujas } from "@/lib/onlinePuja";
-import { getLiveMandirs } from "@/data/liveMandirs";
-import { resolveLiveMandirs } from "@/lib/liveDarshan";
 
 export async function GET() {
+  const today = new Date().toISOString().slice(0, 10);
   const hubs = [
     "/",
     "/aartis",
@@ -21,10 +19,6 @@ export async function GET() {
     "/vrat-katha",
     "/bhajan",
     "/choghadiya",
-    "/live",
-    "/online-puja",
-    "/online-puja/ganesh-weekly",
-    "/online-puja/shani-weekly",
     "/about",
     "/contact",
     "/privacy",
@@ -40,9 +34,6 @@ export async function GET() {
   const mantraUrls = mantras.map((item) => `${siteConfig.url}/mantra/${item.slug}`);
   const chalisaUrls = chalisas.map((item) => `${siteConfig.url}/chalisa/${item.slug}`);
   const choghadiyaUrls = cities.map((city) => `${siteConfig.url}/choghadiya/${city.slug}`);
-  const onlinePujaUrls = getActiveOnlinePujas().map((puja) => `${siteConfig.url}/online-puja/${puja.slug}`);
-  const resolvedLiveMandirs = await resolveLiveMandirs(getLiveMandirs());
-  const liveDarshanUrls = resolvedLiveMandirs.map((mandir) => `${siteConfig.url}/live/${mandir.slug}`);
 
   const urls = [
     ...hubUrls,
@@ -51,9 +42,7 @@ export async function GET() {
     ...poojaUrls,
     ...mantraUrls,
     ...chalisaUrls,
-    ...choghadiyaUrls,
-    ...onlinePujaUrls,
-    ...liveDarshanUrls
+    ...choghadiyaUrls
   ];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -61,6 +50,7 @@ ${urls
   .map(
     (url) => `  <url>
     <loc>${url}</loc>
+    <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>`

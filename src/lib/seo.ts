@@ -1,16 +1,20 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { BRAND_LOGO_PATH, BRAND_NAME } from "@/lib/brand";
 
 export const siteConfig = {
-  name: "Bhakti Sagar",
+  name: BRAND_NAME,
   description:
-    "A Global Devotional Platform for aartis, pooja guides, mantras, and devotional timings.",
+    "Bhakti Chat offers devotional AI guidance inspired by sacred teachings, plus trusted aarti and daily reflection tools.",
   url: "https://bhakti-sagar.com",
-  ogImage: "/brand/bhakti-sagar-logo.png",
+  ogImage: BRAND_LOGO_PATH,
   twitter: "@bhaktisagar"
 };
 
-export const supportedLanguages: { code: string; label: string }[] = [];
+export const supportedLanguages: { code: string; label: string }[] = [
+  { code: "en", label: "English" },
+  { code: "hi", label: "Hindi" }
+];
 
 export function getRequestLanguage(defaultLang: "en" | "hi" = "en") {
   try {

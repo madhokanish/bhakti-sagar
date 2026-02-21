@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import AartiLyricsPanel from "@/components/AartiLyricsPanel";
 import MeaningPanel from "@/components/MeaningPanel";
 import ShareButton from "@/components/ShareButton";
@@ -11,6 +12,7 @@ import type { Metadata } from "next";
 import { buildMetadata, getRequestLanguage, siteConfig } from "@/lib/seo";
 import { articleJsonLd, breadcrumbJsonLd, faqJsonLd, videoObjectJsonLd } from "@/lib/schema";
 import { getAuthorBySlug } from "@/lib/authors";
+import { buildBhaktiChatHref } from "@/lib/bhaktigpt/chatLinks";
 
 export function generateStaticParams() {
   return getAartis().map((aarti) => ({ slug: aarti.slug }));
@@ -97,7 +99,7 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
     url: aartiUrl,
     datePublished,
     dateModified,
-    authorName: author?.name ?? "Bhakti Sagar",
+    authorName: author?.name ?? "Bhakti Chat",
     image: siteConfig.ogImage
   });
   const videoData = videoId
@@ -286,6 +288,31 @@ export default function AartiDetailPage({ params }: { params: { slug: string } }
           </div>
         </div>
       )}
+
+      <section className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white/85 p-6 shadow-sagar-soft">
+        <h3 className="text-lg font-serif text-sagar-ink">Want guidance today?</h3>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <Link
+            href={buildBhaktiChatHref({ guideId: "krishna" })}
+            className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/35 p-4 text-sm text-sagar-ink/82 transition hover:border-sagar-saffron/45"
+          >
+            Shri Krishna
+          </Link>
+          <Link
+            href={buildBhaktiChatHref({ guideId: "shani" })}
+            className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/35 p-4 text-sm text-sagar-ink/82 transition hover:border-sagar-saffron/45"
+          >
+            Shani Dev
+          </Link>
+          <Link
+            href={buildBhaktiChatHref({ guideId: "lakshmi" })}
+            className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/35 p-4 text-sm text-sagar-ink/82 transition hover:border-sagar-saffron/45"
+          >
+            Lakshmi Ji
+          </Link>
+        </div>
+      </section>
+
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleData) }}

@@ -12,7 +12,7 @@ export function generateMetadata({
   const query = searchParams?.q?.trim();
   const title = query ? `Search results for "${query}"` : "All Aartis & Bhajans";
   const description = query
-    ? `Search results for ${query} on Bhakti Sagar.`
+    ? `Search results for ${query} on Bhakti Chat.`
     : "Browse the full library of aartis and bhajans with English and Hindi lyrics.";
   return buildMetadata({
     title,
@@ -37,7 +37,7 @@ export default function AartisPage({
   const faqData = faqJsonLd([
     {
       q: "Where can I find aarti lyrics in English?",
-      a: "Bhakti Sagar provides aarti lyrics in English letters along with Hindi text."
+      a: "Bhakti Chat provides aarti lyrics in English letters along with Hindi text."
     },
     {
       q: "Do you have aarti meaning?",

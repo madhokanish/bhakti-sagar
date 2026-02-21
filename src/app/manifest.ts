@@ -1,4 +1,5 @@
 import { siteConfig } from "@/lib/seo";
+import { BRAND_LOGO_PATH } from "@/lib/brand";
 
 export default function manifest() {
   return {
@@ -11,7 +12,7 @@ export default function manifest() {
     theme_color: "#E56A20",
     icons: [
       {
-        src: "/brand/bhakti-sagar-logo.png",
+        src: BRAND_LOGO_PATH,
         sizes: "512x512",
         type: "image/png"
       }

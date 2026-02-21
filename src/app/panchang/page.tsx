@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   ...buildMetadata({
     title: "Panchang",
     description:
-      "Daily panchang guidance with tithi, nakshatra, and muhurat notes. Bhakti Sagar will bring simple panchang explanations and city-wise insights.",
+      "Daily panchang guidance with tithi, nakshatra, and muhurat notes. Bhakti Chat will bring simple panchang explanations and city-wise insights.",
     pathname: "/panchang"
   })
 };
@@ -30,7 +30,7 @@ const faqItems = [
     a: "Yes. Many devotees use it to align daily puja or aarti with favorable timings."
   },
   {
-    q: "Does Bhakti Sagar provide city-wise panchang?",
+    q: "Does Bhakti Chat provide city-wise panchang?",
     a: "We are adding it. For now, you can use Choghadiya timings for your city and check back for full panchang soon."
   }
 ];
@@ -43,7 +43,7 @@ export default function PanchangPage() {
       <p className="mt-4 max-w-3xl text-sm leading-relaxed text-sagar-ink/70">
         Panchang is the traditional Hindu calendar that guides devotees on tithi, nakshatra, yoga, karan, and
         sunrise-based timings. It is commonly used to choose auspicious windows for rituals, festivals, travel, and
-        important events. Bhakti Sagar is building a calm, easy-to-read panchang experience so you can check essential
+        important events. Bhakti Chat is building a calm, easy-to-read panchang experience so you can check essential
         details without wading through complicated tables.
       </p>
       <p className="mt-4 max-w-3xl text-sm leading-relaxed text-sagar-ink/70">

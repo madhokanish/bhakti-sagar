@@ -2,8 +2,10 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { trackEvent } from "@/lib/analytics";
+import { useAuthModal } from "@/components/auth/AuthModalProvider";
 import { getGuideConfig } from "@/lib/bhaktigpt/guideConfig";
 import {
   BHAKTI_GUIDE_LIST,
@@ -25,6 +27,8 @@ type ConversationSummary = {
   guideId: BhaktiGuideId;
   title: string | null;
   updatedAt: string;
+  createdAt: string;
+  hasUserMessage: boolean;
 };
 
 type InitialResponse = {
@@ -42,9 +46,9 @@ type StreamEvent = {
 type LoadState = "loading" | "ready" | "error";
 
 const MOBILE_SUGGESTED_PROMPTS = [
-  "I feel stuck, help me take the next step",
-  "I am anxious about money, what should I focus on",
-  "I need clarity on a decision"
+  "chat_suggested_1",
+  "chat_suggested_2",
+  "chat_suggested_3"
 ];
 const CHAT_DISCLAIMER =
   "Inspired by scripture and traditions. Not medical, legal, or financial advice.";
@@ -71,6 +75,36 @@ function formatMessageTime(value?: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function formatConversationStartedAt(value?: string) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
+function getConversationLabel(conversation: ConversationSummary) {
+  const title = conversation.title?.trim();
+  if (title && title.toLowerCase() !== "new chat") return title;
+  if (conversation.hasUserMessage) {
+    return formatConversationStartedAt(conversation.createdAt) ?? "New chat";
+  }
+  return "New chat";
+}
+
+function getConversationLabelLocalized(conversation: ConversationSummary, fallbackNewChat: string) {
+  const title = conversation.title?.trim();
+  if (title && title.toLowerCase() !== "new chat") return title;
+  if (conversation.hasUserMessage) {
+    return formatConversationStartedAt(conversation.createdAt) ?? fallbackNewChat;
+  }
+  return fallbackNewChat;
 }
 
 function splitLinkSuffix(rawUrl: string) {
@@ -259,7 +293,7 @@ function GuidePicker({ onPick }: { onPick: (guideId: BhaktiGuideId) => void }) {
   return (
     <section className="space-y-4 rounded-3xl border border-sagar-amber/20 bg-white/90 p-5 shadow-sagar-soft">
       <header>
-        <h1 className="text-2xl font-semibold text-sagar-ink">Choose your BhaktiGPT guide</h1>
+        <h1 className="text-2xl font-semibold text-sagar-ink">Choose your Bhakti Chat guide</h1>
         <p className="mt-2 text-sm text-sagar-ink/75">
           Pick one guide to start. Each guide has separate chat history and memory.
         </p>
@@ -298,14 +332,26 @@ function GuidePicker({ onPick }: { onPick: (guideId: BhaktiGuideId) => void }) {
 }
 
 export default function BhaktiGptChatClient() {
+  const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname() || "/";
+  const { openAuthModal } = useAuthModal();
+  const localeSegment = pathname.split("/").filter(Boolean)[0];
+  const localePrefix = localeSegment === "hi" || localeSegment === "en" ? `/${localeSegment}` : "";
 
   const guideParam = searchParams.get("guide");
   const prefillParam = searchParams.get("prefill");
   const selectedGuideId = isGuideId(guideParam ?? "") ? (guideParam as BhaktiGuideId) : null;
   const selectedGuide = selectedGuideId ? BHAKTI_GUIDES[selectedGuideId] : null;
   const selectedGuideConfig = selectedGuideId ? getGuideConfig(selectedGuideId) : null;
+  const signInCallbackUrl = (() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("auth");
+    params.delete("callbackUrl");
+    const query = params.toString();
+    return query ? `${localePrefix}/bhaktigpt/chat?${query}` : `${localePrefix}/bhaktigpt/chat`;
+  })();
 
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -323,6 +369,8 @@ export default function BhaktiGptChatClient() {
   const composerShellRef = useRef<HTMLDivElement | null>(null);
   const handledPrefillRef = useRef<string | null>(null);
   const [composerHeight, setComposerHeight] = useState(124);
+
+  const suggestedPrompts = MOBILE_SUGGESTED_PROMPTS.map((key) => t(key));
 
   const focusComposer = useCallback(() => {
     requestAnimationFrame(() => composerRef.current?.focus());
@@ -368,9 +416,9 @@ export default function BhaktiGptChatClient() {
         params.delete("conversationId");
         params.delete("new");
       }
-      router.replace(`/bhaktigpt/chat?${params.toString()}`);
+      router.replace(`${localePrefix}/bhaktigpt/chat?${params.toString()}`);
     },
-    [router, searchParams]
+    [router, searchParams, localePrefix]
   );
 
   const loadGuideConversation = useCallback(async (
@@ -415,6 +463,14 @@ export default function BhaktiGptChatClient() {
       setLoadError(error instanceof Error ? error.message : "Unable to load chat right now.");
     }
   }, [focusComposer, updateGuideQuery]);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
 
   useEffect(() => {
     if (!selectedGuideId) {
@@ -503,14 +559,6 @@ export default function BhaktiGptChatClient() {
     }
     focusComposer();
   }, [focusComposer, loadGuideConversation, selectedGuideId, updateGuideQuery]);
-
-  const handleBack = useCallback(() => {
-    if (window.history.length > 1) {
-      router.back();
-      return;
-    }
-    router.push("/");
-  }, [router]);
 
   const sendMessage = useCallback(
     async (prefilled?: string) => {
@@ -672,13 +720,13 @@ export default function BhaktiGptChatClient() {
     <>
       <section className="grid h-full min-h-0 min-w-0 overflow-hidden rounded-none bg-white md:grid-cols-[18rem_1fr] md:rounded-3xl md:border md:border-sagar-amber/20 md:bg-white/95 md:shadow-sagar-soft">
         <aside className="hidden border-r border-sagar-amber/20 bg-sagar-cream/30 p-3 md:flex md:flex-col">
-          <h2 className="px-2 text-sm font-semibold uppercase tracking-[0.12em] text-sagar-rose">BhaktiGPT</h2>
+          <h2 className="px-2 text-sm font-semibold uppercase tracking-[0.12em] text-sagar-rose">{t("brand_name")}</h2>
           <button
             type="button"
             onClick={startNewChat}
             className="mt-3 rounded-xl bg-sagar-saffron px-3 py-2 text-sm font-semibold text-white hover:bg-sagar-ember"
           >
-            New chat
+            {t("chat_new")}
           </button>
 
           <div className="mt-4 space-y-2">
@@ -713,10 +761,10 @@ export default function BhaktiGptChatClient() {
           </div>
 
           <div className="mt-4 border-t border-sagar-amber/20 pt-3">
-            <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-sagar-rose">Recent</p>
+            <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-sagar-rose">{t("chat_recent")}</p>
             <div className="mt-2 space-y-1">
               {conversations.length === 0 ? (
-                <p className="px-2 text-xs text-sagar-ink/60">No saved threads yet.</p>
+                <p className="px-2 text-xs text-sagar-ink/60">{t("chat_no_threads")}</p>
               ) : (
                 conversations.slice(0, 10).map((conversation) => (
                   <button
@@ -729,7 +777,7 @@ export default function BhaktiGptChatClient() {
                         : "border-sagar-amber/20 bg-white/60 hover:border-sagar-amber/45"
                     }`}
                   >
-                    {conversation.title || "Untitled"}
+                    {getConversationLabelLocalized(conversation, t("chat_new"))}
                   </button>
                 ))
               )}
@@ -738,48 +786,38 @@ export default function BhaktiGptChatClient() {
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
-          <header className="sticky top-0 z-20 border-b border-sagar-amber/20 bg-white/95 px-3 py-2.5 backdrop-blur sm:px-6 sm:py-3">
+          <header className="sticky top-0 z-20 border-b border-sagar-amber/20 bg-white px-3 py-2 backdrop-blur sm:px-5 sm:py-2.5">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-sagar-amber/30 text-sagar-ink/80 md:hidden"
-                  aria-label="Go back"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="h-5 w-5"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M11.78 3.22a.75.75 0 0 1 0 1.06L6.06 10l5.72 5.72a.75.75 0 0 1-1.06 1.06l-6.25-6.25a.75.75 0 0 1 0-1.06l6.25-6.25a.75.75 0 0 1 1.06 0Z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
                 <GuideAvatar guideId={selectedGuideId} size="sm" className="md:h-10 md:w-10" />
                 <div>
                   <p className="text-sm font-semibold text-sagar-ink">{selectedGuideConfig?.displayName}</p>
-                  <p className="text-[11px] text-sagar-ink/65">Online guide</p>
+                  <p className="text-[11px] text-sagar-ink/65">{t("chat_online_guide")}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={startNewChat}
-                  className="rounded-full border border-sagar-amber/30 px-3 py-2 text-xs font-semibold text-sagar-ink/80"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-sagar-amber/30 text-sagar-ink/80 sm:h-auto sm:w-auto sm:px-3 sm:py-2 sm:text-xs sm:font-semibold"
+                  aria-label={t("chat_new")}
                 >
-                  New chat
+                  <svg
+                    viewBox="0 0 20 20"
+                    className="h-4 w-4 sm:mr-1"
+                    aria-hidden="true"
+                    fill="none"
+                  >
+                    <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                  <span className="hidden sm:inline">{t("chat_new")}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAboutModal(true)}
                   className="hidden rounded-full border border-sagar-amber/30 px-3 py-2 text-xs font-semibold text-sagar-ink/80 sm:inline-flex"
                 >
-                  About
+                  {t("chat_about")}
                 </button>
               </div>
             </div>
@@ -787,7 +825,7 @@ export default function BhaktiGptChatClient() {
 
           <div
             ref={messagesRef}
-            className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden overscroll-y-contain px-3 py-3 text-[15px] leading-7 sm:px-6 sm:py-4 sm:text-base"
+            className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden overscroll-y-contain px-3 py-2 text-[15px] leading-7 sm:px-5 sm:py-3 sm:text-base"
             style={{ paddingBottom: `${composerHeight + 24}px` }}
           >
             {loadState === "loading" ? (
@@ -806,7 +844,7 @@ export default function BhaktiGptChatClient() {
                   onClick={() => void loadGuideConversation(selectedGuideId)}
                   className="mt-3 rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700"
                 >
-                  Retry
+                  {t("chat_retry")}
                 </button>
               </div>
             ) : null}
@@ -815,12 +853,12 @@ export default function BhaktiGptChatClient() {
               <div className="space-y-4 rounded-2xl border border-sagar-amber/20 bg-sagar-cream/40 p-4 sm:p-5">
                 <div>
                   <p className="text-sm font-semibold text-sagar-ink">
-                    Start your conversation with {selectedGuide.name}
+                    {t("chat_start_with", { name: selectedGuide.name })}
                   </p>
                   <p className="mt-1 text-sm text-sagar-ink/75">{selectedGuide.shortDescription}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {MOBILE_SUGGESTED_PROMPTS.map((prompt) => (
+                  {suggestedPrompts.map((prompt) => (
                     <button
                       key={prompt}
                       type="button"
@@ -885,7 +923,7 @@ export default function BhaktiGptChatClient() {
 
           <div
             ref={composerShellRef}
-            className="sticky bottom-0 z-20 border-t border-sagar-amber/20 bg-white px-3 pt-2 pb-[calc(12px+env(safe-area-inset-bottom))] sm:px-6 sm:pt-3"
+            className="sticky bottom-0 z-20 border-t border-sagar-amber/20 bg-white px-3 pt-2 pb-[calc(10px+env(safe-area-inset-bottom))] sm:px-5 sm:pt-3"
           >
             <div className="flex gap-2">
               <textarea
@@ -902,7 +940,7 @@ export default function BhaktiGptChatClient() {
                   }
                 }}
                 rows={1}
-                placeholder="Share what's on your mind..."
+                placeholder={t("chat_placeholder")}
                 className="min-h-11 w-full resize-none rounded-xl border border-sagar-amber/25 bg-white px-3 py-2.5 text-[16px] leading-6 text-sagar-ink outline-none transition focus:border-sagar-saffron/60"
               />
               <button
@@ -911,7 +949,7 @@ export default function BhaktiGptChatClient() {
                 disabled={isStreaming || !inputValue.trim()}
                 className="inline-flex min-h-11 items-center justify-center rounded-xl bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isStreaming ? "Sending..." : "Send"}
+                {isStreaming ? t("chat_sending") : t("chat_send")}
               </button>
             </div>
 
@@ -930,7 +968,9 @@ export default function BhaktiGptChatClient() {
           <div className="w-full max-w-lg rounded-3xl border border-sagar-amber/25 bg-white p-5 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.55)]">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-sagar-ink">{`About ${selectedGuideConfig?.displayName ?? selectedGuide.name}`}</h2>
+                <h2 className="text-lg font-semibold text-sagar-ink">
+                  {t("chat_about_title", { name: selectedGuideConfig?.displayName ?? selectedGuide.name })}
+                </h2>
                 <p className="mt-1 text-sm whitespace-pre-line text-sagar-ink/70">
                   {selectedGuide.aboutIntro ?? selectedGuide.shortDescription}
                 </p>
@@ -940,13 +980,13 @@ export default function BhaktiGptChatClient() {
                 onClick={() => setShowAboutModal(false)}
                 className="rounded-full border border-sagar-amber/30 px-2.5 py-1 text-xs font-semibold text-sagar-ink/70"
               >
-                Close
+                {t("common_close")}
               </button>
             </div>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-sagar-rose">Can help with</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-sagar-rose">{t("chat_can_help")}</p>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-sagar-ink/80">
                   {selectedGuide.about.canHelpWith.map((item) => (
                     <li key={item}>{item}</li>
@@ -954,7 +994,7 @@ export default function BhaktiGptChatClient() {
                 </ul>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-sagar-rose">Cannot do</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-sagar-rose">{t("chat_cannot")}</p>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-sagar-ink/80">
                   {selectedGuide.about.cannotHelpWith.map((item) => (
                     <li key={item}>{item}</li>
@@ -973,23 +1013,27 @@ export default function BhaktiGptChatClient() {
       {showSignInPrompt ? (
         <div className="fixed inset-0 z-[96] flex items-center justify-center bg-sagar-ink/40 p-4">
           <div className="w-full max-w-md rounded-3xl border border-sagar-amber/25 bg-white p-5 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.55)]">
-            <h2 className="text-xl font-serif text-sagar-ink">Continue your darshan</h2>
+            <h2 className="text-xl font-serif text-sagar-ink">{t("auth_continue_darshan")}</h2>
             <p className="mt-2 text-sm text-sagar-ink/75">
-              You have used your free messages for now. Sign in to continue your devotional conversation.
+              {t("auth_free_limit")}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <a
-                href="/signin?callbackUrl=/bhaktigpt/chat"
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSignInPrompt(false);
+                  openAuthModal({ callbackUrl: signInCallbackUrl });
+                }}
                 className="rounded-full bg-sagar-saffron px-4 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember"
               >
-                Sign in to continue
-              </a>
+                {t("auth_signin_continue")}
+              </button>
               <button
                 type="button"
                 onClick={() => setShowSignInPrompt(false)}
                 className="rounded-full border border-sagar-amber/30 px-4 py-2 text-sm font-semibold text-sagar-ink/80"
               >
-                Maybe later
+                {t("common_maybe_later")}
               </button>
             </div>
           </div>

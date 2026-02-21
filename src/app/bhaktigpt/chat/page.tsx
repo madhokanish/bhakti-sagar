@@ -6,7 +6,7 @@ import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = {
   ...buildMetadata({
-    title: "BhaktiGPT Chat",
+    title: "Bhakti Chat Chat",
     description:
       "Chat with devotional AI guides inspired by Shri Krishna, Shani Dev, and Goddess Lakshmi teachings.",
     pathname: "/bhaktigpt/chat"
@@ -16,14 +16,14 @@ export const metadata: Metadata = {
 export default function BhaktiGptChatPage() {
   return (
     <div
-      className="fixed inset-x-0 z-30 overflow-x-hidden overflow-y-hidden bg-white [height:calc(100dvh-var(--nav-height,0px))] [max-height:calc(100dvh-var(--nav-height,0px))]"
+      className="fixed inset-x-0 z-30 flex min-h-0 flex-col overflow-x-hidden overflow-y-hidden bg-white [height:calc(100dvh-var(--nav-height,0px))] [max-height:calc(100dvh-var(--nav-height,0px))]"
       style={{ top: "var(--nav-height, 0px)" }}
     >
       <BhaktiGptPageView page="chat" />
       <Suspense
         fallback={
           <div className="h-full bg-white p-6 text-sm text-sagar-ink/70">
-            Loading BhaktiGPT chat...
+            Loading Bhakti Chat chat...
           </div>
         }
       >

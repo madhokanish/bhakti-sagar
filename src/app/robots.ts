@@ -5,7 +5,16 @@ export default function robots() {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/aartis?*", "/search", "/search*"]
+      disallow: [
+        "/api/",
+        "/signin",
+        "/profile",
+        "/account",
+        "/manage-subscription",
+        "/subscribe",
+        "/search",
+        "/search*"
+      ]
     },
     sitemap: `${siteConfig.url}/sitemap.xml`
   };

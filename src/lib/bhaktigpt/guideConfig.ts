@@ -18,7 +18,7 @@ export const GUIDE_CONFIG: Record<BhaktiGuideId, GuideUiConfig> = {
   },
   lakshmi: {
     id: "lakshmi",
-    displayName: "Goddess Lakshmi",
+    displayName: "Lakshmi Ji",
     subtitle: "Prosperity with steadiness",
     avatarPath: "/guides/lakshmi-avatar.jpg",
     avatarObjectPosition: "50% 22%"
@@ -35,4 +35,3 @@ export const GUIDE_CONFIG: Record<BhaktiGuideId, GuideUiConfig> = {
 export function getGuideConfig(guideId: BhaktiGuideId) {
   return GUIDE_CONFIG[guideId];
 }
-

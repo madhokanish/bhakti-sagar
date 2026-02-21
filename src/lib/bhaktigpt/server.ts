@@ -73,8 +73,8 @@ export async function resolveBhaktiIdentity(): Promise<BhaktiIdentity> {
     const session = await auth();
     sessionUserId = session?.user?.id ?? null;
   } catch (error) {
-    // Keep BhaktiGPT available in anonymous mode even if auth/session tables are unavailable.
-    console.error("[BhaktiGPT] Auth unavailable, falling back to anonymous mode.", error);
+    // Keep Bhakti Chat available in anonymous mode even if auth/session tables are unavailable.
+    console.error("[Bhakti Chat] Auth unavailable, falling back to anonymous mode.", error);
   }
 
   const cookieStore = cookies();
@@ -149,7 +149,7 @@ export async function getUsageForIdentity(identity: BhaktiIdentity) {
         ...getAnonLimitInfo(0)
       };
     } catch (error) {
-      console.error("[BhaktiGPT] Usage lookup failed for authenticated user.", error);
+      console.error("[Bhakti Chat] Usage lookup failed for authenticated user.", error);
       return {
         messageCount: getFallbackCount(identity),
         limitReached: false,
@@ -174,7 +174,7 @@ export async function getUsageForIdentity(identity: BhaktiIdentity) {
 
     count = usage?.messageCount ?? 0;
   } catch (error) {
-    console.error("[BhaktiGPT] Usage lookup failed for anonymous session.", error);
+    console.error("[Bhakti Chat] Usage lookup failed for anonymous session.", error);
     count = getFallbackCount(identity);
   }
 
@@ -207,7 +207,7 @@ export async function incrementAnonymousUsage(sessionId: string) {
 
     return usage.messageCount;
   } catch (error) {
-    console.error("[BhaktiGPT] Usage increment failed for anonymous session.", error);
+    console.error("[Bhakti Chat] Usage increment failed for anonymous session.", error);
     const fallbackKey = `session:${sessionId}`;
     const map = getUsageFallbackMap();
     const next = (map.get(fallbackKey) ?? 0) + 1;

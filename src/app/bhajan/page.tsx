@@ -17,7 +17,7 @@ export default function BhajanPage() {
       <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">Bhajan & Aarti</p>
       <h1 className="mt-3 text-4xl font-serif text-sagar-ink">Devotional songs for daily bhakti</h1>
       <p className="mt-4 max-w-3xl text-sm leading-relaxed text-sagar-ink/70">
-        Bhajans are devotional songs sung in praise and remembrance. Bhakti Sagar currently focuses on aartis
+        Bhajans are devotional songs sung in praise and remembrance. Bhakti Chat currently focuses on aartis
         and is expanding the bhajan collection. Explore aartis by deity and check back for more bhajans soon.
       </p>
 

@@ -5,7 +5,7 @@ import { breadcrumbJsonLd } from "@/lib/schema";
 export const metadata: Metadata = {
   ...buildMetadata({
     title: "Editorial Policy",
-    description: "How Bhakti Sagar reviews, updates, and presents devotional content.",
+    description: "How Bhakti Chat reviews, updates, and presents devotional content.",
     pathname: "/editorial-policy"
   })
 };

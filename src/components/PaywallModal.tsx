@@ -115,7 +115,7 @@ export default function PaywallModal({ open, onClose, featureName, returnTo, pri
           <div>
             <h2 className="text-3xl font-serif text-sagar-ink">Start your membership</h2>
             <p className="mt-2 text-sm text-sagar-ink/72">
-              Premium access for Live Darshan 24x7, Online Puja booking, and member-only features.
+              Premium access for uninterrupted Bhakti Chat guidance and member-only features.
             </p>
             <p className="mt-2 text-base font-semibold text-sagar-ink">{priceLabel} per month</p>
           </div>

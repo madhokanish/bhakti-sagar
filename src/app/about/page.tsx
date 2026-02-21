@@ -6,23 +6,23 @@ import { breadcrumbJsonLd, faqJsonLd, organizationJsonLd } from "@/lib/schema";
 const aboutFaqs = [
   {
     q: "What is an aarti?",
-    a: "An aarti is a devotional prayer hymn sung with light offerings. On Bhakti Sagar you can read simple lyrics and follow along daily."
+    a: "An aarti is a devotional prayer hymn sung with light offerings. On Bhakti Chat you can read simple lyrics and follow along daily."
   },
   {
     q: "How do I use meanings?",
     a: "Each aarti page includes a meaning panel that explains lines in plain words. It is made for easier understanding and devotional focus."
   },
   {
-    q: "How do online pujas work?",
-    a: "Online Puja pages show the weekly schedule and details. You can submit your interest and our team follows up with the next steps."
+    q: "How does Bhakti Chat help daily?",
+    a: "Bhakti Chat offers devotional reflection, practical micro-actions, and calm spiritual guidance in a respectful tone."
   }
 ];
 
 export const metadata: Metadata = {
   ...buildMetadata({
-    title: "About Bhakti Sagar | A Global Devotional Platform",
+    title: "About Bhakti Chat | A Global Devotional Platform",
     description:
-      "Bhakti Sagar helps you read aartis with meanings, follow daily devotion, check Choghadiya, and join weekly online pujas. Built for devotees in India and abroad.",
+      "Bhakti Chat helps you practice daily devotion with Bhakti Chat guidance, aarti reading, and practical spiritual reflection.",
     pathname: "/about"
   })
 };
@@ -36,10 +36,10 @@ export default function AboutPage() {
   const aboutPageJsonLd = {
     "@context": "https://schema.org",
     "@type": "AboutPage",
-    name: "About Bhakti Sagar",
+    name: "About Bhakti Chat",
     url: `${siteConfig.url}/about`,
     description:
-      "Bhakti Sagar helps devotees read aarti lyrics and aarti meanings, check Choghadiya, and join weekly online puja schedules.",
+      "Bhakti Chat helps devotees with Bhakti Chat guidance, devotional reading, and daily reflection.",
     inLanguage: "en"
   };
 
@@ -55,7 +55,11 @@ export default function AboutPage() {
         <h1 className="text-4xl font-serif text-sagar-ink md:text-5xl">About</h1>
         <h2 className="mt-6 text-2xl font-serif text-sagar-ink">A calm place for daily devotion</h2>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-sagar-ink/75 md:text-base">
-          Bhakti Sagar helps you stay close to prayer every day with{" "}
+          Bhakti Chat helps you stay close to prayer every day with{" "}
+          <Link href="/bhaktigpt/chat?guide=krishna" className="text-sagar-saffron underline decoration-sagar-amber/50 underline-offset-4">
+            Bhakti Chat guidance
+          </Link>
+          ,{" "}
           <Link href="/aartis" className="text-sagar-saffron underline decoration-sagar-amber/50 underline-offset-4">
             aarti lyrics
           </Link>{" "}
@@ -67,18 +71,14 @@ export default function AboutPage() {
           <Link href="/choghadiya" className="text-sagar-saffron underline decoration-sagar-amber/50 underline-offset-4">
             Choghadiya
           </Link>{" "}
-          guidance, and weekly{" "}
-          <Link href="/online-puja" className="text-sagar-saffron underline decoration-sagar-amber/50 underline-offset-4">
-            online puja
-          </Link>{" "}
-          opportunities.
+          guidance.
         </p>
       </section>
 
       <section className="max-w-4xl border-b border-sagar-amber/20 py-8 md:py-10">
         <h2 className="text-2xl font-serif text-sagar-ink">Our vision</h2>
         <p className="mt-3 text-sm leading-7 text-sagar-ink/75 md:text-base">
-          We are building Bhakti Sagar as a global daily devotional habit where prayer feels accessible, focused, and
+          We are building Bhakti Chat as a global daily devotional habit where prayer feels accessible, focused, and
           grounded in respectful understanding.
         </p>
         <ul className="mt-5 space-y-2 text-sm text-sagar-ink/75 md:text-base">
@@ -93,18 +93,18 @@ export default function AboutPage() {
         <h2 className="text-2xl font-serif text-sagar-ink">What you can do here</h2>
         <div className="mt-5 grid gap-4 md:grid-cols-3">
           <Link
+            href="/bhaktigpt/chat?guide=krishna"
+            className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-5 text-sm leading-6 text-sagar-ink/75 transition hover:border-sagar-saffron/50"
+          >
+            <h3 className="text-base font-semibold text-sagar-ink">Bhakti Chat devotional guidance</h3>
+            <p className="mt-2">Speak with Shri Krishna, Lakshmi Ji, or Shani Dev personas in one click.</p>
+          </Link>
+          <Link
             href="/aartis"
             className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-5 text-sm leading-6 text-sagar-ink/75 transition hover:border-sagar-saffron/50"
           >
             <h3 className="text-base font-semibold text-sagar-ink">Aartis with lyrics and meanings</h3>
             <p className="mt-2">Read in English or Hindi and use guided meaning support in one clean flow.</p>
-          </Link>
-          <Link
-            href="/online-puja"
-            className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-5 text-sm leading-6 text-sagar-ink/75 transition hover:border-sagar-saffron/50"
-          >
-            <h3 className="text-base font-semibold text-sagar-ink">Online Puja weekly schedule</h3>
-            <p className="mt-2">Explore upcoming temple puja opportunities and share your interest quickly.</p>
           </Link>
           <Link
             href="/choghadiya"
@@ -128,7 +128,7 @@ export default function AboutPage() {
       <section className="max-w-4xl border-b border-sagar-amber/20 py-8 md:py-10">
         <h2 className="text-2xl font-serif text-sagar-ink">For devotees in India and abroad</h2>
         <p className="mt-3 text-sm leading-7 text-sagar-ink/75 md:text-base">
-          Whether you are in India, the UK, the US, or anywhere else, we want Bhakti Sagar to feel like home for your
+          Whether you are in India, the UK, the US, or anywhere else, we want Bhakti Chat to feel like home for your
           daily prayer rhythm.
         </p>
       </section>
@@ -152,16 +152,16 @@ export default function AboutPage() {
         <h2 className="sr-only">Call to action</h2>
         <div className="flex flex-col gap-3 sm:flex-row">
           <Link
-            href="/aartis"
+            href="/bhaktigpt/chat?guide=krishna"
             className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-sagar-saffron px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white"
           >
-            Explore Aartis
+            Start Bhakti Chat
           </Link>
           <Link
-            href="/online-puja"
+            href="/aartis"
             className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-sagar-saffron/40 px-6 py-3 text-sm font-semibold uppercase tracking-wide text-sagar-saffron"
           >
-            Online Puja
+            Explore Aartis
           </Link>
         </div>
       </section>

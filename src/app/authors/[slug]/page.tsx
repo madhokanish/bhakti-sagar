@@ -14,7 +14,7 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   if (!author) {
     return buildMetadata({
       title: "Author",
-      description: "Bhakti Sagar author page.",
+      description: "Bhakti Chat author page.",
       pathname: `/authors/${params.slug}`
     });
   }

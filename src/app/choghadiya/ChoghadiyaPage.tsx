@@ -128,7 +128,7 @@ export function ChoghadiyaPage({
       </section>
 
       <section className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white p-6">
-        <h2 className="text-xl font-serif text-sagar-ink">More from Bhakti Sagar</h2>
+        <h2 className="text-xl font-serif text-sagar-ink">More from Bhakti Chat</h2>
         <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold text-sagar-ink/70">
           <Link href="/aartis" className="hover:text-sagar-saffron">Aarti collection</Link>
           <Link href="/festival" className="hover:text-sagar-saffron">Festival guides</Link>

@@ -36,7 +36,7 @@ export default function OAuthSignInButtons({ callbackUrl, emailEnabled = false }
     setEmailLoading(true);
     setEmailMessage(null);
     try {
-      const result = await signIn("nodemailer", {
+      const result = await signIn("email", {
         email: normalizedEmail,
         callbackUrl,
         redirect: false

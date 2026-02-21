@@ -298,7 +298,7 @@ export default function GoalPlannerPanel({
         }
       }
     }
-  }, []);
+  }, [plannerParams.goal, plannerParams.window]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

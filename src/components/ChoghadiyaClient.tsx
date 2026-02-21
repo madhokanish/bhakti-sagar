@@ -439,7 +439,7 @@ export default function ChoghadiyaClient({
       date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
     const ics = `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//Bhakti Sagar//Choghadiya//EN
+PRODID:-//Bhakti Chat//Choghadiya//EN
 BEGIN:VEVENT
 UID:${segment.name}-${segment.start.getTime()}
 DTSTAMP:${fmt(new Date())}

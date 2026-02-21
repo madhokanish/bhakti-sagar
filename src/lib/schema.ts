@@ -1,13 +1,16 @@
 import { siteConfig } from "@/lib/seo";
 
 export function organizationJsonLd() {
+  const youtubeUrl = process.env.NEXT_PUBLIC_BHAKTISAGAR_TV_URL?.trim();
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: siteConfig.name,
+    alternateName: "Bhakti Chat",
+    description: siteConfig.description,
     url: siteConfig.url,
     logo: `${siteConfig.url}${siteConfig.ogImage}`,
-    sameAs: []
+    sameAs: youtubeUrl ? [youtubeUrl] : []
   };
 }
 
@@ -16,6 +19,8 @@ export function websiteJsonLd() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: siteConfig.name,
+    alternateName: "Bhakti Chat",
+    description: siteConfig.description,
     url: siteConfig.url,
     potentialAction: {
       "@type": "SearchAction",
@@ -35,6 +40,30 @@ export function breadcrumbJsonLd(items: { name: string; url: string }[]) {
       name: item.name,
       item: item.url
     }))
+  };
+}
+
+export function webPageJsonLd({
+  name,
+  description,
+  url
+}: {
+  name: string;
+  description: string;
+  url: string;
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name,
+    description,
+    url,
+    inLanguage: "en",
+    isPartOf: {
+      "@type": "WebSite",
+      name: siteConfig.name,
+      url: siteConfig.url
+    }
   };
 }
 

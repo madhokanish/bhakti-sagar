@@ -18,18 +18,61 @@ function hasAuthSessionCookie(request: NextRequest) {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (pathname.length > 1 && pathname.endsWith("/")) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = pathname.slice(0, -1);
+    return NextResponse.redirect(redirectUrl, 301);
+  }
+
   const segments = pathname.split("/").filter(Boolean);
   const first = segments[0];
-  const normalizedPath =
+
+  // Canonicalize the root to a locale-prefixed route.
+  if (pathname === "/") {
+    const preferred = request.cookies.get("NEXT_LOCALE")?.value;
+    const locale = preferred && supportedLangs.includes(preferred) ? preferred : "en";
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = `/${locale}`;
+    return NextResponse.redirect(redirectUrl, 302);
+  }
+
+  // Enforce locale-prefixed routes for all other pages.
+  if (!first || !supportedLangs.includes(first)) {
+    const preferred = request.cookies.get("NEXT_LOCALE")?.value;
+    const locale = preferred && supportedLangs.includes(preferred) ? preferred : "en";
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = `/${locale}${pathname.startsWith("/") ? "" : "/"}${pathname}`;
+    return NextResponse.redirect(redirectUrl, 302);
+  }
+  const normalizedPathRaw =
     first && supportedLangs.includes(first)
       ? `/${segments.slice(1).join("/") || ""}`.replace(/\/$/, "") || "/"
       : pathname;
+  const normalizedPath = normalizedPathRaw.replace(/\/$/, "") || "/";
 
-  if (normalizedPath === "/account" && !hasAuthSessionCookie(request)) {
-    const signinUrl = request.nextUrl.clone();
-    signinUrl.pathname = "/signin";
-    signinUrl.searchParams.set("callbackUrl", pathname + request.nextUrl.search);
-    return NextResponse.redirect(signinUrl);
+  if (
+    normalizedPath === "/live" ||
+    normalizedPath.startsWith("/live/") ||
+    normalizedPath === "/live-darshan" ||
+    normalizedPath.startsWith("/live-darshan/") ||
+    normalizedPath === "/online-puja" ||
+    normalizedPath.startsWith("/online-puja/") ||
+    normalizedPath === "/bhaktigpt" ||
+    normalizedPath === "/bhaktigpt/krishna" ||
+    normalizedPath === "/bhaktigpt/lakshmi" ||
+    normalizedPath === "/bhaktigpt/shani-dev"
+  ) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/";
+    return NextResponse.redirect(redirectUrl, 301);
+  }
+
+  if ((normalizedPath === "/account" || normalizedPath === "/profile") && !hasAuthSessionCookie(request)) {
+    const authUrl = request.nextUrl.clone();
+    authUrl.pathname = "/";
+    authUrl.searchParams.set("auth", "1");
+    authUrl.searchParams.set("callbackUrl", "/profile");
+    return NextResponse.redirect(authUrl);
   }
 
   if (first && supportedLangs.includes(first)) {

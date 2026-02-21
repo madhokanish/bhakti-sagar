@@ -2,9 +2,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { BRAND_LOGO_PATH, BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
 
-export default function Logo() {
+export default function Logo({ href = "/" }: { href?: string }) {
   return (
-    <Link href="/" className="flex items-center gap-3 md:gap-4">
+    <Link href={href} className="flex items-center gap-3 md:gap-4">
       <div className="relative h-12 w-12 overflow-hidden md:h-16 md:w-16">
         <Image
           src={BRAND_LOGO_PATH}

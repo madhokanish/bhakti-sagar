@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import { useLocale } from "next-intl";
 
 type Locale = "en" | "hi";
 
@@ -30,7 +30,8 @@ export default function LanguageToggle() {
   const pathname = usePathname() || "/";
   const searchParams = useSearchParams();
   const router = useRouter();
-  const active = useMemo(() => getLocaleFromPath(pathname), [pathname]);
+  const locale = useLocale();
+  const active: Locale = locale === "hi" ? "hi" : getLocaleFromPath(pathname);
   const search = searchParams?.toString() ? `?${searchParams.toString()}` : "";
 
   return (

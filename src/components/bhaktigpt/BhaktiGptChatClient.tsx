@@ -2,8 +2,8 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { trackEvent } from "@/lib/analytics";
 import { useAuthModal } from "@/components/auth/AuthModalProvider";
 import { getGuideConfig } from "@/lib/bhaktigpt/guideConfig";
@@ -395,13 +395,12 @@ function GuidePicker({
 
 export default function BhaktiGptChatClient() {
   const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const pathname = usePathname() || "/";
   const searchParamsKey = searchParams.toString();
   const { openAuthModal } = useAuthModal();
-  const localeSegment = pathname.split("/").filter(Boolean)[0];
-  const localePrefix = localeSegment === "hi" || localeSegment === "en" ? `/${localeSegment}` : "";
+  const localePrefix = locale === "hi" ? "/hi" : "/en";
 
   const guideParam = searchParams.get("guide");
   const prefillParam = searchParams.get("prefill");

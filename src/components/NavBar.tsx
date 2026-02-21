@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Logo from "@/components/Logo";
 import AuthModalTrigger from "@/components/auth/AuthModalTrigger";
 import { BRAND_LOGO_PATH } from "@/lib/brand";
@@ -18,9 +18,10 @@ export default function NavBar() {
   const headerRef = useRef<HTMLElement | null>(null);
   const { data: session, status } = useSession();
   const pathname = usePathname();
+  const locale = useLocale();
   const callbackUrl = pathname || "/";
   const isChatRoute = pathname?.includes("/bhaktigpt/chat");
-  const activeLocale = pathname?.split("/").filter(Boolean)[0] === "hi" ? "hi" : "en";
+  const activeLocale = locale === "hi" ? "hi" : "en";
   const localePrefix = `/${activeLocale}`;
 
   const isAuthenticated = Boolean(session?.user?.id);
@@ -29,7 +30,7 @@ export default function NavBar() {
 
   const navItems = [
     {
-      href: `${localePrefix}/bhaktigpt/chat?guide=krishna&conversationId=cmlwds5ps0003l504glfpo5vs`,
+      href: `${localePrefix}/bhaktigpt/chat?guide=krishna`,
       label: t("nav_chat")
     },
     { href: `${localePrefix}/aartis`, label: t("nav_aartis") },
@@ -58,7 +59,7 @@ export default function NavBar() {
     if (isSigningOut) return;
     setIsSigningOut(true);
     try {
-      await signOut({ callbackUrl: "/" });
+      await signOut({ callbackUrl: `${localePrefix}` });
     } finally {
       setIsSigningOut(false);
     }
@@ -74,7 +75,7 @@ export default function NavBar() {
       <div className={`container relative flex items-center justify-between gap-4 ${isChatRoute ? "py-1.5 md:py-2.5" : "py-2.5"}`}>
         {isChatRoute ? (
           <>
-            <Link href="/" aria-label="Bhakti Chat home" className="relative block h-9 w-9 md:hidden">
+            <Link href={localePrefix} aria-label="Bhakti Chat home" className="relative block h-9 w-9 md:hidden">
               <Image
                 src={BRAND_LOGO_PATH}
                 alt="Bhakti Chat"
@@ -85,11 +86,11 @@ export default function NavBar() {
               />
             </Link>
             <div className="hidden md:block">
-              <Logo />
+              <Logo href={localePrefix} />
             </div>
           </>
         ) : (
-          <Logo />
+          <Logo href={localePrefix} />
         )}
 
         <nav
@@ -129,7 +130,7 @@ export default function NavBar() {
 
               <div className="absolute right-0 mt-2 w-44 rounded-2xl border border-sagar-amber/20 bg-white p-2 text-sm text-sagar-ink/75 shadow-sagar-soft">
                 <Link
-                  href="/profile"
+                  href={`${localePrefix}/profile`}
                   className="mb-1 block rounded-xl px-3 py-2 font-semibold transition hover:bg-sagar-cream/65 hover:text-sagar-ember"
                 >
                   Profile
@@ -174,7 +175,7 @@ export default function NavBar() {
               {isAuthenticated ? (
                 <>
                   <Link
-                    href="/profile"
+                    href={`${localePrefix}/profile`}
                     className="mb-1 block rounded-xl bg-sagar-cream/60 px-3 py-2 font-semibold text-sagar-ink/85 transition hover:text-sagar-ember"
                   >
                     {t("nav_profile")}

@@ -80,6 +80,7 @@ type TurnMessage = {
   content: string;
 };
 type ConversationState = {
+  locale: "en" | "hi";
   mode: DirectorMode;
   story: {
     active: boolean;
@@ -378,8 +379,12 @@ function baseRelationshipByGuide(guideId: BhaktiGuideId) {
   return { warmth: 1, playfulness: 0, firmness: 2 };
 }
 
-function createDefaultConversationState(guideId: BhaktiGuideId): ConversationState {
+function createDefaultConversationState(
+  guideId: BhaktiGuideId,
+  locale: "en" | "hi" = "en"
+): ConversationState {
   return {
+    locale,
     mode: "casual",
     story: {
       active: false,
@@ -407,6 +412,14 @@ function coerceStringArray(value: unknown, max = 10) {
     .slice(-max);
 }
 
+function getConversationLocaleFromMetadata(
+  metadata: Prisma.JsonValue | null | undefined
+): "en" | "hi" | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, unknown>).locale;
+  return value === "hi" || value === "en" ? value : null;
+}
+
 function endsWithOpenHook(text: string) {
   const normalized = normalizeLineBreaks(text);
   if (!normalized) return false;
@@ -432,9 +445,10 @@ function countRecentOpenLoops(history: Array<{ role: "user" | "assistant"; conte
 function hydrateConversationState(params: {
   metadata: Prisma.JsonValue | null | undefined;
   guideId: BhaktiGuideId;
+  locale: "en" | "hi";
   history: Array<{ role: "user" | "assistant"; content: string }>;
 }): ConversationState {
-  const base = createDefaultConversationState(params.guideId);
+  const base = createDefaultConversationState(params.guideId, params.locale);
   const metadata = params.metadata;
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
     return {
@@ -454,6 +468,8 @@ function hydrateConversationState(params: {
   const mode = payload.mode;
 
   return {
+    locale:
+      payload.locale === "hi" || payload.locale === "en" ? payload.locale : base.locale,
     mode:
       typeof mode === "string" &&
       (mode === "casual" ||
@@ -1694,6 +1710,7 @@ async function findLatestGuideConversation(params: {
   userId: string | null;
   sessionId: string | null;
   guideId: BhaktiGuideId;
+  locale: "en" | "hi";
 }) {
   const where = buildIdentityWhere({
     userId: params.userId,
@@ -1701,19 +1718,28 @@ async function findLatestGuideConversation(params: {
   });
   if (!where) return null;
 
-  return prisma.bhaktiGptConversation.findFirst({
+  const candidates = await prisma.bhaktiGptConversation.findMany({
     where: {
       ...where,
       guideId: params.guideId
     },
-    orderBy: { updatedAt: "desc" }
+    orderBy: { updatedAt: "desc" },
+    take: 10
   });
+
+  if (candidates.length === 0) return null;
+
+  const localeMatch = candidates.find(
+    (item) => getConversationLocaleFromMetadata(item.conversationMetadata as Prisma.JsonValue) === params.locale
+  );
+  return localeMatch ?? null;
 }
 
 async function createGuideConversation(params: {
   guideId: BhaktiGuideId;
   userId: string | null;
   sessionId: string | null;
+  locale: "en" | "hi";
   title?: string | null;
   insertGuideOpener?: boolean;
 }) {
@@ -1721,14 +1747,16 @@ async function createGuideConversation(params: {
     data: {
       guideId: params.guideId,
       title: params.title ?? null,
-      conversationMetadata: toConversationMetadataInput(createDefaultConversationState(params.guideId)),
+      conversationMetadata: toConversationMetadataInput(
+        createDefaultConversationState(params.guideId, params.locale)
+      ),
       userId: params.userId,
       sessionId: params.userId ? null : params.sessionId
     }
   });
 
   if (params.insertGuideOpener) {
-    const opener = getGuideOpenerForConversation(params.guideId, conversation.id);
+    const opener = getGuideOpenerForConversation(params.guideId, conversation.id, params.locale);
     await prisma.bhaktiGptMessage.create({
       data: {
         conversationId: conversation.id,
@@ -1764,7 +1792,21 @@ async function fetchGuideHistory(
     .map((item) => ({ role: item.role as "user" | "assistant", content: item.content }));
 }
 
-function getGuideOpenerForConversation(guideId: BhaktiGuideId, conversationId?: string) {
+const HI_GUIDE_OPENERS: Record<BhaktiGuideId, string> = {
+  krishna:
+    "आप घर में आते हैं। मन थोड़ा बेचैन है।\n\nकोई पहले से ही शांत बैठा है।\n\nश्री कृष्ण आपको देख कर हल्की मुस्कान देते हैं।\n\n“आज तुम कुछ सोच में डूबे हो।”\n\n“बताओ… तुम्हारे मन को क्या परेशान कर रहा है?”",
+  lakshmi:
+    "आप शांत होकर बैठते हैं। मन में कई बातें चल रही हैं।\n\nलक्ष्मी जी की उपस्थिति से माहौल हल्का हो जाता है।\n\nवह स्नेह से देखती हैं।\n\n“चिंता मत करो।”\n\n“बताओ… आज तुम्हें किस बात की सबसे ज़्यादा जरूरत है?”",
+  shani:
+    "आप एक पल रुकते हैं। मन में बोझ सा लगता है।\n\nशनि देव शांत और स्थिर बैठे हैं।\n\nउनकी नज़र गंभीर है, पर डराने वाली नहीं।\n\n“जो हो रहा है, उसका सामना करना होगा।”\n\n“बताओ… आज तुम्हें सबसे ज़्यादा किस बात ने रोक रखा है?”"
+};
+
+function getGuideOpenerForConversation(
+  guideId: BhaktiGuideId,
+  conversationId?: string,
+  locale: "en" | "hi" = "en"
+) {
+  if (locale === "hi") return HI_GUIDE_OPENERS[guideId];
   if (guideId === "lakshmi") return getLakshmiOpenerForConversation(conversationId);
   if (guideId === "shani") return getShaniOpenerForConversation(conversationId);
   return getKrishnaOpenerForConversation(conversationId);
@@ -1773,6 +1815,7 @@ function getGuideOpenerForConversation(guideId: BhaktiGuideId, conversationId?: 
 async function ensureGuideConversationOpener(params: {
   conversationId: string;
   guideId: BhaktiGuideId;
+  locale: "en" | "hi";
 }) {
   const existingAssistant = await prisma.bhaktiGptMessage.findFirst({
     where: {
@@ -1798,7 +1841,7 @@ async function ensureGuideConversationOpener(params: {
     } as ChatMessage;
   }
 
-  const opener = getGuideOpenerForConversation(params.guideId, params.conversationId);
+  const opener = getGuideOpenerForConversation(params.guideId, params.conversationId, params.locale);
   const created = await prisma.bhaktiGptMessage.create({
     data: {
       conversationId: params.conversationId,
@@ -1922,6 +1965,8 @@ async function createOpenAiText(params: {
   model: string;
   modeInstruction: string;
   stateAnchor?: string | null;
+  locale?: "en" | "hi";
+  userFirstName?: string | null;
   messages: Array<{ role: "system" | "developer" | "user" | "assistant"; content: string }>;
   additionalDeveloperInstruction?: string | null;
 }) {
@@ -1946,6 +1991,25 @@ async function createOpenAiText(params: {
           role: "system",
           content: `${guide.systemPrompt}\n\nMandatory disclaimer for user-facing context:\n${BHAKTIGPT_DISCLAIMER}`
         },
+        ...(params.locale === "hi"
+          ? [
+              {
+                role: "system" as const,
+                content:
+                  "Respond only in simple Hindi using Devanagari script. Keep answers short and clear. Avoid complex Sanskrit or difficult words. Be respectful and calm."
+              }
+            ]
+          : []),
+        ...(params.userFirstName
+          ? [
+              {
+                role: "system" as const,
+                content:
+                  `The user is logged in. Their first name is "${params.userFirstName}". ` +
+                  `If it feels natural, you may address them by this first name occasionally (not in every reply).`
+              }
+            ]
+          : []),
         {
           role: "system" as const,
           content: params.modeInstruction
@@ -2085,6 +2149,7 @@ async function getLoggedInUserFirstName(userId: string | null) {
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
+    const requestLocale = request.headers.get("x-lang") === "hi" ? "hi" : "en";
     const conversationIdParam = url.searchParams.get("conversationId");
     const guideParam = url.searchParams.get("guideId");
     const forceNewConversation = url.searchParams.get("new") === "1";
@@ -2133,6 +2198,7 @@ export async function GET(request: Request) {
           title: true,
           updatedAt: true,
           createdAt: true,
+          conversationMetadata: true,
           messages: {
             where: { role: "user" },
             select: { id: true },
@@ -2169,6 +2235,7 @@ export async function GET(request: Request) {
           guideId,
           userId: identity.userId,
           sessionId: identity.anonSessionId,
+          locale: requestLocale,
           title: "New chat",
           insertGuideOpener: true
         });
@@ -2186,7 +2253,37 @@ export async function GET(request: Request) {
         ];
       }
 
-      if (!activeConversationId && conversations.length > 0) {
+      if (!activeConversationId && guideId && conversations.length > 0) {
+        const localeMatchedConversation = typedConversations.find(
+          (item) =>
+            getConversationLocaleFromMetadata(item.conversationMetadata as Prisma.JsonValue) === requestLocale
+        );
+
+        if (localeMatchedConversation) {
+          activeConversationId = localeMatchedConversation.id;
+        } else {
+          const created = await createGuideConversation({
+            guideId,
+            userId: identity.userId,
+            sessionId: identity.anonSessionId,
+            locale: requestLocale,
+            title: "New chat",
+            insertGuideOpener: true
+          });
+          activeConversationId = created.id;
+          conversations = [
+            {
+              id: created.id,
+              guideId,
+              title: created.title,
+              updatedAt: created.updatedAt.toISOString(),
+              createdAt: created.createdAt.toISOString(),
+              hasUserMessage: false
+            },
+            ...conversations
+          ];
+        }
+      } else if (!activeConversationId && conversations.length > 0) {
         activeConversationId = conversations[0]?.id ?? null;
       }
 
@@ -2207,7 +2304,8 @@ export async function GET(request: Request) {
         if (guideId && messages.length === 0) {
           const openerMessage = await ensureGuideConversationOpener({
             guideId,
-            conversationId: activeConversationId
+            conversationId: activeConversationId,
+            locale: requestLocale
           });
           messages = [openerMessage];
         }
@@ -2219,7 +2317,7 @@ export async function GET(request: Request) {
           {
             id: `${guideId}-opener-fallback`,
             role: "assistant",
-            content: getGuideOpenerForConversation(guideId, `${guideId}-fallback`),
+            content: getGuideOpenerForConversation(guideId, `${guideId}-fallback`, requestLocale),
             createdAt: new Date().toISOString()
           }
         ];
@@ -2308,7 +2406,7 @@ export async function POST(request: Request) {
     let history: Array<{ role: "user" | "assistant"; content: string }> = [
       { role: "user", content: userMessage }
     ];
-    let conversationState = createDefaultConversationState(body.guideId);
+    let conversationState = createDefaultConversationState(body.guideId, requestLocale);
 
     try {
       const existing =
@@ -2327,7 +2425,8 @@ export async function POST(request: Request) {
         (await findLatestGuideConversation({
           userId: identity.userId,
           sessionId: identity.anonSessionId,
-          guideId: body.guideId
+          guideId: body.guideId,
+          locale: requestLocale
         }));
 
       const conversation =
@@ -2338,6 +2437,7 @@ export async function POST(request: Request) {
           title: conversationTitle,
           userId: identity.userId,
           sessionId: identity.anonSessionId,
+          locale: requestLocale,
           insertGuideOpener: true
         }));
 
@@ -2357,6 +2457,7 @@ export async function POST(request: Request) {
       conversationState = hydrateConversationState({
         metadata: conversation.conversationMetadata as Prisma.JsonValue | null | undefined,
         guideId: body.guideId,
+        locale: requestLocale,
         history
       });
     } catch (error) {
@@ -2365,13 +2466,14 @@ export async function POST(request: Request) {
       history = [
         {
           role: "assistant",
-          content: getGuideOpenerForConversation(body.guideId, `${body.guideId}-fallback`)
+          content: getGuideOpenerForConversation(body.guideId, `${body.guideId}-fallback`, requestLocale)
         },
         { role: "user", content: userMessage }
       ];
       conversationState = hydrateConversationState({
         metadata: null,
         guideId: body.guideId,
+        locale: requestLocale,
         history
       });
     }
@@ -2557,6 +2659,8 @@ export async function POST(request: Request) {
                   model: selectedModel,
                   modeInstruction,
                   stateAnchor,
+                  locale: requestLocale,
+                  userFirstName,
                   additionalDeveloperInstruction: rewriteDirectives.join(" "),
                   messages: [
                     {

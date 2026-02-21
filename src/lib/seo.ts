@@ -6,7 +6,7 @@ export const siteConfig = {
   name: BRAND_NAME,
   description:
     "Bhakti Chat offers devotional AI guidance inspired by sacred teachings, plus trusted aarti and daily reflection tools.",
-  url: "https://bhakti-sagar.com",
+  url: "https://bhaktichat.com",
   ogImage: BRAND_LOGO_PATH,
   twitter: "@bhaktisagar"
 };

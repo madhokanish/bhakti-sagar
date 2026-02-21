@@ -85,8 +85,8 @@ export function middleware(request: NextRequest) {
       redirectUrl.pathname = `/${locale}/bhaktigpt/chat`;
       redirectUrl.search = "?guide=shani";
     } else {
-      redirectUrl.pathname = `/${locale}`;
-      redirectUrl.search = "";
+      redirectUrl.pathname = `/${locale}/bhaktigpt/chat`;
+      redirectUrl.search = "?guide=krishna";
     }
     const response = NextResponse.redirect(redirectUrl, 301);
     response.cookies.set("NEXT_LOCALE", locale, {

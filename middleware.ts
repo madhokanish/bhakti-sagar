@@ -16,6 +16,17 @@ function hasAuthSessionCookie(request: NextRequest) {
   });
 }
 
+function getPreferredLocale(request: NextRequest, firstSegment?: string) {
+  if (firstSegment && supportedLangs.includes(firstSegment)) {
+    return firstSegment;
+  }
+  const preferred = request.cookies.get("NEXT_LOCALE")?.value;
+  if (preferred && supportedLangs.includes(preferred)) {
+    return preferred;
+  }
+  return "en";
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (pathname.length > 1 && pathname.endsWith("/")) {
@@ -62,17 +73,43 @@ export function middleware(request: NextRequest) {
     normalizedPath === "/bhaktigpt/lakshmi" ||
     normalizedPath === "/bhaktigpt/shani-dev"
   ) {
+    const locale = getPreferredLocale(request, first);
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/";
-    return NextResponse.redirect(redirectUrl, 301);
+    if (normalizedPath === "/bhaktigpt/krishna") {
+      redirectUrl.pathname = `/${locale}/bhaktigpt/chat`;
+      redirectUrl.search = "?guide=krishna";
+    } else if (normalizedPath === "/bhaktigpt/lakshmi") {
+      redirectUrl.pathname = `/${locale}/bhaktigpt/chat`;
+      redirectUrl.search = "?guide=lakshmi";
+    } else if (normalizedPath === "/bhaktigpt/shani-dev") {
+      redirectUrl.pathname = `/${locale}/bhaktigpt/chat`;
+      redirectUrl.search = "?guide=shani";
+    } else {
+      redirectUrl.pathname = `/${locale}`;
+      redirectUrl.search = "";
+    }
+    const response = NextResponse.redirect(redirectUrl, 301);
+    response.cookies.set("NEXT_LOCALE", locale, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax"
+    });
+    return response;
   }
 
   if ((normalizedPath === "/account" || normalizedPath === "/profile") && !hasAuthSessionCookie(request)) {
+    const locale = getPreferredLocale(request, first);
     const authUrl = request.nextUrl.clone();
-    authUrl.pathname = "/";
+    authUrl.pathname = `/${locale}`;
     authUrl.searchParams.set("auth", "1");
-    authUrl.searchParams.set("callbackUrl", "/profile");
-    return NextResponse.redirect(authUrl);
+    authUrl.searchParams.set("callbackUrl", `/${locale}/profile`);
+    const response = NextResponse.redirect(authUrl);
+    response.cookies.set("NEXT_LOCALE", locale, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax"
+    });
+    return response;
   }
 
   if (first && supportedLangs.includes(first)) {

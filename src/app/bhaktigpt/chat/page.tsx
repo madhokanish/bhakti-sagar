@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { headers } from "next/headers";
 import BhaktiGptChatClient from "@/components/bhaktigpt/BhaktiGptChatClient";
 import BhaktiGptPageView from "@/components/bhaktigpt/BhaktiGptPageView";
 import { buildMetadata } from "@/lib/seo";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = headers().get("x-lang") === "hi" ? "hi" : "en";
@@ -25,25 +26,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function BhaktiGptChatPage() {
-  const locale = headers().get("x-lang") === "hi" ? "hi" : "en";
-  const loadingLabel = locale === "hi" ? "भक्ति चैट लोड हो रही है..." : "Loading Bhakti Chat chat...";
   return (
     <div
       className="fixed inset-x-0 z-30 flex min-h-0 flex-col overflow-x-hidden overflow-y-hidden bg-white [height:calc(100dvh-var(--nav-height,0px))] [max-height:calc(100dvh-var(--nav-height,0px))]"
       style={{ top: "var(--nav-height, 0px)" }}
     >
       <BhaktiGptPageView page="chat" />
-      <Suspense
-        fallback={
-          <div className="h-full bg-white p-6 text-sm text-sagar-ink/70">
-            {loadingLabel}
-          </div>
-        }
-      >
-        <div className="h-full bg-white">
-          <BhaktiGptChatClient />
-        </div>
-      </Suspense>
+      <div className="h-full bg-white">
+        <BhaktiGptChatClient />
+      </div>
     </div>
   );
 }

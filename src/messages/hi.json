@@ -118,6 +118,7 @@
   "chat_error_process": "अभी आपका संदेश प्रोसेस नहीं हो पाया।",
   "chat_error_retry_send": "अभी मैं जवाब नहीं दे पाया। कृपया दोबारा भेजें।",
   "chat_loading_thread": "आपकी बातचीत लोड हो रही है...",
+  "chat_switching_guide": "गाइड बदला जा रहा है...",
   "chat_fallback_empty_response": "मैं आपकी बात समझ रहा हूँ।\n\nएक स्पष्ट बात बताइए, मैं बेहतर मार्गदर्शन दूँगा।\n\nइस स्थिति का सबसे कठिन हिस्सा क्या है?",
   "chat_guide_krishna_name": "श्री कृष्ण",
   "chat_guide_krishna_subtitle": "जीवन के फैसलों और मन की शांति के लिए",

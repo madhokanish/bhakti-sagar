@@ -440,12 +440,14 @@ export default function BhaktiGptChatClient() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showSignInPrompt, setShowSignInPrompt] = useState(false);
+  const [isGuideSwitching, setIsGuideSwitching] = useState(false);
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const composerShellRef = useRef<HTMLDivElement | null>(null);
   const handledPrefillRef = useRef<string | null>(null);
   const guideSnapshotRef = useRef<Partial<Record<BhaktiGuideId, InitialResponse>>>({});
+  const loadStateRef = useRef<LoadState>("loading");
   const [composerHeight, setComposerHeight] = useState(124);
 
   const suggestedPrompts = MOBILE_SUGGESTED_PROMPTS.map((key) => t(key));
@@ -455,6 +457,10 @@ export default function BhaktiGptChatClient() {
   const focusComposer = useCallback(() => {
     requestAnimationFrame(() => composerRef.current?.focus());
   }, []);
+
+  useEffect(() => {
+    loadStateRef.current = loadState;
+  }, [loadState]);
 
   const scrollMessagesToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     const container = messagesRef.current;
@@ -517,6 +523,10 @@ export default function BhaktiGptChatClient() {
       setMessages(cached.messages || []);
       setConversationId(cached.conversationId || null);
       setLoadState("ready");
+      setIsGuideSwitching(false);
+      return;
+    } else if (loadStateRef.current === "ready") {
+      setIsGuideSwitching(true);
     } else {
       setLoadState("loading");
       setConversations([]);
@@ -558,10 +568,16 @@ export default function BhaktiGptChatClient() {
         updateGuideQuery(guideId, null, { forceNewConversation: true });
       }
       setLoadState("ready");
+      setIsGuideSwitching(false);
       focusComposer();
     } catch (error) {
-      setLoadState("error");
-      setLoadError(error instanceof Error ? error.message : t("chat_error_load"));
+      if (loadStateRef.current === "ready") {
+        setComposerError(error instanceof Error ? error.message : t("chat_error_load"));
+      } else {
+        setLoadState("error");
+        setLoadError(error instanceof Error ? error.message : t("chat_error_load"));
+      }
+      setIsGuideSwitching(false);
     }
   }, [focusComposer, updateGuideQuery, t]);
 
@@ -926,6 +942,15 @@ export default function BhaktiGptChatClient() {
               </div>
             </div>
           </header>
+
+          {isGuideSwitching ? (
+            <div className="border-b border-sagar-amber/15 bg-sagar-cream/35 px-3 py-1.5 text-xs text-sagar-ink/70 sm:px-5">
+              <span className="inline-flex items-center gap-2">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sagar-ember" />
+                {t("chat_switching_guide")}
+              </span>
+            </div>
+          ) : null}
 
           <div
             ref={messagesRef}

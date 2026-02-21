@@ -120,6 +120,7 @@
   "chat_error_process": "Unable to process your message right now.",
   "chat_error_retry_send": "I could not respond just now. Please send that again.",
   "chat_loading_thread": "Loading your conversation...",
+  "chat_switching_guide": "Switching guide...",
   "chat_fallback_empty_response": "I see what you mean.\n\nGive me one concrete detail, and I will guide you clearly.\n\nWhat is the sharpest part of this situation right now?",
   "chat_guide_krishna_name": "Shri Krishna",
   "chat_guide_krishna_subtitle": "For life decisions and inner peace",

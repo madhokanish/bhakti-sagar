@@ -6,6 +6,7 @@ import AuthSessionProvider from "@/components/AuthSessionProvider";
 import AuthModalProvider from "@/components/auth/AuthModalProvider";
 import { buildMetadata, siteConfig } from "@/lib/seo";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/schema";
 import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
@@ -58,6 +59,7 @@ export default function RootLayout({
                   dangerouslySetInnerHTML={{ __html: JSON.stringify(webJsonLd) }}
                 />
                 <Analytics />
+                <SpeedInsights />
               </div>
             </AuthModalProvider>
           </AuthSessionProvider>

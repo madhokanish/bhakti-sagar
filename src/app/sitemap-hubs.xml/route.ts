@@ -20,6 +20,7 @@ export async function GET() {
     "/bhajan",
     "/choghadiya",
     "/about",
+    "/support",
     "/contact",
     "/privacy",
     "/terms",

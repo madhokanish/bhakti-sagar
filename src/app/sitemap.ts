@@ -29,6 +29,7 @@ const staticRoutes = [
   "/aartis",
   "/choghadiya",
   "/about",
+  "/support",
   "/contact",
   "/privacy",
   "/terms",

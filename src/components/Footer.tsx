@@ -43,6 +43,7 @@ export default async function Footer() {
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sagar-rose">{t("footer_links")}</p>
           <div className="mt-3 flex flex-col gap-2">
             <Link href={`${localePrefix}/about`} className="hover:text-sagar-saffron">{t("footer_about")}</Link>
+            <Link href={`${localePrefix}/support`} className="hover:text-sagar-saffron">{t("footer_support")}</Link>
             <Link href={`${localePrefix}/contact`} className="hover:text-sagar-saffron">{t("footer_contact")}</Link>
             <Link href={`${localePrefix}/privacy`} className="hover:text-sagar-saffron">{t("footer_privacy")}</Link>
             <Link href={`${localePrefix}/terms`} className="hover:text-sagar-saffron">{t("footer_terms")}</Link>

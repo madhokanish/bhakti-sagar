@@ -29,6 +29,9 @@ export function getRequestLanguage(defaultLang: "en" | "hi" = "en"): "en" | "hi"
 }
 
 export function toTitle(title: string) {
+  if (title.toLowerCase().includes(siteConfig.name.toLowerCase())) {
+    return title;
+  }
   return `${title} | ${siteConfig.name}`;
 }
 

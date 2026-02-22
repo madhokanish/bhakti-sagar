@@ -21,5 +21,5 @@ export function buildBhaktiChatHref(params: {
     query.set("prefill", params.prefill);
   }
 
-  return `/bhaktigpt/chat?${query.toString()}`;
+  return `/chat?${query.toString()}`;
 }

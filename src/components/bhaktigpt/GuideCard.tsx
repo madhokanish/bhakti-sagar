@@ -21,7 +21,7 @@ export default function GuideCard({
 }: GuideCardProps) {
   return (
     <BhaktiTrackedLink
-      href={`/bhaktigpt/chat?guide=${guideId}`}
+      href={`/chat?guide=${guideId}`}
       eventName="selected_guide"
       eventParams={{ guideId, source: "landing_card" }}
       className="group relative block aspect-[4/5] overflow-hidden rounded-3xl border border-sagar-amber/22 bg-white/90 shadow-sagar-soft transition duration-200 hover:-translate-y-1 hover:border-sagar-saffron/45 hover:shadow-[0_24px_50px_-28px_rgba(65,30,10,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sagar-saffron focus-visible:ring-offset-2"

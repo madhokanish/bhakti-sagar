@@ -7,7 +7,7 @@ const LOCALES: Array<"en" | "hi"> = ["en", "hi"];
 
 const staticRoutes = [
   "",
-  "/bhaktigpt/chat",
+  "/chat",
   "/krishna",
   "/krishna/mantra",
   "/krishna/aarti",

@@ -439,12 +439,14 @@ export default function BhaktiGptChatClient() {
     imageSrc: guide.imageSrc,
     imageAlt: guide.imageAlt
   }));
+  const chatPath = "/chat";
+
   const signInCallbackUrl = (() => {
     const params = new URLSearchParams(searchParamsKey);
     params.delete("auth");
     params.delete("callbackUrl");
     const query = params.toString();
-    return query ? `${localePrefix}/bhaktigpt/chat?${query}` : `${localePrefix}/bhaktigpt/chat`;
+    return query ? `${chatPath}?${query}` : chatPath;
   })();
 
   const [loadState, setLoadState] = useState<LoadState>("loading");
@@ -536,9 +538,9 @@ export default function BhaktiGptChatClient() {
         params.delete("conversationId");
         params.delete("new");
       }
-      router.replace(`${localePrefix}/bhaktigpt/chat?${params.toString()}`);
+      router.replace(`${chatPath}?${params.toString()}`);
     },
-    [router, searchParamsKey, localePrefix]
+    [chatPath, router, searchParamsKey]
   );
 
   const loadGuideConversation = useCallback(async (
@@ -698,8 +700,8 @@ export default function BhaktiGptChatClient() {
 
     const params = new URLSearchParams(searchParamsKey);
     params.delete("prefill");
-    router.replace(`${localePrefix}/bhaktigpt/chat?${params.toString()}`);
-  }, [prefillParam, router, searchParamsKey, selectedGuideId, localePrefix]);
+    router.replace(`${chatPath}?${params.toString()}`);
+  }, [chatPath, prefillParam, router, searchParamsKey, selectedGuideId]);
 
   useEffect(() => {
     if (loadState !== "ready") return;

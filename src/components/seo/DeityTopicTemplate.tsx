@@ -66,7 +66,7 @@ export default function DeityTopicTemplate({
 
   const siblingLinks = [
     { href: `/${locale}/${deity}`, label: locale === "hi" ? `${deityName} हब` : `${deityName} hub` },
-    { href: `/${locale}/bhaktigpt/chat?guide=${DEITY_CHAT_GUIDE[deity]}`, label: locale === "hi" ? `${deityName} चैट` : `${deityName} chat` }
+    { href: `/${locale}/chat?guide=${DEITY_CHAT_GUIDE[deity]}`, label: locale === "hi" ? `${deityName} चैट` : `${deityName} chat` }
   ];
 
   return (
@@ -140,7 +140,7 @@ export default function DeityTopicTemplate({
 
       <section className="mt-8">
         <Link
-          href={`/${locale}/bhaktigpt/chat?guide=${DEITY_CHAT_GUIDE[deity]}`}
+          href={`/${locale}/chat?guide=${DEITY_CHAT_GUIDE[deity]}`}
           className="inline-flex rounded-full bg-sagar-saffron px-5 py-2 text-sm font-semibold text-white"
         >
           {locale === "hi" ? `${deityName} से अभी बात करें` : `Talk to ${deityName}`}

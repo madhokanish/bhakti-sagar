@@ -50,6 +50,34 @@ function withEnglishHeaders(request: NextRequest, response: NextResponse) {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (pathname === "/chat") {
+    return withEnglishHeaders(request, NextResponse.next());
+  }
+
+  if (pathname === "/en/chat" || pathname === "/hi/chat") {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/chat";
+    const response = NextResponse.redirect(redirectUrl, 301);
+    response.cookies.set("NEXT_LOCALE", "en", {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax"
+    });
+    return response;
+  }
+
+  if (pathname === "/bhaktigpt/chat" || pathname === "/en/bhaktigpt/chat" || pathname === "/hi/bhaktigpt/chat") {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/chat";
+    const response = NextResponse.redirect(redirectUrl, 301);
+    response.cookies.set("NEXT_LOCALE", "en", {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax"
+    });
+    return response;
+  }
+
   if (pathname.length > 1 && pathname.endsWith("/")) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = pathname.slice(0, -1);
@@ -111,7 +139,7 @@ export function middleware(request: NextRequest) {
     normalizedPath === "/bhaktigpt/shani-dev"
   ) {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/en/bhaktigpt/chat";
+    redirectUrl.pathname = "/chat";
     if (normalizedPath === "/bhaktigpt/lakshmi") {
       redirectUrl.search = "?guide=lakshmi";
     } else if (normalizedPath === "/bhaktigpt/shani-dev") {

@@ -56,7 +56,7 @@ export default function AboutPage() {
         <h2 className="mt-6 text-2xl font-serif text-sagar-ink">A calm place for daily devotion</h2>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-sagar-ink/75 md:text-base">
           Bhakti Chat helps you stay close to prayer every day with{" "}
-          <Link href="/bhaktigpt/chat?guide=krishna" className="text-sagar-saffron underline decoration-sagar-amber/50 underline-offset-4">
+          <Link href="/chat?guide=krishna" className="text-sagar-saffron underline decoration-sagar-amber/50 underline-offset-4">
             Bhakti Chat guidance
           </Link>
           ,{" "}
@@ -93,7 +93,7 @@ export default function AboutPage() {
         <h2 className="text-2xl font-serif text-sagar-ink">What you can do here</h2>
         <div className="mt-5 grid gap-4 md:grid-cols-3">
           <Link
-            href="/bhaktigpt/chat?guide=krishna"
+            href="/chat?guide=krishna"
             className="rounded-2xl border border-sagar-amber/20 bg-white/70 p-5 text-sm leading-6 text-sagar-ink/75 transition hover:border-sagar-saffron/50"
           >
             <h3 className="text-base font-semibold text-sagar-ink">Bhakti Chat devotional guidance</h3>
@@ -152,7 +152,7 @@ export default function AboutPage() {
         <h2 className="sr-only">Call to action</h2>
         <div className="flex flex-col gap-3 sm:flex-row">
           <Link
-            href="/bhaktigpt/chat?guide=krishna"
+            href="/chat?guide=krishna"
             className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-sagar-saffron px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white"
           >
             Start Bhakti Chat

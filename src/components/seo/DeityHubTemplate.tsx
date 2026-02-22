@@ -71,7 +71,7 @@ export default function DeityHubTemplate({ deity, locale }: { deity: DeitySlug; 
           ))}
         </ul>
         <Link
-          href={`/${locale}/bhaktigpt/chat?guide=${DEITY_CHAT_GUIDE[deity]}`}
+          href={`/${locale}/chat?guide=${DEITY_CHAT_GUIDE[deity]}`}
           className="mt-5 inline-flex rounded-full bg-sagar-saffron px-5 py-2 text-sm font-semibold text-white"
         >
           {getLocaleText(content.ctaLabel, locale)}

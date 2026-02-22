@@ -17,7 +17,7 @@ export default function NavBar() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const callbackUrl = pathname || "/";
-  const isChatRoute = pathname?.includes("/bhaktigpt/chat");
+  const isChatRoute = pathname?.includes("/chat");
   const localePrefix = "/en";
 
   const isAuthenticated = Boolean(session?.user?.id);
@@ -26,7 +26,7 @@ export default function NavBar() {
 
   const navItems = [
     {
-      href: `${localePrefix}/bhaktigpt/chat?guide=krishna`,
+      href: "/chat?guide=krishna",
       label: t("nav_chat")
     },
     { href: `${localePrefix}/aartis`, label: t("nav_aartis") },

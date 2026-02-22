@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return buildMetadata({
-    title: "Bhakti Chat Divine Guidance",
+    title: "Bhakti Chat – The AI Hindu Devotion App",
     description:
       "Bhakti Chat helps you talk with AI guides inspired by Krishna, Lakshmi Ji, and Shani Dev for daily spiritual guidance and calm reflection.",
     pathname: "/en",

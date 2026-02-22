@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
     return buildMetadata({
       title: "श्री कृष्ण, लक्ष्मी जी, शनि देव चैट | भक्ति चैट",
       description: "सरल हिंदी में आध्यात्मिक मार्गदर्शन के लिए भक्ति चैट पर अपने इष्ट गाइड से तुरंत बात करें।",
-      pathname: "/hi/chat"
+      pathname: "/chat"
     });
   }
 
@@ -21,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: "Chat with Krishna, Lakshmi, Shani | Bhakti Chat",
     description:
       "Start a devotional AI chat inspired by Shri Krishna, Lakshmi Ji, and Shani Dev teachings for calm and clarity.",
-    pathname: "/en/chat"
+    pathname: "/chat"
   });
 }
 

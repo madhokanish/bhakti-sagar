@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: "भगवान से ऑनलाइन बात करें | भक्ति चैट",
       description:
         "श्री कृष्ण, लक्ष्मी जी और शनि देव से एआई के माध्यम से मार्गदर्शन पाएँ। अपने मन की बात कहें और सही दिशा पाएँ।",
-      pathname: "/hi"
+      pathname: "/"
     });
   }
 
@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: "Bhakti Chat – The AI Hindu Devotion App",
     description:
       "Bhakti Chat helps you talk with AI guides inspired by Krishna, Lakshmi Ji, and Shani Dev for daily spiritual guidance and calm reflection.",
-    pathname: "/en",
+    pathname: "/",
     keywords: [
       "Bhakti Chat",
       "Bhakti Chat AI",

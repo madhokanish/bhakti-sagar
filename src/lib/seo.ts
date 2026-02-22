@@ -71,13 +71,12 @@ function splitLocalePath(pathname: string) {
 
 export function buildAlternates(pathname: string) {
   const { basePath } = splitLocalePath(pathname);
-  const canonicalPath = `/en${basePath === "/" ? "" : basePath}`;
   const alternates: { canonical: string; languages?: Record<string, string> } = {
-    canonical: absoluteUrl(canonicalPath)
+    canonical: absoluteUrl(basePath)
   };
   if (supportedLanguages.length > 0) {
     alternates.languages = {
-      en: absoluteUrl(`/en${basePath === "/" ? "" : basePath}`)
+      en: absoluteUrl(basePath)
     };
   }
   return alternates;

@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">BhaktiChat</string>
+    <string name="guide_picker_title">Choose your guide</string>
+    <string name="guide_picker_subtitle">Pick someone to chat with. Private and secure.</string>
+    <string name="guide_picker_chat">Chat</string>
+    <string name="guide_picker_footer">More guides coming soon</string>
+    <string name="guide_picker_avatar_content_description">%1$s avatar</string>
+    <string name="guide_preview_krishna">Clarity for tough decisions and purpose.</string>
+    <string name="guide_preview_lakshmi">Money stress, stability, and gratitude.</string>
+    <string name="guide_preview_shani">Strength through bad luck and hard times.</string>
+</resources>

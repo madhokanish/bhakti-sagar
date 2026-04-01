@@ -10,26 +10,6 @@ const nextConfig = {
       destination: rule.destination,
       permanent: true
     }));
-  },
-  async rewrites() {
-    return [
-      {
-        source: "/en",
-        destination: "/"
-      },
-      {
-        source: "/en/:path*",
-        destination: "/:path*"
-      },
-      {
-        source: "/hi",
-        destination: "/"
-      },
-      {
-        source: "/hi/:path*",
-        destination: "/:path*"
-      }
-    ];
   }
 };
 

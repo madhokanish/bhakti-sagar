@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 type LegacyChatPageProps = {
   searchParams?: Record<string, string | string[] | undefined>;
@@ -19,5 +19,5 @@ export default function LegacyBhaktiGptChatPage({ searchParams }: LegacyChatPage
     }
   }
 
-  redirect(query.toString() ? `/chat?${query.toString()}` : "/chat");
+  permanentRedirect(query.toString() ? `/chat?${query.toString()}` : "/chat");
 }

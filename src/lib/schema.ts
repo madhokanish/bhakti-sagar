@@ -15,13 +15,14 @@ export function organizationJsonLd() {
 }
 
 export function websiteJsonLd(locale: "en" | "hi" = "en") {
+  const localizedPath = locale === "en" ? "/" : `/${locale}`;
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: siteConfig.name,
     alternateName: "Bhakti Chat",
     description: siteConfig.description,
-    url: `${siteConfig.url}/${locale}`,
+    url: `${siteConfig.url}${localizedPath}`,
     inLanguage: locale === "hi" ? "hi-IN" : "en",
     potentialAction: {
       "@type": "SearchAction",

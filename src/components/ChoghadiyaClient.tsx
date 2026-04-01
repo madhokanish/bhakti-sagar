@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import {
   ChoghadiyaSegment,
   computeSegments,
@@ -20,6 +21,9 @@ import TimetablePane from "@/components/choghadiya/TimetablePane";
 import TimelineBar from "@/components/choghadiya/TimelineBar";
 import { PlannerSegment } from "@/lib/choghadiyaPlanner";
 import { addDaysISO } from "@/lib/choghadiyaPlanner";
+import type { HomeLang } from "@/lib/homeCopy";
+import { useBhaktiLang, useHinglishNoindex } from "@/lib/useBhaktiLang";
+import { CHOGHADIYA_COPY, formatChoghadiyaText } from "@/lib/choghadiyaCopy";
 
 type SunTimes = {
   sunrise: Date;
@@ -46,6 +50,9 @@ type Props = {
   initialPlannerStart?: string;
   initialPlannerEnd?: string;
   initialPane?: "day" | "night";
+  initialLang: HomeLang;
+  topAartis: Array<{ slug: string; title: string }>;
+  featuredFestival?: { slug: string; name: string } | null;
 };
 
 export default function ChoghadiyaClient({
@@ -66,9 +73,17 @@ export default function ChoghadiyaClient({
   initialPlannerWindow,
   initialPlannerStart,
   initialPlannerEnd,
-  initialPane = "day"
+  initialPane = "day",
+  initialLang,
+  topAartis,
+  featuredFestival
 }: Props) {
   const pathname = usePathname();
+  const { lang } = useBhaktiLang(initialLang);
+  const effectiveLang: HomeLang = pathname?.startsWith("/hi") ? "hi" : lang === "hinglish" ? "hinglish" : "en";
+  const copy = CHOGHADIYA_COPY[effectiveLang];
+  const currentLocationLabel = effectiveLang === "hi" ? "वर्तमान स्थान" : "Current location";
+  useHinglishNoindex(effectiveLang);
   const [cityInput, setCityInput] = useState(initialCityName ?? initialCity?.name ?? "");
   const [tz, setTz] = useState(initialTz);
   const [dateISO, setDateISO] = useState(initialDate);
@@ -97,6 +112,8 @@ export default function ChoghadiyaClient({
   const [citySuggestions, setCitySuggestions] = useState<CityOption[]>([]);
   const [citySearchLoading, setCitySearchLoading] = useState(false);
   const recentKey = "choghadiya_recent_cities";
+  const localePrefix = pathname?.startsWith("/hi") ? "/hi" : pathname?.startsWith("/en") ? "/en" : "";
+  const localizedChoghadiyaRoot = `${localePrefix}/choghadiya`;
   const staticSuggestions = useMemo(() => {
     const value = cityInput.trim().toLowerCase();
     if (!value) return [];
@@ -196,7 +213,7 @@ export default function ChoghadiyaClient({
           if (!res.ok) {
             if (res.status === 422) {
               setError(data?.error ?? "Sunrise/sunset unavailable for this location.");
-              setManualHint("Sunrise/sunset unavailable. Enter times manually.");
+              setManualHint(copy.manual_hint);
               setMode("manual");
             } else {
               setError(data?.error ?? "Unable to load times.");
@@ -225,7 +242,7 @@ export default function ChoghadiyaClient({
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [lat, lon, dateISO, tz, mode]);
+  }, [lat, lon, dateISO, tz, mode, copy.manual_hint]);
 
   useEffect(() => {
     if (mode !== "manual") return;
@@ -264,23 +281,23 @@ export default function ChoghadiyaClient({
         .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
         .then(({ ok, data }) => {
           if (!ok || !data?.nextSunrise) {
-            setManualHint("Enter the next sunrise time to finish manual mode.");
+            setManualHint(copy.manual_hint);
             setTimes(null);
             return;
           }
           setTimes(new Date(data.nextSunrise));
         })
         .catch(() => {
-          setManualHint("Enter the next sunrise time to finish manual mode.");
+          setManualHint(copy.manual_hint);
           setTimes(null);
         })
         .finally(() => setLoading(false));
       return;
     }
 
-    setManualHint("Enter the next sunrise time to finish manual mode.");
+    setManualHint(copy.manual_hint);
     setSunTimes(null);
-  }, [mode, sunrise, sunset, nextSunrise, tz, dateISO, lat, lon]);
+  }, [mode, sunrise, sunset, nextSunrise, tz, dateISO, lat, lon, copy.manual_hint]);
 
   useEffect(() => {
     if (hasTzParam) return;
@@ -334,12 +351,12 @@ export default function ChoghadiyaClient({
   function handleUseMyLocation() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition((pos) => {
-      setCityInput("Current location");
+      setCityInput(currentLocationLabel);
       setLat(pos.coords.latitude);
       setLon(pos.coords.longitude);
       const deviceTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       if (deviceTz) setTz(deviceTz);
-      setPathBase("/choghadiya");
+      setPathBase(localizedChoghadiyaRoot);
       track("choghadiya_use_my_location_clicked");
     });
   }
@@ -376,7 +393,7 @@ export default function ChoghadiyaClient({
     setLon(city.lon);
     if (city.tz) setTz(city.tz);
     const isPreset = cities.some((item) => item.slug === city.slug);
-    setPathBase(isPreset ? `/choghadiya/${city.slug}` : "/choghadiya");
+    setPathBase(isPreset ? `${localizedChoghadiyaRoot}/${city.slug}` : localizedChoghadiyaRoot);
     persistRecentCity(city);
     track("choghadiya_city_selected");
   }
@@ -386,7 +403,7 @@ export default function ChoghadiyaClient({
     if (!value) {
       setLat(null);
       setLon(null);
-      setPathBase("/choghadiya");
+      setPathBase(localizedChoghadiyaRoot);
       setError(null);
       return;
     }
@@ -412,7 +429,7 @@ export default function ChoghadiyaClient({
     } finally {
       setCitySearchLoading(false);
     }
-    setError("City not found. Try a nearby major city.");
+    setError(copy.city_not_found);
   }
 
   function handleDateChange(nextDate: string) {
@@ -473,7 +490,7 @@ END:VCALENDAR`;
   }, [sunTimes]);
 
   useEffect(() => {
-    if (!pathname?.startsWith("/choghadiya")) return;
+    if (!pathname?.includes("/choghadiya")) return;
     const timeout = window.setTimeout(() => {
       const query = new URLSearchParams();
       if (cityInput) query.set("city", cityInput);
@@ -493,7 +510,7 @@ END:VCALENDAR`;
         if (nextSunrise) query.set("nextSunrise", nextSunrise);
       }
       const qs = query.toString();
-      const path = pathBase || "/choghadiya";
+      const path = pathBase || localizedChoghadiyaRoot;
       const nextUrl = qs ? `${path}?${qs}` : path;
       if (typeof window !== "undefined") {
         const currentUrl = `${window.location.pathname}${window.location.search}`;
@@ -520,30 +537,39 @@ END:VCALENDAR`;
     sunrise,
     sunset,
     nextSunrise,
-    pathBase
+    pathBase,
+    localizedChoghadiyaRoot
   ]);
 
   const containerClass = plannerOpen ? "space-y-4 md:pr-[420px]" : "space-y-4";
 
-  const dateLabel = new Intl.DateTimeFormat("en-US", {
+  const dateLocale = effectiveLang === "hi" ? "hi-IN" : "en-US";
+  const dateLabel = new Intl.DateTimeFormat(dateLocale, {
     timeZone: tz,
     month: "short",
     day: "2-digit",
     year: "numeric"
   }).format(new Date(`${dateISO}T00:00:00Z`));
-  const cityLabel = cityInput.trim() ? cityInput.trim() : "your location";
+  const cityLabel =
+    cityInput.trim() ? cityInput.trim() : effectiveLang === "hi" ? "आपकी लोकेशन" : "your location";
+  const faqItems = [
+    { q: copy.faq_1_q, a: copy.faq_1_a },
+    { q: copy.faq_2_q, a: copy.faq_2_a },
+    { q: copy.faq_3_q, a: copy.faq_3_a },
+    { q: copy.faq_4_q, a: copy.faq_4_a },
+    { q: copy.faq_5_q, a: copy.faq_5_a },
+    { q: copy.faq_6_q, a: copy.faq_6_a }
+  ];
 
   return (
     <div className={containerClass}>
-      <h1 className="sr-only">Aaj Ka Choghadiya</h1>
+      <h1 className="sr-only">{copy.h1}</h1>
       <section className="rounded-3xl border border-sagar-amber/20 bg-white p-6">
         <h2 className="text-xl font-serif text-sagar-ink">
-          Aaj Ka Choghadiya for {cityLabel} on {dateLabel}
+          {formatChoghadiyaText(copy.h2, { city: cityLabel, date: dateLabel })}
         </h2>
         <p className="mt-3 text-sm text-sagar-ink/70">
-          Use this page to find the current choghadiya, the next good slot, and the full day and night schedule.
-          It is designed for quick decisions - especially if you are outside India and want a trusted daily ritual
-          time. Bookmark this page and share it with family when planning a pooja, travel, or a new start.
+          {copy.intro}
         </p>
       </section>
 
@@ -562,10 +588,11 @@ END:VCALENDAR`;
         onNextDay={() => handleDateChange(addDaysISO(dateISO, 1))}
         onToday={() => handleDateChange(getLocalDateISO(tz))}
         onShare={handleShare}
+        labels={copy}
       />
 
       {citySearchLoading && cityInput.trim().length > 1 && (
-        <p className="text-xs text-sagar-ink/60">Finding city...</p>
+        <p className="text-xs text-sagar-ink/60">{copy.finding_city}</p>
       )}
 
       {error && <p className="text-sm text-sagar-crimson">{error}</p>}
@@ -580,6 +607,7 @@ END:VCALENDAR`;
         isToday={isToday}
         dateLabel={dateLabel}
         hasTimes={Boolean(sunTimes)}
+        labels={copy}
       />
 
       {sunTimes && combinedSegments.length > 0 && (
@@ -595,10 +623,10 @@ END:VCALENDAR`;
 
       <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-sagar-ink/60">
         <a href="#day" className="text-sagar-saffron">
-          Jump to Day
+          {copy.jump_day}
         </a>
         <a href="#night" className="text-sagar-saffron">
-          Jump to Night
+          {copy.jump_night}
         </a>
       </div>
 
@@ -617,30 +645,31 @@ END:VCALENDAR`;
         onCopyTime={handleCopy}
         activePane={activePane}
         onPaneChange={setActivePane}
+        labels={copy}
       />
 
       {mode === "manual" && (
         <div className="rounded-2xl border border-sagar-amber/20 bg-white px-4 py-3 text-xs text-sagar-ink/70">
           <div className="flex items-center gap-3 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-sagar-ink/60">
-            <span className="text-sagar-rose">Manual times</span>
+            <span className="text-sagar-rose">{copy.manual_times}</span>
           </div>
           <div className="mt-3 grid gap-2 md:grid-cols-3">
             <input
               value={sunrise}
               onChange={(e) => setSunrise(e.target.value)}
-              placeholder="Sunrise (HH:mm)"
+              placeholder={copy.sunrise_input}
               className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs"
             />
             <input
               value={sunset}
               onChange={(e) => setSunset(e.target.value)}
-              placeholder="Sunset (HH:mm)"
+              placeholder={copy.sunset_input}
               className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs"
             />
             <input
               value={nextSunrise}
               onChange={(e) => setNextSunrise(e.target.value)}
-              placeholder="Next sunrise (HH:mm)"
+              placeholder={copy.next_sunrise_input}
               className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs"
             />
           </div>
@@ -659,7 +688,7 @@ END:VCALENDAR`;
         dateISO={dateISO}
         lat={lat}
         lon={lon}
-        cityLabel={cityInput || "your location"}
+        cityLabel={cityInput || cityLabel}
         sunTimes={sunTimes}
         segments={plannerSegments}
         plannerParams={plannerParams}
@@ -669,6 +698,8 @@ END:VCALENDAR`;
         formatTime={(segment) =>
           `${formatTimeWithDay(segment.start, tz, segment.dateISO)} – ${formatTimeWithDay(segment.end, tz, segment.dateISO)}`
         }
+        lang={effectiveLang}
+        copy={copy}
       />
 
       {!plannerOpen && (
@@ -680,7 +711,7 @@ END:VCALENDAR`;
             }}
             className="fixed right-2 top-1/2 z-40 hidden -translate-y-1/2 rounded-full bg-sagar-saffron px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-wide text-white md:flex"
           >
-            AI Planner
+            {copy.ai_planner_title}
           </button>
           <button
             onClick={() => {
@@ -689,10 +720,66 @@ END:VCALENDAR`;
             }}
             className="fixed right-2 bottom-24 z-40 rounded-full bg-sagar-saffron px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-wide text-white md:hidden"
           >
-            AI Planner
+            {copy.ai_planner_title}
           </button>
         </>
       )}
+
+      <section className="mt-10 rounded-3xl border border-sagar-amber/20 bg-white p-6">
+        <h2 className="text-xl font-serif text-sagar-ink">{copy.suggested_title}</h2>
+        <p className="mt-2 text-sm text-sagar-ink/70">{copy.suggested_desc}</p>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {topAartis.map((aarti) => (
+            <Link
+              key={aarti.slug}
+              href={`/aartis/${aarti.slug}`}
+              className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/60 p-4 text-sm font-semibold text-sagar-ink hover:text-sagar-saffron"
+            >
+              {aarti.title}
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-8 grid gap-4 md:grid-cols-2">
+        <details className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">{copy.what_is}</summary>
+          <p className="mt-2 text-sm text-sagar-ink/70">{copy.what_is_body}</p>
+        </details>
+        <details className="rounded-2xl border border-sagar-amber/20 bg-white p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-sagar-ink">{copy.how_calc}</summary>
+          <p className="mt-2 text-sm text-sagar-ink/70">{copy.how_calc_body}</p>
+        </details>
+      </section>
+
+      <section className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white p-6" id="faq">
+        <h2 className="text-xl font-serif text-sagar-ink">{copy.faqs_title}</h2>
+        <div className="mt-4 space-y-4 text-sm text-sagar-ink/70">
+          {faqItems.map((item) => (
+            <div key={item.q}>
+              <h3 className="font-semibold text-sagar-ink">{item.q}</h3>
+              <p className="mt-1">{item.a}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-8 rounded-3xl border border-sagar-amber/20 bg-white p-6">
+        <h2 className="text-xl font-serif text-sagar-ink">{copy.more_from}</h2>
+        <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold text-sagar-ink/70">
+          <Link href={`${localePrefix}/aartis`} className="hover:text-sagar-saffron">
+            {effectiveLang === "hi" ? "आरती संग्रह" : "Aarti collection"}
+          </Link>
+          <Link href={`${localePrefix}/festival`} className="hover:text-sagar-saffron">
+            {effectiveLang === "hi" ? "त्योहार गाइड" : "Festival guides"}
+          </Link>
+          {featuredFestival ? (
+            <Link href={`${localePrefix}/festival/${featuredFestival.slug}`} className="hover:text-sagar-saffron">
+              {featuredFestival.name}
+            </Link>
+          ) : null}
+        </div>
+      </section>
 
     </div>
   );

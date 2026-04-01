@@ -17,13 +17,31 @@ function normalizePath(path: string) {
 }
 
 function toLocalePath(path: string, locale: Locale) {
-  if (path.startsWith("/en/") || path.startsWith("/hi/")) {
-    return `/${locale}${path.replace(/^\/(en|hi)/, "")}`;
+  const prefixed = path.startsWith("/") ? path : `/${path}`;
+  const withoutLocale = prefixed.replace(/^\/(en|hi)(?=\/|$)/, "") || "/";
+  const normalized = withoutLocale.startsWith("/") ? withoutLocale : `/${withoutLocale}`;
+  const [basePath, queryString = ""] = normalized.split("?");
+  const canonicalBasePath =
+    basePath === "/bhaktigpt/chat"
+      ? "/chat"
+      : basePath;
+
+  if (canonicalBasePath === "/chat") {
+    const params = new URLSearchParams(queryString);
+    if (locale === "hi") {
+      params.set("lang", "hi");
+    } else {
+      params.delete("lang");
+    }
+    const query = params.toString();
+    return query ? `/chat?${query}` : "/chat";
   }
-  if (path.startsWith("/")) {
-    return `/${locale}${path}`;
+
+  if (locale === "hi") {
+    return canonicalBasePath === "/" ? "/hi" : `/hi${canonicalBasePath}`;
   }
-  return `/${locale}/${path}`;
+
+  return canonicalBasePath;
 }
 
 function dedupeLinks(items: LinkItem[], currentPath: string) {

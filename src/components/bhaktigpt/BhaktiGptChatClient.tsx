@@ -2,11 +2,21 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
+import { Noto_Sans_Devanagari } from "next/font/google";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { trackEvent } from "@/lib/analytics";
 import { useAuthModal } from "@/components/auth/AuthModalProvider";
 import { getGuideConfig } from "@/lib/bhaktigpt/guideConfig";
+import { chatOpeners } from "@/lib/chatOpeners";
+import { HOME_LANG_COOKIE } from "@/lib/homeCopy";
+import { setBhaktiLangPreference } from "@/lib/useBhaktiLang";
+import {
+  chatLanguageOptions,
+  chatUILabels,
+  isChatLanguage,
+  type ChatLanguage
+} from "@/lib/chatUILabels";
 import {
   BHAKTI_GUIDE_LIST,
   BHAKTI_GUIDES,
@@ -46,17 +56,17 @@ type LoadState = "loading" | "ready" | "error";
 const SCROLL_BOTTOM_THRESHOLD = 120;
 
 const CHAT_THEME_VARS = {
-  "--bg": "#F7F7F8",
-  "--surface": "#FFFFFF",
-  "--surface-2": "#F0F1F3",
-  "--text": "#111827",
-  "--text-muted": "#6B7280",
-  "--border": "#E5E7EB",
-  "--accent": "#111827",
-  "--accent-contrast": "#FFFFFF",
-  "--user-bubble": "#111827",
+  "--bg": "#FFF8EF",
+  "--surface": "#FFFDF9",
+  "--surface-2": "#FFF2E0",
+  "--text": "#2D1608",
+  "--text-muted": "#7A5A45",
+  "--border": "#EBC9A2",
+  "--accent": "#2D1608",
+  "--accent-contrast": "#FFFDF8",
+  "--user-bubble": "#2D1608",
   "--assistant-bubble": "#FFFFFF",
-  "--shadow": "0 1px 2px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04)"
+  "--shadow": "0 1px 2px rgba(44,26,18,0.09), 0 14px 32px -24px rgba(44,26,18,0.5)"
 } as CSSProperties;
 
 const MOBILE_SUGGESTED_PROMPTS = [
@@ -64,6 +74,12 @@ const MOBILE_SUGGESTED_PROMPTS = [
   "chat_suggested_2",
   "chat_suggested_3"
 ];
+const CHAT_LANGUAGE_STORAGE_KEY = "chat_lang";
+
+const devanagariFont = Noto_Sans_Devanagari({
+  subsets: ["devanagari"],
+  weight: ["400", "500", "600", "700"]
+});
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 
@@ -151,6 +167,44 @@ function getLocalizedGuideContent(guideId: BhaktiGuideId, t: Translate) {
     };
   }
 
+  if (guideId === "shiv") {
+    return {
+      name: t("chat_guide_shiv_name"),
+      subtitle: t("chat_guide_shiv_subtitle"),
+      shortDescription: t("chat_guide_shiv_short"),
+      aboutIntro: t("chat_guide_shiv_about_intro"),
+      canHelpWith: [
+        t("chat_guide_shiv_can_1"),
+        t("chat_guide_shiv_can_2"),
+        t("chat_guide_shiv_can_3")
+      ],
+      cannotHelpWith: [
+        t("chat_guide_shiv_cannot_1"),
+        t("chat_guide_shiv_cannot_2"),
+        t("chat_guide_shiv_cannot_3")
+      ]
+    };
+  }
+
+  if (guideId === "hanuman") {
+    return {
+      name: t("chat_guide_hanuman_name"),
+      subtitle: t("chat_guide_hanuman_subtitle"),
+      shortDescription: t("chat_guide_hanuman_short"),
+      aboutIntro: t("chat_guide_hanuman_about_intro"),
+      canHelpWith: [
+        t("chat_guide_hanuman_can_1"),
+        t("chat_guide_hanuman_can_2"),
+        t("chat_guide_hanuman_can_3")
+      ],
+      cannotHelpWith: [
+        t("chat_guide_hanuman_cannot_1"),
+        t("chat_guide_hanuman_cannot_2"),
+        t("chat_guide_hanuman_cannot_3")
+      ]
+    };
+  }
+
   return {
     name: t("chat_guide_shani_name"),
     subtitle: t("chat_guide_shani_subtitle"),
@@ -227,7 +281,7 @@ function renderMessageContent(content: string, options?: { autoParagraph?: boole
     .filter(Boolean);
 
   return (
-    <div className="space-y-3 break-words text-inherit [overflow-wrap:anywhere] [word-break:break-word] [&_a]:break-all [&_code]:rounded-[8px] [&_code]:bg-[color:var(--surface-2)] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.9em] [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:rounded-[12px] [&_pre]:bg-[#111827] [&_pre]:p-3 [&_pre]:text-[13px] [&_pre]:leading-6 [&_pre]:text-slate-100 [&_pre_code]:bg-transparent [&_pre_code]:p-0">
+    <div className="space-y-3 break-words whitespace-pre-line text-inherit [overflow-wrap:anywhere] [word-break:break-word] [&_a]:break-all [&_code]:rounded-[8px] [&_code]:bg-[color:var(--surface-2)] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.9em] [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:rounded-[12px] [&_pre]:bg-[#111827] [&_pre]:p-3 [&_pre]:text-[13px] [&_pre]:leading-6 [&_pre]:text-slate-100 [&_pre_code]:bg-transparent [&_pre_code]:p-0">
       {paragraphs.map((paragraph, paragraphIndex) => {
         const lines = paragraph.split("\n");
 
@@ -320,6 +374,16 @@ function parseSseBlock(block: string): StreamEvent | null {
   }
 }
 
+function readCookie(name: string) {
+  if (typeof document === "undefined") return null;
+  const token = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`));
+  if (!token) return null;
+  return decodeURIComponent(token.split("=")[1] ?? "");
+}
+
 async function consumeSseStream(response: Response, onEvent: (event: StreamEvent) => void) {
   if (!response.body) {
     throw new Error("Stream body is not available.");
@@ -355,11 +419,13 @@ function GuidePicker({
   onPick,
   title,
   subtitle,
+  description,
   guides
 }: {
   onPick: (guideId: BhaktiGuideId) => void;
   title: string;
   subtitle: string;
+  description?: string;
   guides: Array<{
     id: BhaktiGuideId;
     name: string;
@@ -372,11 +438,12 @@ function GuidePicker({
   return (
     <section
       style={CHAT_THEME_VARS}
-      className="space-y-4 rounded-[14px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5 text-[color:var(--text)] shadow-[var(--shadow)] [font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe_UI,Roboto,sans-serif]"
+      className="space-y-4 rounded-[18px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5 text-[color:var(--text)] shadow-[var(--shadow)] font-sans"
     >
       <header>
         <h1 className="font-sans text-2xl font-semibold text-[color:var(--text)]">{title}</h1>
         <p className="mt-2 text-sm text-[color:var(--text-muted)]">{subtitle}</p>
+        {description ? <p className="mt-2 text-sm text-[color:var(--text-muted)]">{description}</p> : null}
       </header>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -387,15 +454,15 @@ function GuidePicker({
             onClick={() => onPick(guide.id)}
             className="overflow-hidden rounded-[14px] border border-[color:var(--border)] bg-[color:var(--surface)] text-left shadow-[var(--shadow)] transition-transform transition-colors duration-200 motion-reduce:transition-none hover:-translate-y-0.5 hover:bg-[color:var(--surface-2)] hover:border-[color:var(--text-muted)]"
           >
-            <div className="relative h-40">
+            <div className="relative aspect-[4/5] min-h-[320px] bg-[color:var(--surface-2)] md:min-h-[360px]">
               <Image
                 src={guide.imageSrc}
                 alt={guide.imageAlt}
                 fill
-                className="object-cover"
+                className="object-contain object-center p-3"
                 sizes="(max-width: 768px) 100vw, 33vw"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#2f1408]/80 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-3 text-white">
                 <p className="text-sm font-semibold">{guide.name}</p>
                 <p className="text-xs text-white/90">{guide.subtitle}</p>
@@ -413,23 +480,26 @@ function GuidePicker({
 
 export default function BhaktiGptChatClient() {
   const t = useTranslations();
-  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchParamsKey = searchParams.toString();
   const { openAuthModal } = useAuthModal();
-  const localePrefix = locale === "hi" ? "/hi" : "/en";
 
   const guideParam = searchParams.get("guide");
+  const langParam = searchParams.get("lang");
+  const chatLangParam = searchParams.get("chatLang");
   const prefillParam = searchParams.get("prefill");
+  const initialQueryChatLanguage = isChatLanguage(langParam)
+    ? langParam
+    : isChatLanguage(chatLangParam)
+      ? chatLangParam
+      : null;
   const selectedGuideId = isGuideId(guideParam ?? "") ? (guideParam as BhaktiGuideId) : null;
   const selectedGuide = selectedGuideId ? BHAKTI_GUIDES[selectedGuideId] : null;
   const selectedGuideConfig = selectedGuideId ? getGuideConfig(selectedGuideId) : null;
-  const localizedGuideContent = {
-    krishna: getLocalizedGuideContent("krishna", t as Translate),
-    lakshmi: getLocalizedGuideContent("lakshmi", t as Translate),
-    shani: getLocalizedGuideContent("shani", t as Translate)
-  };
+  const localizedGuideContent = Object.fromEntries(
+    BHAKTI_GUIDE_LIST.map((guide) => [guide.id, getLocalizedGuideContent(guide.id, t as Translate)])
+  ) as Record<BhaktiGuideId, ReturnType<typeof getLocalizedGuideContent>>;
   const selectedGuideLocalized = selectedGuideId ? localizedGuideContent[selectedGuideId] : null;
   const localizedGuideCards = BHAKTI_GUIDE_LIST.map((guide) => ({
     id: guide.id,
@@ -440,6 +510,10 @@ export default function BhaktiGptChatClient() {
     imageAlt: guide.imageAlt
   }));
   const chatPath = "/chat";
+  const [chatLanguage, setChatLanguage] = useState<ChatLanguage>(initialQueryChatLanguage ?? "en");
+  const uiLabels = chatUILabels[chatLanguage];
+  const sendingLabel =
+    chatLanguage === "hi" ? "भेज रहे हैं..." : chatLanguage === "hinglish" ? "Bhej rahe..." : "Sending...";
 
   const signInCallbackUrl = (() => {
     const params = new URLSearchParams(searchParamsKey);
@@ -494,6 +568,78 @@ export default function BhaktiGptChatClient() {
   useEffect(() => {
     loadStateRef.current = loadState;
   }, [loadState]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (initialQueryChatLanguage) {
+      setChatLanguage(initialQueryChatLanguage);
+      setBhaktiLangPreference(initialQueryChatLanguage);
+      return;
+    }
+    const cookieLang = readCookie(HOME_LANG_COOKIE);
+    const preferredFromCookie = isChatLanguage(cookieLang) ? cookieLang : null;
+    try {
+      const stored = window.localStorage.getItem(CHAT_LANGUAGE_STORAGE_KEY);
+      if (isChatLanguage(stored)) {
+        setChatLanguage(stored);
+      } else if (preferredFromCookie) {
+        setChatLanguage(preferredFromCookie);
+      }
+    } catch {
+      // ignore storage errors
+      if (preferredFromCookie) {
+        setChatLanguage(preferredFromCookie);
+      }
+    }
+  }, [initialQueryChatLanguage]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setBhaktiLangPreference(chatLanguage);
+  }, [chatLanguage]);
+
+  const updateLanguageQuery = useCallback(
+    (nextLanguage: ChatLanguage) => {
+      const params = new URLSearchParams(searchParamsKey);
+      params.delete("chatLang");
+      if (nextLanguage === "en") {
+        params.delete("lang");
+      } else {
+        params.set("lang", nextLanguage);
+      }
+      const query = params.toString();
+      router.replace(query ? `${chatPath}?${query}` : chatPath, { scroll: false });
+    },
+    [chatPath, router, searchParamsKey]
+  );
+
+  const handleChatLanguageChange = useCallback(
+    (nextLanguage: ChatLanguage) => {
+      if (nextLanguage === chatLanguage) return;
+      setChatLanguage(nextLanguage);
+      updateLanguageQuery(nextLanguage);
+    },
+    [chatLanguage, updateLanguageQuery]
+  );
+
+  useEffect(() => {
+    if (!selectedGuideId || loadState !== "ready") return;
+    const openerText = chatOpeners[selectedGuideId][chatLanguage];
+
+    setMessages((prev) => {
+      if (prev.length !== 1 || prev[0]?.role !== "assistant") return prev;
+      if (prev[0].content === openerText) return prev;
+      return [{ ...prev[0], content: openerText }];
+    });
+
+    const cached = guideSnapshotRef.current[selectedGuideId];
+    if (!cached || cached.messages.length !== 1 || cached.messages[0]?.role !== "assistant") return;
+    if (cached.messages[0].content === openerText) return;
+    guideSnapshotRef.current[selectedGuideId] = {
+      ...cached,
+      messages: [{ ...cached.messages[0], content: openerText }]
+    };
+  }, [chatLanguage, loadState, selectedGuideId]);
 
   const scrollMessagesToBottom = useCallback((behavior: ScrollBehavior = "auto", force = false) => {
     const container = messagesRef.current;
@@ -575,10 +721,13 @@ export default function BhaktiGptChatClient() {
     try {
       const conversationQuery = preferredConversationId ? `&conversationId=${preferredConversationId}` : "";
       const newQuery = forceNewConversation ? "&new=1" : "";
-      const response = await fetch(`/api/bhaktigpt/chat?guideId=${guideId}${conversationQuery}${newQuery}`, {
+      const response = await fetch(
+        `/api/bhaktigpt/chat?guideId=${guideId}${conversationQuery}${newQuery}&chatLang=${chatLanguage}`,
+        {
         method: "GET",
         cache: "no-store"
-      });
+        }
+      );
       const raw = await parseJsonSafe(response);
       if (!response.ok) {
         const errorMessage =
@@ -615,7 +764,7 @@ export default function BhaktiGptChatClient() {
       }
       setIsGuideSwitching(false);
     }
-  }, [focusComposer, updateGuideQuery, t]);
+  }, [chatLanguage, focusComposer, updateGuideQuery, t]);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -804,12 +953,16 @@ export default function BhaktiGptChatClient() {
   }, [focusComposer, loadGuideConversation, selectedGuideId, updateGuideQuery]);
 
   const handleBack = useCallback(() => {
-    if (window.history.length > 1) {
-      router.back();
+    if (chatLanguage === "hi") {
+      router.push("/hi");
       return;
     }
-    router.push(localePrefix);
-  }, [localePrefix, router]);
+    if (chatLanguage === "hinglish") {
+      router.push("/?lang=hinglish");
+      return;
+    }
+    router.push("/");
+  }, [chatLanguage, router]);
 
   const sendMessage = useCallback(
     async (prefilled?: string) => {
@@ -855,6 +1008,7 @@ export default function BhaktiGptChatClient() {
             guideId: selectedGuideId,
             conversationId,
             forceNewConversation: conversationId === null && messages.length === 0,
+            chatLang: chatLanguage,
             message: value
           })
         });
@@ -954,6 +1108,7 @@ export default function BhaktiGptChatClient() {
       inputValue,
       isStreaming,
       messages.length,
+      chatLanguage,
       selectedGuideId,
       updateGuideQuery,
       t
@@ -965,6 +1120,7 @@ export default function BhaktiGptChatClient() {
       <GuidePicker
         title={t("chat_choose_guide_title")}
         subtitle={t("chat_choose_guide_text")}
+        description={chatDisclaimer}
         guides={localizedGuideCards}
         onPick={(guideId) => {
           trackEvent("selected_guide", { guideId, source: "guide_picker" });
@@ -977,17 +1133,19 @@ export default function BhaktiGptChatClient() {
   return (
     <div
       style={CHAT_THEME_VARS}
-      className="h-full min-h-0 [font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe_UI,Roboto,sans-serif]"
+      className={`h-full min-h-0 font-sans ${
+        chatLanguage === "hi" ? devanagariFont.className : ""
+      }`}
     >
-      <section className="grid h-full min-h-0 min-w-0 overflow-hidden rounded-none bg-[color:var(--bg)] text-[color:var(--text)] md:grid-cols-[18rem_1fr] md:rounded-[14px] md:border md:border-[color:var(--border)] md:bg-[color:var(--surface)]">
-        <aside className="hidden border-r border-[color:var(--border)] bg-[color:var(--surface-2)] p-3 md:flex md:flex-col">
-          <h2 className="px-2 font-sans text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--text-muted)]">{t("brand_name")}</h2>
+      <section className="grid h-full min-h-0 min-w-0 overflow-hidden rounded-none bg-[color:var(--bg)] text-[color:var(--text)] md:grid-cols-[18rem_1fr] md:rounded-[18px] md:border md:border-[color:var(--border)] md:bg-[color:var(--surface)] md:shadow-[var(--shadow)]">
+        <aside className="hidden border-r border-[color:var(--border)] bg-[linear-gradient(180deg,var(--surface-2),rgba(255,246,231,0.72))] p-3 md:flex md:flex-col">
+          <h2 className="px-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">{t("brand_name")}</h2>
           <button
             type="button"
             onClick={startNewChat}
-            className="mt-3 min-h-11 rounded-[12px] bg-[color:var(--accent)] px-3 py-2 text-sm font-semibold text-[color:var(--accent-contrast)] transition-colors duration-200 motion-reduce:transition-none hover:opacity-90 active:opacity-80"
+            className="mt-3 min-h-11 rounded-[12px] bg-[color:var(--accent)] px-3 py-2 text-sm font-semibold text-[color:var(--accent-contrast)] transition-opacity duration-200 motion-reduce:transition-none hover:opacity-90 active:opacity-80"
           >
-            {t("chat_new")}
+            {uiLabels.newChat}
           </button>
 
           <div className="mt-4 space-y-2">
@@ -1033,11 +1191,11 @@ export default function BhaktiGptChatClient() {
                     onClick={() => void openConversation(conversation.id)}
                     className={`w-full rounded-[12px] border px-2 py-1.5 text-left text-xs transition-colors duration-200 motion-reduce:transition-none ${
                       conversation.id === conversationId
-                        ? "border-[color:var(--text-muted)] bg-[color:var(--surface)]"
+                        ? "border-[color:var(--text-muted)] bg-[color:var(--surface)] shadow-[0_8px_20px_-20px_rgba(44,26,18,0.9)]"
                         : "border-[color:var(--border)] bg-[color:var(--surface)] hover:border-[color:var(--text-muted)]"
                     }`}
                   >
-                    {getConversationLabelLocalized(conversation, t("chat_new"))}
+                    {getConversationLabelLocalized(conversation, uiLabels.newChat)}
                   </button>
                 ))
               )}
@@ -1048,14 +1206,14 @@ export default function BhaktiGptChatClient() {
         <div className="relative flex min-h-0 min-w-0 flex-col overflow-hidden">
           <header
             ref={headerShellRef}
-            className="absolute inset-x-0 top-0 z-20 border-b border-[color:var(--border)] bg-[color:var(--surface)] px-3 pb-2 pt-[calc(env(safe-area-inset-top)+8px)] shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:px-5"
+            className="absolute inset-x-0 top-0 z-20 border-b border-[color:var(--border)] bg-[color:var(--surface)]/95 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+8px)] shadow-[0_8px_28px_-26px_rgba(0,0,0,0.65)] backdrop-blur sm:px-5"
           >
             <div className="grid grid-cols-[auto,1fr,auto] items-center gap-3">
               <div className="flex items-center">
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="inline-flex min-h-11 items-center justify-center gap-1 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-3 text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)]"
+                  className="inline-flex min-h-11 items-center justify-center gap-1 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-3 text-[color:var(--text)] shadow-[0_10px_20px_-20px_rgba(44,26,18,0.9)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)]"
                   aria-label={t("chat_back")}
                 >
                   <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true" fill="none">
@@ -1068,20 +1226,40 @@ export default function BhaktiGptChatClient() {
               <div className="flex min-w-0 items-center justify-center gap-2">
                 <GuideAvatar guideId={selectedGuideId} size="sm" />
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-[color:var(--text)]">
+                  <p className="text-[13px] font-semibold leading-tight text-[color:var(--text)] [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] overflow-hidden sm:truncate sm:text-sm">
                     {selectedGuideLocalized?.name ?? selectedGuideConfig?.displayName}
                   </p>
-                  <p className="truncate text-[11px] text-[color:var(--text-muted)]">
+                  <p className="truncate text-[10px] text-[color:var(--text-muted)] sm:text-[11px]">
                     {t("brand_name")} • {t("chat_online_guide")}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center justify-end gap-2">
+                <div className="inline-flex min-h-11 items-center gap-1 rounded-full border border-[color:var(--border)] bg-[color:var(--surface-2)] p-1 shadow-[0_10px_22px_-22px_rgba(44,26,18,0.85)]">
+                  {chatLanguageOptions.map((option) => {
+                    const active = chatLanguage === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => handleChatLanguageChange(option.value)}
+                        className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors duration-150 motion-reduce:transition-none ${
+                          active
+                            ? "bg-[color:var(--surface)] text-[color:var(--text)] shadow-[0_8px_16px_-12px_rgba(44,26,18,0.8)]"
+                            : "text-[color:var(--text-muted)] hover:text-[color:var(--text)]"
+                        }`}
+                        aria-pressed={active}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
                 <button
                   type="button"
                   onClick={() => setShowAboutModal(true)}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)]"
+                  className="hidden h-11 w-11 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] shadow-[0_10px_20px_-20px_rgba(44,26,18,0.9)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)] sm:inline-flex"
                   aria-label={t("chat_about")}
                 >
                   <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true" fill="none">
@@ -1093,8 +1271,8 @@ export default function BhaktiGptChatClient() {
                 <button
                   type="button"
                   onClick={startNewChat}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)]"
-                  aria-label={t("chat_new")}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] shadow-[0_10px_20px_-20px_rgba(44,26,18,0.9)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)]"
+                  aria-label={uiLabels.newChat}
                 >
                   <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true" fill="none">
                     <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -1121,7 +1299,7 @@ export default function BhaktiGptChatClient() {
             className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden bg-[color:var(--bg)] px-3 py-3 text-[16px] leading-[1.6] [overflow-wrap:anywhere] [word-break:break-word] [overscroll-behavior-y:contain] sm:px-5 sm:py-4 md:text-[15px] lg:text-[16px]"
             style={{
               paddingTop: `${headerHeight + (isGuideSwitching ? 34 : 10)}px`,
-              paddingBottom: `${composerHeight + 18}px`
+              paddingBottom: `${composerHeight + 28}px`
             }}
           >
             {isOffline ? (
@@ -1131,7 +1309,7 @@ export default function BhaktiGptChatClient() {
             ) : null}
 
             {loadState === "loading" ? (
-              <div className="space-y-3 rounded-[14px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4">
+              <div className="space-y-3 rounded-[16px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4 shadow-[var(--shadow)]">
                 <p className="text-sm font-medium text-[color:var(--text-muted)]">{t("chat_loading_thread")}</p>
                 <div className="h-16 w-2/3 animate-pulse rounded-[16px] bg-[color:var(--surface-2)]" />
                 <div className="ml-auto h-14 w-1/2 animate-pulse rounded-[16px] bg-[color:var(--surface-2)]" />
@@ -1153,7 +1331,7 @@ export default function BhaktiGptChatClient() {
             ) : null}
 
             {loadState === "ready" && messages.length === 0 ? (
-              <div className="space-y-4 rounded-[14px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4 sm:p-5">
+              <div className="space-y-4 rounded-[16px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4 shadow-[var(--shadow)] sm:p-5">
                 <div>
                   <p className="text-sm font-semibold text-[color:var(--text)]">
                     {t("chat_start_with", { name: selectedGuideLocalized?.name ?? selectedGuide.name })}
@@ -1184,10 +1362,10 @@ export default function BhaktiGptChatClient() {
 
                   if (message.role === "assistant") {
                     return (
-                      <div key={message.id} className="flex w-full max-w-[90%] min-w-0 items-start gap-3 md:max-w-[720px] md:gap-4">
+                      <div key={message.id} className="flex w-full max-w-[92%] min-w-0 items-start gap-3 md:max-w-[720px] md:gap-4">
                         <GuideAvatar guideId={selectedGuideId} size="sm" className="mt-0.5 shrink-0 md:h-10 md:w-10" />
                         <div className="w-full">
-                          <article className="w-full min-w-0 rounded-[16px] border border-[color:var(--border)] bg-[color:var(--assistant-bubble)] px-4 py-3 text-[15px] leading-[1.6] text-[color:var(--text)] shadow-[var(--shadow)] sm:text-[16px]">
+                          <article className="w-full min-w-0 rounded-[18px] border border-[color:var(--border)] bg-[color:var(--assistant-bubble)] px-3.5 py-2.5 text-[15px] leading-[1.6] text-[color:var(--text)] shadow-[var(--shadow)] sm:px-4 sm:py-3 sm:text-[16px]">
                             {isAssistantTyping ? (
                               <span className="inline-flex items-center gap-1 text-[color:var(--text-muted)]">
                                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[color:var(--text-muted)] [animation-delay:-0.2s]" />
@@ -1209,8 +1387,8 @@ export default function BhaktiGptChatClient() {
                   }
 
                   return (
-                    <div key={message.id} className="ml-auto w-full max-w-[90%] min-w-0 md:max-w-[720px]">
-                      <article className="rounded-[16px] border border-transparent bg-[color:var(--user-bubble)] px-4 py-3 text-[15px] leading-[1.6] text-[color:var(--accent-contrast)] shadow-[var(--shadow)] sm:text-[16px]">
+                    <div key={message.id} className="ml-auto w-full max-w-[92%] min-w-0 md:max-w-[720px]">
+                      <article className="rounded-[18px] border border-transparent bg-[color:var(--user-bubble)] px-3.5 py-2.5 text-[15px] leading-[1.6] text-[color:var(--accent-contrast)] shadow-[var(--shadow)] sm:px-4 sm:py-3 sm:text-[16px]">
                         {renderMessageContent(message.content)}
                       </article>
                       {formatMessageTime(message.createdAt) ? (
@@ -1228,17 +1406,20 @@ export default function BhaktiGptChatClient() {
             <button
               type="button"
               onClick={() => scrollMessagesToBottom(prefersReducedMotion ? "auto" : "smooth", true)}
-              className="absolute right-4 z-30 min-h-11 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 text-xs font-semibold text-[color:var(--text)] shadow-[var(--shadow)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)]"
-              style={{ bottom: `${composerHeight + 14}px` }}
+              className="absolute right-4 z-30 inline-flex min-h-11 items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 text-[11px] font-semibold text-[color:var(--text)] shadow-[var(--shadow)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)]"
+              style={{ bottom: `${composerHeight + 18}px` }}
               aria-label={t("chat_scroll_latest")}
             >
+              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" aria-hidden="true" fill="none">
+                <path d="M6 8.5 10 12.5l4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
               {t("chat_scroll_latest")}
             </button>
           ) : null}
 
           <div
             ref={composerShellRef}
-            className="absolute inset-x-0 bottom-0 z-20 border-t border-[color:var(--border)] bg-[color:var(--surface)] px-3 pt-2 pb-[calc(10px+env(safe-area-inset-bottom))] shadow-[0_-1px_0_0_rgba(0,0,0,0.03)] sm:px-5 sm:pt-3"
+            className="absolute inset-x-0 bottom-0 z-20 border-t border-[color:var(--border)] bg-[color:var(--surface)]/96 px-3 pt-2 pb-[calc(16px+env(safe-area-inset-bottom))] shadow-[0_-10px_28px_-28px_rgba(0,0,0,0.65)] backdrop-blur sm:px-5 sm:pt-3"
           >
             <div className="flex gap-2">
               <textarea
@@ -1262,18 +1443,18 @@ export default function BhaktiGptChatClient() {
                   }
                 }}
                 rows={1}
-                placeholder={t("chat_placeholder")}
-                className="min-h-11 w-full resize-none rounded-[12px] border border-[color:var(--border)] bg-[color:var(--surface-2)] px-3 py-2.5 text-[16px] leading-6 text-[color:var(--text)] outline-none transition-colors duration-200 motion-reduce:transition-none placeholder:text-[color:var(--text-muted)] focus:border-[color:var(--text)] focus-visible:ring-2 focus-visible:ring-[color:var(--text)]/15"
-                aria-label={t("chat_placeholder")}
+                placeholder={uiLabels.placeholder}
+                className="min-h-11 w-full resize-none rounded-[14px] border border-[color:var(--border)] bg-[color:var(--surface-2)] px-3 py-2.5 text-[16px] leading-6 text-[color:var(--text)] outline-none transition-colors duration-200 motion-reduce:transition-none placeholder:text-[color:var(--text-muted)] focus:border-[color:var(--text)] focus-visible:ring-2 focus-visible:ring-[color:var(--text)]/15"
+                aria-label={uiLabels.placeholder}
               />
               <button
                 type="button"
                 onClick={() => void sendMessage()}
                 disabled={isStreaming || !inputValue.trim()}
-                className="inline-flex min-h-11 items-center justify-center rounded-[12px] bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-[color:var(--accent-contrast)] transition-opacity duration-200 motion-reduce:transition-none hover:opacity-90 active:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
-                aria-label={isStreaming ? t("chat_sending") : t("chat_send")}
+                className="inline-flex min-h-11 items-center justify-center rounded-[14px] bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-[color:var(--accent-contrast)] shadow-[0_12px_26px_-22px_rgba(44,26,18,0.9)] transition-opacity duration-200 motion-reduce:transition-none hover:opacity-90 active:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label={isStreaming ? sendingLabel : uiLabels.send}
               >
-                {isStreaming ? t("chat_sending") : t("chat_send")}
+                {isStreaming ? sendingLabel : uiLabels.send}
               </button>
             </div>
 

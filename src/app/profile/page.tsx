@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { auth } from "@/auth";
@@ -21,6 +22,8 @@ export const metadata: Metadata = {
 function getProviderLabel(providerId: string) {
   return PROVIDER_LABELS[providerId] || providerId.charAt(0).toUpperCase() + providerId.slice(1);
 }
+
+const remoteImageLoader = ({ src }: { src: string }) => src;
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -65,9 +68,13 @@ export default async function ProfilePage() {
 
         <div className="mt-6 flex items-center gap-4">
           {user.image ? (
-            <img
+            <Image
+              loader={remoteImageLoader}
+              unoptimized
               src={user.image}
               alt={user.name ? `${user.name} avatar` : "User avatar"}
+              width={56}
+              height={56}
               className="h-14 w-14 rounded-full border border-sagar-amber/25 object-cover"
             />
           ) : (

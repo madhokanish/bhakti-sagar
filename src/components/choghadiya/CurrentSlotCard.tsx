@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChoghadiyaSegment, formatCountdown, formatTimeWithDay, getCurrentSegment, getNextGoodSegment } from "@/lib/choghadiya";
 import { getSlotMeta } from "@/components/choghadiya/slotMeta";
+import type { ChoghadiyaCopy } from "@/lib/choghadiyaCopy";
 
 type Props = {
   segments: ChoghadiyaSegment[];
@@ -14,6 +15,19 @@ type Props = {
   isToday: boolean;
   dateLabel: string;
   hasTimes: boolean;
+  labels: Pick<
+    ChoghadiyaCopy,
+    | "select_city"
+    | "current_slot_wait"
+    | "current_slot_for_date"
+    | "current_slot"
+    | "ends_in"
+    | "more"
+    | "less"
+    | "next_good_slot"
+    | "sunrise"
+    | "sunset"
+  >;
 };
 
 export default function CurrentSlotCard({
@@ -25,7 +39,8 @@ export default function CurrentSlotCard({
   loading,
   isToday,
   dateLabel,
-  hasTimes
+  hasTimes,
+  labels
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [nowMs, setNowMs] = useState(Date.now());
@@ -65,10 +80,10 @@ export default function CurrentSlotCard({
       <div className="rounded-2xl border border-sagar-amber/20 bg-white px-4 py-3">
         <p className="text-sm text-sagar-ink/60">
           {!hasTimes
-            ? "Select a city to view the current slot."
+            ? labels.select_city
             : isToday
-              ? "Current slot will appear here."
-              : `Viewing timetable for ${dateLabel}.`}
+              ? labels.current_slot_wait
+              : labels.current_slot_for_date.replace("{date}", dateLabel)}
         </p>
       </div>
     );
@@ -80,7 +95,7 @@ export default function CurrentSlotCard({
     <div className="rounded-2xl border border-sagar-amber/20 bg-white px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Current slot</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">{labels.current_slot}</p>
           {meta && (
             <div className="mt-1 flex items-center gap-2 text-sm">
               <span aria-hidden="true">{meta.emoji}</span>
@@ -94,26 +109,26 @@ export default function CurrentSlotCard({
             {formatTimeWithDay(currentSegment.start, timeZone, baseDateKey)} –{" "}
             {formatTimeWithDay(currentSegment.end, timeZone, baseDateKey)}
           </p>
-          {isToday && countdown && <p className="text-xs text-sagar-ink/60">Ends in {countdown}</p>}
+          {isToday && countdown && <p className="text-xs text-sagar-ink/60">{labels.ends_in} {countdown}</p>}
         </div>
         <button
           onClick={() => setExpanded((prev) => !prev)}
           className="rounded-full border border-sagar-amber/30 px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/60"
         >
-          {expanded ? "Less" : "More"}
+          {expanded ? labels.less : labels.more}
         </button>
       </div>
       {isToday && nextGood && (
         <p className="mt-2 text-xs text-sagar-ink/70">
-          Next good slot: {nextGood.name} ·{" "}
+          {labels.next_good_slot}: {nextGood.name} ·{" "}
           {formatTimeWithDay(nextGood.start, timeZone, baseDateKey)} –{" "}
           {formatTimeWithDay(nextGood.end, timeZone, baseDateKey)}
         </p>
       )}
       {expanded && (
         <div className="mt-2 text-xs text-sagar-ink/60">
-          {sunrise && <p>Sunrise: {formatTimeWithDay(sunrise, timeZone, baseDateKey)}</p>}
-          {sunset && <p>Sunset: {formatTimeWithDay(sunset, timeZone, baseDateKey)}</p>}
+          {sunrise && <p>{labels.sunrise}: {formatTimeWithDay(sunrise, timeZone, baseDateKey)}</p>}
+          {sunset && <p>{labels.sunset}: {formatTimeWithDay(sunset, timeZone, baseDateKey)}</p>}
         </div>
       )}
     </div>

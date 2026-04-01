@@ -18,11 +18,15 @@ export default async function DeityGrid({ ids = DEFAULT_IDS }: DeityGridProps) {
   const localePrefix = `/${lang}`;
   const respectfulNames: Record<BhaktiGuideId, string> = {
     krishna: t("home_card_krishna_title"),
+    shiv: "Shiv Ji",
+    hanuman: "Hanuman Ji",
     lakshmi: t("home_card_lakshmi_title"),
     shani: t("home_card_shani_title")
   };
   const hooks: Record<BhaktiGuideId, string> = {
     krishna: t("home_card_krishna_subtitle"),
+    shiv: "For stillness and emotional reset",
+    hanuman: "For courage and focused action",
     lakshmi: t("home_card_lakshmi_subtitle"),
     shani: t("home_card_shani_subtitle")
   };

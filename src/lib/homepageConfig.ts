@@ -27,6 +27,8 @@ export const HOMEPAGE_TRUST_CONFIG = {
 
 export const HOMEPAGE_DEITY_HOOKS: Record<BhaktiGuideId, string> = {
   krishna: "For life decisions and inner peace",
+  shiv: "For stillness and emotional reset",
+  hanuman: "For courage and focused action",
   lakshmi: "For money stress and steady growth",
   shani: "For tough phases and setbacks"
 };

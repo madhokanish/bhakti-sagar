@@ -2,6 +2,7 @@
 
 import { ChoghadiyaSegment, formatTime } from "@/lib/choghadiya";
 import SegmentRow from "@/components/choghadiya/SegmentRow";
+import type { ChoghadiyaCopy } from "@/lib/choghadiyaCopy";
 
 type Props = {
   dateLabel: string;
@@ -14,6 +15,20 @@ type Props = {
   baseDateKey: string;
   onAddReminder: (segment: ChoghadiyaSegment) => void;
   onCopyTime: (text: string) => void;
+  labels: Pick<
+    ChoghadiyaCopy,
+    | "day_label"
+    | "sunrise"
+    | "sunset"
+    | "select_city_day"
+    | "next_day_suffix"
+    | "now"
+    | "details"
+    | "good_for"
+    | "avoid"
+    | "copy_times"
+    | "add_reminder"
+  >;
 };
 
 export default function DayTable({
@@ -26,14 +41,15 @@ export default function DayTable({
   timeZone,
   baseDateKey,
   onAddReminder,
-  onCopyTime
+  onCopyTime,
+  labels
 }: Props) {
   return (
     <section className="space-y-2">
       <div className="sticky top-24 z-10 rounded-2xl border border-sagar-amber/20 bg-white px-3 py-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Day</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">{labels.day_label}</p>
         <p className="text-xs text-sagar-ink/60">
-          {dateLabel} · Sunrise {sunrise ? formatTime(sunrise, timeZone) : "--"} · Sunset{" "}
+          {dateLabel} · {labels.sunrise} {sunrise ? formatTime(sunrise, timeZone) : "--"} · {labels.sunset}{" "}
           {sunset ? formatTime(sunset, timeZone) : "--"}
         </p>
       </div>
@@ -48,9 +64,10 @@ export default function DayTable({
             isHighlighted={selectedTimeMs != null && selectedTimeMs === segment.start.getTime()}
             onAddReminder={onAddReminder}
             onCopyTime={onCopyTime}
+            labels={labels}
           />
         ))}
-        {!segments.length && <p className="text-sm text-sagar-ink/60">Select a city to see day choghadiya.</p>}
+        {!segments.length && <p className="text-sm text-sagar-ink/60">{labels.select_city_day}</p>}
       </div>
     </section>
   );

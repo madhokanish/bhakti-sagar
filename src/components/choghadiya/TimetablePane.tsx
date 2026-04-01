@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ChoghadiyaSegment, getCurrentSegment } from "@/lib/choghadiya";
 import DayTable from "@/components/choghadiya/DayTable";
 import NightTable from "@/components/choghadiya/NightTable";
+import type { ChoghadiyaCopy } from "@/lib/choghadiyaCopy";
 
 type Props = {
   dateLabel: string;
@@ -20,6 +21,27 @@ type Props = {
   onCopyTime: (text: string) => void;
   activePane: "day" | "night";
   onPaneChange: (pane: "day" | "night") => void;
+  labels: Pick<
+    ChoghadiyaCopy,
+    | "tab_day"
+    | "tab_night"
+    | "single"
+    | "split"
+    | "day_label"
+    | "night_label"
+    | "sunrise"
+    | "sunset"
+    | "next_sunrise"
+    | "select_city_day"
+    | "select_city_night"
+    | "next_day_suffix"
+    | "now"
+    | "details"
+    | "good_for"
+    | "avoid"
+    | "copy_times"
+    | "add_reminder"
+  >;
 };
 
 export default function TimetablePane({
@@ -36,7 +58,8 @@ export default function TimetablePane({
   onAddReminder,
   onCopyTime,
   activePane,
-  onPaneChange
+  onPaneChange,
+  labels
 }: Props) {
   const [splitView, setSplitView] = useState(false);
   const touchStartX = useRef<number | null>(null);
@@ -78,7 +101,7 @@ export default function TimetablePane({
               activePane === "day" ? "bg-sagar-saffron text-white" : "text-sagar-ink/60"
             }`}
           >
-            Day
+            {labels.tab_day}
           </button>
           <button
             onClick={() => onPaneChange("night")}
@@ -86,7 +109,7 @@ export default function TimetablePane({
               activePane === "night" ? "bg-sagar-saffron text-white" : "text-sagar-ink/60"
             }`}
           >
-            Night
+            {labels.tab_night}
           </button>
         </div>
         {canSplit && (
@@ -94,7 +117,7 @@ export default function TimetablePane({
             onClick={() => setSplitView((prev) => !prev)}
             className="rounded-full border border-sagar-amber/30 bg-white px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/60"
           >
-            {splitView ? "Single" : "Split"}
+            {splitView ? labels.single : labels.split}
           </button>
         )}
       </div>
@@ -126,6 +149,7 @@ export default function TimetablePane({
             baseDateKey={baseDateKey}
             onAddReminder={onAddReminder}
             onCopyTime={onCopyTime}
+            labels={labels}
           />
         )}
         {(splitView || activePane === "night" || isDesktop) && (
@@ -140,6 +164,7 @@ export default function TimetablePane({
             baseDateKey={baseDateKey}
             onAddReminder={onAddReminder}
             onCopyTime={onCopyTime}
+            labels={labels}
           />
         )}
       </div>

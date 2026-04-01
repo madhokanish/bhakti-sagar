@@ -4,31 +4,108 @@
 
 :root {
   color-scheme: light;
-  --bg-start: #fff7ee;
+  --bg-start: #fff8ef;
+  --bg-end: #fff2df;
+  --surface: #fffdf9;
+  --surface-soft: #fff6e8;
+  --surface-strong: #fff1dd;
+  --text-main: #2d1608;
+  --text-muted: #7a5a45;
+  --border-soft: rgba(170, 117, 80, 0.24);
+  --ring: rgba(212, 85, 37, 0.4);
   --aarti-font-size: 1.125rem;
   --aarti-line-height: 1.6;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  @apply text-sagar-ink font-sans;
-  background: var(--bg-start);
+  @apply font-sans;
+  color: var(--text-main);
+  background:
+    radial-gradient(circle at 16% -8%, rgba(242, 179, 74, 0.18) 0%, rgba(242, 179, 74, 0) 38%),
+    radial-gradient(circle at 92% 12%, rgba(212, 75, 42, 0.12) 0%, rgba(212, 75, 42, 0) 42%),
+    linear-gradient(180deg, var(--bg-start) 0%, var(--bg-end) 100%);
   min-height: 100vh;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "liga" 1, "kern" 1;
+}
+
+.app-shell::before,
+.app-shell::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.app-shell::before {
+  background:
+    radial-gradient(circle at 10% 18%, rgba(255, 220, 167, 0.26) 0%, rgba(255, 220, 167, 0) 40%),
+    radial-gradient(circle at 92% 72%, rgba(180, 58, 40, 0.08) 0%, rgba(180, 58, 40, 0) 38%);
+}
+
+.app-shell::after {
+  background-image:
+    radial-gradient(rgba(101, 63, 39, 0.055) 0.5px, transparent 0.5px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0));
+  background-size: 3px 3px, 100% 100%;
+  opacity: 0.35;
 }
 
 ::selection {
-  background: rgba(229, 122, 31, 0.3);
+  background: rgba(229, 122, 31, 0.28);
+  color: #2d1608;
 }
 
 h1, h2, h3, h4 {
   @apply font-serif text-sagar-ink;
+  letter-spacing: -0.01em;
 }
 
 .container {
-  @apply mx-auto w-full max-w-6xl px-6;
+  @apply mx-auto w-full max-w-[74rem] px-4 sm:px-6 lg:px-8;
 }
 
 .section-title {
   @apply text-2xl md:text-3xl font-serif tracking-tight;
+}
+
+a {
+  transition: color 180ms ease, opacity 180ms ease, transform 180ms ease;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.surface-panel {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 1px 2px rgba(42, 23, 12, 0.08), 0 20px 34px -28px rgba(42, 23, 12, 0.45);
+}
+
+.surface-soft {
+  background: var(--surface-soft);
+  border: 1px solid rgba(170, 117, 80, 0.2);
+}
+
+.page-reveal {
+  animation: fade-up 440ms ease both;
+}
+
+.hover-lift {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 34px -28px rgba(44, 26, 18, 0.5);
 }
 
 .aarti-lyrics {
@@ -56,6 +133,31 @@ html[data-reading-mode="on"] nav,
 html[data-reading-mode="on"] footer,
 html[data-reading-mode="on"] .aarti-secondary {
   display: none !important;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
 }
 
 @media print {

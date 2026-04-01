@@ -5,9 +5,14 @@ export function buildBhaktiChatHref(params: {
   prefill?: string;
   forceNew?: boolean;
   conversationId?: string;
+  chatLang?: "en" | "hinglish" | "hi";
 }) {
   const query = new URLSearchParams();
   query.set("guide", params.guideId);
+
+  if (params.chatLang) {
+    query.set("lang", params.chatLang);
+  }
 
   if (params.conversationId) {
     query.set("conversationId", params.conversationId);

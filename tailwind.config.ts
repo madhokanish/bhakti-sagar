@@ -12,7 +12,7 @@ const config: Config = {
         "sagar-amber": "#F2B34A",
         "sagar-saffron": "#E56A20",
         "sagar-rose": "#B43A28",
-        "sagar-ink": "#2B140A",
+        "sagar-ink": "#2D1608",
         "sagar-sand": "#FFF1DD",
         "sagar-cream": "#FFF7EE",
         "sagar-gold": "#F6C85F",
@@ -20,12 +20,13 @@ const config: Config = {
         "sagar-crimson": "#8E1E1A"
       },
       fontFamily: {
-        serif: ["ui-serif", "Georgia", "Times New Roman", "serif"],
-        sans: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "sans-serif"]
+        serif: ["var(--font-display)", "serif"],
+        sans: ["var(--font-body)", "sans-serif"]
       },
       boxShadow: {
         "sagar-card": "0 24px 48px -24px rgba(44, 26, 18, 0.45)",
-        "sagar-soft": "0 20px 40px -30px rgba(44, 26, 18, 0.4)"
+        "sagar-soft": "0 20px 40px -30px rgba(44, 26, 18, 0.4)",
+        "sagar-panel": "0 1px 2px rgba(35, 18, 10, 0.08), 0 14px 38px -24px rgba(35, 18, 10, 0.45)"
       }
     }
   },

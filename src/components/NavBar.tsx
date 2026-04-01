@@ -1,24 +1,85 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import Logo from "@/components/Logo";
 import AuthModalTrigger from "@/components/auth/AuthModalTrigger";
+import HomeLanguageToggle from "@/components/HomeLanguageToggle";
+import LanguageToggle from "@/components/LanguageToggle";
+import { HOME_LANG_COOKIE, HOME_LANG_STORAGE_KEY, isHomeLang, type HomeLang } from "@/lib/homeCopy";
+import { buildBhaktiChatHref } from "@/lib/bhaktigpt/chatLinks";
+import { useBhaktiLang } from "@/lib/useBhaktiLang";
+
+const CHAT_LANGUAGE_STORAGE_KEY = "chat_lang";
+
+function readHomeLangCookie() {
+  if (typeof document === "undefined") return null;
+  const token = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${HOME_LANG_COOKIE}=`));
+  if (!token) return null;
+  const value = decodeURIComponent(token.split("=")[1] ?? "");
+  return isHomeLang(value) ? value : null;
+}
+
+function readHomeLangStorage() {
+  if (typeof window === "undefined") return null;
+  try {
+    const value = window.localStorage.getItem(HOME_LANG_STORAGE_KEY);
+    return isHomeLang(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistHomeLanguage(lang: HomeLang) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(HOME_LANG_STORAGE_KEY, lang);
+    window.localStorage.setItem(CHAT_LANGUAGE_STORAGE_KEY, lang);
+  } catch {
+    // ignore localStorage write failures
+  }
+  document.cookie = `${HOME_LANG_COOKIE}=${lang}; path=/; max-age=31536000; samesite=lax`;
+}
+
+const remoteImageLoader = ({ src }: { src: string }) => src;
 
 export default function NavBar() {
   const t = useTranslations();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsKey = searchParams.toString();
   const [scrolled, setScrolled] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [homeLang, setHomeLang] = useState<HomeLang>(pathname === "/hi" ? "hi" : "en");
   const headerRef = useRef<HTMLElement | null>(null);
   const { data: session, status } = useSession();
-  const pathname = usePathname();
   const callbackUrl = pathname || "/";
   const isChatRoute = pathname?.includes("/chat");
+  const isHomepageRoute = pathname === "/" || pathname === "/hi";
+  const searchLangRaw = searchParams.get("lang");
+  const searchLang = isHomeLang(searchLangRaw) ? searchLangRaw : null;
+  const toolsRouteMatch = pathname?.match(/^\/(en|hi)\/(aartis|choghadiya)(?:\/.*)?$/) ?? null;
+  const isToolsLocalizedRoute = Boolean(toolsRouteMatch);
+  const toolsRouteLocale = (toolsRouteMatch?.[1] as "en" | "hi" | undefined) ?? "en";
+  const { lang: storedBhaktiLang, setLang: setBhaktiLang } = useBhaktiLang(toolsRouteLocale === "hi" ? "hi" : "en");
+  const toolsToggleLang: HomeLang =
+    toolsRouteLocale === "hi" ? "hi" : storedBhaktiLang === "hinglish" ? "hinglish" : "en";
+  const effectiveHomeLang: HomeLang = pathname === "/hi" ? "hi" : searchLang ?? homeLang;
+  const homeHref = effectiveHomeLang === "hi" ? "/hi" : effectiveHomeLang === "hinglish" ? "/?lang=hinglish" : "/";
   const localePrefix = "/en";
+  const chatNavHref = buildBhaktiChatHref({
+    guideId: "krishna",
+    chatLang: effectiveHomeLang === "en" ? undefined : effectiveHomeLang
+  });
 
   const isAuthenticated = Boolean(session?.user?.id);
   const avatarLabel = session?.user?.name || session?.user?.email || "Account";
@@ -26,7 +87,7 @@ export default function NavBar() {
 
   const navItems = [
     {
-      href: "/chat?guide=krishna",
+      href: chatNavHref,
       label: t("nav_chat")
     },
     { href: `${localePrefix}/aartis`, label: t("nav_aartis") },
@@ -62,6 +123,45 @@ export default function NavBar() {
   }, [pathname]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if (pathname === "/hi") {
+      setHomeLang("hi");
+      return;
+    }
+
+    if (pathname === "/" && searchLang) {
+      if (searchLang === "hi") {
+        router.replace("/hi");
+        return;
+      }
+      setHomeLang(searchLang);
+      persistHomeLanguage(searchLang);
+      return;
+    }
+
+    const cookieLang = readHomeLangCookie();
+    const storedLang = readHomeLangStorage();
+    const preferredLang = cookieLang ?? storedLang ?? "en";
+
+    if (cookieLang && storedLang !== cookieLang) {
+      try {
+        window.localStorage.setItem(HOME_LANG_STORAGE_KEY, cookieLang);
+        window.localStorage.setItem(CHAT_LANGUAGE_STORAGE_KEY, cookieLang);
+      } catch {
+        // ignore localStorage write failures
+      }
+    } else if (!cookieLang && storedLang) {
+      persistHomeLanguage(storedLang);
+    }
+
+    setHomeLang(preferredLang);
+    if (pathname === "/" && preferredLang === "hi") {
+      router.replace("/hi");
+    }
+  }, [pathname, router, searchLang]);
+
+  useEffect(() => {
     if (!mobileMenuOpen) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -94,6 +194,39 @@ export default function NavBar() {
     }
   }
 
+  function handleHomeLanguageChange(lang: HomeLang) {
+    persistHomeLanguage(lang);
+    setHomeLang(lang);
+
+    if (lang === "hi") {
+      if (pathname !== "/hi") router.replace("/hi");
+      return;
+    }
+
+    const params = new URLSearchParams(searchParamsKey);
+    params.delete("lang");
+    if (lang === "hinglish") {
+      params.set("lang", "hinglish");
+    }
+    const query = params.toString();
+    router.replace(`/${query ? `?${query}` : ""}`);
+  }
+
+  function handleToolsLanguageChange(lang: HomeLang) {
+    if (!pathname || !isToolsLocalizedRoute) return;
+    setBhaktiLang(lang);
+
+    const qs = searchParams.toString();
+    const nextLocale = lang === "hi" ? "hi" : "en";
+    const restPath = pathname.replace(/^\/(en|hi)/, "");
+    const nextPath = `/${nextLocale}${restPath}${qs ? `?${qs}` : ""}`;
+    const currentPath = `${pathname}${qs ? `?${qs}` : ""}`;
+
+    if (nextPath !== currentPath) {
+      router.replace(nextPath);
+    }
+  }
+
   if (isChatRoute) {
     return null;
   }
@@ -101,34 +234,47 @@ export default function NavBar() {
   return (
     <header
       ref={headerRef}
-      className={`sticky top-0 z-40 border-b border-sagar-amber/18 bg-white/90 backdrop-blur transition-shadow ${
-        scrolled ? "shadow-[0_10px_30px_-24px_rgba(44,20,10,0.5)]" : "shadow-none"
+      className={`sticky top-0 z-40 border-b border-sagar-amber/20 bg-[#fffdf9]/88 backdrop-blur-xl transition-[box-shadow,background-color] duration-200 ${
+        scrolled ? "bg-[#fffdf9]/96 shadow-[0_14px_34px_-30px_rgba(44,20,10,0.7)]" : "shadow-none"
       }`}
     >
-      <div className="container relative flex items-center justify-between gap-4 py-2.5">
-        <Logo href={localePrefix} />
+      <div className="container relative flex items-center justify-between gap-4 py-3">
+        <Logo href={homeHref} />
 
         <nav
           aria-label="Primary navigation"
-          className="hidden items-center gap-6 text-sm font-semibold text-sagar-ink/85 md:absolute md:left-1/2 md:flex md:-translate-x-1/2"
+          className="hidden items-center gap-1 rounded-full border border-sagar-amber/25 bg-white/75 px-2 py-1 text-sm font-semibold text-sagar-ink/85 shadow-[0_10px_26px_-24px_rgba(44,20,10,0.65)] md:absolute md:left-1/2 md:flex md:-translate-x-1/2"
         >
           {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className="transition hover:text-sagar-ember">
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rounded-full px-3 py-1.5 transition-colors duration-200 hover:bg-sagar-sand/55 hover:text-sagar-ember"
+            >
               {item.label}
             </Link>
           ))}
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          {isHomepageRoute ? (
+            <HomeLanguageToggle currentLang={homeLang} onChange={handleHomeLanguageChange} />
+          ) : isToolsLocalizedRoute ? (
+            <LanguageToggle currentLang={toolsToggleLang} onChange={handleToolsLanguageChange} compact />
+          ) : null}
           {status === "loading" ? (
-            <div className="h-9 w-20 animate-pulse rounded-full bg-sagar-cream/70" />
+            <div className="h-9 w-20 animate-pulse rounded-full bg-sagar-cream/80" />
           ) : isAuthenticated ? (
             <details className="group relative">
-              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full border border-sagar-amber/30 bg-white px-2 py-1 text-sm font-semibold text-sagar-ink/80 transition hover:border-sagar-amber/55 hover:text-sagar-ink">
+              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full border border-sagar-amber/30 bg-white px-2 py-1 text-sm font-semibold text-sagar-ink/80 shadow-[0_10px_26px_-24px_rgba(44,20,10,0.65)] transition-colors duration-200 hover:border-sagar-amber/55 hover:bg-sagar-sand/40 hover:text-sagar-ink">
                 {session?.user?.image ? (
-                  <img
+                  <Image
+                    loader={remoteImageLoader}
+                    unoptimized
                     src={session.user.image}
                     alt={avatarLabel}
+                    width={28}
+                    height={28}
                     className="h-7 w-7 rounded-full border border-sagar-amber/25 object-cover"
                   />
                 ) : (
@@ -142,10 +288,10 @@ export default function NavBar() {
                 </svg>
               </summary>
 
-              <div className="absolute right-0 mt-2 w-44 rounded-2xl border border-sagar-amber/20 bg-white p-2 text-sm text-sagar-ink/75 shadow-sagar-soft">
+              <div className="absolute right-0 mt-2 w-44 rounded-2xl border border-sagar-amber/25 bg-[#fffdf9] p-2 text-sm text-sagar-ink/75 shadow-sagar-panel">
                 <Link
                   href={`${localePrefix}/profile`}
-                  className="mb-1 block rounded-xl px-3 py-2 font-semibold transition hover:bg-sagar-cream/65 hover:text-sagar-ember"
+                  className="mb-1 block rounded-xl px-3 py-2 font-semibold transition-colors duration-200 hover:bg-sagar-cream/65 hover:text-sagar-ember"
                 >
                   Profile
                 </Link>
@@ -153,7 +299,7 @@ export default function NavBar() {
                   type="button"
                   onClick={() => void handleSignOut()}
                   disabled={isSigningOut}
-                  className="block w-full rounded-xl px-3 py-2 text-left font-semibold transition hover:bg-sagar-cream/65 hover:text-sagar-ember disabled:cursor-not-allowed disabled:opacity-60"
+                  className="block w-full rounded-xl px-3 py-2 text-left font-semibold transition-colors duration-200 hover:bg-sagar-cream/65 hover:text-sagar-ember disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSigningOut ? "Logging out..." : "Logout"}
                 </button>
@@ -162,7 +308,7 @@ export default function NavBar() {
           ) : (
             <AuthModalTrigger
               callbackUrl={callbackUrl}
-              className="rounded-full border border-sagar-amber/35 px-3 py-1.5 text-sm font-semibold text-sagar-ink/80 transition hover:border-sagar-amber/60 hover:text-sagar-ember"
+              className="rounded-full border border-sagar-amber/35 bg-white/90 px-3 py-1.5 text-sm font-semibold text-sagar-ink/80 shadow-[0_10px_26px_-24px_rgba(44,20,10,0.65)] transition-colors duration-200 hover:border-sagar-amber/60 hover:bg-sagar-sand/50 hover:text-sagar-ember"
             >
               {t("nav_login")}
             </AuthModalTrigger>
@@ -174,7 +320,7 @@ export default function NavBar() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-sagar-amber/30 bg-white text-sagar-ink/70"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-sagar-amber/30 bg-white/95 text-sagar-ink/70 shadow-[0_10px_24px_-22px_rgba(44,20,10,0.75)]"
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-nav-drawer"
             aria-label="Open menu"
@@ -192,17 +338,26 @@ export default function NavBar() {
             type="button"
             aria-label="Close menu"
             onClick={() => setMobileMenuOpen(false)}
-            className="absolute inset-0 bg-black/35"
+            className="absolute inset-0 bg-[#27180f]/40 backdrop-blur-[2px]"
           />
           <div
             id="mobile-nav-drawer"
-            className="absolute right-4 top-[calc(var(--nav-height,56px)+8px)] w-64 rounded-2xl border border-sagar-amber/20 bg-white p-3 text-sm text-sagar-ink/75 shadow-sagar-soft"
+            className="absolute right-3 top-[calc(var(--nav-height,56px)+8px)] w-[min(19rem,calc(100vw-1.5rem))] rounded-2xl border border-sagar-amber/25 bg-[#fffdf9] p-3 text-sm text-sagar-ink/75 shadow-sagar-panel"
           >
+            {isHomepageRoute ? (
+              <div className="mb-2 px-1">
+                <HomeLanguageToggle currentLang={homeLang} onChange={handleHomeLanguageChange} />
+              </div>
+            ) : isToolsLocalizedRoute ? (
+              <div className="mb-2 px-1">
+                <LanguageToggle currentLang={toolsToggleLang} onChange={handleToolsLanguageChange} compact />
+              </div>
+            ) : null}
             <div className="mb-2 flex items-center justify-end px-1">
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
-                className="rounded-md px-2 py-1 text-xs font-semibold text-sagar-ink/65 hover:bg-sagar-cream/60"
+                className="rounded-md px-2 py-1 text-xs font-semibold text-sagar-ink/65 transition-colors duration-200 hover:bg-sagar-cream/60"
               >
                 {t("common_close")}
               </button>
@@ -213,7 +368,7 @@ export default function NavBar() {
                 <Link
                   href={`${localePrefix}/profile`}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="mb-1 block rounded-xl bg-sagar-cream/60 px-3 py-2 font-semibold text-sagar-ink/85 transition hover:text-sagar-ember"
+                  className="mb-1 block rounded-xl bg-sagar-cream/60 px-3 py-2 font-semibold text-sagar-ink/85 transition-colors duration-200 hover:text-sagar-ember"
                 >
                   {t("nav_profile")}
                 </Link>
@@ -221,7 +376,7 @@ export default function NavBar() {
                   type="button"
                   onClick={() => void handleSignOut()}
                   disabled={isSigningOut}
-                  className="mb-2 block w-full rounded-xl bg-sagar-cream/60 px-3 py-2 text-left font-semibold text-sagar-ink/85 transition hover:text-sagar-ember disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mb-2 block w-full rounded-xl bg-sagar-cream/60 px-3 py-2 text-left font-semibold text-sagar-ink/85 transition-colors duration-200 hover:text-sagar-ember disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSigningOut ? t("nav_logging_out") : t("nav_logout")}
                 </button>
@@ -230,7 +385,7 @@ export default function NavBar() {
               <AuthModalTrigger
                 callbackUrl={callbackUrl}
                 onClick={() => setMobileMenuOpen(false)}
-                className="mb-1 block w-full rounded-xl bg-sagar-cream/60 px-3 py-2 text-left font-semibold text-sagar-ink/85 transition hover:text-sagar-ember"
+                className="mb-1 block w-full rounded-xl bg-sagar-cream/60 px-3 py-2 text-left font-semibold text-sagar-ink/85 transition-colors duration-200 hover:text-sagar-ember"
               >
                 {t("nav_login")}
               </AuthModalTrigger>
@@ -241,7 +396,7 @@ export default function NavBar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="mb-1 block rounded-xl px-3 py-2 transition hover:bg-sagar-cream/70 hover:text-sagar-ember"
+                className="mb-1 block rounded-xl px-3 py-2 transition-colors duration-200 hover:bg-sagar-cream/70 hover:text-sagar-ember"
               >
                 {item.label}
               </Link>

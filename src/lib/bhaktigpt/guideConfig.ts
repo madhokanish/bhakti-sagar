@@ -23,6 +23,20 @@ export const GUIDE_CONFIG: Record<BhaktiGuideId, GuideUiConfig> = {
     avatarPath: "/guides/lakshmi-avatar.jpg",
     avatarObjectPosition: "50% 22%"
   },
+  shiv: {
+    id: "shiv",
+    displayName: "Shiv Ji",
+    subtitle: "Stillness through change",
+    avatarPath: "/category/shiva.jpg",
+    avatarObjectPosition: "50% 26%"
+  },
+  hanuman: {
+    id: "hanuman",
+    displayName: "Hanuman Ji",
+    subtitle: "Courage with devotion",
+    avatarPath: "/category/hanuman.jpg",
+    avatarObjectPosition: "50% 22%"
+  },
   shani: {
     id: "shani",
     displayName: "Shani Dev",

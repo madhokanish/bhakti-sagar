@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Category } from "@/lib/data";
 export default function CategoryCard({ category }: { category: Category }) {
@@ -8,13 +9,16 @@ export default function CategoryCard({ category }: { category: Category }) {
     >
       <div className="space-y-4">
         <div className="overflow-hidden rounded-2xl border border-sagar-amber/20 bg-sagar-cream/60">
-          <img
-            src={category.imageUrl}
-            alt={`${category.name} devotional art`}
-            className="h-40 w-full object-cover"
-            style={{ objectPosition: "50% 20%" }}
-            loading="lazy"
-          />
+          <div className="relative h-40 w-full">
+            <Image
+              src={category.imageUrl}
+              alt={`${category.name} devotional art`}
+              fill
+              className="object-cover"
+              style={{ objectPosition: "50% 20%" }}
+              sizes="(max-width: 768px) 100vw, 33vw"
+            />
+          </div>
         </div>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">{category.name}</p>

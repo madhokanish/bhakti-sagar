@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { BRAND_LOGO_PATH, BRAND_NAME } from "@/lib/brand";
+import { BRAND_LOGO_PATH } from "@/lib/brand";
 
 export const siteConfig = {
-  name: BRAND_NAME,
+  name: "BhaktiChat",
   description:
     "Bhakti Chat offers devotional AI guidance inspired by sacred teachings, plus trusted aarti and daily reflection tools.",
   url: "https://bhaktichat.com",
@@ -20,12 +20,12 @@ export type SeoLocale = "en" | "hi";
 export function getRequestLanguage(defaultLang: "en" | "hi" = "en"): "en" | "hi" {
   try {
     const lang = headers().get("x-lang");
+    if (lang === "hi") return "hi";
     if (lang === "en") return "en";
   } catch {
     // ignore
   }
-  void defaultLang;
-  return "en";
+  return defaultLang;
 }
 
 export function toTitle(title: string) {
@@ -92,7 +92,10 @@ export function buildLocalizedMetadata(params: {
   keywords?: string[];
 }): Metadata {
   const normalizedBasePath = normalizePath(params.path);
-  const localizedPath = `/${params.locale}${normalizedBasePath === "/" ? "" : normalizedBasePath}`;
+  const localizedPath =
+    params.locale === "hi"
+      ? `/hi${normalizedBasePath === "/" ? "" : normalizedBasePath}`
+      : normalizedBasePath;
   return buildMetadata({
     title: params.title,
     description: params.description,

@@ -6,6 +6,7 @@ import {
   WindowKey,
   PlannerResult,
   PlannerSegment,
+  windowOptions,
   addDaysISO,
   computeSegmentsForRange,
   filterSegmentsByWindow,
@@ -20,6 +21,8 @@ import GoalStep from "@/components/choghadiya/GoalStep";
 import WhenStep from "@/components/choghadiya/WhenStep";
 import ResultsStep from "@/components/choghadiya/ResultsStep";
 import { getLocalDateISO, toUTCDateFromLocal } from "@/lib/choghadiya";
+import type { HomeLang } from "@/lib/homeCopy";
+import type { ChoghadiyaCopy } from "@/lib/choghadiyaCopy";
 
 export type PlannerParams = {
   goal?: string;
@@ -44,6 +47,8 @@ type Props = {
   onAddReminder: (segment: PlannerSegment) => void;
   formatTime: (segment: PlannerSegment) => string;
   onApplySegment?: (segment: PlannerSegment) => void;
+  lang: HomeLang;
+  copy: ChoghadiyaCopy;
 };
 
 type DailyResult = {
@@ -65,28 +70,6 @@ type SavedGoal = {
   slotEnd: string;
   done: boolean;
   createdAt: number;
-};
-
-const goalLabels: Record<GoalKey, string> = {
-  travel: "Travel",
-  puja: "Puja",
-  start_work: "Start work or task",
-  start_business: "Start business",
-  buy_vehicle: "Buy vehicle",
-  study: "Study or learning",
-  ceremony: "Ceremony",
-  marriage: "Marriage",
-  other: "Other"
-};
-
-const windowLabels: Record<WindowKey, string> = {
-  "3h": "Next 3 hours",
-  "6h": "Next 6 hours",
-  day: "Today (daytime)",
-  night: "Tonight",
-  week: "This week",
-  month: "This month",
-  custom: "Custom range"
 };
 
 function getWindowStartEnd({
@@ -192,7 +175,9 @@ export default function GoalPlannerPanel({
   onPlannerParamsChange,
   onAddReminder,
   formatTime,
-  onApplySegment
+  onApplySegment,
+  lang,
+  copy
 }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [goal, setGoal] = useState<GoalKey | undefined>(plannerParams.goal as GoalKey);
@@ -216,6 +201,37 @@ export default function GoalPlannerPanel({
   const storageKey = "bhakti_goal_planner_state";
   const goalsKey = "bhakti_goal_planner_goals";
   const lastKey = "bhakti_goal_planner_last";
+  const goalLabels: Record<GoalKey, string> = {
+    travel: copy.goal_travel,
+    puja: copy.goal_puja,
+    start_work: copy.goal_work,
+    start_business: copy.goal_business,
+    buy_vehicle: copy.goal_vehicle,
+    study: copy.goal_study,
+    ceremony: copy.goal_ceremony,
+    marriage: copy.goal_marriage,
+    other: copy.goal_other
+  };
+  const goalOptions = [
+    { key: "travel", label: copy.goal_travel },
+    { key: "puja", label: copy.goal_puja },
+    { key: "start_work", label: copy.goal_work },
+    { key: "start_business", label: copy.goal_business },
+    { key: "buy_vehicle", label: copy.goal_vehicle },
+    { key: "study", label: copy.goal_study },
+    { key: "ceremony", label: copy.goal_ceremony },
+    { key: "marriage", label: copy.goal_marriage },
+    { key: "other", label: copy.goal_other }
+  ] as Array<{ key: GoalKey; label: string }>;
+  const windowLabels: Record<WindowKey, string> = {
+    "3h": "Next 3 hours",
+    "6h": "Next 6 hours",
+    day: "Today (daytime)",
+    night: "Tonight",
+    week: "This week",
+    month: "This month",
+    custom: "Custom range"
+  };
 
   useEffect(() => {
     if (plannerParams.goal) setGoal(plannerParams.goal as GoalKey);
@@ -259,7 +275,8 @@ export default function GoalPlannerPanel({
       : goalLabels[goal]
     : "";
   const windowLabel = windowKey ? windowLabels[windowKey] : "";
-  const dateLabel = new Date(`${dateISO}T00:00:00Z`).toLocaleDateString("en-US", {
+  const dateLocale = lang === "hi" ? "hi-IN" : "en-US";
+  const dateLabel = new Date(`${dateISO}T00:00:00Z`).toLocaleDateString(dateLocale, {
     month: "short",
     day: "2-digit",
     year: "numeric"
@@ -549,7 +566,7 @@ export default function GoalPlannerPanel({
     const id = crypto.randomUUID();
     const newGoal: SavedGoal = {
       id,
-      title: goalLabel || "Goal",
+      title: goalLabel || copy.select_goal,
       goalKey: goal!,
       windowKey: windowKey!,
       cityLabel,
@@ -621,12 +638,12 @@ export default function GoalPlannerPanel({
         <div className="flex items-center justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-semibold text-sagar-ink">AI Goal Planner</p>
+              <p className="text-sm font-semibold text-sagar-ink">{copy.ai_planner_title}</p>
               <span className="rounded-full bg-sagar-amber/20 px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70">
-                Beta
+                {copy.beta}
               </span>
             </div>
-            <p className="text-xs text-sagar-ink/60">Step {step} of 3</p>
+            <p className="text-xs text-sagar-ink/60">{copy.step} {step} {copy.of} 3</p>
             {displayName ? (
               <p className="text-xs text-sagar-ink/60">Welcome back, {displayName}.</p>
             ) : (
@@ -644,12 +661,12 @@ export default function GoalPlannerPanel({
                   }}
                   className="rounded-full border border-sagar-amber/30 px-3 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70"
                 >
-                  Save
+                  {copy.save}
                 </button>
               </div>
             )}
           </div>
-          <button onClick={onClose} className="text-sm text-sagar-ink/60">Close</button>
+          <button onClick={onClose} className="text-sm text-sagar-ink/60">{copy.close}</button>
         </div>
 
         <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-sagar-cream/70">
@@ -661,7 +678,7 @@ export default function GoalPlannerPanel({
 
         <div className="mt-2 space-y-4 overflow-y-auto pb-6 max-h-[calc(100vh-140px)]">
           <p className="text-[0.7rem] text-sagar-ink/60">
-            AI suggestions may be inaccurate. Please review.
+            {copy.ai_warning}
           </p>
           {step === 1 && (
             <>
@@ -670,13 +687,15 @@ export default function GoalPlannerPanel({
                 onChange={handleGoalSelect}
                 otherValue={otherGoal}
                 onOtherChange={setOtherGoal}
+                labels={copy}
+                options={goalOptions}
               />
               <button
                 disabled={!goal}
                 onClick={() => setStep(2)}
                 className="w-full rounded-full bg-sagar-saffron px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white disabled:opacity-50"
               >
-                Next
+                {copy.modal_next}
               </button>
             </>
           )}
@@ -690,13 +709,15 @@ export default function GoalPlannerPanel({
                 onCustomChange={handleCustomChange}
                 autoEnabled={autoEnabled}
                 timeZoneLabel={tz}
+                labels={copy}
+                options={windowOptions}
               />
               <button
                 disabled={!windowKey || (windowKey === "custom" && !customStart) || (windowKey === "custom" && !customEnd)}
                 onClick={() => setStep(3)}
                 className="w-full rounded-full bg-sagar-saffron px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white disabled:opacity-50"
               >
-                Show best times
+                {copy.results}
               </button>
             </>
           )}
@@ -733,6 +754,7 @@ export default function GoalPlannerPanel({
                   aiExtra={aiExtra}
                   onSaveGoal={handleSaveGoal}
                   onApply={onApplySegment}
+                  labels={copy}
                 />
               )}
               {error && <p className="text-sm text-sagar-crimson">{error}</p>}
@@ -800,12 +822,12 @@ export default function GoalPlannerPanel({
         <div className="flex items-center justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-semibold text-sagar-ink">AI Goal Planner</p>
+              <p className="text-sm font-semibold text-sagar-ink">{copy.ai_planner_title}</p>
               <span className="rounded-full bg-sagar-amber/20 px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70">
-                Beta
+                {copy.beta}
               </span>
             </div>
-            <p className="text-xs text-sagar-ink/60">Step {step} of 3</p>
+            <p className="text-xs text-sagar-ink/60">{copy.step} {step} {copy.of} 3</p>
             {displayName ? (
               <p className="text-xs text-sagar-ink/60">Welcome back, {displayName}.</p>
             ) : (
@@ -823,12 +845,12 @@ export default function GoalPlannerPanel({
                   }}
                   className="rounded-full border border-sagar-amber/30 px-3 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70"
                 >
-                  Save
+                  {copy.save}
                 </button>
               </div>
             )}
           </div>
-          <button onClick={onClose} className="text-sm text-sagar-ink/60">Close</button>
+          <button onClick={onClose} className="text-sm text-sagar-ink/60">{copy.close}</button>
         </div>
         <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-sagar-cream/70">
           <div
@@ -838,7 +860,7 @@ export default function GoalPlannerPanel({
         </div>
         <div className="mt-4 space-y-4 overflow-y-auto max-h-[calc(100vh-140px)]">
           <p className="text-[0.7rem] text-sagar-ink/60">
-            AI suggestions may be inaccurate. Please review.
+            {copy.ai_warning}
           </p>
           {step === 1 && (
             <>
@@ -847,13 +869,15 @@ export default function GoalPlannerPanel({
                 onChange={handleGoalSelect}
                 otherValue={otherGoal}
                 onOtherChange={setOtherGoal}
+                labels={copy}
+                options={goalOptions}
               />
               <button
                 disabled={!goal}
                 onClick={() => setStep(2)}
                 className="w-full rounded-full bg-sagar-saffron px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white disabled:opacity-50"
               >
-                Next
+                {copy.modal_next}
               </button>
             </>
           )}
@@ -867,13 +891,15 @@ export default function GoalPlannerPanel({
                 onCustomChange={handleCustomChange}
                 autoEnabled={autoEnabled}
                 timeZoneLabel={tz}
+                labels={copy}
+                options={windowOptions}
               />
               <button
                 disabled={!windowKey || (windowKey === "custom" && !customStart) || (windowKey === "custom" && !customEnd)}
                 onClick={() => setStep(3)}
                 className="w-full rounded-full bg-sagar-saffron px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white disabled:opacity-50"
               >
-                Show best times
+                {copy.results}
               </button>
             </>
           )}
@@ -910,6 +936,7 @@ export default function GoalPlannerPanel({
                   aiExtra={aiExtra}
                   onSaveGoal={handleSaveGoal}
                   onApply={onApplySegment}
+                  labels={copy}
                 />
               )}
               {error && <p className="text-sm text-sagar-crimson">{error}</p>}

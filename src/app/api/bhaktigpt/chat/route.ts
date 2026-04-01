@@ -7,13 +7,14 @@ import {
   isGuideId,
   type BhaktiGuideId
 } from "@/lib/bhaktigpt/guides";
-import { getKrishnaOpenerForConversation } from "@/lib/bhaktigpt/krishnaOpeners";
 import { pickKrishnaQuirk } from "@/lib/bhaktigpt/krishnaQuirks";
-import { getLakshmiOpenerForConversation } from "@/lib/bhaktigpt/lakshmiOpeners";
-import { getShaniOpenerForConversation } from "@/lib/bhaktigpt/shaniOpeners";
 import { KRISHNA_SECONDARY_GUARD } from "@/lib/bhaktigpt/personas/krishnaSystemPrompt";
 import { LAKSHMI_SECONDARY_GUARD } from "@/lib/bhaktigpt/personas/lakshmiSystemPrompt";
 import { SHANI_SECONDARY_GUARD } from "@/lib/bhaktigpt/personas/shaniSystemPrompt";
+import { SHIV_SECONDARY_GUARD } from "@/lib/bhaktigpt/personas/shivSystemPrompt";
+import { HANUMAN_SECONDARY_GUARD } from "@/lib/bhaktigpt/personas/hanumanSystemPrompt";
+import { chatOpeners } from "@/lib/chatOpeners";
+import { isChatLanguage, type ChatLanguage } from "@/lib/chatUILabels";
 import {
   BHAKTIGPT_COOKIE,
   crisisSupportResponse,
@@ -31,6 +32,7 @@ type ChatRequest = {
   guideId: BhaktiGuideId;
   conversationId?: string;
   forceNewConversation?: boolean;
+  chatLang?: ChatLanguage;
   message: string;
 };
 
@@ -80,7 +82,7 @@ type TurnMessage = {
   content: string;
 };
 type ConversationState = {
-  locale: "en" | "hi";
+  locale: ChatLanguage;
   mode: DirectorMode;
   story: {
     active: boolean;
@@ -257,6 +259,37 @@ const STORY_MORALIZING_PATTERN =
 const STORY_OPEN_HOOK_PATTERN =
   /\b(things became complicated|didn't expect what happened next|i thought i was clever.*until|to be continued|and then the room went quiet|but that was only the beginning)\.?$/i;
 const STORY_ENTITY_SPLIT_PATTERN = /[,\s]+/;
+const DEVANAGARI_SCRIPT_PATTERN = /[\u0900-\u097F]/;
+const LATIN_SCRIPT_PATTERN = /[A-Za-z]/;
+
+function getChatLanguageInstruction(chatLanguage: ChatLanguage) {
+  if (chatLanguage === "hi") {
+    return "Respond only in Hindi using Devanagari script. Use simple words, respectful devotional tone, and short clear responses. Avoid heavy Sanskrit.";
+  }
+  if (chatLanguage === "hinglish") {
+    return "Respond only in natural Roman Hindi (Hinglish). Do not use Devanagari script. Keep replies short, conversational, and WhatsApp-style with calm spiritual tone.";
+  }
+  return "Respond only in English with a calm, respectful, spiritual tone.";
+}
+
+function resolveChatLanguage(
+  preferredValue: string | null | undefined,
+  headerLanguage: string | null | undefined
+): ChatLanguage {
+  if (isChatLanguage(preferredValue)) return preferredValue;
+  if (headerLanguage === "hi") return "hi";
+  return "en";
+}
+
+function hasLanguageModeViolation(text: string, chatLanguage: ChatLanguage) {
+  if (chatLanguage === "en") {
+    return DEVANAGARI_SCRIPT_PATTERN.test(text);
+  }
+  if (chatLanguage === "hinglish") {
+    return DEVANAGARI_SCRIPT_PATTERN.test(text);
+  }
+  return LATIN_SCRIPT_PATTERN.test(text);
+}
 
 function hasPattern(text: string, pattern: RegExp) {
   pattern.lastIndex = 0;
@@ -342,13 +375,176 @@ function isDirectFactualRequest(message: string) {
 function getGuideFallbackQuestion(guideId: BhaktiGuideId) {
   if (guideId === "lakshmi") return "What is the one grounded prosperity action you will complete today?";
   if (guideId === "shani") return "What commitment will you keep before this day ends?";
+  if (guideId === "shiv") return "What is the one thought you need to stop feeding today?";
+  if (guideId === "hanuman") return "What brave action will you complete before this day ends?";
   return "What is one duty-aligned step you will take today?";
+}
+
+function getEmptyAssistantFallback(chatLanguage: ChatLanguage) {
+  if (chatLanguage === "hi") {
+    return "मैं सुन रहा हूँ।\n\nएक स्पष्ट बात से शुरू कीजिए।\n\nअभी आपके मन में सबसे भारी क्या है?";
+  }
+  if (chatLanguage === "hinglish") {
+    return "Main sun raha hoon.\n\nEk seedhi baat se shuru karo.\n\nAbhi tumhare mann par sabse zyada kya bhaari hai?";
+  }
+  return "I hear you.\n\nStart with one clear point.\n\nWhat feels heaviest in your mind right now?";
 }
 
 function getGuideSecondaryGuard(guideId: BhaktiGuideId) {
   if (guideId === "lakshmi") return LAKSHMI_SECONDARY_GUARD;
   if (guideId === "shani") return SHANI_SECONDARY_GUARD;
+  if (guideId === "shiv") return SHIV_SECONDARY_GUARD;
+  if (guideId === "hanuman") return HANUMAN_SECONDARY_GUARD;
   return KRISHNA_SECONDARY_GUARD;
+}
+
+function getGuidePersonaLockInstruction(guideId: BhaktiGuideId) {
+  if (guideId === "lakshmi") {
+    return "Persona lock: no matter what the user asks, remain unmistakably Lakshmi Ji. For money, debt, work, family, or stress, answer with dignity, steadiness, gratitude, right livelihood, compassionate abundance, and calm prosperity. For money-related replies, begin with Lakshmi Ji's worldview of balance, grace, shuddh niyat, grihastha maryada, and stable prosperity before giving any practical suggestion. Never sound like a generic financial coach, budgeting app, or generic assistant.";
+  }
+  if (guideId === "shani") {
+    return "Persona lock: no matter what the user asks, remain unmistakably Shani Dev. For work, setbacks, money, discipline, regret, or delays, answer with karmic responsibility, patience, integrity, consequence-aware discipline, and steady action. Never sound like a generic accountability coach or generic assistant.";
+  }
+  if (guideId === "shiv") {
+    return "Persona lock: no matter what the user asks, remain unmistakably Shiv Ji. For conflict, fear, stress, work pressure, or emotional pain, answer with stillness, spacious clarity, release, steadiness, and inner quiet. Never sound like a generic mindfulness app, therapist, or generic assistant.";
+  }
+  if (guideId === "hanuman") {
+    return "Persona lock: no matter what the user asks, remain unmistakably Hanuman Ji. For fear, stress, work, doubt, relationships, or practical struggle, answer with courage, seva, humility, disciplined effort, and protective strength. Never sound like a generic motivational speaker, gym coach, or generic assistant.";
+  }
+  return "Persona lock: no matter what the user asks, remain unmistakably Krishna. For practical life, money, stress, work, family, or confusion, answer with warmth, clarity, devotional presence, gentle playfulness when natural, and dharma-centered wisdom. Never sound like a generic therapist, life coach, or generic assistant.";
+}
+
+function getGuideModeFlavor(guideId: BhaktiGuideId, mode: DirectorMode) {
+  if (guideId === "lakshmi") {
+    if (mode === "playful") return "Keep Lakshmi Ji warm, radiant, dignified, and gently encouraging. Let even light conversation carry grace and steadiness.";
+    if (mode === "teachings") return "Explain through Lakshmi Ji's lens of abundance, gratitude, stewardship, dignity, and right livelihood.";
+    if (mode === "wisdom") return "Guide like Lakshmi Ji: calm prosperity, dignity under pressure, gratitude, stable habits, and compassionate abundance. For money or work anxiety, open with a Lakshmi-colored framing of balance, grace, and dignified stewardship before any practical step.";
+    return "Answer like Lakshmi Ji, not a generic coach: warm, steady, prosperous, grounded, and dignified.";
+  }
+  if (guideId === "shani") {
+    if (mode === "playful") return "Keep Shani Dev reserved even in lighter moments: dry calm, measured tone, discipline without coldness.";
+    if (mode === "teachings") return "Explain through Shani Dev's lens of karma, patience, consequence, structure, and responsibility.";
+    if (mode === "wisdom") return "Guide like Shani Dev: disciplined, honest, patient, consequence-aware, and grounded in integrity.";
+    return "Answer like Shani Dev, not a generic accountability coach: calm, firm, minimal, and responsibility-centered.";
+  }
+  if (guideId === "shiv") {
+    if (mode === "playful") return "Keep Shiv Ji serene even when light: soft wit, spacious calm, and quiet clarity.";
+    if (mode === "teachings") return "Explain through Shiv Ji's lens of stillness, detachment, clarity, release, and inner peace.";
+    if (mode === "wisdom") return "Guide like Shiv Ji: grounding, spacious, quiet, and steadying.";
+    return "Answer like Shiv Ji, not a generic mindfulness coach: calm, sparse, spacious, and deeply grounding.";
+  }
+  if (guideId === "hanuman") {
+    if (mode === "playful") return "Keep Hanuman Ji lively but humble: energetic, devotional, and courageous without swagger.";
+    if (mode === "teachings") return "Explain through Hanuman Ji's lens of devotion, seva, humility, discipline, and fearless service.";
+    if (mode === "wisdom") return "Guide like Hanuman Ji: courageous, protective, devotional, and action-oriented.";
+    return "Answer like Hanuman Ji, not a generic motivational coach: strong, humble, protective, and courage-centered.";
+  }
+  if (mode === "playful") return "Keep Krishna warm, lightly mischievous, emotionally present, and recognizably Krishna.";
+  if (mode === "teachings") return "Explain through Krishna's lens of dharma, equanimity, loving clarity, and Gita-rooted wisdom.";
+  if (mode === "wisdom") return "Guide like Krishna: emotionally present, clear, devotional, lightly warm, and dharma-centered.";
+  return "Answer like Krishna, not a generic life coach: warm, personal, clear, gently wise, and recognizably Krishna.";
+}
+
+const PRACTICAL_TOPIC_PATTERN =
+  /money|paisa|paise|debt|loan|salary|income|kharch|expense|budget|aamdani|job|career|work|office|boss|business|stress|tension|fear|dar|anxiety|family|ghar|relationship|discipline|motivation|decision|confusion|naukri|karz|udhaar|ghar ka kharcha|kamai/i;
+
+const GUIDE_PERSONA_MARKERS: Record<BhaktiGuideId, string[]> = {
+  krishna: [
+    "krishna",
+    "dharma",
+    "gita",
+    "prem",
+    "leela",
+    "madhur",
+    "bansi",
+    "equanimity",
+    "devotional",
+    "dharma-centered"
+  ],
+  lakshmi: [
+    "lakshmi",
+    "samriddhi",
+    "santulan",
+    "shuddh niyat",
+    "grihastha",
+    "kripa",
+    "prosperity",
+    "abundance",
+    "stewardship",
+    "grace"
+  ],
+  shani: [
+    "shani",
+    "karma",
+    "dhairya",
+    "anushasan",
+    "zimmedari",
+    "nyay",
+    "discipline",
+    "integrity",
+    "responsibility",
+    "consequence"
+  ],
+  shiv: [
+    "shiv",
+    "shant",
+    "sthir",
+    "maun",
+    "vairagya",
+    "shoonya",
+    "stillness",
+    "release",
+    "inner quiet",
+    "spacious"
+  ],
+  hanuman: [
+    "hanuman",
+    "bal",
+    "himmat",
+    "seva",
+    "shraddha",
+    "ram",
+    "courage",
+    "strength",
+    "service",
+    "devotion"
+  ]
+};
+
+function isPracticalTopicMessage(text: string) {
+  return PRACTICAL_TOPIC_PATTERN.test(text);
+}
+
+function hasGuidePersonaMarkers(guideId: BhaktiGuideId, text: string) {
+  const normalized = text.toLowerCase();
+  return GUIDE_PERSONA_MARKERS[guideId].some((marker) => normalized.includes(marker));
+}
+
+function buildGuidePersonaAnchorLine(guideId: BhaktiGuideId, locale: ChatLanguage) {
+  const hindiish = locale === "hi" || locale === "hinglish";
+  if (guideId === "lakshmi") {
+    return hindiish
+      ? "Samriddhi hamesha santulan, shuddh niyat, aur sthir grihastha se phalti hai."
+      : "Prosperity grows through balance, clear intention, and dignified steadiness.";
+  }
+  if (guideId === "shani") {
+    return hindiish
+      ? "Karma ka phal dhairya, zimmedari, aur anushasan se pakka hota hai."
+      : "The fruit of karma ripens through patience, responsibility, and discipline.";
+  }
+  if (guideId === "shiv") {
+    return hindiish
+      ? "Shanti tab aati hai jab mann sthir ho aur andar jagah banne lage."
+      : "Peace begins when the mind grows still and spacious within.";
+  }
+  if (guideId === "hanuman") {
+    return hindiish
+      ? "Bal aur himmat seva, shraddha, aur ek sache kadam se jagte hain."
+      : "Strength and courage awaken through devotion, service, and one sincere step.";
+  }
+  return hindiish
+    ? "Dharma ki roshni mein uljhan bhi dheere dheere saaf hone lagti hai."
+    : "In the light of dharma, confusion begins to clear with gentle clarity.";
 }
 
 function splitIntoSentences(text: string) {
@@ -376,12 +572,14 @@ function clampRelationshipLevel(value: number) {
 function baseRelationshipByGuide(guideId: BhaktiGuideId) {
   if (guideId === "krishna") return { warmth: 2, playfulness: 2, firmness: 1 };
   if (guideId === "lakshmi") return { warmth: 2, playfulness: 1, firmness: 1 };
+  if (guideId === "shiv") return { warmth: 2, playfulness: 0, firmness: 2 };
+  if (guideId === "hanuman") return { warmth: 2, playfulness: 1, firmness: 2 };
   return { warmth: 1, playfulness: 0, firmness: 2 };
 }
 
 function createDefaultConversationState(
   guideId: BhaktiGuideId,
-  locale: "en" | "hi" = "en"
+  locale: ChatLanguage = "en"
 ): ConversationState {
   return {
     locale,
@@ -412,14 +610,6 @@ function coerceStringArray(value: unknown, max = 10) {
     .slice(-max);
 }
 
-function getConversationLocaleFromMetadata(
-  metadata: Prisma.JsonValue | null | undefined
-): "en" | "hi" | null {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
-  const value = (metadata as Record<string, unknown>).locale;
-  return value === "hi" || value === "en" ? value : null;
-}
-
 function endsWithOpenHook(text: string) {
   const normalized = normalizeLineBreaks(text);
   if (!normalized) return false;
@@ -445,7 +635,7 @@ function countRecentOpenLoops(history: Array<{ role: "user" | "assistant"; conte
 function hydrateConversationState(params: {
   metadata: Prisma.JsonValue | null | undefined;
   guideId: BhaktiGuideId;
-  locale: "en" | "hi";
+  locale: ChatLanguage;
   history: Array<{ role: "user" | "assistant"; content: string }>;
 }): ConversationState {
   const base = createDefaultConversationState(params.guideId, params.locale);
@@ -468,8 +658,7 @@ function hydrateConversationState(params: {
   const mode = payload.mode;
 
   return {
-    locale:
-      payload.locale === "hi" || payload.locale === "en" ? payload.locale : base.locale,
+    locale: base.locale,
     mode:
       typeof mode === "string" &&
       (mode === "casual" ||
@@ -573,6 +762,18 @@ function inferStorySeed(params: {
     }
     return "Lakshmi Ji's abundance journey with dignity and discipline";
   }
+  if (params.guideId === "shiv") {
+    if (/\b(anger|fire|rage|overwhelm|chaos)\b/.test(lowered)) {
+      return "Shiv Ji's stillness after inner fire";
+    }
+    return "Shiv Ji's quiet path through inner noise";
+  }
+  if (params.guideId === "hanuman") {
+    if (/\b(fear|confidence|courage|hesitation)\b/.test(lowered)) {
+      return "Hanuman Ji's leap through fear";
+    }
+    return "Hanuman Ji's path of courage and seva";
+  }
   if (/\b(delay|setback|discipline|consequence|failure)\b/.test(lowered)) {
     return "Shani Dev's discipline arc through setbacks";
   }
@@ -589,6 +790,14 @@ function inferStoryTitle(params: { guideId: BhaktiGuideId; seed: string }) {
   if (params.guideId === "lakshmi") {
     if (lowered.includes("money")) return "The Prosperity Ledger";
     return "The Lotus of Steady Growth";
+  }
+  if (params.guideId === "shiv") {
+    if (lowered.includes("fire")) return "The Fire Becomes Still";
+    return "The Quiet of Kailash";
+  }
+  if (params.guideId === "hanuman") {
+    if (lowered.includes("fear")) return "The Leap Beyond Fear";
+    return "The Path of Seva";
   }
   if (lowered.includes("setback")) return "The Discipline of Dawn";
   return "The Weight of Consequence";
@@ -607,6 +816,12 @@ function inferStoryEntities(params: { guideId: BhaktiGuideId; seed: string; user
   }
   if (params.guideId === "lakshmi") {
     return ["Lakshmi Ji", "home altar", "ledger", "gratitude", "market"];
+  }
+  if (params.guideId === "shiv") {
+    return ["Shiv Ji", "Kailash", "silence", "river", "moonlight"];
+  }
+  if (params.guideId === "hanuman") {
+    return ["Hanuman Ji", "temple courtyard", "mace", "wind", "devotee"];
   }
   return ["Shani Dev", "disciple", "dawn", "workshop", "ledger"];
 }
@@ -701,23 +916,27 @@ function buildModeDirective(params: {
         ? "Use Krishna warmth, mischief, and dialogue naturally."
         : params.guideId === "lakshmi"
           ? "Keep it as a steady progress journey with dignity and momentum. Prefer gentle 'check-in tomorrow' hooks."
+          : params.guideId === "shiv"
+            ? "Keep it spacious, quiet, and symbolically grounded. Prefer stillness, silence, and one subtle shift."
+            : params.guideId === "hanuman"
+              ? "Keep it energetic but humble. Prefer courage, service, and one clean forward movement."
           : "Keep it as a discipline arc with consequence and resolve, firm but never abusive.";
     return `Mode=story Strategy=${params.strategy}. Continue the same scene. Advance by one beat only. Do not conclude the story. Do not pivot into mentoring or user life advice. Avoid moral lessons. Use vivid action/dialogue/suspense. End with a soft hook line or one short in-story question only. Use 5 to 12 short lines with blank lines between beats. ${guideFlavor}`;
   }
 
   if (params.mode === "casual") {
-    return "Mode=casual Strategy=answer_then_hook. Answer directly like a normal person. Keep 1 to 6 short lines with blank lines. No sermons. Optional one natural follow-up question.";
+    return `Mode=casual Strategy=answer_then_hook. Answer directly like a normal person, but stay fully in the selected guide's persona. Keep 1 to 4 short lines. If it runs longer, use 2 short blocks with blank lines. No sermons. Do not try to solve the whole topic in one turn. Prefer one natural follow-up question when it helps keep the conversation going. ${getGuideModeFlavor(params.guideId, params.mode)}`;
   }
 
   if (params.mode === "playful") {
-    return "Mode=playful Strategy=answer_then_hook. Light banter and mild mischief. Keep it short and readable with blank lines. Optional one hook line. No preaching.";
+    return `Mode=playful Strategy=answer_then_hook. Light banter and mild mischief. Keep it short and readable with blank lines. Do not over-explain the joke or the lesson. Optional one hook line or one light question. No preaching. ${getGuideModeFlavor(params.guideId, params.mode)}`;
   }
 
   if (params.mode === "wisdom") {
-    return "Mode=wisdom Strategy=advice_then_checkin. Acknowledge emotion, give concise guidance, optional one check-in question. Keep short lines with blank lines.";
+    return `Mode=wisdom Strategy=advice_then_checkin. Acknowledge emotion, then give one guide-colored framing line that only this guide would naturally say before offering one concise piece of guidance or one small action. Keep short lines with blank lines. Leave room for the user to respond before giving the rest. Optional one check-in question. ${getGuideModeFlavor(params.guideId, params.mode)}`;
   }
 
-  return "Mode=teachings Strategy=explain_then_offer_next. Explain clearly and concisely, optional short reference, then offer one optional next topic or light question. Keep short lines with blank lines.";
+  return `Mode=teachings Strategy=explain_then_offer_next. Explain one core idea clearly and concisely, optional short reference, then pause with one optional next topic or light question. Keep short lines with blank lines. Do not turn one reply into a full lecture unless the user asks for depth. ${getGuideModeFlavor(params.guideId, params.mode)}`;
 }
 
 function buildStateAnchor(params: {
@@ -1710,7 +1929,6 @@ async function findLatestGuideConversation(params: {
   userId: string | null;
   sessionId: string | null;
   guideId: BhaktiGuideId;
-  locale: "en" | "hi";
 }) {
   const where = buildIdentityWhere({
     userId: params.userId,
@@ -1729,17 +1947,14 @@ async function findLatestGuideConversation(params: {
 
   if (candidates.length === 0) return null;
 
-  const localeMatch = candidates.find(
-    (item) => getConversationLocaleFromMetadata(item.conversationMetadata as Prisma.JsonValue) === params.locale
-  );
-  return localeMatch ?? null;
+  return candidates[0] ?? null;
 }
 
 async function createGuideConversation(params: {
   guideId: BhaktiGuideId;
   userId: string | null;
   sessionId: string | null;
-  locale: "en" | "hi";
+  locale: ChatLanguage;
   title?: string | null;
   insertGuideOpener?: boolean;
 }) {
@@ -1792,30 +2007,19 @@ async function fetchGuideHistory(
     .map((item) => ({ role: item.role as "user" | "assistant", content: item.content }));
 }
 
-const HI_GUIDE_OPENERS: Record<BhaktiGuideId, string> = {
-  krishna:
-    "आप घर में आते हैं। मन थोड़ा बेचैन है।\n\nकोई पहले से ही शांत बैठा है।\n\nश्री कृष्ण आपको देख कर हल्की मुस्कान देते हैं।\n\n“आज तुम कुछ सोच में डूबे हो।”\n\n“बताओ… तुम्हारे मन को क्या परेशान कर रहा है?”",
-  lakshmi:
-    "आप शांत होकर बैठते हैं। मन में कई बातें चल रही हैं।\n\nलक्ष्मी जी की उपस्थिति से माहौल हल्का हो जाता है।\n\nवह स्नेह से देखती हैं।\n\n“चिंता मत करो।”\n\n“बताओ… आज तुम्हें किस बात की सबसे ज़्यादा जरूरत है?”",
-  shani:
-    "आप एक पल रुकते हैं। मन में बोझ सा लगता है।\n\nशनि देव शांत और स्थिर बैठे हैं।\n\nउनकी नज़र गंभीर है, पर डराने वाली नहीं।\n\n“जो हो रहा है, उसका सामना करना होगा।”\n\n“बताओ… आज तुम्हें सबसे ज़्यादा किस बात ने रोक रखा है?”"
-};
-
 function getGuideOpenerForConversation(
   guideId: BhaktiGuideId,
   conversationId?: string,
-  locale: "en" | "hi" = "en"
+  locale: ChatLanguage = "en"
 ) {
-  if (locale === "hi") return HI_GUIDE_OPENERS[guideId];
-  if (guideId === "lakshmi") return getLakshmiOpenerForConversation(conversationId);
-  if (guideId === "shani") return getShaniOpenerForConversation(conversationId);
-  return getKrishnaOpenerForConversation(conversationId);
+  void conversationId;
+  return chatOpeners[guideId][locale];
 }
 
 async function ensureGuideConversationOpener(params: {
   conversationId: string;
   guideId: BhaktiGuideId;
-  locale: "en" | "hi";
+  locale: ChatLanguage;
 }) {
   const existingAssistant = await prisma.bhaktiGptMessage.findFirst({
     where: {
@@ -1871,7 +2075,7 @@ async function createOpenAiStream(params: {
   stateAnchor?: string | null;
   additionalDeveloperInstruction?: string | null;
   userFirstName?: string | null;
-  locale?: "en" | "hi";
+  locale?: ChatLanguage;
 }) {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
@@ -1884,15 +2088,10 @@ async function createOpenAiStream(params: {
       role: "system",
       content: `${guide.systemPrompt}\n\nMandatory disclaimer for user-facing context:\n${BHAKTIGPT_DISCLAIMER}`
     },
-    ...(params.locale === "hi"
-      ? [
-          {
-            role: "system" as const,
-            content:
-              "Respond only in simple Hindi using Devanagari script. Keep answers short and clear. Avoid complex Sanskrit or difficult words. Be respectful and calm."
-          }
-        ]
-      : []),
+    {
+      role: "system" as const,
+      content: getChatLanguageInstruction(params.locale ?? "en")
+    },
     ...(params.userFirstName
       ? [
           {
@@ -1918,6 +2117,10 @@ async function createOpenAiStream(params: {
     {
       role: "developer" as const,
       content: getGuideSecondaryGuard(params.guideId)
+    },
+    {
+      role: "developer" as const,
+      content: getGuidePersonaLockInstruction(params.guideId)
     },
     ...(params.additionalDeveloperInstruction
       ? [
@@ -1965,7 +2168,7 @@ async function createOpenAiText(params: {
   model: string;
   modeInstruction: string;
   stateAnchor?: string | null;
-  locale?: "en" | "hi";
+  locale?: ChatLanguage;
   userFirstName?: string | null;
   messages: Array<{ role: "system" | "developer" | "user" | "assistant"; content: string }>;
   additionalDeveloperInstruction?: string | null;
@@ -1991,15 +2194,10 @@ async function createOpenAiText(params: {
           role: "system",
           content: `${guide.systemPrompt}\n\nMandatory disclaimer for user-facing context:\n${BHAKTIGPT_DISCLAIMER}`
         },
-        ...(params.locale === "hi"
-          ? [
-              {
-                role: "system" as const,
-                content:
-                  "Respond only in simple Hindi using Devanagari script. Keep answers short and clear. Avoid complex Sanskrit or difficult words. Be respectful and calm."
-              }
-            ]
-          : []),
+        {
+          role: "system" as const,
+          content: getChatLanguageInstruction(params.locale ?? "en")
+        },
         ...(params.userFirstName
           ? [
               {
@@ -2025,6 +2223,10 @@ async function createOpenAiText(params: {
         {
           role: "developer" as const,
           content: getGuideSecondaryGuard(params.guideId)
+        },
+        {
+          role: "developer" as const,
+          content: getGuidePersonaLockInstruction(params.guideId)
         },
         ...(params.additionalDeveloperInstruction
           ? [
@@ -2069,6 +2271,7 @@ async function consumeOpenAiSse(params: {
   let firstTokenSeen = false;
   let usage: { completion_tokens?: number } | null = null;
   let fullText = "";
+  let finishReason: string | null = null;
 
   while (true) {
     const { value, done } = await params.reader.read();
@@ -2096,12 +2299,17 @@ async function consumeOpenAiSse(params: {
 
         try {
           const parsed = JSON.parse(payload) as {
-            choices?: Array<{ delta?: { content?: string } }>;
+            choices?: Array<{ delta?: { content?: string }; finish_reason?: string | null }>;
             usage?: { completion_tokens?: number };
           };
 
           if (parsed.usage) {
             usage = parsed.usage;
+          }
+
+          const parsedFinishReason = parsed.choices?.[0]?.finish_reason ?? null;
+          if (parsedFinishReason) {
+            finishReason = parsedFinishReason;
           }
 
           const token = parsed.choices?.[0]?.delta?.content ?? "";
@@ -2123,8 +2331,122 @@ async function consumeOpenAiSse(params: {
 
   return {
     fullText: fullText.trim(),
-    completionTokens: usage?.completion_tokens ?? null
+    completionTokens: usage?.completion_tokens ?? null,
+    finishReason
   };
+}
+
+function looksIncompleteReply(text: string) {
+  const normalized = normalizeLineBreaks(text).trim();
+  if (!normalized) return false;
+
+  const lastLine = normalized.split("\n").pop()?.trim() ?? normalized;
+  if (/[.!?।…]["'”’)\]]*$/.test(lastLine)) {
+    return false;
+  }
+
+  if (/[:\-–—,*_]\s*$/.test(lastLine)) {
+    return true;
+  }
+
+  const lowered = lastLine.toLowerCase();
+  const danglingPhrases = [
+    "kya tumhe",
+    "kya tum",
+    "kya aap",
+    "aur",
+    "lekin",
+    "par",
+    "kyunki",
+    "because",
+    "and",
+    "or",
+    "but",
+    "so",
+    "if",
+    "when",
+    "then",
+    "tell me",
+    "what do",
+    "what if",
+    "how do",
+    "kaise",
+    "agar",
+    "jab"
+  ];
+
+  if (danglingPhrases.some((phrase) => lowered.endsWith(phrase))) {
+    return true;
+  }
+
+  const words = lastLine.split(/\s+/).filter(Boolean);
+  return words.length <= 3;
+}
+
+function trimToLastCompleteThought(text: string) {
+  const normalized = normalizeLineBreaks(text).trim();
+  const matches = Array.from(normalized.matchAll(/[.!?।…]["'”’)\]]*/g));
+  const lastMatch = matches.at(-1);
+  if (!lastMatch || lastMatch.index === undefined) {
+    return normalized;
+  }
+
+  return normalized
+    .slice(0, lastMatch.index + lastMatch[0].length)
+    .trim();
+}
+
+function mergeContinuation(base: string, continuation: string) {
+  const left = normalizeLineBreaks(base).trim();
+  const right = normalizeLineBreaks(continuation).trim();
+  if (!left) return right;
+  if (!right) return left;
+
+  if (/[.!?।…]["'”’)\]]*$/.test(left)) {
+    return normalizeLineBreaks(`${left}\n\n${right}`).trim();
+  }
+
+  return normalizeLineBreaks(`${left} ${right}`).trim();
+}
+
+async function completeTruncatedReply(params: {
+  guideId: BhaktiGuideId;
+  model: string;
+  modeInstruction: string;
+  stateAnchor?: string | null;
+  locale: ChatLanguage;
+  userFirstName?: string | null;
+  userMessage: string;
+  assistantText: string;
+  suppressQuestionEnding: boolean;
+}) {
+  const completion = await createOpenAiText({
+    guideId: params.guideId,
+    model: params.model,
+    modeInstruction: params.modeInstruction,
+    stateAnchor: params.stateAnchor,
+    locale: params.locale,
+    userFirstName: params.userFirstName,
+    additionalDeveloperInstruction: [
+      "The earlier draft reply was cut off mid-thought.",
+      "Continue only from the unfinished ending.",
+      "Do not restart or repeat the earlier reply.",
+      "Your first words should complete the unfinished fragment directly.",
+      "Keep the continuation brief, clear, and in the same language.",
+      params.suppressQuestionEnding ? "Do not end with a question." : "You may end with at most one short reflective question."
+    ].join(" "),
+    messages: [
+      {
+        role: "user",
+        content:
+          `User message: ${params.userMessage}\n\n` +
+          `Draft reply so far:\n${params.assistantText}\n\n` +
+          "Continue the unfinished ending only."
+      }
+    ]
+  });
+
+  return completion.text.trim();
 }
 
 async function getLoggedInUserFirstName(userId: string | null) {
@@ -2149,7 +2471,10 @@ async function getLoggedInUserFirstName(userId: string | null) {
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    const requestLocale = request.headers.get("x-lang") === "hi" ? "hi" : "en";
+    const requestLocale = resolveChatLanguage(
+      url.searchParams.get("chatLang"),
+      request.headers.get("x-lang")
+    );
     const conversationIdParam = url.searchParams.get("conversationId");
     const guideParam = url.searchParams.get("guideId");
     const forceNewConversation = url.searchParams.get("new") === "1";
@@ -2254,35 +2579,7 @@ export async function GET(request: Request) {
       }
 
       if (!activeConversationId && guideId && conversations.length > 0) {
-        const localeMatchedConversation = typedConversations.find(
-          (item) =>
-            getConversationLocaleFromMetadata(item.conversationMetadata as Prisma.JsonValue) === requestLocale
-        );
-
-        if (localeMatchedConversation) {
-          activeConversationId = localeMatchedConversation.id;
-        } else {
-          const created = await createGuideConversation({
-            guideId,
-            userId: identity.userId,
-            sessionId: identity.anonSessionId,
-            locale: requestLocale,
-            title: "New chat",
-            insertGuideOpener: true
-          });
-          activeConversationId = created.id;
-          conversations = [
-            {
-              id: created.id,
-              guideId,
-              title: created.title,
-              updatedAt: created.updatedAt.toISOString(),
-              createdAt: created.createdAt.toISOString(),
-              hasUserMessage: false
-            },
-            ...conversations
-          ];
-        }
+        activeConversationId = conversations[0]?.id ?? null;
       } else if (!activeConversationId && conversations.length > 0) {
         activeConversationId = conversations[0]?.id ?? null;
       }
@@ -2366,7 +2663,10 @@ export async function POST(request: Request) {
     const identity = await resolveBhaktiIdentity();
     const usage = await getUsageForIdentity(identity);
     const userFirstName = identity.isAuthenticated ? await getLoggedInUserFirstName(identity.userId) : null;
-    const requestLocale = request.headers.get("x-lang") === "hi" ? "hi" : "en";
+    const requestLocale = resolveChatLanguage(
+      typeof body.chatLang === "string" ? body.chatLang : null,
+      request.headers.get("x-lang")
+    );
 
     const rateKey = identity.userId || identity.anonSessionId || "anonymous";
     if (isRateLimited(`bhaktigpt:${rateKey}`)) {
@@ -2425,8 +2725,7 @@ export async function POST(request: Request) {
         (await findLatestGuideConversation({
           userId: identity.userId,
           sessionId: identity.anonSessionId,
-          guideId: body.guideId,
-          locale: requestLocale
+          guideId: body.guideId
         }));
 
       const conversation =
@@ -2536,6 +2835,7 @@ export async function POST(request: Request) {
         let modelUsed = selectedModel;
         const streamRawTokens = false;
         let regenerationUsed = false;
+        let finishReason: string | null = null;
 
         const metaPayload: StreamingMetaEvent = {
           conversationId,
@@ -2582,6 +2882,7 @@ export async function POST(request: Request) {
             });
 
             completionTokens = openAiResult.completionTokens;
+            finishReason = openAiResult.finishReason;
             if (!assistantText.trim()) {
               assistantText = openAiResult.fullText;
             }
@@ -2616,6 +2917,11 @@ export async function POST(request: Request) {
               hasPattern(assistantText, KRISHNA_AS_AI_PATTERN) ||
               hasPattern(assistantText, KRISHNA_THIRD_PERSON_PATTERN) ||
               hasPattern(assistantText, SHARED_ROMANCE_TOUCH_PATTERN);
+            const languageModeViolation = hasLanguageModeViolation(assistantText, requestLocale);
+            const personaDriftViolation =
+              director.mode !== "story" &&
+              isPracticalTopicMessage(userMessage) &&
+              !hasGuidePersonaMarkers(guideId, assistantText);
 
             const shouldForceRewrite =
               repeatedFirstLine ||
@@ -2623,7 +2929,9 @@ export async function POST(request: Request) {
               storyEntityViolation ||
               storyMoralizingViolation ||
               violatesFramework ||
-              hasSafetyViolation;
+              hasSafetyViolation ||
+              languageModeViolation ||
+              personaDriftViolation;
 
             if (shouldForceRewrite && !regenerationUsed) {
               try {
@@ -2653,6 +2961,14 @@ export async function POST(request: Request) {
                 if (suppressQuestionEnding && !userAskedDirectQuestion(userMessage)) {
                   rewriteDirectives.push("Do not end this reply with a question.");
                 }
+                if (languageModeViolation) {
+                  rewriteDirectives.push(getChatLanguageInstruction(requestLocale));
+                }
+                if (personaDriftViolation) {
+                  rewriteDirectives.push(
+                    "The draft sounds too generic for the selected guide. Rewrite it so the guide's worldview and signature vocabulary are unmistakable before any practical advice."
+                  );
+                }
 
                 const rewritten = await createOpenAiText({
                   guideId,
@@ -2671,6 +2987,7 @@ export async function POST(request: Request) {
                 });
                 modelUsed = selectedModel;
                 completionTokens = rewritten.completionTokens;
+                finishReason = null;
                 assistantText = sanitizeDraftForGuide({
                   guideId,
                   mode: director.mode,
@@ -2684,14 +3001,53 @@ export async function POST(request: Request) {
               }
             }
 
+            const needsCompletionRepair =
+              finishReason === "length" ||
+              ((completionTokens ?? 0) >= 410 && looksIncompleteReply(assistantText)) ||
+              looksIncompleteReply(assistantText);
+
+            if (needsCompletionRepair) {
+              try {
+                const completedTail = await completeTruncatedReply({
+                  guideId,
+                  model: selectedModel,
+                  modeInstruction,
+                  stateAnchor,
+                  locale: requestLocale,
+                  userFirstName,
+                  userMessage,
+                  assistantText,
+                  suppressQuestionEnding
+                });
+
+                assistantText = sanitizeDraftForGuide({
+                  guideId,
+                  mode: director.mode,
+                  userMessage,
+                  text: mergeContinuation(assistantText, completedTail),
+                  suppressQuestionEnding
+                });
+              } catch (error) {
+                console.error("[Bhakti Chat][POST] completion repair failed.", error);
+                assistantText = trimToLastCompleteThought(assistantText);
+              }
+            }
+
+            if (
+              director.mode !== "story" &&
+              isPracticalTopicMessage(userMessage) &&
+              !hasGuidePersonaMarkers(guideId, assistantText)
+            ) {
+              assistantText = `${buildGuidePersonaAnchorLine(guideId, requestLocale)}\n\n${assistantText.trim()}`;
+            }
+
             if (!skipReplyCache) {
               setCachedReply(normalizedCacheKey, assistantText.trim(), modelUsed);
             }
           }
 
           if (!assistantText.trim()) {
-            assistantText =
-              "I see what you mean.\n\nStart with one concrete fact I can work with.\n\nWhat exactly is weighing on you right now?";
+            assistantText = getEmptyAssistantFallback(requestLocale);
             if (ttftMs === null) {
               ttftMs = Date.now() - startedAt;
             }

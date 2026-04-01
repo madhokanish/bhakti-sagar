@@ -1,6 +1,7 @@
 "use client";
 
 import { PlannerResult, PlannerSegment, WindowKey, isAvoid } from "@/lib/choghadiyaPlanner";
+import type { ChoghadiyaCopy } from "@/lib/choghadiyaCopy";
 
 type DailyBest = {
   dateISO: string;
@@ -29,6 +30,24 @@ type Props = {
   aiExtra?: string | null;
   onSaveGoal?: () => void;
   onApply?: (segment: PlannerSegment) => void;
+  labels: Pick<
+    ChoghadiyaCopy,
+    | "avoid"
+    | "add_reminder"
+    | "share"
+    | "copy_text"
+    | "include_avoid"
+    | "no_good_slots"
+    | "results"
+    | "best_pick"
+    | "apply_to_timetable"
+    | "save_plan"
+    | "other_good_options"
+    | "daily_best_slots"
+    | "best_daytime"
+    | "best_night"
+    | "best_time_for"
+  >;
 };
 
 function ResultCard({
@@ -39,7 +58,8 @@ function ResultCard({
   onShare,
   onCopy,
   aiWhy,
-  aiExtra
+  aiExtra,
+  labels
 }: {
   title?: string;
   result: PlannerResult;
@@ -49,6 +69,7 @@ function ResultCard({
   onCopy: (text: string) => void;
   aiWhy?: string | null;
   aiExtra?: string | null;
+  labels: Pick<ChoghadiyaCopy, "avoid" | "add_reminder" | "share" | "copy_text">;
 }) {
   const { segment, why } = result;
   const copyText = `${segment.name} (${formatTime(segment)})`;
@@ -59,7 +80,7 @@ function ResultCard({
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <span className="text-lg font-serif text-sagar-ink">{segment.name}</span>
         <span className="rounded-full bg-sagar-amber/20 px-2 py-0.5 text-xs uppercase text-sagar-ink/70">
-          {isAvoid(segment.name) ? "Avoid" : segment.label}
+          {isAvoid(segment.name) ? labels.avoid : segment.label}
         </span>
       </div>
       <p className="mt-1 text-sm text-sagar-ink/70">{formatTime(segment)}</p>
@@ -69,13 +90,13 @@ function ResultCard({
       {aiExtra && <p className="mt-1 text-sm text-sagar-ink/60">{aiExtra}</p>}
       <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/60">
         <button onClick={() => onAddReminder(segment)} className="rounded-full border border-sagar-amber/30 px-3 py-1">
-          Add reminder
+          {labels.add_reminder}
         </button>
         <button onClick={onShare} className="rounded-full border border-sagar-amber/30 px-3 py-1">
-          Share
+          {labels.share}
         </button>
         <button onClick={() => onCopy(copyText)} className="rounded-full border border-sagar-amber/30 px-3 py-1">
-          Copy text
+          {labels.copy_text}
         </button>
       </div>
     </div>
@@ -102,13 +123,14 @@ export default function ResultsStep({
   aiWhy,
   aiExtra,
   onSaveGoal,
-  onApply
+  onApply,
+  labels
 }: Props) {
   if (!best) {
     return (
       <div className="space-y-3">
         <p className="text-sm text-sagar-ink/60">
-          No good slots found in this window. Turn on “Include avoid slots” to see all results.
+          {labels.no_good_slots}
         </p>
         <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/60">
           <input
@@ -116,7 +138,7 @@ export default function ResultsStep({
             checked={includeAvoid}
             onChange={(event) => onIncludeAvoidChange(event.target.checked)}
           />
-          Include avoid slots
+          {labels.include_avoid}
         </label>
       </div>
     );
@@ -135,13 +157,17 @@ export default function ResultsStep({
       });
       return lines.join("\n");
     }
-    return `Best time for ${goalLabel} in ${cityLabel} on ${dateLabel}: ${best?.segment.name} (${formatTime(best!.segment)})`;
+    return labels.best_time_for
+      .replace("{goal}", goalLabel)
+      .replace("{city}", cityLabel)
+      .replace("{date}", dateLabel)
+      .replace("{slot}", `${best?.segment.name} (${formatTime(best!.segment)})`);
   };
 
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Results</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">{labels.results}</p>
         <p className="text-sm text-sagar-ink/70">
           {goalLabel} · {windowLabel} · {cityLabel}
         </p>
@@ -152,10 +178,10 @@ export default function ResultsStep({
           checked={includeAvoid}
           onChange={(event) => onIncludeAvoidChange(event.target.checked)}
         />
-        Include avoid slots
+        {labels.include_avoid}
       </label>
       <ResultCard
-        title="Best pick"
+        title={labels.best_pick}
         result={best}
         formatTime={formatTime}
         onAddReminder={onAddReminder}
@@ -163,13 +189,14 @@ export default function ResultsStep({
         onCopy={(text) => onCopy(buildCopyText())}
         aiWhy={aiWhy}
         aiExtra={aiExtra}
+        labels={labels}
       />
       {onApply && (
         <button
           onClick={() => onApply(best.segment)}
           className="w-full rounded-full border border-sagar-amber/30 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70"
         >
-          Apply to timetable
+          {labels.apply_to_timetable}
         </button>
       )}
       {onSaveGoal && (
@@ -177,12 +204,12 @@ export default function ResultsStep({
           onClick={onSaveGoal}
           className="w-full rounded-full border border-sagar-amber/30 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-sagar-ink/70"
         >
-          Save this plan
+          {labels.save_plan}
         </button>
       )}
       {others.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Other good options</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">{labels.other_good_options}</p>
           <div className="grid gap-3 md:grid-cols-2">
             {others.map((result) => (
               <ResultCard
@@ -192,6 +219,7 @@ export default function ResultsStep({
                 onAddReminder={onAddReminder}
                 onShare={onShare}
                 onCopy={(text) => onCopy(buildCopyText())}
+                labels={labels}
               />
             ))}
           </div>
@@ -200,7 +228,7 @@ export default function ResultsStep({
 
       {(windowKey === "week" || windowKey === "month" || windowKey === "custom") && daily.length > 0 && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Daily best slots</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">{labels.daily_best_slots}</p>
           {daily.map((day) => {
             const isOpen = day.dateISO === todayISO || day.dateISO === tomorrowISO;
             const dateLabel = new Date(`${day.dateISO}T00:00:00Z`).toLocaleDateString("en-US", {
@@ -213,13 +241,13 @@ export default function ResultsStep({
                 <div className="mt-3 space-y-2 text-sm text-sagar-ink/70">
                   {day.day && (
                     <div>
-                      <span className="font-semibold text-sagar-ink">Best daytime:</span>{" "}
+                      <span className="font-semibold text-sagar-ink">{labels.best_daytime}:</span>{" "}
                       {day.day.segment.name} ({formatTime(day.day.segment)})
                     </div>
                   )}
                   {day.night && (
                     <div>
-                      <span className="font-semibold text-sagar-ink">Best night:</span>{" "}
+                      <span className="font-semibold text-sagar-ink">{labels.best_night}:</span>{" "}
                       {day.night.segment.name} ({formatTime(day.night.segment)})
                     </div>
                   )}

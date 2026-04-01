@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 
 type DailyAIInsightProps = {
@@ -14,7 +14,7 @@ export default function DailyAIInsight({ title, slug, lyrics }: DailyAIInsightPr
   const [answer, setAnswer] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function getInsight() {
+  const getInsight = useCallback(async () => {
     setLoading(true);
     setError(null);
     setAnswer(null);
@@ -41,11 +41,11 @@ export default function DailyAIInsight({ title, slug, lyrics }: DailyAIInsightPr
     } finally {
       setLoading(false);
     }
-  }
+  }, [lyrics, title]);
 
   useEffect(() => {
-    getInsight();
-  }, []);
+    void getInsight();
+  }, [getInsight]);
 
   return (
     <section className="rounded-3xl border border-sagar-amber/20 bg-white/80 p-6 shadow-sagar-card">

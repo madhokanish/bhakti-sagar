@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CityOption } from "@/lib/choghadiyaCities";
+import type { ChoghadiyaCopy } from "@/lib/choghadiyaCopy";
 
 type Props = {
   cityInput: string;
@@ -17,6 +18,10 @@ type Props = {
   onNextDay: () => void;
   onToday: () => void;
   onShare: () => void;
+  labels: Pick<
+    ChoghadiyaCopy,
+    "city_placeholder" | "city_aria" | "go" | "use_location" | "share_aria" | "prev" | "today" | "next"
+  >;
 };
 
 export default function StickyControlBar({
@@ -32,7 +37,8 @@ export default function StickyControlBar({
   onPrevDay,
   onNextDay,
   onToday,
-  onShare
+  onShare,
+  labels
 }: Props) {
   const [openSuggestions, setOpenSuggestions] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -103,8 +109,8 @@ export default function StickyControlBar({
                 setOpenSuggestions(false);
               }
             }}
-            placeholder="Enter city (e.g. Chicago)"
-            aria-label="City"
+            placeholder={labels.city_placeholder}
+            aria-label={labels.city_aria}
             className="w-full rounded-full border border-sagar-amber/30 bg-white px-3 py-1 text-xs outline-none"
           />
           {openSuggestions && displaySuggestions.length > 0 && (
@@ -136,19 +142,19 @@ export default function StickyControlBar({
           onClick={handleSubmitCity}
           className="rounded-full border border-sagar-amber/30 bg-white px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70"
         >
-          Go
+          {labels.go}
         </button>
         <button
           type="button"
           onClick={onUseLocation}
           className="rounded-full border border-sagar-amber/30 bg-white px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70"
         >
-          Use location
+          {labels.use_location}
         </button>
         <button
           type="button"
           onClick={onShare}
-          aria-label="Share"
+          aria-label={labels.share_aria}
           className="ml-auto rounded-full border border-sagar-amber/30 bg-white p-2 text-sagar-ink/60"
         >
           <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" aria-hidden="true">
@@ -166,21 +172,21 @@ export default function StickyControlBar({
             onClick={onPrevDay}
             className="rounded-full border border-sagar-amber/30 bg-white px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70"
           >
-            Prev
+            {labels.prev}
           </button>
           <button
             type="button"
             onClick={onToday}
             className="rounded-full border border-sagar-amber/30 bg-white px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70"
           >
-            Today
+            {labels.today}
           </button>
           <button
             type="button"
             onClick={onNextDay}
             className="rounded-full border border-sagar-amber/30 bg-white px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-wide text-sagar-ink/70"
           >
-            Next
+            {labels.next}
           </button>
         </div>
         <input

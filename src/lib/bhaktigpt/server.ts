@@ -8,6 +8,8 @@ import { prisma } from "@/lib/prisma";
 export const BHAKTIGPT_COOKIE = "bs_bhaktigpt_session";
 const ANON_LIMIT = 3;
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 90;
+// Chat is unlimited for everyone now (ad-supported model) — flip true to bring back
+// a lifetime cap of ANON_LIMIT messages for non-logged-in users.
 const ENFORCE_ANON_LIMIT = false;
 
 type ParsedAnonCookie = {

@@ -1,13 +1,5 @@
 package com.bhaktichat.app.ui.screens.aartis.components
 
-import android.graphics.Color as AndroidColor
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,15 +13,24 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.PlayerConstants
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.YouTubePlayerCallback
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
 
+/**
+ * In-app YouTube playback via the IFrame Player API (through the android-youtube-player
+ * wrapper), not a hand-rolled WebView+HTML embed — the earlier hand-rolled version rendered
+ * as a solid black rectangle with no error on some devices/emulators. This wrapper handles the
+ * JS bridge, playback state, and WebView quirks that the hand-rolled version got wrong.
+ */
 @Composable
 fun YouTubePlayerEmbed(
     videoId: String?,
@@ -46,62 +47,7 @@ fun YouTubePlayerEmbed(
         return
     }
 
-    var loadFailed by remember(videoId) { mutableStateOf(false) }
-    var webViewRef by remember(videoId) { mutableStateOf<WebView?>(null) }
-    val embedUrl = remember(videoId) {
-        "https://www.youtube-nocookie.com/embed/$videoId?modestbranding=1&rel=0&playsinline=1"
-    }
-    val embedHtml = remember(embedUrl, title) {
-        """
-        <!doctype html>
-        <html>
-          <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
-            <style>
-              html, body {
-                margin: 0;
-                padding: 0;
-                width: 100%;
-                height: 100%;
-                overflow: hidden;
-                background: #000000;
-              }
-              iframe {
-                border: 0;
-                width: 100%;
-                height: 100%;
-              }
-            </style>
-          </head>
-          <body>
-            <iframe
-              src="$embedUrl"
-              title="$title"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowfullscreen>
-            </iframe>
-          </body>
-        </html>
-        """.trimIndent()
-    }
-
-    DisposableEffect(videoId) {
-        onDispose {
-            webViewRef?.destroy()
-            webViewRef = null
-        }
-    }
-
-    if (loadFailed) {
-        VideoPlaceholder(
-            title = "Unable to load video",
-            body = "Use YouTube directly for playback.",
-            modifier = modifier,
-            actionLabel = if (onOpenExternal != null) "Open in YouTube" else null,
-            onAction = onOpenExternal
-        )
-        return
-    }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -113,104 +59,47 @@ fun YouTubePlayerEmbed(
         AndroidView(
             modifier = Modifier.fillMaxWidth(),
             factory = { context ->
-                WebView(context).apply {
-                    webViewRef = this
-                    setBackgroundColor(AndroidColor.BLACK)
-                    settings.apply {
-                        javaScriptEnabled = true
-                        javaScriptCanOpenWindowsAutomatically = true
-                        domStorageEnabled = true
-                        databaseEnabled = true
-                        setSupportZoom(false)
-                        mediaPlaybackRequiresUserGesture = false
-                        allowFileAccess = false
-                        mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-                        cacheMode = WebSettings.LOAD_DEFAULT
-                    }
-                    // YouTube's mobile embed player switches to fullscreen on tap-to-play via
-                    // onShowCustomView/onHideCustomView. A bare WebChromeClient() doesn't
-                    // implement these, so the tap silently does nothing — the player renders
-                    // but never actually starts. This adds the fullscreen video container the
-                    // callback expects, hosted on the Activity's own decor view.
-                    webChromeClient = object : WebChromeClient() {
-                        private var customView: android.view.View? = null
-                        private var customViewCallback: CustomViewCallback? = null
-
-                        override fun onShowCustomView(view: android.view.View?, callback: CustomViewCallback?) {
-                            val decorView = (context as? android.app.Activity)
-                                ?.window?.decorView as? android.view.ViewGroup ?: return
-                            if (customView != null || view == null) {
-                                callback?.onCustomViewHidden()
-                                return
-                            }
-                            customView = view
-                            customViewCallback = callback
-                            decorView.addView(
-                                view,
-                                android.widget.FrameLayout.LayoutParams(
-                                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-                                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT
-                                )
-                            )
-                        }
-
-                        override fun onHideCustomView() {
-                            val decorView = (context as? android.app.Activity)
-                                ?.window?.decorView as? android.view.ViewGroup ?: return
-                            customView?.let { decorView.removeView(it) }
-                            customView = null
-                            customViewCallback?.onCustomViewHidden()
-                            customViewCallback = null
-                        }
-                    }
-                    webViewClient = object : WebViewClient() {
-                        override fun shouldOverrideUrlLoading(
-                            view: WebView?,
-                            request: WebResourceRequest?
-                        ): Boolean = false
-
-                        override fun onReceivedError(
-                            view: WebView?,
-                            request: WebResourceRequest?,
-                            error: WebResourceError?
-                        ) {
-                            if (request?.isForMainFrame == true) {
-                                loadFailed = true
-                            }
-                        }
-
-                        override fun onReceivedHttpError(
-                            view: WebView?,
-                            request: WebResourceRequest?,
-                            errorResponse: WebResourceResponse?
-                        ) {
-                            if (request?.isForMainFrame == true && errorResponse?.statusCode ?: 200 >= 400) {
-                                loadFailed = true
-                            }
-                        }
-                    }
+                YouTubePlayerView(context).apply {
                     tag = videoId
-                    loadDataWithBaseURL(
-                        "https://www.youtube-nocookie.com",
-                        embedHtml,
-                        "text/html",
-                        "utf-8",
-                        null
+                    // The library loads its player HTML via loadDataWithBaseURL using this
+                    // origin as the base URL. Left unset, videos with an "allowed domains"
+                    // embedding restriction fail identically for every video (error 152) —
+                    // a real, registered origin is required, not just any string.
+                    enableAutomaticInitialization = false
+                    lifecycleOwner.lifecycle.addObserver(this)
+                    initialize(
+                        object : AbstractYouTubePlayerListener() {
+                            override fun onReady(youTubePlayer: YouTubePlayer) {
+                                youTubePlayer.cueVideo(videoId, 0f)
+                            }
+
+                            override fun onError(
+                                youTubePlayer: YouTubePlayer,
+                                error: PlayerConstants.PlayerError
+                            ) {
+                                // Swallow — if playback genuinely fails, the "Watch on
+                                // YouTube" fallback below the lyrics still gets users there.
+                            }
+                        },
+                        IFramePlayerOptions.Builder()
+                            .origin("https://bhaktichat.com")
+                            .build()
                     )
                 }
             },
-            update = { webView ->
-                if (webView.tag != videoId) {
-                    webView.tag = videoId
-                    loadFailed = false
-                    webView.loadDataWithBaseURL(
-                        "https://www.youtube-nocookie.com",
-                        embedHtml,
-                        "text/html",
-                        "utf-8",
-                        null
-                    )
+            update = { view ->
+                if (view.tag != videoId) {
+                    view.tag = videoId
+                    view.getYouTubePlayerWhenReady(object : YouTubePlayerCallback {
+                        override fun onYouTubePlayer(youTubePlayer: YouTubePlayer) {
+                            youTubePlayer.cueVideo(videoId, 0f)
+                        }
+                    })
                 }
+            },
+            onRelease = { view ->
+                lifecycleOwner.lifecycle.removeObserver(view)
+                view.release()
             }
         )
     }

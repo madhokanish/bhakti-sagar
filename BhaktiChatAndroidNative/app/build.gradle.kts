@@ -166,6 +166,7 @@ dependencies {
     implementation(libs.user.messaging.platform)
     implementation(libs.play.review.ktx)
     implementation(libs.androidx.lifecycle.process)
+    implementation(libs.youtube.player.core)
 
     implementation(libs.okhttp)
     implementation("com.squareup.okhttp3:okhttp-urlconnection:4.12.0")

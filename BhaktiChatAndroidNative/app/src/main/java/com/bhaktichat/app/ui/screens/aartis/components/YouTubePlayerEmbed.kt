@@ -4,6 +4,7 @@ import android.graphics.Color as AndroidColor
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -48,7 +49,40 @@ fun YouTubePlayerEmbed(
     var loadFailed by remember(videoId) { mutableStateOf(false) }
     var webViewRef by remember(videoId) { mutableStateOf<WebView?>(null) }
     val embedUrl = remember(videoId) {
-        "https://www.youtube.com/embed/$videoId?modestbranding=1&rel=0&playsinline=1"
+        "https://www.youtube-nocookie.com/embed/$videoId?modestbranding=1&rel=0&playsinline=1"
+    }
+    val embedHtml = remember(embedUrl, title) {
+        """
+        <!doctype html>
+        <html>
+          <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+            <style>
+              html, body {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                background: #000000;
+              }
+              iframe {
+                border: 0;
+                width: 100%;
+                height: 100%;
+              }
+            </style>
+          </head>
+          <body>
+            <iframe
+              src="$embedUrl"
+              title="$title"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen>
+            </iframe>
+          </body>
+        </html>
+        """.trimIndent()
     }
 
     DisposableEffect(videoId) {
@@ -81,17 +115,60 @@ fun YouTubePlayerEmbed(
             factory = { context ->
                 WebView(context).apply {
                     webViewRef = this
-                    setBackgroundColor(AndroidColor.TRANSPARENT)
+                    setBackgroundColor(AndroidColor.BLACK)
                     settings.apply {
                         javaScriptEnabled = true
+                        javaScriptCanOpenWindowsAutomatically = true
                         domStorageEnabled = true
+                        databaseEnabled = true
+                        setSupportZoom(false)
                         mediaPlaybackRequiresUserGesture = false
-                        loadWithOverviewMode = true
-                        useWideViewPort = true
+                        allowFileAccess = false
+                        mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
                         cacheMode = WebSettings.LOAD_DEFAULT
                     }
-                    webChromeClient = WebChromeClient()
+                    // YouTube's mobile embed player switches to fullscreen on tap-to-play via
+                    // onShowCustomView/onHideCustomView. A bare WebChromeClient() doesn't
+                    // implement these, so the tap silently does nothing — the player renders
+                    // but never actually starts. This adds the fullscreen video container the
+                    // callback expects, hosted on the Activity's own decor view.
+                    webChromeClient = object : WebChromeClient() {
+                        private var customView: android.view.View? = null
+                        private var customViewCallback: CustomViewCallback? = null
+
+                        override fun onShowCustomView(view: android.view.View?, callback: CustomViewCallback?) {
+                            val decorView = (context as? android.app.Activity)
+                                ?.window?.decorView as? android.view.ViewGroup ?: return
+                            if (customView != null || view == null) {
+                                callback?.onCustomViewHidden()
+                                return
+                            }
+                            customView = view
+                            customViewCallback = callback
+                            decorView.addView(
+                                view,
+                                android.widget.FrameLayout.LayoutParams(
+                                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+                                )
+                            )
+                        }
+
+                        override fun onHideCustomView() {
+                            val decorView = (context as? android.app.Activity)
+                                ?.window?.decorView as? android.view.ViewGroup ?: return
+                            customView?.let { decorView.removeView(it) }
+                            customView = null
+                            customViewCallback?.onCustomViewHidden()
+                            customViewCallback = null
+                        }
+                    }
                     webViewClient = object : WebViewClient() {
+                        override fun shouldOverrideUrlLoading(
+                            view: WebView?,
+                            request: WebResourceRequest?
+                        ): Boolean = false
+
                         override fun onReceivedError(
                             view: WebView?,
                             request: WebResourceRequest?,
@@ -101,13 +178,38 @@ fun YouTubePlayerEmbed(
                                 loadFailed = true
                             }
                         }
+
+                        override fun onReceivedHttpError(
+                            view: WebView?,
+                            request: WebResourceRequest?,
+                            errorResponse: WebResourceResponse?
+                        ) {
+                            if (request?.isForMainFrame == true && errorResponse?.statusCode ?: 200 >= 400) {
+                                loadFailed = true
+                            }
+                        }
                     }
-                    loadUrl(embedUrl)
+                    tag = videoId
+                    loadDataWithBaseURL(
+                        "https://www.youtube-nocookie.com",
+                        embedHtml,
+                        "text/html",
+                        "utf-8",
+                        null
+                    )
                 }
             },
             update = { webView ->
-                if (webView.url != embedUrl) {
-                    webView.loadUrl(embedUrl)
+                if (webView.tag != videoId) {
+                    webView.tag = videoId
+                    loadFailed = false
+                    webView.loadDataWithBaseURL(
+                        "https://www.youtube-nocookie.com",
+                        embedHtml,
+                        "text/html",
+                        "utf-8",
+                        null
+                    )
                 }
             }
         )

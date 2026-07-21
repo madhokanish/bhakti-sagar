@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.WbSunny
@@ -47,7 +48,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Person
-import com.bhaktichat.app.R
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -79,6 +79,8 @@ fun HomeScreen(
     isPro: Boolean = false,
     streak: Int = 0,
     longestStreak: Int = 0,
+    isStreakBannerDismissed: Boolean = false,
+    onDismissStreakBanner: () -> Unit = {},
     onOpenStreak: () -> Unit = {}
 ) {
     LazyColumn(
@@ -92,32 +94,17 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         item("topbar") {
+            // Plain "Home" title via AppTopBar's default rendering — matches
+            // Explore/History/Bhakti Chat now (was previously a bespoke logo+wordmark
+            // treatment unique to this screen; standardized per product review).
             AppTopBar(
-                title = "",
+                title = "Home",
                 leftContent = {
                     IconButton(onClick = onOpenProfile) {
                         Icon(
                             imageVector = Icons.Outlined.Person,
                             contentDescription = "Profile",
                             tint = StreakDeepAccent
-                        )
-                    }
-                },
-                centerContent = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.bhaktichat_logo),
-                            contentDescription = null,
-                            modifier = Modifier.size(26.dp)
-                        )
-                        Text(
-                            text = "BhaktiChat",
-                            fontSize = 19.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = StreakTextPrimary
                         )
                     }
                 }
@@ -142,11 +129,12 @@ fun HomeScreen(
             )
         }
 
-        if (streak > 0) {
+        if (streak > 0 && !isStreakBannerDismissed) {
             item("streak") {
                 DarshanStreakHeroCard(
                     streak = streak,
-                    longestStreak = longestStreak
+                    longestStreak = longestStreak,
+                    onDismiss = onDismissStreakBanner
                 )
             }
         }
@@ -333,14 +321,18 @@ private val EmblemEnd = Color(0xFFFBBF7A)
 
 private enum class DayState { OFF, LIT, TODAY }
 
-/** 7 states oldest→today: last min(streak,7) lit, last slot = today. */
+/**
+ * 7 slots, filled from the start: lit dots accumulate left→right as the streak grows, with
+ * today as the last lit dot and empty slots trailing to the right. (Previously filled from the
+ * end, which read as "streak trailing off" rather than "streak building up" — unintuitive per
+ * product review.)
+ */
 private fun weekStates(streak: Int): List<DayState> {
     val litCount = streak.coerceIn(0, 7)
     return (0 until 7).map { index ->
-        val fromEnd = 6 - index
         when {
-            fromEnd == 0 -> DayState.TODAY
-            fromEnd < litCount -> DayState.LIT
+            index == litCount - 1 -> DayState.TODAY
+            index < litCount - 1 -> DayState.LIT
             else -> DayState.OFF
         }
     }
@@ -348,7 +340,7 @@ private fun weekStates(streak: Int): List<DayState> {
 
 /** Big hero streak card (design_handoff_bhaktichat_ia · Home). */
 @Composable
-private fun DarshanStreakHeroCard(streak: Int, longestStreak: Int) {
+private fun DarshanStreakHeroCard(streak: Int, longestStreak: Int, onDismiss: () -> Unit = {}) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -356,10 +348,25 @@ private fun DarshanStreakHeroCard(streak: Int, longestStreak: Int) {
             .background(Brush.linearGradient(listOf(EmblemStart, EmblemEnd)))
             .padding(18.dp)
     ) {
-        // Translucent flame emblem, top-right.
+        // Dismiss — hides the banner for the rest of today only (see StreakStore.dismissBannerForToday).
+        IconButton(
+            onClick = onDismiss,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(28.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = "Dismiss for today",
+                tint = StreakDeepAccent,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        // Translucent flame emblem, top-right (inset from the dismiss button above it).
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
+                .padding(top = 36.dp)
                 .size(56.dp)
                 .background(Color.White.copy(alpha = 0.4f), CircleShape),
             contentAlignment = Alignment.Center

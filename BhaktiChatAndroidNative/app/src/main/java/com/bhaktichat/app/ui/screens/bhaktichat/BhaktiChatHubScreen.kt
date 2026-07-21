@@ -87,6 +87,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.bhaktichat.app.ui.components.GuideAvatar
+import com.bhaktichat.app.ui.components.shell.AppTopBar
 import com.bhaktichat.app.ui.theme.BhaktiThemeTokens
 import com.bhaktichat.app.util.SpeechInputManager
 import kotlinx.coroutines.flow.Flow
@@ -330,34 +331,22 @@ fun BhaktiChatHubScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // MARK: Top bar — slim: profile · "Bhakti Chat" · PRO pill
+            // Standardized header — matches Home/Explore/History's AppTopBar treatment
+            // (was previously a bespoke Row at a different title size; standardized per
+            // product review).
             item("topbar") {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    IconButton(onClick = onOpenProfile) {
-                        Icon(
-                            imageVector = Icons.Outlined.Person,
-                            contentDescription = "Profile",
-                            tint = BhaktiThemeTokens.TextPrimary
-                        )
+                AppTopBar(
+                    title = "Bhakti Chat",
+                    leftContent = {
+                        IconButton(onClick = onOpenProfile) {
+                            Icon(
+                                imageVector = Icons.Outlined.Person,
+                                contentDescription = "Profile",
+                                tint = BhaktiThemeTokens.TextPrimary
+                            )
+                        }
                     }
-
-                    Text(
-                        text = "Bhakti Chat",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = BhaktiThemeTokens.TextPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    // Get-Pro pill removed (ad-based model). Spacer keeps the title
-                    // centered within the SpaceBetween row (balances the leading icon).
-                    Spacer(modifier = Modifier.width(48.dp))
-                }
+                )
             }
 
             // MARK: Hero — slim contextual two-line block

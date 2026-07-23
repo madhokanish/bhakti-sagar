@@ -20,8 +20,25 @@ class GuidePreferences(context: Context) {
         }.apply()
     }
 
+    fun pinnedGuideIds(): Set<String> {
+        val raw = prefs.getString(KEY_PINNED_GUIDES, "") ?: ""
+        return if (raw.isBlank()) emptySet()
+        else raw.split(",").filter { it.isNotBlank() }.toSet()
+    }
+
+    fun setPinnedGuideIds(ids: Set<String>) {
+        prefs.edit().putString(KEY_PINNED_GUIDES, ids.sorted().joinToString(",")).apply()
+    }
+
+    fun togglePinnedGuide(guideId: String) {
+        val current = pinnedGuideIds().toMutableSet()
+        if (current.contains(guideId)) current.remove(guideId) else current.add(guideId)
+        setPinnedGuideIds(current)
+    }
+
     companion object {
         private const val KEY_LAST_GUIDE = "last_guide_id"
         private const val KEY_CONVERSATION_PREFIX = "conversation_id_"
+        private const val KEY_PINNED_GUIDES = "pinned_guide_ids"
     }
 }

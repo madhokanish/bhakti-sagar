@@ -1,5 +1,4 @@
 package com.bhaktichat.app.ui.screens.chat
-
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -22,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -249,12 +249,16 @@ fun ChatScreen(
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Bottom)
         ) {
-            items(uiState.messages, key = { it.id }) { message ->
+            itemsIndexed(uiState.messages, key = { _, message -> message.id }) { index, message ->
                 MessageBubble(
                     message = message,
                     avatarRes = guide.avatarRes,
                     avatarBiasY = guide.avatarVerticalBias,
-                    guideName = guide.displayName
+                    guideName = guide.displayName,
+                    showFollowUps = !uiState.isStreaming &&
+                        index == uiState.messages.lastIndex &&
+                        ChatRole.fromWire(message.role) == ChatRole.ASSISTANT,
+                    onSelectPrompt = onSelectPrompt
                 )
             }
 
@@ -274,7 +278,7 @@ fun ChatScreen(
 @Composable
 private fun SuggestedPromptsRow(prompts: List<String>, onSelect: (String) -> Unit) {
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(prompts) { prompt ->
+        items(prompts, key = { it }) { prompt ->
             AssistChip(
                 onClick = { onSelect(prompt) },
                 label = { Text(prompt) }
@@ -288,7 +292,9 @@ private fun MessageBubble(
     message: MessageEntity,
     avatarRes: Int,
     avatarBiasY: Float,
-    guideName: String
+    guideName: String,
+    showFollowUps: Boolean,
+    onSelectPrompt: (String) -> Unit
 ) {
     val role = ChatRole.fromWire(message.role)
     val isUser = role == ChatRole.USER
@@ -296,7 +302,7 @@ private fun MessageBubble(
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
-        verticalAlignment = Alignment.Bottom
+        verticalAlignment = if (isUser) Alignment.Bottom else Alignment.Top
     ) {
         if (!isUser) {
             GuideAvatar(
@@ -311,22 +317,31 @@ private fun MessageBubble(
                 .padding(start = if (isUser) 0.dp else 8.dp)
                 .fillMaxWidth(if (isUser) 0.90f else 0.86f)
         ) {
-            Surface(
-                color = if (isUser) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f)
-                },
-                shape = RoundedCornerShape(18.dp),
-                tonalElevation = if (isUser) 0.dp else 1.dp
-            ) {
+            if (isUser) {
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = RoundedCornerShape(18.dp),
+                    tonalElevation = 0.dp
+                ) {
+                    Text(
+                        text = message.content,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 13.dp),
+                        softWrap = true
+                    )
+                }
+            } else {
                 Text(
                     text = message.content,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = if (isUser) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 13.dp),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp),
                     softWrap = true
                 )
+                if (showFollowUps) {
+                    FollowUpList(onSelectPrompt = onSelectPrompt)
+                }
             }
             Text(
                 text = formatTime(message.createdAt),
@@ -337,6 +352,40 @@ private fun MessageBubble(
                     .fillMaxWidth()
                     .padding(top = 2.dp, start = 2.dp, end = 2.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun FollowUpList(onSelectPrompt: (String) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = "Follow up",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        listOf(
+            "Explain with a Gita story",
+            "Give me a practical step",
+            "Short mantra for today"
+        ).forEach { prompt ->
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.clickable { onSelectPrompt(prompt) }
+            ) {
+                Text(
+                    text = prompt,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                )
+            }
         }
     }
 }

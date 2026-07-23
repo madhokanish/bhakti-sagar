@@ -14,6 +14,8 @@ import {
   saveReadingPrefs,
   type ReadingPrefs
 } from "@/lib/reading";
+import ReadingProgressBar from "@/components/ReadingProgressBar";
+import { useTextToSpeech } from "@/lib/useTextToSpeech";
 
 type LyricsSet = {
   english: string[];
@@ -49,6 +51,7 @@ export default function AartiLyricsPanel({
   const wakeLockRef = useRef<any>(null);
   const scrollKey = `aarti-scroll:${slug}`;
   const prefsKey = `aarti-reading:${slug}`;
+  const { isPlaying: isReadingAloud, speak, stop: stopReading } = useTextToSpeech();
 
   const englishAvailable = lyrics.english.length > 0;
   const hindiAvailable = lyrics.hindi.length > 0;
@@ -199,6 +202,8 @@ export default function AartiLyricsPanel({
   ];
 
   return (
+    <>
+    <ReadingProgressBar />
     <div className="mt-4 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -251,6 +256,15 @@ export default function AartiLyricsPanel({
         onLanguageChange={(value) => setLanguage(value as Language)}
         onOpenSettings={() => setSettingsOpen(true)}
         onOpenShare={() => setShareOpen(true)}
+        isPlaying={isReadingAloud}
+        onTogglePlay={() => {
+          if (isReadingAloud) {
+            stopReading();
+            return;
+          }
+          const lang = activeLanguage === "hindi" ? "hi-IN" : "en-IN";
+          speak(cleanedLyrics.join(". "), lang);
+        }}
       />
 
       <ReadingSettingsModal
@@ -298,5 +312,6 @@ export default function AartiLyricsPanel({
         </div>
       )}
     </div>
+    </>
   );
 }

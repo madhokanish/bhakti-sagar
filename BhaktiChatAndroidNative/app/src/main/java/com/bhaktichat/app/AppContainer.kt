@@ -12,6 +12,7 @@ import com.bhaktichat.app.data.remote.DivineImageGenerator
 import com.bhaktichat.app.data.remote.OkHttpChatApi
 import com.bhaktichat.app.data.remote.PromptAwareChatApiClient
 import com.bhaktichat.app.data.remote.RemoteDivineImageGenerator
+import com.bhaktichat.app.data.remote.VoiceSessionApi
 import com.bhaktichat.app.data.repo.AartiRepository
 import com.bhaktichat.app.data.repo.ChatRepository
 import com.bhaktichat.app.data.repo.ChoghadiyaRepository
@@ -79,6 +80,19 @@ class AppContainer(context: Context) {
     private val chatApi: ChatApi = OkHttpChatApi(
         baseUrl = BuildConfig.API_BASE_URL,
         httpClient = streamingHttpClient
+    )
+
+    // Voice Mode's WebSocket connects directly to OpenAI, not our own API, and stays open
+    // for the whole call — needs no read timeout (like streamingHttpClient) plus a ping
+    // interval, or idle NAT/carrier middleboxes silently drop the connection with no error.
+    val voiceWebSocketClient: OkHttpClient = httpClient.newBuilder()
+        .readTimeout(0, TimeUnit.SECONDS)
+        .pingInterval(20, TimeUnit.SECONDS)
+        .build()
+
+    val voiceSessionApi = VoiceSessionApi(
+        baseUrl = BuildConfig.API_BASE_URL,
+        httpClient = httpClient
     )
 
     val guidePreferences = GuidePreferences(appContext)

@@ -17,10 +17,7 @@ export type SubscriptionSessionPayload = {
 const THIRTY_DAYS_SECONDS = 30 * 24 * 60 * 60;
 
 function getSessionSecret() {
-  const secret =
-    process.env.SESSION_SECRET?.trim() ||
-    process.env.STRIPE_WEBHOOK_SECRET?.trim() ||
-    process.env.STRIPE_SECRET_KEY?.trim();
+  const secret = process.env.SESSION_SECRET?.trim();
 
   if (!secret) {
     throw new Error("SESSION_SECRET is not configured.");
@@ -49,8 +46,9 @@ export function createSignedSessionToken(payload: SubscriptionSessionPayload) {
 
 export function verifySignedSessionToken(token: string | undefined | null) {
   if (!token) return null;
-  const [encodedPayload, signature] = token.split(".");
-  if (!encodedPayload || !signature) return null;
+  const parts = token.split(".");
+  if (parts.length !== 2) return null;
+  const [encodedPayload, signature] = parts;
 
   const expected = sign(encodedPayload);
   if (expected.length !== signature.length) return null;

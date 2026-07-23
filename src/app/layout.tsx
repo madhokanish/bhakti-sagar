@@ -5,6 +5,7 @@ import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import AuthSessionProvider from "@/components/AuthSessionProvider";
 import AuthModalProvider from "@/components/auth/AuthModalProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { buildMetadata, siteConfig } from "@/lib/seo";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -72,15 +73,29 @@ export default async function RootLayout({
 
   return (
     <html lang={locale === "hi" ? "hi" : "en"}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var m=localStorage.getItem('theme');var r=m==='light'||m==='dark'?m:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',r);}catch(e){}})();`
+          }}
+        />
+      </head>
       <body
         className={`${manrope.variable} ${cormorant.variable} ${locale === "hi" ? notoSansDevanagari.className : ""} font-sans antialiased`}
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
           <AuthSessionProvider>
             <AuthModalProvider>
+              <ThemeProvider>
               <div className="app-shell relative min-h-screen overflow-hidden">
+                <a
+                  href="#main-content"
+                  className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-full focus:bg-sagar-saffron focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-sagar-card"
+                >
+                  Skip to content
+                </a>
                 <NavBar />
-                <main className="pb-12">{children}</main>
+                <main id="main-content" className="pb-12">{children}</main>
                 <Footer />
                 <GoogleAnalyticsPageTracker measurementId={GA_MEASUREMENT_ID} />
                 <script
@@ -94,6 +109,7 @@ export default async function RootLayout({
                 <Analytics />
                 <SpeedInsights />
               </div>
+              </ThemeProvider>
             </AuthModalProvider>
           </AuthSessionProvider>
         </NextIntlClientProvider>

@@ -54,11 +54,19 @@ export default function ReadingSettingsModal({
         aria-label="Close reading settings"
         className="absolute inset-0 bg-black/40"
       />
-      <div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white px-6 pb-8 pt-6 shadow-sagar-card">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reading-settings-title"
+        className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white px-6 pb-8 pt-6 shadow-sagar-card"
+      >
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">
+          <h2
+            id="reading-settings-title"
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose"
+          >
             Reading settings
-          </p>
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -74,14 +82,16 @@ export default function ReadingSettingsModal({
             <div className="mt-2 flex items-center gap-3">
               <button
                 type="button"
+                aria-label="Decrease font size"
                 onClick={() => onFontSizeChange(Math.max(16, fontSize - 1))}
                 className="h-8 w-8 rounded-full border border-sagar-amber/30 text-sm"
               >
                 −
               </button>
-              <span className="text-sm font-semibold text-sagar-ink">{fontSize}px</span>
+              <span className="text-sm font-semibold text-sagar-ink" aria-live="polite">{fontSize}px</span>
               <button
                 type="button"
+                aria-label="Increase font size"
                 onClick={() => onFontSizeChange(Math.min(26, fontSize + 1))}
                 className="h-8 w-8 rounded-full border border-sagar-amber/30 text-sm"
               >
@@ -95,14 +105,16 @@ export default function ReadingSettingsModal({
             <div className="mt-2 flex items-center gap-3">
               <button
                 type="button"
+                aria-label="Decrease line spacing"
                 onClick={() => onLineHeightChange(Math.max(1.4, Number((lineHeight - 0.1).toFixed(2))))}
                 className="h-8 w-8 rounded-full border border-sagar-amber/30 text-sm"
               >
                 −
               </button>
-              <span className="text-sm font-semibold text-sagar-ink">{lineHeight.toFixed(1)}</span>
+              <span className="text-sm font-semibold text-sagar-ink" aria-live="polite">{lineHeight.toFixed(1)}</span>
               <button
                 type="button"
+                aria-label="Increase line spacing"
                 onClick={() => onLineHeightChange(Math.min(2.0, Number((lineHeight + 0.1).toFixed(2))))}
                 className="h-8 w-8 rounded-full border border-sagar-amber/30 text-sm"
               >

@@ -64,9 +64,14 @@ class ChoghadiyaRepository(
                 throw IllegalStateException(error)
             }
 
-            val sunriseInstant = Instant.parse(sunrise)
-            val sunsetInstant = Instant.parse(sunset)
-            val nextSunriseInstant = Instant.parse(nextSunrise)
+            // Guard against non-blank but malformed values: Instant.parse throws
+            // DateTimeParseException, which would otherwise escape as an uncaught crash
+            // instead of the graceful error the rest of this method uses.
+            val (sunriseInstant, sunsetInstant, nextSunriseInstant) = runCatching {
+                Triple(Instant.parse(sunrise), Instant.parse(sunset), Instant.parse(nextSunrise))
+            }.getOrElse {
+                throw IllegalStateException("Invalid choghadiya data.")
+            }
 
             ChoghadiyaDayData(
                 slots = ChoghadiyaCalculator.buildSlots(

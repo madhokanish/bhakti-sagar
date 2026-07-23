@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Section = {
   id: string;
@@ -21,6 +21,15 @@ export default function MobileContentsDrawer({
   floating = false
 }: Props) {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open]);
 
   const triggerClasses = floating
     ? "fixed bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-full bg-sagar-saffron px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-sagar-soft lg:hidden"
@@ -44,9 +53,19 @@ export default function MobileContentsDrawer({
             onClick={() => setOpen(false)}
             className="absolute inset-0 bg-black/40"
           />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[70vh] rounded-t-3xl bg-sagar-cream px-6 pb-8 pt-6 shadow-sagar-card">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-contents-title"
+            className="absolute bottom-0 left-0 right-0 max-h-[70vh] rounded-t-3xl bg-sagar-cream px-6 pb-8 pt-6 shadow-sagar-card"
+          >
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose">Contents</p>
+              <h2
+                id="mobile-contents-title"
+                className="text-xs font-semibold uppercase tracking-[0.25em] text-sagar-rose"
+              >
+                Contents
+              </h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}

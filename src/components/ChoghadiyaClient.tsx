@@ -654,23 +654,38 @@ END:VCALENDAR`;
             <span className="text-sagar-rose">{copy.manual_times}</span>
           </div>
           <div className="mt-3 grid gap-2 md:grid-cols-3">
+            <label htmlFor="choghadiya-sunrise" className="sr-only">
+              {copy.sunrise_input}
+            </label>
             <input
+              id="choghadiya-sunrise"
               value={sunrise}
               onChange={(e) => setSunrise(e.target.value)}
               placeholder={copy.sunrise_input}
-              className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs"
+              aria-label={copy.sunrise_input}
+              className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sagar-saffron/60"
             />
+            <label htmlFor="choghadiya-sunset" className="sr-only">
+              {copy.sunset_input}
+            </label>
             <input
+              id="choghadiya-sunset"
               value={sunset}
               onChange={(e) => setSunset(e.target.value)}
               placeholder={copy.sunset_input}
-              className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs"
+              aria-label={copy.sunset_input}
+              className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sagar-saffron/60"
             />
+            <label htmlFor="choghadiya-next-sunrise" className="sr-only">
+              {copy.next_sunrise_input}
+            </label>
             <input
+              id="choghadiya-next-sunrise"
               value={nextSunrise}
               onChange={(e) => setNextSunrise(e.target.value)}
               placeholder={copy.next_sunrise_input}
-              className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs"
+              aria-label={copy.next_sunrise_input}
+              className="rounded-full border border-sagar-amber/30 bg-white px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sagar-saffron/60"
             />
           </div>
           {manualHint && <p className="mt-2 text-xs text-sagar-ink/60">{manualHint}</p>}

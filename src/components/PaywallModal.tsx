@@ -128,10 +128,10 @@ export default function PaywallModal({ open, onClose, featureName, returnTo, pri
           </button>
         </div>
 
-        <ul className="mt-4 space-y-1.5 text-sm text-sagar-ink/78">
-          <li>• Secure checkout</li>
-          <li>• Cancel anytime</li>
-          <li>• Auto renews monthly</li>
+        <ul className="mt-4 list-disc space-y-1.5 pl-5 text-sm text-sagar-ink/78">
+          <li>Secure checkout</li>
+          <li>Cancel anytime</li>
+          <li>Auto renews monthly</li>
         </ul>
 
         <label className="mt-4 block text-sm text-sagar-ink/80">

@@ -83,7 +83,7 @@ fun HeroCard(
         Box(modifier = Modifier.fillMaxSize()) {
             TopFocusedImage(
                 imageRes = imageRes,
-                contentDescription = "Krishna hero image",
+                contentDescription = "Lord Krishna hero image",
                 modifier = Modifier.fillMaxSize(),
                 scaleX = 1f,
                 scaleY = 1f

@@ -80,10 +80,17 @@ class ChatRepository(
         conversationId: String?,
         forceNewConversation: Boolean,
         chatLang: String = "en",
+        systemPrompt: String? = null,
+        developerPrompt: String? = null,
+        languageInstruction: String? = null,
+        guidePersonaPrompt: String? = null,
         systemPromptStack: String? = null,
         clientMode: String? = null,
         stateAnchor: String? = null,
-        earlierSummary: String? = null
+        earlierSummary: String? = null,
+        firstName: String? = null,
+        secondaryGuard: String? = null,
+        optionalRewriteDirective: String? = null
     ): Flow<StreamEvent> {
         val payload = SendChatRequest(
             guideId = guideId,
@@ -91,10 +98,17 @@ class ChatRepository(
             forceNewConversation = forceNewConversation,
             chatLang = chatLang,
             message = message,
+            systemPrompt = systemPrompt,
+            developerPrompt = developerPrompt,
+            languageInstruction = languageInstruction,
+            guidePersonaPrompt = guidePersonaPrompt,
             systemPromptStack = systemPromptStack,
-            clientMode = clientMode,
+            modeInstruction = clientMode,
             stateAnchor = stateAnchor,
-            earlierSummary = earlierSummary
+            earlierSummary = earlierSummary,
+            firstName = firstName,
+            secondaryGuard = secondaryGuard,
+            optionalRewriteDirective = optionalRewriteDirective
         )
         return chatApi.streamChat(payload)
     }

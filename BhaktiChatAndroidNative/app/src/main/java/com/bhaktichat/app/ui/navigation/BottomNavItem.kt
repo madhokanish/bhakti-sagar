@@ -1,56 +1,53 @@
 package com.bhaktichat.app.ui.navigation
 
+import androidx.annotation.DrawableRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoStories
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.outlined.AutoStories
-import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.ui.graphics.vector.ImageVector
 
 data class BottomNavItem(
     val route: String,
     val label: String,
-    val icon: ImageVector,
-    val selectedIcon: ImageVector = icon,
-    val emphasize: Boolean = false
+    val icon: ImageVector? = null,
+    val selectedIcon: ImageVector? = icon,
+    @DrawableRes val drawableRes: Int? = null,
+    val isCenterpiece: Boolean = false
 )
 
+/**
+ * The 4-tab IA (design_handoff_bhaktichat_ia): Home · Chat · Explore · History.
+ * Divine Image, Aartis, Choghadiya (and future Rashifal/Kundli) live under Explore.
+ */
 val bottomNavItems = listOf(
-    BottomNavItem(
-        route = NavDestinations.CHAT_ENTRY,
-        label = "Chat",
-        icon = Icons.Outlined.Chat,
-        selectedIcon = Icons.Filled.Chat
-    ),
-    BottomNavItem(
-        route = NavDestinations.CHOGHADIYA,
-        label = "Choghadiya",
-        icon = Icons.Outlined.Schedule,
-        selectedIcon = Icons.Filled.Schedule
-    ),
     BottomNavItem(
         route = NavDestinations.HOME,
         label = "Home",
         icon = Icons.Outlined.Home,
-        selectedIcon = Icons.Filled.Home,
-        emphasize = true
+        selectedIcon = Icons.Filled.Home
     ),
     BottomNavItem(
-        route = NavDestinations.AARTIS,
-        label = "Aartis",
-        icon = Icons.Outlined.AutoStories,
-        selectedIcon = Icons.Filled.AutoStories
+        route = NavDestinations.BHAKTI_CHAT_BASE,
+        label = "Chat",
+        icon = Icons.AutoMirrored.Outlined.Chat,
+        selectedIcon = Icons.AutoMirrored.Filled.Chat
     ),
     BottomNavItem(
-        route = NavDestinations.PROFILE,
-        label = "Profile",
-        icon = Icons.Outlined.Person,
-        selectedIcon = Icons.Filled.Person
+        route = NavDestinations.EXPLORE,
+        label = "Explore",
+        icon = Icons.Outlined.Explore,
+        selectedIcon = Icons.Filled.Explore
+    ),
+    BottomNavItem(
+        route = NavDestinations.HISTORY,
+        label = "History",
+        icon = Icons.Outlined.History,
+        selectedIcon = Icons.Filled.History
     )
 )

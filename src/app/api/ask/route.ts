@@ -57,8 +57,9 @@ export async function POST(request: Request) {
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error("[ask] OpenAI error:", errorText);
     return NextResponse.json(
-      { error: `OpenAI error: ${errorText}` },
+      { error: "An error occurred. Please try again." },
       { status: 500 }
     );
   }

@@ -10,6 +10,7 @@ import Logo from "@/components/Logo";
 import AuthModalTrigger from "@/components/auth/AuthModalTrigger";
 import HomeLanguageToggle from "@/components/HomeLanguageToggle";
 import LanguageToggle from "@/components/LanguageToggle";
+import ThemeToggleButton from "@/components/ThemeToggleButton";
 import { HOME_LANG_COOKIE, HOME_LANG_STORAGE_KEY, isHomeLang, type HomeLang } from "@/lib/homeCopy";
 import { buildBhaktiChatHref } from "@/lib/bhaktigpt/chatLinks";
 import { useBhaktiLang } from "@/lib/useBhaktiLang";
@@ -49,6 +50,14 @@ function persistHomeLanguage(lang: HomeLang) {
 }
 
 const remoteImageLoader = ({ src }: { src: string }) => src;
+
+function isNavItemActive(href: string, pathname: string | null): boolean {
+  if (!pathname) return false;
+  // Strip query string from href for comparison
+  const hrefPath = href.split("?")[0];
+  if (hrefPath.includes("/chat")) return pathname.includes("/chat");
+  return pathname === hrefPath || pathname.startsWith(hrefPath + "/");
+}
 
 export default function NavBar() {
   const t = useTranslations();
@@ -245,15 +254,23 @@ export default function NavBar() {
           aria-label="Primary navigation"
           className="hidden items-center gap-1 rounded-full border border-sagar-amber/25 bg-white/75 px-2 py-1 text-sm font-semibold text-sagar-ink/85 shadow-[0_10px_26px_-24px_rgba(44,20,10,0.65)] md:absolute md:left-1/2 md:flex md:-translate-x-1/2"
         >
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-full px-3 py-1.5 transition-colors duration-200 hover:bg-sagar-sand/55 hover:text-sagar-ember"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const active = isNavItemActive(item.href, pathname);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={`rounded-full px-3 py-1.5 transition-colors duration-200 ${
+                  active
+                    ? "bg-sagar-sand/80 text-sagar-ember"
+                    : "hover:bg-sagar-sand/55 hover:text-sagar-ember"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
@@ -262,6 +279,7 @@ export default function NavBar() {
           ) : isToolsLocalizedRoute ? (
             <LanguageToggle currentLang={toolsToggleLang} onChange={handleToolsLanguageChange} compact />
           ) : null}
+          <ThemeToggleButton />
           {status === "loading" ? (
             <div className="h-9 w-20 animate-pulse rounded-full bg-sagar-cream/80" />
           ) : isAuthenticated ? (
@@ -282,7 +300,7 @@ export default function NavBar() {
                     {avatarInitial}
                   </span>
                 )}
-                <span>Account</span>
+                <span>{t("nav_account")}</span>
                 <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 text-sagar-ink/55" aria-hidden="true">
                   <path d="M5.5 7.5 10 12l4.5-4.5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" />
                 </svg>
@@ -293,7 +311,7 @@ export default function NavBar() {
                   href={`${localePrefix}/profile`}
                   className="mb-1 block rounded-xl px-3 py-2 font-semibold transition-colors duration-200 hover:bg-sagar-cream/65 hover:text-sagar-ember"
                 >
-                  Profile
+                  {t("nav_profile")}
                 </Link>
                 <button
                   type="button"
@@ -301,7 +319,7 @@ export default function NavBar() {
                   disabled={isSigningOut}
                   className="block w-full rounded-xl px-3 py-2 text-left font-semibold transition-colors duration-200 hover:bg-sagar-cream/65 hover:text-sagar-ember disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isSigningOut ? "Logging out..." : "Logout"}
+                  {isSigningOut ? t("nav_logging_out") : t("nav_logout")}
                 </button>
               </div>
             </details>
@@ -391,16 +409,24 @@ export default function NavBar() {
               </AuthModalTrigger>
             )}
 
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="mb-1 block rounded-xl px-3 py-2 transition-colors duration-200 hover:bg-sagar-cream/70 hover:text-sagar-ember"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const active = isNavItemActive(item.href, pathname);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-current={active ? "page" : undefined}
+                  className={`mb-1 block rounded-xl px-3 py-2 transition-colors duration-200 ${
+                    active
+                      ? "bg-sagar-sand/80 text-sagar-ember"
+                      : "hover:bg-sagar-cream/70 hover:text-sagar-ember"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </div>
         </div>
       ) : null}

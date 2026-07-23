@@ -1,6 +1,5 @@
 <resources>
-    <style name="Theme.BhaktiChat" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
-    </style>
+    <!-- Keep light theme even when the device is in dark mode. Status/nav bar transparency
+         and icon color are set in code via enableEdgeToEdge() — see values/themes.xml. -->
+    <style name="Theme.BhaktiChat" parent="Theme.Material3.Light.NoActionBar" />
 </resources>

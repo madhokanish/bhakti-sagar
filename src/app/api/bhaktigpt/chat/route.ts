@@ -14,7 +14,7 @@ import { SHANI_SECONDARY_GUARD } from "@/lib/bhaktigpt/personas/shaniSystemPromp
 import { SHIV_SECONDARY_GUARD } from "@/lib/bhaktigpt/personas/shivSystemPrompt";
 import { HANUMAN_SECONDARY_GUARD } from "@/lib/bhaktigpt/personas/hanumanSystemPrompt";
 import { chatOpeners } from "@/lib/chatOpeners";
-import { isChatLanguage, type ChatLanguage } from "@/lib/chatUILabels";
+import { type ChatLanguage } from "@/lib/chatUILabels";
 import {
   BHAKTIGPT_COOKIE,
   crisisSupportResponse,
@@ -140,6 +140,32 @@ function getReplyCache() {
   return globalReplyCache.bhaktiReplyCache;
 }
 
+/**
+ * Maps a thrown error message to a short stable code so mobile clients can
+ * show a more specific message without parsing English strings.
+ * Keep this in sync with iOS / Android error handling if you ever wire it up.
+ */
+function classifyChatError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("openai_api_key") || m.includes("api key") || m.includes("unauthorized")) {
+    return "openai_auth";
+  }
+  if (m.includes("rate limit") || m.includes("429")) return "rate_limit";
+  if (m.includes("billing") || m.includes("insufficient_quota") || m.includes("quota")) {
+    return "billing";
+  }
+  if (m.includes("model") && (m.includes("not found") || m.includes("does not exist"))) {
+    return "bad_model";
+  }
+  if (m.includes("timeout") || m.includes("etimedout") || m.includes("aborted")) {
+    return "timeout";
+  }
+  if (m.includes("network") || m.includes("fetch failed") || m.includes("econnrefused")) {
+    return "network";
+  }
+  return "unknown";
+}
+
 function getFastModel() {
   return (
     process.env.OPENAI_MODEL_BHAKTIGPT_FAST?.trim() ||
@@ -262,23 +288,62 @@ const STORY_ENTITY_SPLIT_PATTERN = /[,\s]+/;
 const DEVANAGARI_SCRIPT_PATTERN = /[\u0900-\u097F]/;
 const LATIN_SCRIPT_PATTERN = /[A-Za-z]/;
 
+// Never use em dashes (or en dashes) anywhere in a reply — a hard style rule across all
+// languages. Appended to every language instruction so it is always in force.
+const NO_EM_DASH_RULE =
+  "Never use em dashes or en dashes (— or –). Use a comma, a period, or the word 'to' for ranges instead.";
+
 function getChatLanguageInstruction(chatLanguage: ChatLanguage) {
   if (chatLanguage === "hi") {
-    return "Respond only in Hindi using Devanagari script. Use simple words, respectful devotional tone, and short clear responses. Avoid heavy Sanskrit.";
+    return `Respond only in Hindi using Devanagari script. Use simple words, respectful devotional tone, and short clear responses. Avoid heavy Sanskrit. ${NO_EM_DASH_RULE}`;
   }
-  if (chatLanguage === "hinglish") {
-    return "Respond only in natural Roman Hindi (Hinglish). Do not use Devanagari script. Keep replies short, conversational, and WhatsApp-style with calm spiritual tone.";
+  if (chatLanguage === "en") {
+    return `Respond only in English with a calm, respectful, spiritual tone. ${NO_EM_DASH_RULE}`;
   }
-  return "Respond only in English with a calm, respectful, spiritual tone.";
+  // Hinglish is our PRIMARY language and the default for every reply.
+  return `Respond only in natural Roman Hindi (Hinglish). Do not use Devanagari script. Keep replies short, conversational, and WhatsApp-style with a calm spiritual tone. ${NO_EM_DASH_RULE}`;
 }
 
+// Romanized-Hindi markers — if any appear, the message is Hinglish (not English).
+const HINGLISH_MARKER_PATTERN =
+  /\b(kya|kyun|kyu|kaise|kaisa|kaisi|hai|hain|ho|hoga|hogi|raha|rahi|rahe|nahi|nahin|mujhe|mera|meri|mere|main|mai|aap|tum|tumhe|humein|hume|kar|karo|karna|karu|karun|kyunki|accha|acha|theek|thik|bhagwan|prabhu|kripya|kripa|shanti|dhanyavaad|namaste|batao|bataye|samajh|zindagi|jeevan|pareshan|dukh|dukhi|khush|paisa|paise|kaam|ghar|dil|maa|behen|bhai|dost|chahiye|milega|milegi|kab|kahan|kaun|hona|hoti|hota|bahut|thoda|acchi|kuch|sab|apna|apni|wale|wala|wali|matlab|sahi|galat|pooja|puja|mandir|aarti|bhakti|ji)\b/i;
+
+/**
+ * Mirrors the language of the user's message. Devanagari → Hindi; a real English sentence
+ * (2+ Latin words, no Hindi markers) → English; everything else (single words, greetings,
+ * romanized Hindi, ambiguous) → Hinglish, our primary language.
+ */
+function detectLanguageFromText(text: string | null | undefined): ChatLanguage {
+  const trimmed = (text ?? "").trim();
+  if (!trimmed) return "hinglish";
+  if (DEVANAGARI_SCRIPT_PATTERN.test(trimmed)) return "hi";
+  if (HINGLISH_MARKER_PATTERN.test(trimmed)) return "hinglish";
+  const latinWords = trimmed
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => /[a-z]/.test(w));
+  if (latinWords.length >= 2) return "en";
+  return "hinglish";
+}
+
+/**
+ * Reply language = the user's language, defaulting to Hinglish. We mirror the message, so
+ * we only reply in English when the user actually writes in English.
+ */
 function resolveChatLanguage(
   preferredValue: string | null | undefined,
-  headerLanguage: string | null | undefined
+  headerLanguage: string | null | undefined,
+  userMessage?: string | null
 ): ChatLanguage {
-  if (isChatLanguage(preferredValue)) return preferredValue;
+  // The client's chatLang is a build default ("en"), NOT a user choice, so it must not
+  // override our Hinglish-first rule. Reply language mirrors the user's message; with no
+  // message yet (opening greeting) we default to Hinglish.
+  void preferredValue;
+  if (userMessage != null && userMessage.trim().length > 0) {
+    return detectLanguageFromText(userMessage);
+  }
   if (headerLanguage === "hi") return "hi";
-  return "en";
+  return "hinglish";
 }
 
 function hasLanguageModeViolation(text: string, chatLanguage: ChatLanguage) {
@@ -2090,7 +2155,7 @@ async function createOpenAiStream(params: {
     },
     {
       role: "system" as const,
-      content: getChatLanguageInstruction(params.locale ?? "en")
+      content: getChatLanguageInstruction(params.locale ?? "hinglish")
     },
     ...(params.userFirstName
       ? [
@@ -2196,7 +2261,7 @@ async function createOpenAiText(params: {
         },
         {
           role: "system" as const,
-          content: getChatLanguageInstruction(params.locale ?? "en")
+          content: getChatLanguageInstruction(params.locale ?? "hinglish")
         },
         ...(params.userFirstName
           ? [
@@ -2648,6 +2713,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const contentLength = request.headers.get("content-length");
+    if (contentLength && parseInt(contentLength, 10) > 64_000) {
+      return badRequest("Request too large.");
+    }
     const body = (await request.json()) as Partial<ChatRequest>;
 
     if (!body?.guideId || !isGuideId(body.guideId)) {
@@ -2665,7 +2734,8 @@ export async function POST(request: Request) {
     const userFirstName = identity.isAuthenticated ? await getLoggedInUserFirstName(identity.userId) : null;
     const requestLocale = resolveChatLanguage(
       typeof body.chatLang === "string" ? body.chatLang : null,
-      request.headers.get("x-lang")
+      request.headers.get("x-lang"),
+      userMessage
     );
 
     const rateKey = identity.userId || identity.anonSessionId || "anonymous";
@@ -3127,8 +3197,17 @@ export async function POST(request: Request) {
           });
 
           console.error("[Bhakti Chat][POST] streaming failed", error);
+          // In non-production, surface the actual server-side error message so
+          // mobile clients can see what's wrong without needing log access.
+          // In production, keep the friendly generic message.
+          const clientMessage =
+            process.env.NODE_ENV !== "production" && message
+              ? `Server error: ${message.slice(0, 280)}`
+              : "Unable to process your message right now. Please try again in a few seconds.";
           streamSseEvent(controller, "error", {
-            message: "Unable to process your message right now. Please try again in a few seconds."
+            message: clientMessage,
+            // Include a stable error code so clients can branch on cause if needed.
+            code: classifyChatError(message)
           });
         } finally {
           controller.close();

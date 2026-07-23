@@ -13,9 +13,9 @@ class FakeChatApi : ChatApi {
         chatLang: String
     ): LoadConversationResult {
         val opener = when (guideId) {
-            "krishna" -> "You close the door. Your mind is not quiet. Krishna smiles softly. Tell me, what is troubling your heart?"
-            "lakshmi" -> "You sit quietly. There is worry in your heart. Lakshmi says: tell me what you need today."
-            "shani" -> "You pause. Your breath feels heavy. Shani asks: where are you stuck?"
+            "krishna" -> "You close the door. Your mind is not quiet. Shri Krishna smiles softly. Tell me, what is troubling your heart?"
+            "lakshmi" -> "You sit quietly. There is worry in your heart. Lakshmi Ji says: tell me what you need today."
+            "shani" -> "You pause. Your breath feels heavy. Shani Dev asks: where are you stuck?"
             else -> "Welcome. Tell me what is on your mind."
         }
         return LoadConversationResult(

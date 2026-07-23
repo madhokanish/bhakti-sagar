@@ -15,7 +15,7 @@ function dayDeltaWindow(days: number) {
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET?.trim();
   const authHeader = request.headers.get("authorization");
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

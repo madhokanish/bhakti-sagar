@@ -17,6 +17,19 @@
   --aarti-line-height: 1.6;
 }
 
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-start: #0a0806;
+  --bg-end: #15100a;
+  --surface: #1a1410;
+  --surface-soft: #221912;
+  --surface-strong: #2b2017;
+  --text-main: #f4ead7;
+  --text-muted: #b09478;
+  --border-soft: rgba(170, 117, 80, 0.32);
+  --ring: rgba(242, 179, 74, 0.5);
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -181,4 +194,19 @@ html[data-reading-mode="on"] .aarti-secondary {
     max-width: 100%;
     padding: 0;
   }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.42s ease both;
 }

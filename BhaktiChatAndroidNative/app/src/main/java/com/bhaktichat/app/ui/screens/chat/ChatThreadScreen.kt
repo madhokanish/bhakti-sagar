@@ -37,6 +37,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
@@ -156,7 +157,8 @@ fun ChatThreadScreen(
     onInputChange: (String) -> Unit,
     onSend: (String) -> Unit,
     onRegenerate: () -> Unit = {},
-    onClearChat: (() -> Unit)? = null
+    onClearChat: (() -> Unit)? = null,
+    onOpenVoiceMode: (guideId: String, conversationId: String?) -> Unit = { _, _ -> }
 ) {
     val guide = uiState.guide
     val listState = rememberLazyListState()
@@ -308,6 +310,18 @@ fun ChatThreadScreen(
                     }
                 },
                 actions = {
+                    if (guide != null) {
+                        IconButton(
+                            onClick = {
+                                onOpenVoiceMode(guide.serverPromptKey, uiState.thread?.remoteConversationId)
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.GraphicEq,
+                                contentDescription = "Start voice conversation"
+                            )
+                        }
+                    }
                     Box {
                         IconButton(onClick = { showThreadMenu = true }) {
                             Icon(

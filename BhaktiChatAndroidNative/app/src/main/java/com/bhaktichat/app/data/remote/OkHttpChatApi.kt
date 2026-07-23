@@ -1,6 +1,7 @@
 package com.bhaktichat.app.data.remote
 
 import com.bhaktichat.app.domain.StreamEvent
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -90,17 +91,38 @@ class OkHttpChatApi(
             if (!request.conversationId.isNullOrBlank()) {
                 put("conversationId", request.conversationId)
             }
+            if (!request.systemPrompt.isNullOrBlank()) {
+                put("systemPrompt", request.systemPrompt)
+            }
+            if (!request.developerPrompt.isNullOrBlank()) {
+                put("developerPrompt", request.developerPrompt)
+            }
+            if (!request.languageInstruction.isNullOrBlank()) {
+                put("languageInstruction", request.languageInstruction)
+            }
+            if (!request.guidePersonaPrompt.isNullOrBlank()) {
+                put("guidePersonaPrompt", request.guidePersonaPrompt)
+            }
+            if (!request.modeInstruction.isNullOrBlank()) {
+                put("modeInstruction", request.modeInstruction)
+            }
             if (!request.systemPromptStack.isNullOrBlank()) {
                 put("systemPromptStack", request.systemPromptStack)
-            }
-            if (!request.clientMode.isNullOrBlank()) {
-                put("clientMode", request.clientMode)
             }
             if (!request.stateAnchor.isNullOrBlank()) {
                 put("stateAnchor", request.stateAnchor)
             }
             if (!request.earlierSummary.isNullOrBlank()) {
                 put("earlierSummary", request.earlierSummary)
+            }
+            if (!request.firstName.isNullOrBlank()) {
+                put("firstName", request.firstName)
+            }
+            if (!request.secondaryGuard.isNullOrBlank()) {
+                put("secondaryGuard", request.secondaryGuard)
+            }
+            if (!request.optionalRewriteDirective.isNullOrBlank()) {
+                put("optionalRewriteDirective", request.optionalRewriteDirective)
             }
         }.toString()
         val req = Request.Builder()
@@ -136,6 +158,10 @@ class OkHttpChatApi(
                         send(StreamEvent.Done)
                     }
                 }
+            } catch (cancellation: CancellationException) {
+                // Cooperative cancellation (e.g. screen closed mid-stream) must propagate,
+                // not be reported as a network error into an already-closing flow.
+                throw cancellation
             } catch (throwable: Throwable) {
                 send(StreamEvent.Error(throwable.message ?: "Network error"))
             }
@@ -217,7 +243,7 @@ class OkHttpChatApi(
         }
 
         if (payload.optBoolean("limitReached")) {
-            emit(StreamEvent.Error("Free message limit reached. Please continue on bhaktichat.com."))
+            emit(StreamEvent.LimitReached)
             return true
         }
 

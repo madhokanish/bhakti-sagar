@@ -245,6 +245,54 @@ export function isRateLimited(key: string, limit = 20, windowMs = 60_000) {
   return false;
 }
 
+// Voice sessions (OpenAI Realtime API) cost materially more per minute than text chat's
+// LLM-completion-only cost, so they get their own cap independent of the message-count
+// limiter above. In-memory only (same limitation as isRateLimited — per-instance, resets
+// on redeploy) — acceptable for a v1 rollout gated to a small percentage of users; revisit
+// with a persisted (Prisma) counter before a wide rollout if this needs to survive restarts.
+const globalVoiceUsage = globalThis as unknown as {
+  bhaktiVoiceMinutesMap?: Map<string, { day: string; minutesUsed: number }>;
+};
+
+function getVoiceUsageMap() {
+  if (!globalVoiceUsage.bhaktiVoiceMinutesMap) {
+    globalVoiceUsage.bhaktiVoiceMinutesMap = new Map();
+  }
+  return globalVoiceUsage.bhaktiVoiceMinutesMap;
+}
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD, UTC day boundary
+}
+
+/** True if `key` has already used up its daily voice-minutes cap (env `VOICE_DAILY_MINUTES_CAP`). */
+export function isVoiceDailyCapReached(key: string): boolean {
+  const capRaw = process.env.VOICE_DAILY_MINUTES_CAP?.trim();
+  const cap = capRaw ? Number(capRaw) : 20;
+  if (!Number.isFinite(cap) || cap <= 0) return false;
+
+  const map = getVoiceUsageMap();
+  const entry = map.get(key);
+  const today = todayKey();
+  if (!entry || entry.day !== today) return false;
+
+  return entry.minutesUsed >= cap;
+}
+
+/** Records `minutes` of voice usage against `key` for today, resetting the counter on a new day. */
+export function recordVoiceMinutesUsed(key: string, minutes: number) {
+  const map = getVoiceUsageMap();
+  const today = todayKey();
+  const entry = map.get(key);
+
+  if (!entry || entry.day !== today) {
+    map.set(key, { day: today, minutesUsed: Math.max(0, minutes) });
+    return;
+  }
+
+  entry.minutesUsed += Math.max(0, minutes);
+}
+
 const CRISIS_PATTERNS = [
   /\b(kill myself|suicide|end my life|want to die|self harm|hurt myself)\b/i,
   /\b(kill someone|hurt someone|violence)\b/i,

@@ -216,3 +216,8 @@ export function isGuideId(value: string): value is BhaktiGuideId {
 export function getGuide(guideId: BhaktiGuideId) {
   return BHAKTI_GUIDES[guideId];
 }
+
+// Deliberately not imported here: src/lib/bhaktigpt/voicePersonas.ts (per-guide Realtime
+// API voice instructions/preset) depends on BhaktiGuideId from this file. Importing it
+// back here would create a circular dependency for no benefit — callers that need a
+// guide's voice persona should import getVoicePersona directly from voicePersonas.ts.

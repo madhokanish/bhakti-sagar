@@ -2,9 +2,14 @@ package com.bhaktichat.app.domain
 
 enum class ChatRole(val wire: String) {
     USER("user"),
-    ASSISTANT("assistant");
+    ASSISTANT("assistant"),
+    SYSTEM("system");
 
     companion object {
-        fun fromWire(wire: String): ChatRole = if (wire == USER.wire) USER else ASSISTANT
+        fun fromWire(wire: String): ChatRole = when (wire) {
+            USER.wire -> USER
+            SYSTEM.wire -> SYSTEM
+            else -> ASSISTANT
+        }
     }
 }

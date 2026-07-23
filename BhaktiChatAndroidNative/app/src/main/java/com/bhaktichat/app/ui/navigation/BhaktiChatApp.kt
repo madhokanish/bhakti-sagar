@@ -39,6 +39,10 @@ import com.bhaktichat.app.ui.screens.chat.ChatThreadViewModel
 import com.bhaktichat.app.ui.screens.chat.ChatThreadViewModelFactory
 import com.bhaktichat.app.ui.screens.chat.ChatConversationState
 import com.bhaktichat.app.ui.screens.chat.ChatTurnProcessor
+import com.bhaktichat.app.ui.screens.voice.VoiceConversationViewModel
+import com.bhaktichat.app.ui.screens.voice.VoiceConversationViewModelFactory
+import com.bhaktichat.app.ui.screens.voice.VoiceModeScreen
+import com.bhaktichat.app.util.VoiceAudioFocusManager
 import com.bhaktichat.app.ui.screens.choghadiya.ChoghadiyaRoute
 import com.bhaktichat.app.ui.screens.choghadiya.ChoghadiyaViewModel
 import com.bhaktichat.app.ui.screens.choghadiya.ChoghadiyaViewModelFactory
@@ -55,6 +59,8 @@ import com.bhaktichat.app.ui.screens.divineimage.DivineImageScreen
 import com.bhaktichat.app.ui.screens.explore.ExploreScreen
 import com.bhaktichat.app.ui.screens.explore.FestivalsScreen
 import com.bhaktichat.app.ui.screens.explore.PanchangScreen
+import com.bhaktichat.app.ui.screens.explore.WallpaperDetailScreen
+import com.bhaktichat.app.ui.screens.explore.WallpapersScreen
 import com.bhaktichat.app.ui.screens.guidepicker.GuidePickerScreen
 import com.bhaktichat.app.ui.screens.history.HistoryRoute
 import com.bhaktichat.app.ui.screens.history.HistoryViewModelFactory
@@ -369,8 +375,44 @@ fun BhaktiChatApp() {
                     },
                     onInputChange = vm::onInputChanged,
                     onSend = vm::sendMessage,
-                    onRegenerate = vm::regenerateLastReply
+                    onRegenerate = vm::regenerateLastReply,
+                    onOpenVoiceMode = { guideId, conversationId ->
+                        navController.navigate(NavDestinations.voiceModeRoute(guideId, conversationId))
+                    }
                 )
+            }
+
+            composable(
+                route = NavDestinations.VOICE_MODE,
+                arguments = listOf(
+                    navArgument(NavDestinations.VOICE_MODE_GUIDE_ARG) { type = NavType.StringType },
+                    navArgument(NavDestinations.VOICE_MODE_CONVERSATION_ARG) {
+                        type = NavType.StringType
+                        nullable = true
+                    }
+                )
+            ) { entry ->
+                val guideId = entry.arguments?.getString(NavDestinations.VOICE_MODE_GUIDE_ARG).orEmpty()
+                val conversationId = entry.arguments?.getString(NavDestinations.VOICE_MODE_CONVERSATION_ARG)
+                val guide = appContainer.guidesRepository.getGuide(guideId)
+                if (guide == null) {
+                    LaunchedEffect(Unit) { navController.popBackStack() }
+                } else {
+                    val vm: VoiceConversationViewModel = viewModel(
+                        key = "voice_$guideId",
+                        factory = VoiceConversationViewModelFactory(
+                            guide = guide,
+                            conversationId = conversationId,
+                            voiceSessionApi = appContainer.voiceSessionApi,
+                            voiceWebSocketClient = appContainer.voiceWebSocketClient,
+                            audioFocusManager = VoiceAudioFocusManager(LocalContext.current)
+                        )
+                    )
+                    VoiceModeScreen(
+                        viewModel = vm,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
             }
 
             composable(NavDestinations.DIVINE_IMAGE_HOME) {
@@ -411,7 +453,8 @@ fun BhaktiChatApp() {
                         navController.navigate(NavDestinations.CHOGHADIYA)
                     },
                     onOpenFestivals = { navController.navigate(NavDestinations.FESTIVALS) },
-                    onOpenPanchang = { navController.navigate(NavDestinations.PANCHANG) }
+                    onOpenPanchang = { navController.navigate(NavDestinations.PANCHANG) },
+                    onOpenWallpapers = { navController.navigate(NavDestinations.WALLPAPERS) }
                 )
             }
 
@@ -421,6 +464,26 @@ fun BhaktiChatApp() {
 
             composable(NavDestinations.PANCHANG) {
                 PanchangScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(NavDestinations.WALLPAPERS) {
+                WallpapersScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenWallpaper = { wallpaperId ->
+                        navController.navigate(NavDestinations.wallpaperDetailRoute(wallpaperId))
+                    }
+                )
+            }
+
+            composable(
+                route = NavDestinations.WALLPAPER_DETAIL,
+                arguments = listOf(navArgument("wallpaperId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val wallpaperId = backStackEntry.arguments?.getString("wallpaperId").orEmpty()
+                WallpaperDetailScreen(
+                    wallpaperId = wallpaperId,
+                    onBack = { navController.popBackStack() }
+                )
             }
 
             composable(
@@ -695,6 +758,7 @@ private fun shouldShowBottomBar(route: String, imeVisible: Boolean): Boolean {
         route == NavDestinations.CHOGHADIYA ||
         route == NavDestinations.FESTIVALS ||
         route == NavDestinations.PANCHANG ||
+        route == NavDestinations.WALLPAPERS ||
         route == NavDestinations.DIVINE_IMAGE_HOME ||
         route == NavDestinations.HISTORY
 }

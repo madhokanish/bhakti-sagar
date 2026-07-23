@@ -11,6 +11,8 @@ import { getGuideConfig } from "@/lib/bhaktigpt/guideConfig";
 import { chatOpeners } from "@/lib/chatOpeners";
 import { HOME_LANG_COOKIE } from "@/lib/homeCopy";
 import { setBhaktiLangPreference } from "@/lib/useBhaktiLang";
+import { useSpeechRecognition } from "@/lib/useSpeechRecognition";
+import { useBookmarks } from "@/lib/bookmarks";
 import {
   chatLanguageOptions,
   chatUILabels,
@@ -105,6 +107,31 @@ function formatMessageTime(value?: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function formatDateSeparator(isoString?: string): string {
+  if (!isoString) return "";
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return "";
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  if (msgDay.getTime() === today.getTime()) return "Today";
+  if (msgDay.getTime() === yesterday.getTime()) return "Yesterday";
+  return date.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function isSameDay(a?: string, b?: string): boolean {
+  if (!a || !b) return false;
+  const da = new Date(a);
+  const db = new Date(b);
+  return (
+    da.getFullYear() === db.getFullYear() &&
+    da.getMonth() === db.getMonth() &&
+    da.getDate() === db.getDate()
+  );
 }
 
 function formatConversationStartedAt(value?: string) {
@@ -478,6 +505,17 @@ function GuidePicker({
   );
 }
 
+function DateSeparator({ label }: { label: string }) {
+  if (!label) return null;
+  return (
+    <div className="flex items-center gap-3 py-1">
+      <div className="h-px flex-1 bg-[color:var(--border)]" />
+      <span className="text-[11px] font-semibold text-[color:var(--text-muted)]">{label}</span>
+      <div className="h-px flex-1 bg-[color:var(--border)]" />
+    </div>
+  );
+}
+
 export default function BhaktiGptChatClient() {
   const t = useTranslations();
   const router = useRouter();
@@ -532,12 +570,24 @@ export default function BhaktiGptChatClient() {
   const [inputValue, setInputValue] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showSignInPrompt, setShowSignInPrompt] = useState(false);
   const [isGuideSwitching, setIsGuideSwitching] = useState(false);
   const [showScrollToLatest, setShowScrollToLatest] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [voiceBaseInput, setVoiceBaseInput] = useState<string>("");
+  const {
+    isSupported: isVoiceSupported,
+    isRecording: isVoiceRecording,
+    start: startVoiceInput,
+    stop: stopVoiceInput
+  } = useSpeechRecognition((text) => {
+    setInputValue(`${voiceBaseInput}${voiceBaseInput && !voiceBaseInput.endsWith(" ") ? " " : ""}${text}`);
+  });
+  const { hasMessage: isMessageBookmarked, toggleMessage: toggleMessageBookmark } = useBookmarks();
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const headerShellRef = useRef<HTMLDivElement | null>(null);
@@ -924,6 +974,35 @@ export default function BhaktiGptChatClient() {
     return () => container.removeEventListener("scroll", onScroll);
   }, [isNearBottom]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "/") return;
+      const target = event.target as HTMLElement;
+      const tag = target.tagName.toLowerCase();
+      if (tag === "input" || tag === "textarea" || target.isContentEditable) return;
+      event.preventDefault();
+      composerRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (!showMobileSidebar && !showAboutModal && !showSignInPrompt) return;
+    const handler = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (showSignInPrompt) {
+        setShowSignInPrompt(false);
+      } else if (showAboutModal) {
+        setShowAboutModal(false);
+      } else if (showMobileSidebar) {
+        setShowMobileSidebar(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [showMobileSidebar, showAboutModal, showSignInPrompt]);
+
   const openConversation = useCallback(
     async (id: string) => {
       if (!selectedGuideId) return;
@@ -996,10 +1075,13 @@ export default function BhaktiGptChatClient() {
       focusComposer();
 
       let streamedText = "";
+      const streamAbort = new AbortController();
+      const streamTimeout = setTimeout(() => streamAbort.abort(), 30_000);
 
       try {
         const response = await fetch("/api/bhaktigpt/chat", {
           method: "POST",
+          signal: streamAbort.signal,
           headers: {
             "Content-Type": "application/json",
             Accept: "text/event-stream"
@@ -1086,8 +1168,12 @@ export default function BhaktiGptChatClient() {
 
         trackEvent("sent_message", { guideId: selectedGuideId });
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : t("chat_error_process");
+        const isTimeout = error instanceof Error && error.name === "AbortError";
+        const errorMessage = isTimeout
+          ? t("chat_error_timeout")
+          : error instanceof Error
+          ? error.message
+          : t("chat_error_process");
         setComposerError(errorMessage);
         setLastFailedMessage(value);
         setMessages((prev) =>
@@ -1098,6 +1184,7 @@ export default function BhaktiGptChatClient() {
           )
         );
       } finally {
+        clearTimeout(streamTimeout);
         setIsStreaming(false);
         focusComposer();
       }
@@ -1115,6 +1202,41 @@ export default function BhaktiGptChatClient() {
     ]
   );
 
+  const regenerateLastResponse = useCallback(() => {
+    if (isStreaming) return;
+    const lastAssistantIndex = (() => {
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].role === "assistant") return i;
+      }
+      return -1;
+    })();
+    if (lastAssistantIndex < 0) return;
+    let lastUserContent: string | null = null;
+    for (let i = lastAssistantIndex - 1; i >= 0; i--) {
+      if (messages[i].role === "user") {
+        lastUserContent = messages[i].content;
+        break;
+      }
+    }
+    if (!lastUserContent) return;
+    // Drop the last assistant reply and its triggering user message so
+    // sendMessage() can re-append a fresh pair and re-stream the answer.
+    setMessages((prev) => {
+      const copy = [...prev];
+      // Remove last assistant
+      copy.splice(lastAssistantIndex, 1);
+      // Find last user (now at lastAssistantIndex - 1 in the original; same idx in copy)
+      for (let i = copy.length - 1; i >= 0; i--) {
+        if (copy[i].role === "user") {
+          copy.splice(i, 1);
+          break;
+        }
+      }
+      return copy;
+    });
+    void sendMessage(lastUserContent);
+  }, [isStreaming, messages, sendMessage]);
+
   if (!selectedGuideId || !selectedGuide) {
     return (
       <GuidePicker
@@ -1129,6 +1251,8 @@ export default function BhaktiGptChatClient() {
       />
     );
   }
+
+  const shouldPulse = showScrollToLatest && isStreaming;
 
   return (
     <div
@@ -1181,7 +1305,13 @@ export default function BhaktiGptChatClient() {
           <div className="mt-4 border-t border-[color:var(--border)] pt-3">
             <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-muted)]">{t("chat_recent")}</p>
             <div className="mt-2 space-y-1">
-              {conversations.length === 0 ? (
+              {loadState === "loading" ? (
+                <>
+                  <div className="h-8 animate-pulse rounded-[12px] bg-[color:var(--surface-2)]" />
+                  <div className="h-8 animate-pulse rounded-[12px] bg-[color:var(--surface-2)] opacity-70" />
+                  <div className="h-8 animate-pulse rounded-[12px] bg-[color:var(--surface-2)] opacity-40" />
+                </>
+              ) : conversations.length === 0 ? (
                 <p className="px-2 text-xs text-[color:var(--text-muted)]">{t("chat_no_threads")}</p>
               ) : (
                 conversations.slice(0, 10).map((conversation) => (
@@ -1209,7 +1339,7 @@ export default function BhaktiGptChatClient() {
             className="absolute inset-x-0 top-0 z-20 border-b border-[color:var(--border)] bg-[color:var(--surface)]/95 px-3 pb-2 pt-[calc(env(safe-area-inset-top)+8px)] shadow-[0_8px_28px_-26px_rgba(0,0,0,0.65)] backdrop-blur sm:px-5"
           >
             <div className="grid grid-cols-[auto,1fr,auto] items-center gap-3">
-              <div className="flex items-center">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handleBack}
@@ -1220,6 +1350,16 @@ export default function BhaktiGptChatClient() {
                     <path d="M12.5 4.5 7 10l5.5 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <span className="hidden text-xs font-semibold sm:inline">{t("chat_back")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowMobileSidebar(true)}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] shadow-[0_10px_20px_-20px_rgba(44,26,18,0.9)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)] md:hidden"
+                  aria-label={t("chat_open_menu")}
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true" fill="none">
+                    <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
                 </button>
               </div>
 
@@ -1259,7 +1399,7 @@ export default function BhaktiGptChatClient() {
                 <button
                   type="button"
                   onClick={() => setShowAboutModal(true)}
-                  className="hidden h-11 w-11 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] shadow-[0_10px_20px_-20px_rgba(44,26,18,0.9)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)] sm:inline-flex"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] shadow-[0_10px_20px_-20px_rgba(44,26,18,0.9)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)]"
                   aria-label={t("chat_about")}
                 >
                   <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden="true" fill="none">
@@ -1296,6 +1436,8 @@ export default function BhaktiGptChatClient() {
 
           <div
             ref={messagesRef}
+            aria-live="polite"
+            aria-label="Chat messages"
             className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden bg-[color:var(--bg)] px-3 py-3 text-[16px] leading-[1.6] [overflow-wrap:anywhere] [word-break:break-word] [overscroll-behavior-y:contain] sm:px-5 sm:py-4 md:text-[15px] lg:text-[16px]"
             style={{
               paddingTop: `${headerHeight + (isGuideSwitching ? 34 : 10)}px`,
@@ -1356,47 +1498,139 @@ export default function BhaktiGptChatClient() {
             ) : null}
 
             {loadState === "ready"
-              ? messages.map((message) => {
+              ? messages.map((message, index) => {
                   const isAssistantTyping =
                     message.role === "assistant" && isStreaming && message.content.trim().length === 0;
 
+                  const showSeparator = index === 0 || !isSameDay(messages[index - 1]?.createdAt, message.createdAt);
+                  const separatorLabel = showSeparator ? formatDateSeparator(message.createdAt) : "";
+
                   if (message.role === "assistant") {
                     return (
-                      <div key={message.id} className="flex w-full max-w-[92%] min-w-0 items-start gap-3 md:max-w-[720px] md:gap-4">
-                        <GuideAvatar guideId={selectedGuideId} size="sm" className="mt-0.5 shrink-0 md:h-10 md:w-10" />
-                        <div className="w-full">
-                          <article className="w-full min-w-0 rounded-[18px] border border-[color:var(--border)] bg-[color:var(--assistant-bubble)] px-3.5 py-2.5 text-[15px] leading-[1.6] text-[color:var(--text)] shadow-[var(--shadow)] sm:px-4 sm:py-3 sm:text-[16px]">
-                            {isAssistantTyping ? (
-                              <span className="inline-flex items-center gap-1 text-[color:var(--text-muted)]">
-                                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[color:var(--text-muted)] [animation-delay:-0.2s]" />
-                                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[color:var(--text-muted)] [animation-delay:-0.1s]" />
-                                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[color:var(--text-muted)]" />
-                              </span>
-                            ) : (
-                              renderMessageContent(message.content, { autoParagraph: true })
-                            )}
-                          </article>
-                          {formatMessageTime(message.createdAt) ? (
-                            <p className="mt-1 px-1 text-[10px] text-[color:var(--text-muted)]">
-                              {formatMessageTime(message.createdAt)}
-                            </p>
+                      <Fragment key={message.id}>
+                        {showSeparator && separatorLabel ? <DateSeparator key={`sep-${message.id}`} label={separatorLabel} /> : null}
+                        <div className="group relative flex w-full max-w-[92%] min-w-0 items-start gap-3 md:max-w-[720px] md:gap-4">
+                          <GuideAvatar guideId={selectedGuideId} size="sm" className="mt-0.5 shrink-0 md:h-10 md:w-10" />
+                          <div className="w-full">
+                            <article className="w-full min-w-0 rounded-[18px] border border-[color:var(--border)] bg-[color:var(--assistant-bubble)] px-3.5 py-2.5 text-[15px] leading-[1.6] text-[color:var(--text)] shadow-[var(--shadow)] sm:px-4 sm:py-3 sm:text-[16px]">
+                              {isAssistantTyping ? (
+                                <span className="inline-flex items-center gap-1 text-[color:var(--text-muted)]" aria-label="Typing…" role="status">
+                                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[color:var(--text-muted)] motion-reduce:animate-none [animation-delay:-0.2s]" />
+                                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[color:var(--text-muted)] motion-reduce:animate-none [animation-delay:-0.1s]" />
+                                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[color:var(--text-muted)] motion-reduce:animate-none" />
+                                </span>
+                              ) : (
+                                renderMessageContent(message.content, { autoParagraph: true })
+                              )}
+                            </article>
+                            {formatMessageTime(message.createdAt) ? (
+                              <p className="mt-1 px-1 text-[10px] text-[color:var(--text-muted)]">
+                                {formatMessageTime(message.createdAt)}
+                              </p>
+                            ) : null}
+                          </div>
+                          <div className="absolute right-0 top-0.5 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                            <button
+                              type="button"
+                              onClick={() => toggleMessageBookmark(message.id)}
+                              aria-label={isMessageBookmarked(message.id) ? "Remove bookmark" : "Bookmark message"}
+                              className="inline-flex items-center justify-center h-7 w-7 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text-muted)] hover:text-[color:var(--text)] hover:bg-[color:var(--surface-2)] shadow-[var(--shadow)]"
+                            >
+                              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill={isMessageBookmarked(message.id) ? "currentColor" : "none"} aria-hidden="true">
+                                <path d="M5 3h10v14l-5-3-5 3V3z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void navigator.clipboard.writeText(message.content).then(() => {
+                                  setCopiedMessageId(message.id);
+                                  setTimeout(() => setCopiedMessageId((prev) => (prev === message.id ? null : prev)), 1800);
+                                });
+                              }}
+                              className="inline-flex items-center justify-center h-7 w-7 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text-muted)] hover:text-[color:var(--text)] hover:bg-[color:var(--surface-2)] shadow-[var(--shadow)]"
+                              aria-label="Copy message"
+                            >
+                              {copiedMessageId === message.id ? (
+                                <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+                                  <path d="M5 10l4 4 6-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              ) : (
+                                <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+                                  <rect x="7" y="7" width="9" height="10" rx="2" stroke="currentColor" strokeWidth="1.4" />
+                                  <path d="M13 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
+                          {message.role === "assistant" && index === messages.length - 1 && !isStreaming && message.content.trim().length > 0 ? (
+                            <button
+                              type="button"
+                              onClick={regenerateLastResponse}
+                              disabled={isStreaming}
+                              aria-label="Regenerate response"
+                              className="absolute -bottom-7 left-12 inline-flex items-center gap-1 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-2.5 py-1 text-[11px] font-medium text-[color:var(--text-muted)] shadow-[var(--shadow)] transition-colors duration-150 hover:text-[color:var(--text)] hover:bg-[color:var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <svg viewBox="0 0 20 20" className="h-3 w-3" fill="none" aria-hidden="true">
+                                <path d="M4 10a6 6 0 0 1 10.5-4M16 10a6 6 0 0 1-10.5 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                                <path d="M15 3v3.5h-3.5M5 17v-3.5h3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                              Regenerate
+                            </button>
                           ) : null}
                         </div>
-                      </div>
+                      </Fragment>
                     );
                   }
 
                   return (
-                    <div key={message.id} className="ml-auto w-full max-w-[92%] min-w-0 md:max-w-[720px]">
-                      <article className="rounded-[18px] border border-transparent bg-[color:var(--user-bubble)] px-3.5 py-2.5 text-[15px] leading-[1.6] text-[color:var(--accent-contrast)] shadow-[var(--shadow)] sm:px-4 sm:py-3 sm:text-[16px]">
-                        {renderMessageContent(message.content)}
-                      </article>
-                      {formatMessageTime(message.createdAt) ? (
-                        <p className="mt-1 px-1 text-right text-[10px] text-[color:var(--text-muted)]">
-                          {formatMessageTime(message.createdAt)}
-                        </p>
-                      ) : null}
-                    </div>
+                    <Fragment key={message.id}>
+                      {showSeparator && separatorLabel ? <DateSeparator key={`sep-${message.id}`} label={separatorLabel} /> : null}
+                      <div className="group relative ml-auto w-full max-w-[92%] min-w-0 md:max-w-[720px]">
+                        <article className="rounded-[18px] border border-transparent bg-[color:var(--user-bubble)] px-3.5 py-2.5 text-[15px] leading-[1.6] text-[color:var(--accent-contrast)] shadow-[var(--shadow)] sm:px-4 sm:py-3 sm:text-[16px]">
+                          {renderMessageContent(message.content)}
+                        </article>
+                        {formatMessageTime(message.createdAt) ? (
+                          <p className="mt-1 px-1 text-right text-[10px] text-[color:var(--text-muted)]">
+                            {formatMessageTime(message.createdAt)}
+                          </p>
+                        ) : null}
+                        <div className="absolute left-0 top-0.5 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void navigator.clipboard.writeText(message.content).then(() => {
+                                setCopiedMessageId(message.id);
+                                setTimeout(() => setCopiedMessageId((prev) => (prev === message.id ? null : prev)), 1800);
+                              });
+                            }}
+                            className="inline-flex items-center justify-center h-7 w-7 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text-muted)] hover:text-[color:var(--text)] hover:bg-[color:var(--surface-2)] shadow-[var(--shadow)]"
+                            aria-label="Copy message"
+                          >
+                            {copiedMessageId === message.id ? (
+                              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+                                <path d="M5 10l4 4 6-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            ) : (
+                              <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+                                <rect x="7" y="7" width="9" height="10" rx="2" stroke="currentColor" strokeWidth="1.4" />
+                                <path d="M13 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                              </svg>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleMessageBookmark(message.id)}
+                            aria-label={isMessageBookmarked(message.id) ? "Remove bookmark" : "Bookmark message"}
+                            className="inline-flex items-center justify-center h-7 w-7 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text-muted)] hover:text-[color:var(--text)] hover:bg-[color:var(--surface-2)] shadow-[var(--shadow)]"
+                          >
+                            <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill={isMessageBookmarked(message.id) ? "currentColor" : "none"} aria-hidden="true">
+                              <path d="M5 3h10v14l-5-3-5 3V3z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </Fragment>
                   );
                 })
               : null}
@@ -1406,7 +1640,7 @@ export default function BhaktiGptChatClient() {
             <button
               type="button"
               onClick={() => scrollMessagesToBottom(prefersReducedMotion ? "auto" : "smooth", true)}
-              className="absolute right-4 z-30 inline-flex min-h-11 items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 text-[11px] font-semibold text-[color:var(--text)] shadow-[var(--shadow)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)]"
+              className={`absolute right-4 z-30 inline-flex min-h-11 items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 text-[11px] font-semibold text-[color:var(--text)] shadow-[var(--shadow)] transition-colors duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface-2)] ${shouldPulse ? "animate-bounce" : ""}`}
               style={{ bottom: `${composerHeight + 18}px` }}
               aria-label={t("chat_scroll_latest")}
             >
@@ -1447,6 +1681,33 @@ export default function BhaktiGptChatClient() {
                 className="min-h-11 w-full resize-none rounded-[14px] border border-[color:var(--border)] bg-[color:var(--surface-2)] px-3 py-2.5 text-[16px] leading-6 text-[color:var(--text)] outline-none transition-colors duration-200 motion-reduce:transition-none placeholder:text-[color:var(--text-muted)] focus:border-[color:var(--text)] focus-visible:ring-2 focus-visible:ring-[color:var(--text)]/15"
                 aria-label={uiLabels.placeholder}
               />
+              {isVoiceSupported ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isVoiceRecording) {
+                      stopVoiceInput();
+                    } else {
+                      setVoiceBaseInput(inputValue);
+                      startVoiceInput();
+                    }
+                  }}
+                  disabled={isStreaming}
+                  aria-pressed={isVoiceRecording}
+                  aria-label={isVoiceRecording ? "Stop voice input" : "Start voice input"}
+                  title={isVoiceRecording ? "Stop voice input" : "Start voice input"}
+                  className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-[color:var(--border)] bg-[color:var(--surface-2)] text-[color:var(--text)] transition-all duration-200 motion-reduce:transition-none hover:bg-[color:var(--surface)] disabled:cursor-not-allowed disabled:opacity-50 ${
+                    isVoiceRecording
+                      ? "ring-2 ring-rose-500/70 animate-pulse"
+                      : ""
+                  }`}
+                >
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true" fill="none">
+                    <rect x="9" y="3" width="6" height="12" rx="3" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  </svg>
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => void sendMessage()}
@@ -1478,12 +1739,120 @@ export default function BhaktiGptChatClient() {
         </div>
       </section>
 
+      {showMobileSidebar ? (
+        <div className="fixed inset-0 z-[94] md:hidden">
+          <button
+            type="button"
+            aria-label={t("common_close")}
+            onClick={() => setShowMobileSidebar(false)}
+            className="absolute inset-0 bg-black/40"
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bhaktigpt-mobile-sidebar-title"
+            className="absolute bottom-0 left-0 top-0 w-[min(18rem,calc(100vw-3rem))] overflow-y-auto border-r border-[color:var(--border)] bg-[linear-gradient(180deg,var(--surface-2),rgba(255,246,231,0.97))] p-3 shadow-[4px_0_24px_-8px_rgba(0,0,0,0.2)]"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h2
+                id="bhaktigpt-mobile-sidebar-title"
+                className="px-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]"
+              >
+                {t("brand_name")}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowMobileSidebar(false)}
+                className="rounded-full px-3 py-1 text-xs font-semibold text-[color:var(--text-muted)] transition-colors hover:bg-[color:var(--surface-2)]"
+              >
+                {t("common_close")}
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => { startNewChat(); setShowMobileSidebar(false); }}
+              className="w-full min-h-11 rounded-[12px] bg-[color:var(--accent)] px-3 py-2 text-sm font-semibold text-[color:var(--accent-contrast)] transition-opacity duration-200 motion-reduce:transition-none hover:opacity-90 active:opacity-80"
+            >
+              {uiLabels.newChat}
+            </button>
+            <div className="mt-4 space-y-2">
+              {BHAKTI_GUIDE_LIST.map((guide) => {
+                const active = guide.id === selectedGuideId;
+                return (
+                  <button
+                    key={guide.id}
+                    type="button"
+                    onClick={() => {
+                      if (guide.id !== selectedGuideId) {
+                        trackEvent("selected_guide", { guideId: guide.id, source: "mobile_sidebar" });
+                        updateGuideQuery(guide.id);
+                      }
+                      setShowMobileSidebar(false);
+                    }}
+                    className={`w-full rounded-[12px] border px-2.5 py-2 text-left transition-colors duration-200 motion-reduce:transition-none ${
+                      active
+                        ? "border-[color:var(--text-muted)] bg-[color:var(--surface)] shadow-[var(--shadow)]"
+                        : "border-[color:var(--border)] bg-[color:var(--surface)] hover:border-[color:var(--text-muted)] hover:bg-[color:var(--surface-2)]"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <GuideAvatar guideId={guide.id} size="sm" className="rounded-lg" />
+                      <span>
+                        <span className="block text-sm font-semibold text-[color:var(--text)]">{localizedGuideContent[guide.id].name}</span>
+                        <span className="block text-xs text-[color:var(--text-muted)]">{localizedGuideContent[guide.id].subtitle}</span>
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-4 border-t border-[color:var(--border)] pt-3">
+              <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-muted)]">{t("chat_recent")}</p>
+              <div className="mt-2 space-y-1">
+                {loadState === "loading" ? (
+                  <>
+                    <div className="h-8 animate-pulse rounded-[12px] bg-[color:var(--surface-2)]" />
+                    <div className="h-8 animate-pulse rounded-[12px] bg-[color:var(--surface-2)] opacity-70" />
+                    <div className="h-8 animate-pulse rounded-[12px] bg-[color:var(--surface-2)] opacity-40" />
+                  </>
+                ) : conversations.length === 0 ? (
+                  <p className="px-2 text-xs text-[color:var(--text-muted)]">{t("chat_no_threads")}</p>
+                ) : (
+                  conversations.slice(0, 10).map((conversation) => (
+                    <button
+                      key={conversation.id}
+                      type="button"
+                      onClick={() => { void openConversation(conversation.id); setShowMobileSidebar(false); }}
+                      className={`w-full rounded-[12px] border px-2 py-1.5 text-left text-xs transition-colors duration-200 motion-reduce:transition-none ${
+                        conversation.id === conversationId
+                          ? "border-[color:var(--text-muted)] bg-[color:var(--surface)] shadow-[0_8px_20px_-20px_rgba(44,26,18,0.9)]"
+                          : "border-[color:var(--border)] bg-[color:var(--surface)] hover:border-[color:var(--text-muted)]"
+                      }`}
+                    >
+                      {getConversationLabelLocalized(conversation, uiLabels.newChat)}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {showAboutModal ? (
         <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-[14px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-[var(--shadow)]">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bhaktigpt-about-title"
+            className="w-full max-w-lg rounded-[14px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-[var(--shadow)]"
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-sans text-lg font-semibold text-[color:var(--text)]">
+                <h2
+                  id="bhaktigpt-about-title"
+                  className="font-sans text-lg font-semibold text-[color:var(--text)]"
+                >
                   {t("chat_about_title", { name: selectedGuideLocalized?.name ?? selectedGuideConfig?.displayName ?? selectedGuide.name })}
                 </h2>
                 <p className="mt-1 whitespace-pre-line text-sm text-[color:var(--text-muted)]">
@@ -1527,8 +1896,18 @@ export default function BhaktiGptChatClient() {
 
       {showSignInPrompt ? (
         <div className="fixed inset-0 z-[96] flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-[14px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-[var(--shadow)]">
-            <h2 className="font-sans text-xl font-semibold text-[color:var(--text)]">{t("auth_continue_darshan")}</h2>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bhaktigpt-signin-title"
+            className="w-full max-w-md rounded-[14px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-[var(--shadow)]"
+          >
+            <h2
+              id="bhaktigpt-signin-title"
+              className="font-sans text-xl font-semibold text-[color:var(--text)]"
+            >
+              {t("auth_continue_darshan")}
+            </h2>
             <p className="mt-2 text-sm text-[color:var(--text-muted)]">
               {t("auth_free_limit")}
             </p>

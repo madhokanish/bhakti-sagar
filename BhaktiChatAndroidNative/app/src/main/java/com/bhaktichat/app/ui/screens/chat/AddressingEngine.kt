@@ -33,7 +33,8 @@ object AddressingEngine {
         isAuthenticated: Boolean,
         firstName: String,
         userMessage: String,
-        previousAssistantMessage: MessageEntity?
+        previousAssistantMessage: MessageEntity?,
+        recentUserMessages: List<String> = emptyList()
     ): MessageContext {
         val normalized = userMessage.trim().lowercase(Locale.getDefault())
         val token = resolveToken(guideId, isAuthenticated, firstName)
@@ -43,7 +44,7 @@ object AddressingEngine {
             isAuthenticated = isAuthenticated,
             firstName = firstName.trim(),
             userMessage = userMessage,
-            detectedLanguage = detectLanguage(userMessage),
+            detectedLanguage = resolveLanguage(userMessage, recentUserMessages),
             sentimentTag = detectSentiment(normalized),
             isGreeting = containsAny(normalized, greetingKeywords),
             isClosing = containsAny(normalized, closingKeywords),
@@ -114,20 +115,60 @@ object AddressingEngine {
             "krishna" -> "priye"
             "lakshmi" -> "vats"
             "shani" -> "karmayogi"
+            "shiv" -> "karmayogi"
+            "hanuman" -> "karmayogi"
             else -> null
         }
     }
 
-    private fun detectLanguage(userMessage: String): ConversationLanguage {
+    // Common romanized-Hindi tokens. If a Latin-script message contains any of these we
+    // treat it as Hinglish. Kept identical to iOS's ChatPromptSupport.hinglishMarkers —
+    // update both together.
+    private val hinglishMarkers = setOf(
+        "hai", "hain", "kya", "kyu", "kyun", "mujhe", "mera", "meri", "mere", "nahi", "nahin",
+        "kaise", "kaisa", "kaisi", "tum", "tumhe", "tumhara", "aap", "ap", "aapka", "hum",
+        "kar", "karo", "karna", "raha", "rahi", "rahe", "ho", "hona", "hoon", "hun",
+        "acha", "accha", "achha", "theek", "thik", "bhagwan", "bhagavan", "ji", "aur", "par",
+        "bas", "matlab", "kuch", "chahiye", "zindagi", "dil", "mann", "pyaar", "pyar", "dukh",
+        "pareshani", "pareshan", "uljhan", "batao", "samajh", "kripya", "namaste", "namaskar",
+        "prabhu", "maa", "daan", "seva", "puja", "haan", "bolo", "tha", "thi", "aaj", "sab",
+        "dharma"
+    )
+
+    /**
+     * Returns a clear language signal for [userMessage], or null when the message is too
+     * short/ambiguous to tell (e.g. "hi", "thanks", "ok") — callers should fall back to
+     * [resolveLanguage]'s thread-aware default in that case.
+     */
+    private fun detectLanguage(userMessage: String): ConversationLanguage? {
         val hasDevanagari = userMessage.any { Character.UnicodeBlock.of(it) == Character.UnicodeBlock.DEVANAGARI }
         if (hasDevanagari) return ConversationLanguage.HINDI
 
-        val normalized = userMessage.lowercase(Locale.getDefault())
-        return if (containsAny(normalized, listOf("dharma", "bhagwan", "krishna", "shanti", "karma", "darshan", "man", "dil"))) {
-            ConversationLanguage.HINGLISH
-        } else {
-            ConversationLanguage.ENGLISH
+        val words = userMessage.lowercase().split(Regex("[^a-z]+")).filter { it.isNotBlank() }
+        if (words.any { it in hinglishMarkers }) return ConversationLanguage.HINGLISH
+
+        // A substantive Latin-script sentence with no Hindi/Hinglish loanwords at all is
+        // confidently plain English — respect it so English-typing users get English.
+        // Anything shorter/ambiguous (greetings, one-word replies) is not a strong enough
+        // signal on its own; resolveLanguage() decides those from context.
+        if (words.size >= 4) return ConversationLanguage.ENGLISH
+
+        return null
+    }
+
+    /**
+     * Resolves the conversation language for [userMessage]: a clear per-message signal
+     * always wins; otherwise inherits whatever language the recent thread has been using
+     * (so a short "thanks" mid-English-conversation doesn't flip back to Hinglish); with no
+     * signal anywhere (e.g. the very first message being a bare greeting), defaults to
+     * Hinglish — the app's default voice.
+     */
+    fun resolveLanguage(userMessage: String, recentUserMessages: List<String>): ConversationLanguage {
+        detectLanguage(userMessage)?.let { return it }
+        recentUserMessages.asReversed().take(4).forEach { message ->
+            detectLanguage(message)?.let { return it }
         }
+        return ConversationLanguage.HINGLISH
     }
 
     private fun detectSentiment(normalizedMessage: String): SentimentTag = when {

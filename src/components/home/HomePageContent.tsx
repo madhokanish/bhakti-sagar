@@ -80,7 +80,8 @@ export default function HomePageContent({ lang }: HomePageContentProps) {
                   guideId: card.id,
                   chatLang: lang === "en" ? undefined : lang
                 })}
-                className="hover-lift group relative block h-full min-h-[380px] overflow-hidden rounded-[1.6rem] border border-sagar-amber/22 bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sagar-saffron/60 sm:min-h-[428px] lg:min-h-[458px]"
+                style={{ animationDelay: `${index * 120}ms` }}
+                className="animate-fade-in-up hover-lift group relative block h-full min-h-[380px] overflow-hidden rounded-[1.6rem] border border-sagar-amber/22 bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sagar-saffron/60 sm:min-h-[428px] lg:min-h-[458px]"
               >
                 <Image
                   src={guide.imageSrc}
@@ -114,10 +115,11 @@ export default function HomePageContent({ lang }: HomePageContentProps) {
 
       <section className="surface-panel mt-6 rounded-[1.7rem] px-3 py-3 md:px-4">
         <div className="grid gap-3 md:grid-cols-3">
-          {trustItems.map((item) => (
+          {trustItems.map((item, index) => (
             <article
               key={item.title}
-              className="surface-soft rounded-[1rem] px-3 py-3.5 transition-colors duration-200 hover:border-sagar-amber/35"
+              style={{ animationDelay: `${300 + index * 80}ms` }}
+              className="animate-fade-in-up surface-soft rounded-[1rem] px-3 py-3.5 transition-colors duration-200 hover:border-sagar-amber/35"
             >
               <div className="flex items-start gap-3">
                 <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-sagar-amber/35 bg-white text-sagar-ember">
@@ -144,8 +146,8 @@ export default function HomePageContent({ lang }: HomePageContentProps) {
 
       <section className="surface-panel mt-8 rounded-[1.85rem] p-4 sm:p-5 md:p-6">
         <div className="grid gap-5 md:grid-cols-3">
-          {metrics.map((item) => (
-            <article key={item.label} className="rounded-[1.2rem] border border-sagar-amber/15 bg-white/62 p-4 text-center">
+          {metrics.map((item, index) => (
+            <article key={item.label} style={{ animationDelay: `${index * 80}ms` }} className="animate-fade-in-up rounded-[1.2rem] border border-sagar-amber/15 bg-white/62 p-4 text-center">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sagar-rose">{item.label}</p>
               <p className="mt-2 text-[2.1rem] font-semibold leading-none text-sagar-ink">{item.value}</p>
               <p className="mt-2 text-sm text-sagar-ink/70">{item.detail}</p>
@@ -154,10 +156,11 @@ export default function HomePageContent({ lang }: HomePageContentProps) {
         </div>
 
         <div className="mt-6 grid gap-3 md:grid-cols-3">
-          {testimonials.map((item) => (
+          {testimonials.map((item, index) => (
             <article
               key={item.author}
-              className="surface-soft rounded-[1.1rem] p-4 transition-colors duration-200 hover:border-sagar-amber/35"
+              style={{ animationDelay: `${index * 80}ms` }}
+              className="animate-fade-in-up surface-soft rounded-[1.1rem] p-4 transition-colors duration-200 hover:border-sagar-amber/35"
             >
               <p className="text-sm leading-relaxed text-sagar-ink/84">{item.quote}</p>
               <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-sagar-rose">

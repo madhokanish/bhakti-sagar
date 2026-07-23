@@ -116,6 +116,19 @@ class AddressingEngineTest {
     }
 
     @Test
+    fun plainRomanMessageDefaultsToHinglish() {
+        val context = AddressingEngine.buildMessageContext(
+            guideId = "krishna",
+            isAuthenticated = false,
+            firstName = "",
+            userMessage = "I feel confused and need help today.",
+            previousAssistantMessage = null
+        )
+
+        assertEquals(ConversationLanguage.HINGLISH, context.detectedLanguage)
+    }
+
+    @Test
     fun prefixIsNotDuplicatedWhenStreamAlreadyStartsWithToken() {
         assertFalse(AddressingEngine.shouldPrependPrefix("Anish, ", "Anish, take one calm step first."))
         assertTrue(AddressingEngine.shouldPrependPrefix("Anish, ", "Take one calm step first."))

@@ -1,10 +1,59 @@
+# --- Node / Next.js ---
 node_modules
 .next
 out
-.env.local
+*.tsbuildinfo
+
+# --- Secrets & local config (defense in depth; never commit) ---
 .env
-.DS_Store
-.vercel
+.env.local
 .env*.local
+.vercel
+local.properties
+keystore.properties
+*.jks
+*.keystore
+*.p8
+*.p12
+
+# --- Prisma local db ---
 prisma/dev.db
 prisma/dev.db-journal
+
+# --- Build outputs (any depth: covers app/build, BhaktiChatiOS/.build, etc.) ---
+build/
+.build/
+DerivedData/
+/captures
+.externalNativeBuild
+.cxx
+
+# --- Android release bundles / binaries (large; never commit build output) ---
+release/
+*.aab
+*.apk
+
+# --- Xcode per-user state / simulator homes / logs ---
+xcuserdata/
+*.xcuserstate
+.home/
+*.log
+
+# --- Gradle / Kotlin / Android tooling ---
+.gradle/
+.gradle-home/
+.kotlin/
+
+# --- IDE ---
+.idea/
+*.iml
+.vscode/
+
+# --- Scratch / generated / non-source working dirs ---
+tmp/
+output/
+worktrees/
+.playwright/
+
+# --- OS ---
+.DS_Store

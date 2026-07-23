@@ -1,20 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { isAartiBookmarked, toggleAartiBookmark } from "@/lib/bookmarks";
 
-export default function AartiUtilityBar({ title }: { title: string }) {
+export default function AartiUtilityBar({ title, slug }: { title: string; slug?: string }) {
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [textSize, setTextSize] = useState<"base" | "large">("base");
+  const bookmarkKey = slug ?? title;
 
   useEffect(() => {
-    const key = `bhakti-sagar-bookmark:${title}`;
+    const legacyKey = `bhakti-sagar-bookmark:${title}`;
     try {
-      setSaved(Boolean(localStorage.getItem(key)));
+      const legacy = Boolean(localStorage.getItem(legacyKey));
+      const inStore = isAartiBookmarked(bookmarkKey);
+      setSaved(legacy || inStore);
     } catch {
       // ignore
     }
-  }, [title]);
+  }, [title, bookmarkKey]);
 
   useEffect(() => {
     document.documentElement.dataset.textSize = textSize;
@@ -45,15 +49,15 @@ export default function AartiUtilityBar({ title }: { title: string }) {
   }
 
   function handleBookmark() {
-    const key = `bhakti-sagar-bookmark:${title}`;
+    const legacyKey = `bhakti-sagar-bookmark:${title}`;
     try {
-      if (saved) {
-        localStorage.removeItem(key);
-        setSaved(false);
+      const next = toggleAartiBookmark(bookmarkKey);
+      if (next) {
+        localStorage.setItem(legacyKey, "1");
       } else {
-        localStorage.setItem(key, "1");
-        setSaved(true);
+        localStorage.removeItem(legacyKey);
       }
+      setSaved(next);
     } catch {
       // ignore
     }

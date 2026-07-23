@@ -10,6 +10,7 @@ import com.bhaktichat.app.domain.Guides
 import com.bhaktichat.app.domain.StreamEvent
 import com.bhaktichat.app.util.AuthPreferences
 import com.bhaktichat.app.util.GuidePreferences
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -24,7 +25,8 @@ class ChatViewModel(
     private val guideId: String,
     private val repository: ChatRepository,
     private val guidePreferences: GuidePreferences,
-    private val authPreferences: AuthPreferences
+    private val authPreferences: AuthPreferences,
+    private val deferInitialLoad: Boolean
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -47,8 +49,10 @@ class ChatViewModel(
             }
         }
 
-        viewModelScope.launch {
-            loadConversation(forceNewConversation = false)
+        if (!deferInitialLoad) {
+            viewModelScope.launch {
+                loadConversation(forceNewConversation = false)
+            }
         }
     }
 
@@ -79,22 +83,68 @@ class ChatViewModel(
     }
 
     fun onSend() {
-        val guide = _uiState.value.guide ?: return
         val messageText = _uiState.value.inputText.trim()
-        if (messageText.isEmpty() || _uiState.value.isStreaming) return
+        if (messageText.isEmpty()) return
+        sendMessage(messageText = messageText, seedMessages = _uiState.value.messages)
+    }
+
+    fun launchFreshThread(skipOpener: Boolean, autoSendPrompt: String?) {
+        val guide = _uiState.value.guide ?: return
+        if (_uiState.value.isStreaming) return
+
+        viewModelScope.launch {
+            val seededMessages = resetConversation(guide = guide, skipOpener = skipOpener)
+            _uiState.update {
+                it.copy(
+                    messages = seededMessages,
+                    inputText = "",
+                    error = null
+                )
+            }
+
+            if (autoSendPrompt.isNullOrBlank()) {
+                _refocusEvents.tryEmit(Unit)
+            } else {
+                sendMessage(messageText = autoSendPrompt.trim(), seedMessages = seededMessages)
+            }
+        }
+    }
+
+    fun onNewChat() {
+        val guide = _uiState.value.guide ?: return
+        viewModelScope.launch {
+            val seededMessages = resetConversation(guide = guide, skipOpener = false)
+            _uiState.update {
+                it.copy(
+                    messages = seededMessages,
+                    inputText = "",
+                    error = null
+                )
+            }
+        }
+    }
+
+    private fun sendMessage(
+        messageText: String,
+        seedMessages: List<MessageEntity>
+    ) {
+        val guide = _uiState.value.guide ?: return
+        if (_uiState.value.isStreaming) return
 
         _uiState.update { it.copy(inputText = "", isStreaming = true, error = null) }
         _refocusEvents.tryEmit(Unit)
 
         viewModelScope.launch {
-            val currentMessages = _uiState.value.messages
+            try {
             val authState = authPreferences.state.value
             val messageContext = AddressingEngine.buildMessageContext(
                 guideId = guide.id,
                 isAuthenticated = authState.isLoggedIn,
                 firstName = authState.name,
                 userMessage = messageText,
-                previousAssistantMessage = currentMessages.lastOrNull { ChatRole.fromWire(it.role) == ChatRole.ASSISTANT }
+                previousAssistantMessage = seedMessages.lastOrNull {
+                    ChatRole.fromWire(it.role) == ChatRole.ASSISTANT
+                }
             )
             val turnMode = ChatTurnRouter.resolveMode(messageContext)
             val promptPayload = ChatPromptAssembler.build(
@@ -102,7 +152,7 @@ class ChatViewModel(
                 context = messageContext,
                 mode = turnMode,
                 conversationState = conversationState,
-                messages = currentMessages,
+                messages = seedMessages,
                 firstName = authState.name
             )
             val plannedPrefix = AddressingEngine.buildAddressPrefix(messageContext)
@@ -127,21 +177,28 @@ class ChatViewModel(
             )
 
             val builder = StringBuilder()
-            var appliedPrefix = if (plannedPrefix.isNullOrBlank()) "" else ""
+            var appliedPrefix = ""
             var prefixDecided = plannedPrefix.isNullOrBlank()
             val forceNewConversation = conversationId == null &&
-                _uiState.value.messages.none { ChatRole.fromWire(it.role) == ChatRole.USER }
+                seedMessages.none { ChatRole.fromWire(it.role) == ChatRole.USER }
 
             repository.sendMessageStreaming(
-                guideId = guide.id,
+                guideId = guide.serverPromptKey,
                 message = messageText,
                 conversationId = conversationId,
                 forceNewConversation = forceNewConversation,
                 chatLang = messageContext.detectedLanguage.toWire(),
+                systemPrompt = promptPayload.systemPrompt,
+                developerPrompt = promptPayload.developerPrompt,
+                languageInstruction = promptPayload.appVariables.languageInstruction,
+                guidePersonaPrompt = promptPayload.appVariables.guidePersonaPrompt,
                 systemPromptStack = promptPayload.systemPromptStack,
                 clientMode = turnMode.name.lowercase(),
                 stateAnchor = promptPayload.stateAnchor,
-                earlierSummary = promptPayload.earlierSummary
+                earlierSummary = promptPayload.earlierSummary,
+                firstName = promptPayload.appVariables.firstName,
+                secondaryGuard = promptPayload.appVariables.secondaryGuard,
+                optionalRewriteDirective = promptPayload.appVariables.optionalRewriteDirective
             ).collect { event ->
                 when (event) {
                     is StreamEvent.Token -> {
@@ -171,12 +228,13 @@ class ChatViewModel(
                                 guideId = guide.id,
                                 mode = turnMode,
                                 language = messageContext.detectedLanguage,
-                                suppressTrailingQuestion = conversationState.recentQuestionEnds >= 2
+                                suppressTrailingQuestion = conversationState.guardrails.recentQuestionEnds >= 3
                             )
                             repository.updateMessageContent(assistantMessageId, formatted)
                             conversationState = conversationState.advance(
                                 locale = messageContext.detectedLanguage,
                                 mode = turnMode,
+                                userMessage = messageText,
                                 assistantReply = formatted
                             )
                         }
@@ -187,7 +245,7 @@ class ChatViewModel(
                         if (builder.isEmpty()) {
                             repository.updateMessageContent(
                                 assistantMessageId,
-                                "I could not respond right now. Please try again in a moment."
+                                "I am reflecting upon your question. Please try again in a moment."
                             )
                         } else {
                             val formatted = ChatResponseFormatter.format(
@@ -195,12 +253,13 @@ class ChatViewModel(
                                 guideId = guide.id,
                                 mode = turnMode,
                                 language = messageContext.detectedLanguage,
-                                suppressTrailingQuestion = conversationState.recentQuestionEnds >= 2
+                                suppressTrailingQuestion = conversationState.guardrails.recentQuestionEnds >= 3
                             )
                             repository.updateMessageContent(assistantMessageId, formatted)
                             conversationState = conversationState.advance(
                                 locale = messageContext.detectedLanguage,
                                 mode = turnMode,
+                                userMessage = messageText,
                                 assistantReply = formatted
                             )
                         }
@@ -211,20 +270,51 @@ class ChatViewModel(
                             )
                         }
                     }
+
+                    StreamEvent.LimitReached -> {
+                        _uiState.update {
+                            it.copy(
+                                isStreaming = false,
+                                error = "Free message limit reached."
+                            )
+                        }
+                    }
+                }
+            }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                // Any failure inside the stream (DB write, formatting) must still clear
+                // isStreaming — otherwise sendMessage is gated forever and the user can
+                // never send again without restarting the app.
+                _uiState.update {
+                    it.copy(
+                        isStreaming = false,
+                        error = error.message ?: "Something went wrong. Please try again."
+                    )
                 }
             }
         }
     }
 
-    fun onNewChat() {
-        val guide = _uiState.value.guide ?: return
-        viewModelScope.launch {
-            conversationId = null
-            guidePreferences.setConversationId(guide.id, null)
-            repository.clearGuide(guide.id)
-            repository.ensureOpeningScene(guide.id, guide.openingScene)
-            _uiState.update { it.copy(error = null) }
-        }
+    private suspend fun resetConversation(
+        guide: com.bhaktichat.app.domain.Guide,
+        skipOpener: Boolean
+    ): List<MessageEntity> {
+        conversationId = null
+        guidePreferences.setConversationId(guide.id, null)
+        repository.clearGuide(guide.id)
+        if (skipOpener) return emptyList()
+
+        val openerMessage = MessageEntity(
+            id = UUID.randomUUID().toString(),
+            guideId = guide.id,
+            role = ChatRole.ASSISTANT.wire,
+            content = guide.openingScene,
+            createdAt = System.currentTimeMillis()
+        )
+        repository.insertMessage(openerMessage)
+        return listOf(openerMessage)
     }
 
     private suspend fun loadConversation(forceNewConversation: Boolean) {
@@ -242,7 +332,7 @@ class ChatViewModel(
             }
 
             val loadedConversationId = repository.refreshConversation(
-                guideId = guide.id,
+                guideId = guide.serverPromptKey,
                 conversationId = if (forceNewConversation) null else conversationId,
                 forceNewConversation = forceNewConversation
             )
@@ -254,7 +344,7 @@ class ChatViewModel(
             repository.ensureOpeningScene(guide.id, guide.openingScene)
             _uiState.update {
                 it.copy(
-                    error = error.message ?: "Unable to load chat right now."
+                    error = error.message ?: "I am reflecting upon your question. Please try again in a moment."
                 )
             }
         }
@@ -265,58 +355,6 @@ private fun ConversationLanguage.toWire(): String = when (this) {
     ConversationLanguage.ENGLISH -> "en"
     ConversationLanguage.HINGLISH -> "hinglish"
     ConversationLanguage.HINDI -> "hi"
-}
-
-private fun ChatConversationState.advance(
-    locale: ConversationLanguage,
-    mode: ChatTurnMode,
-    assistantReply: String
-): ChatConversationState {
-    val trimmed = assistantReply.trim()
-    val firstLine = trimmed.lineSequence().firstOrNull().orEmpty().trim().lowercase()
-    val nextQuestionEnds = if (trimmed.endsWith("?")) {
-        recentQuestionEnds + 1
-    } else {
-        0
-    }
-    val nextOpenLoops = if (trimmed.endsWith("?")) {
-        (recentOpenLoops + 1).coerceAtMost(3)
-    } else {
-        0
-    }
-
-    val updatedFirstLines = buildList {
-        if (firstLine.isNotBlank()) add(firstLine)
-        recentFirstLines.forEach { existing ->
-            if (existing != firstLine && size < 3) add(existing)
-        }
-    }
-
-    val warmthDelta = when (mode) {
-        ChatTurnMode.CASUAL -> 1
-        ChatTurnMode.PLAYFUL, ChatTurnMode.STORY -> 2
-        ChatTurnMode.WISDOM -> 1
-        ChatTurnMode.TEACHINGS -> 0
-    }
-    val playfulnessDelta = when (mode) {
-        ChatTurnMode.PLAYFUL, ChatTurnMode.STORY -> 1
-        else -> 0
-    }
-    val firmnessDelta = when (mode) {
-        ChatTurnMode.WISDOM, ChatTurnMode.TEACHINGS -> 1
-        else -> 0
-    }
-
-    return copy(
-        locale = locale,
-        mode = mode,
-        recentQuestionEnds = nextQuestionEnds,
-        recentOpenLoops = nextOpenLoops,
-        recentFirstLines = updatedFirstLines,
-        warmth = (warmth + warmthDelta).coerceAtMost(5),
-        playfulness = (playfulness + playfulnessDelta).coerceAtMost(5),
-        firmness = (firmness + firmnessDelta).coerceAtMost(5)
-    )
 }
 
 private inline fun <T> MutableStateFlow<T>.updateAndCheckIfChanged(transform: (T) -> T): Boolean {
@@ -333,10 +371,17 @@ class ChatViewModelFactory(
     private val guideId: String,
     private val repository: ChatRepository,
     private val guidePreferences: GuidePreferences,
-    private val authPreferences: AuthPreferences
+    private val authPreferences: AuthPreferences,
+    private val deferInitialLoad: Boolean = false
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return ChatViewModel(guideId, repository, guidePreferences, authPreferences) as T
+        return ChatViewModel(
+            guideId = guideId,
+            repository = repository,
+            guidePreferences = guidePreferences,
+            authPreferences = authPreferences,
+            deferInitialLoad = deferInitialLoad
+        ) as T
     }
 }

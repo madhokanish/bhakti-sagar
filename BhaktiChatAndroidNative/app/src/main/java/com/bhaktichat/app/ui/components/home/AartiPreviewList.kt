@@ -31,7 +31,7 @@ fun AartiPreviewList(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         SectionHeader(
-            title = "Top Aartis",
+            title = "Aarti Sangreh",
             actionLabel = "See all",
             onActionClick = onOpenAllAartis
         )

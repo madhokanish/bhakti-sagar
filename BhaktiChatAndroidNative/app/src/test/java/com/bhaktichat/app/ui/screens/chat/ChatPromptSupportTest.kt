@@ -65,14 +65,19 @@ class ChatPromptSupportTest {
             guide = sampleGuide("krishna"),
             context = messageContext("I need calm guidance right now."),
             mode = ChatTurnMode.CASUAL,
-            conversationState = ChatConversationState(recentQuestionEnds = 2),
+            conversationState = ChatConversationState(
+                guardrails = ChatGuardrailsState(recentQuestionEnds = 3)
+            ),
             messages = emptyList(),
             firstName = "Anish Madhok"
         )
 
-        assertTrue(payload.systemPromptStack.contains("Mode=casual"))
-        assertTrue(payload.systemPromptStack.contains("The user's first name is \"Anish\""))
-        assertTrue(payload.systemPromptStack.contains("Avoid ending this reply with a question."))
+        assertTrue(payload.systemPrompt.contains("You are Bhakti Chat"))
+        assertTrue(payload.developerPrompt.contains("{{LANGUAGE_INSTRUCTION}}"))
+        assertEquals("Mode=casual Strategy=answer_then_hook. Answer directly like a normal person. Keep 1 to 6 short lines with blank lines. No sermons. Optional one natural follow-up question.", payload.appVariables.modeInstruction)
+        assertEquals("Anish", payload.appVariables.firstName)
+        assertTrue(payload.appVariables.secondaryGuard.contains("Do not end this reply with a question."))
+        assertTrue(payload.stateAnchor.contains("\"guardrails\""))
     }
 
     private fun messageContext(message: String): MessageContext =

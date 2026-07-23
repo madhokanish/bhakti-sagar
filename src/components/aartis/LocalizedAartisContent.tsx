@@ -48,7 +48,7 @@ export default function LocalizedAartisContent({ results, query, routeLocale, fo
             name="q"
             defaultValue={query}
             placeholder={copy.search_placeholder}
-            className="w-full bg-transparent text-sm outline-none placeholder:text-sagar-ink/50"
+            className="w-full bg-transparent text-sm outline-none placeholder:text-sagar-ink/50 focus-visible:ring-2 focus-visible:ring-sagar-saffron/60"
           />
           <button className="rounded-full bg-sagar-saffron px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white">
             {copy.search_label}

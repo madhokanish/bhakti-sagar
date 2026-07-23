@@ -5,6 +5,7 @@ import SwiftUI
 struct DarshanStreakHeroCard: View {
     let streak: Int
     let longestStreak: Int
+    var onDismiss: () -> Void = {}
 
     private static let deepAccent = Color(red: 0xC2 / 255, green: 0x41 / 255, blue: 0x0C / 255)
     private static let numberColor = Color(red: 0xEA / 255, green: 0x58 / 255, blue: 0x0C / 255)
@@ -67,6 +68,7 @@ struct DarshanStreakHeroCard: View {
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
 
+            // Translucent flame emblem, inset below the dismiss button so they don't overlap.
             Circle()
                 .fill(Color.white.opacity(0.4))
                 .frame(width: 56, height: 56)
@@ -75,7 +77,18 @@ struct DarshanStreakHeroCard: View {
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(Self.deepAccent)
                 )
-                .padding(18)
+                .padding(.top, 46)
+                .padding(.trailing, 18)
+
+            // Dismiss — hides the banner for the rest of today only (see
+            // StreakStore.dismissBannerForToday).
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Self.deepAccent)
+                    .frame(width: 28, height: 28)
+            }
+            .padding(8)
         }
         .background(Self.emblemGradient)
         .clipShape(RoundedRectangle(cornerRadius: 24))

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -15,6 +17,15 @@ export default function ReadingShareSheet({
   onShareFull,
   onCopyLink
 }: Props) {
+  useEffect(() => {
+    if (!open) return;
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
@@ -25,9 +36,19 @@ export default function ReadingShareSheet({
         onClick={onClose}
         className="absolute inset-0 bg-black/40"
       />
-      <div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white px-6 pb-8 pt-6 shadow-sagar-card">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reading-share-title"
+        className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white px-6 pb-8 pt-6 shadow-sagar-card"
+      >
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">Share</p>
+          <h2
+            id="reading-share-title"
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose"
+          >
+            Share
+          </h2>
           <button
             type="button"
             onClick={onClose}

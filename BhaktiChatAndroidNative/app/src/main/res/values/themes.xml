@@ -1,7 +1,7 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Theme.BhaktiChat" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
-    </style>
+<resources>
+    <!-- Force light theme always — Compose controls all UI colours. Status/nav bar
+         transparency and icon color are set in code via enableEdgeToEdge(), not here —
+         the old android:statusBarColor/navigationBarColor/windowLightStatusBar attributes
+         are deprecated as of Android 15 and were flagged by Play Console's pre-launch report. -->
+    <style name="Theme.BhaktiChat" parent="Theme.Material3.Light.NoActionBar" />
 </resources>

@@ -18,6 +18,7 @@ export default function AartiCard({ aarti, language = "en" }: { aarti: Aarti; la
   return (
     <Link
       href={`/aartis/${aarti.slug}`}
+      aria-label={title}
       className="group rounded-2xl border border-sagar-amber/20 bg-white/80 p-5 shadow-sagar-card transition hover:-translate-y-1 hover:border-sagar-saffron/60"
     >
       <div className="flex items-center justify-between">

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import SignOutButton from "@/components/auth/SignOutButton";
+import NotificationOptIn from "@/components/NotificationOptIn";
 
 const PROVIDER_LABELS: Record<string, string> = {
   google: "Google",
@@ -120,6 +121,10 @@ export default async function ProfilePage() {
             <dd className="mt-1 text-sm font-medium text-sagar-ink">{createdAt}</dd>
           </div>
         </dl>
+
+        <div className="mt-8">
+          <NotificationOptIn />
+        </div>
       </div>
     </div>
   );

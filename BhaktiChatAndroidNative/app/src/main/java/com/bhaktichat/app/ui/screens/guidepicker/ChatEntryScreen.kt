@@ -37,6 +37,7 @@ fun ChatEntryScreen(
     onAccountClick: () -> Unit
 ) {
     Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         topBar = {
             TopAppBar(
                 title = { Text("Chats") },
@@ -55,6 +56,9 @@ fun ChatEntryScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            item("guide_picker_ad") {
+                com.bhaktichat.app.ui.components.ads.BannerAd(placement = "guide_picker")
+            }
             items(Guides.all, key = { it.id }) { guide ->
                 val latestMessage = repository.observeLatestMessage(guide.id).collectAsStateWithLifecycle(initialValue = null).value
                 Card(

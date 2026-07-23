@@ -1,0 +1,83 @@
+{
+  "identifier" : "BhaktiChatProConfig",
+  "nonRenewingSubscriptions" : [],
+  "products" : [],
+  "settings" : {
+    "_applicationInternalID" : "bhaktichat.dev",
+    "_developerTeamID" : "",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 0,
+    "_locale" : "en_IN",
+    "_storefront" : "IND",
+    "_storeKitErrors" : []
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21568447",
+      "localizations" : [
+        {
+          "description" : "Unlock unlimited sacred conversations and divine images.",
+          "displayName" : "BhaktiChat Pro",
+          "locale" : "en_IN"
+        }
+      ],
+      "name" : "BhaktiChat Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "21568448",
+          "introductoryOffer" : {
+            "internalID" : "21568449",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "localizations" : [
+            {
+              "description" : "Unlimited chats, divine images, all guides.",
+              "displayName" : "Pro · Weekly",
+              "locale" : "en_IN"
+            }
+          ],
+          "productID" : "com.bhaktichat.pro.weekly",
+          "recurringSubscriptionPeriod" : "P1W",
+          "referenceName" : "BhaktiChat Pro Weekly",
+          "subscriptionGroupID" : "21568447",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "999",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "21568450",
+          "introductoryOffer" : {
+            "internalID" : "21568451",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "localizations" : [
+            {
+              "description" : "Best value. Save 80% versus weekly.",
+              "displayName" : "Pro · Yearly",
+              "locale" : "en_IN"
+            }
+          ],
+          "productID" : "com.bhaktichat.pro.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "BhaktiChat Pro Yearly",
+          "subscriptionGroupID" : "21568447",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Stars
+import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -71,6 +72,7 @@ object ExplorePalette {
     val ChoghadiyaGrad = listOf(Color(0xFFFB923C), Color(0xFFEA580C))
     val FestivalGrad = listOf(Color(0xFFA5B4FC), Color(0xFF6366F1))
     val PanchangGrad = listOf(Color(0xFFFCD34D), Color(0xFFD97706))
+    val WallpaperGrad = listOf(Color(0xFFF0ABFC), Color(0xFFA21CAF))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,7 +83,8 @@ fun ExploreScreen(
     onOpenAartis: () -> Unit,
     onOpenChoghadiya: () -> Unit,
     onOpenFestivals: () -> Unit,
-    onOpenPanchang: () -> Unit
+    onOpenPanchang: () -> Unit,
+    onOpenWallpapers: () -> Unit
 ) {
     Scaffold(
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
@@ -140,6 +143,13 @@ fun ExploreScreen(
                 title = "Panchang",
                 subtitle = "Tithi, nakshatra, sunrise & sunset today",
                 onClick = onOpenPanchang
+            )
+            ServiceRow(
+                icon = Icons.Filled.Wallpaper,
+                gradient = ExplorePalette.WallpaperGrad,
+                title = "Wallpapers",
+                subtitle = "Deity wallpapers to save & share",
+                onClick = onOpenWallpapers
             )
 
             Text("Coming soon", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = ExplorePalette.TextPrimary)

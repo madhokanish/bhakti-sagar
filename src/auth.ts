@@ -184,8 +184,10 @@ export const authOptions: NextAuthConfig = {
   events: {
     async signIn({ user, account, profile }) {
       const oauthProfile = profile as OAuthProfile | undefined;
-      const locale =
+      const rawLocale =
         oauthProfile && typeof oauthProfile.locale === "string" ? oauthProfile.locale : null;
+      const ALLOWED_LOCALES = /^[a-zA-Z]{2,3}(-[a-zA-Z]{2,4})?$/;
+      const locale = rawLocale && ALLOWED_LOCALES.test(rawLocale) ? rawLocale : null;
 
       if (user.id) {
         await ensureUserProfile({
@@ -232,11 +234,11 @@ export const authOptions: NextAuthConfig = {
   logger: {
     error(code, ...message) {
       const meta = getRequestMetaFromCurrentHeaders();
-      void logAuthEvent({
+      logAuthEvent({
         eventType: AUTH_EVENT_TYPES.LOGIN_ERROR,
         ip: meta.ip,
         userAgent: meta.userAgent
-      });
+      }).catch((err) => console.error("[Auth] Failed to log auth event", err));
       console.error("[Auth]", code, ...message);
     }
   }

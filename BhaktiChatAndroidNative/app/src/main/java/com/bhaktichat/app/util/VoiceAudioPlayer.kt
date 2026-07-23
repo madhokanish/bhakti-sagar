@@ -7,6 +7,7 @@ import android.os.Process
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Plays the guide's spoken reply for Voice Mode — continuously-arriving PCM16 mono @ 24kHz
@@ -20,6 +21,15 @@ class VoiceAudioPlayer {
     private var playbackThread: Thread? = null
     private val isRunning = AtomicBoolean(false)
     private val queue = ArrayBlockingQueue<ByteArray>(64)
+
+    // Frames written to the track since the last flush; compared against the actual playback
+    // head so we can tell when the guide has *finished being heard*, not just finished
+    // generating (generation completes ~1-2s before the buffered audio finishes playing).
+    private val framesWritten = AtomicLong(0)
+    private val generationComplete = AtomicBoolean(false)
+
+    /** Fired on the playback thread once the last generated audio has actually been played out. */
+    var onGuideFinishedSpeaking: (() -> Unit)? = null
 
     fun start() {
         if (isRunning.get()) return
@@ -51,10 +61,28 @@ class VoiceAudioPlayer {
             Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
             track.play()
             while (isRunning.get()) {
-                val bytes = queue.poll(50, TimeUnit.MILLISECONDS) ?: continue
-                track.write(bytes, 0, bytes.size, AudioTrack.WRITE_BLOCKING)
+                val bytes = queue.poll(20, TimeUnit.MILLISECONDS)
+                if (bytes != null) {
+                    track.write(bytes, 0, bytes.size, AudioTrack.WRITE_BLOCKING)
+                    framesWritten.addAndGet((bytes.size / 2).toLong()) // PCM16 mono: 2 bytes/frame
+                } else if (generationComplete.get()) {
+                    // Queue drained and the model is done generating — has the audio actually
+                    // been *heard* yet? The playback head lags what we've written by the track's
+                    // internal buffer. Only signal "done speaking" once it catches up.
+                    val head = track.playbackHeadPosition.toLong() and 0xFFFFFFFFL
+                    if (head >= framesWritten.get()) {
+                        generationComplete.set(false)
+                        onGuideFinishedSpeaking?.invoke()
+                    }
+                }
             }
         }, "voice-playback").apply { start() }
+    }
+
+    /** Signals that no more audio will arrive for the current reply, so the playback thread can
+     *  watch for the moment the buffered audio finishes playing and fire [onGuideFinishedSpeaking]. */
+    fun markGenerationComplete() {
+        generationComplete.set(true)
     }
 
     /** Queues a chunk for playback. Never blocks — safe to call from a WebSocket callback thread. */
@@ -74,11 +102,17 @@ class VoiceAudioPlayer {
             track.pause()
             track.flush()
         }
+        // flush() resets the playback head to 0, so the written-frame counter must reset too,
+        // and a barge-in must not later fire a stale "finished speaking" for the killed reply.
+        framesWritten.set(0)
+        generationComplete.set(false)
         track.play()
     }
 
     fun stop() {
         if (!isRunning.compareAndSet(true, false)) return
+        generationComplete.set(false)
+        framesWritten.set(0)
         queue.clear()
         playbackThread?.join(200)
         audioTrack?.let { track ->

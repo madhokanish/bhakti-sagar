@@ -37,7 +37,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
@@ -317,7 +317,7 @@ fun ChatThreadScreen(
                             }
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.GraphicEq,
+                                imageVector = Icons.Filled.Call,
                                 contentDescription = "Start voice conversation"
                             )
                         }

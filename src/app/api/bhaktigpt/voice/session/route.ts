@@ -123,7 +123,8 @@ export async function POST(request: Request) {
               transcription: { model: "whisper-1" }
             },
             output: {
-              voice: persona.voicePresetId
+              voice: persona.voicePresetId,
+              ...(persona.speed ? { speed: persona.speed } : {})
             }
           }
         }

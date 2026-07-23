@@ -96,7 +96,9 @@ class VoiceConversationViewModel(
 
         viewModelScope.launch {
             voiceSessionApi.startSession(guide.serverPromptKey)
-                .onSuccess { session -> realtimeClient.connect(session.ephemeralKey, session.model) }
+                .onSuccess { session ->
+                    realtimeClient.connect(session.ephemeralKey, session.model, guide.openingScene)
+                }
                 .onFailure { error ->
                     _uiState.update { it.copy(errorMessage = error.message ?: "Could not start voice session.") }
                 }

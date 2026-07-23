@@ -46,12 +46,35 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
     private var assistantTranscriptBuffer = StringBuilder()
     private var userTranscriptBuffer = StringBuilder()
 
+    // The guide speaks first (like the text thread's opening scene) instead of the call
+    // opening in dead silence on "Listening". Fired once, when the session is ready.
+    private var hasGreeted = false
+
+    // Diagnostic: track outgoing mic audio so we can tell "mic is silent" (peak ~0, e.g.
+    // emulator virtual mic) apart from "server VAD isn't firing despite real audio."
+    private var micChunkCount = 0L
+    private var micPeakInWindow = 0
+
     /** Called once a turn's transcripts are both settled, to persist via /voice/turn-complete. */
     var onTurnComplete: ((userTranscript: String, assistantTranscript: String) -> Unit)? = null
 
-    fun connect(ephemeralKey: String, model: String) {
+    // The guide's fixed opening line (same text the chat thread opens with), spoken verbatim
+    // as the call's first turn so every guide opens in-character instead of improvising.
+    private var openingLine: String = ""
+
+    fun connect(ephemeralKey: String, model: String, openingLine: String = "") {
         if (socket != null) return
+        this.openingLine = openingLine
         _state.value = VoiceCallState.Connecting
+
+        // The guide stops "speaking" (UI-wise) when the audio actually finishes playing, not
+        // when the model finishes generating — otherwise the caption vanishes and it flips to
+        // "Listening" a beat or two before the guide is done being heard.
+        audioPlayer.onGuideFinishedSpeaking = {
+            if (_state.value == VoiceCallState.GuideSpeaking) {
+                _state.value = VoiceCallState.Listening
+            }
+        }
 
         val request = Request.Builder()
             .url("wss://api.openai.com/v1/realtime?model=${model}")
@@ -84,6 +107,25 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
         })
     }
 
+    /** Speaks the guide's fixed opening line as the first turn, before any user audio. */
+    private fun sendOpeningGreeting() {
+        val instructions = if (openingLine.isNotBlank()) {
+            // Verbatim so every guide opens with its own established greeting, not an
+            // improvised (and inconsistent) one. Word-for-word, nothing added.
+            "Begin the call by speaking this exact opening aloud, word for word, warmly and in " +
+                "first person. Say only this and nothing else:\n\n\"$openingLine\""
+        } else {
+            "Open the call by greeting the user warmly out loud in first person — one short, " +
+                "natural spoken sentence, then gently invite them to share what is on their mind."
+        }
+        val response = JSONObject().apply { put("instructions", instructions) }
+        val event = JSONObject().apply {
+            put("type", "response.create")
+            put("response", response)
+        }
+        socket?.send(event.toString())
+    }
+
     private fun sendAudioChunk(webSocket: WebSocket, chunk: ByteArray, length: Int) {
         val base64Audio = Base64.encodeToString(chunk, 0, length, Base64.NO_WRAP)
         val event = JSONObject().apply {
@@ -91,17 +133,45 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
             put("audio", base64Audio)
         }
         webSocket.send(event.toString())
+
+        // Peak amplitude of this PCM16 chunk (little-endian), tracked over a ~1s window.
+        var i = 0
+        while (i + 1 < length) {
+            val sample = (chunk[i].toInt() and 0xFF) or (chunk[i + 1].toInt() shl 8)
+            val amp = kotlin.math.abs(sample)
+            if (amp > micPeakInWindow) micPeakInWindow = amp
+            i += 2
+        }
+        micChunkCount++
+        // ~50 chunks * 20ms = ~1s. Log peak so silence (emulator) vs. real speech is obvious.
+        if (micChunkCount % 50 == 0L) {
+            Log.d(TAG, "mic sent chunks=$micChunkCount peakAmplitude(last~1s)=$micPeakInWindow (0=silence, PCM16 max=32767)")
+            micPeakInWindow = 0
+        }
     }
 
     private fun handleEvent(text: String) {
         val json = runCatching { JSONObject(text) }.getOrNull() ?: return
         when (json.optString("type")) {
+            "session.created" -> {
+                // Session is ready — have the guide open the conversation out loud rather
+                // than waiting for the user to speak first. Persona/voice come from the
+                // session config (set at token creation), so this stays guide-agnostic.
+                if (!hasGreeted) {
+                    hasGreeted = true
+                    sendOpeningGreeting()
+                    _state.value = VoiceCallState.Thinking
+                }
+            }
+
             "input_audio_buffer.speech_started" -> {
                 // Optimistic, local-first interruption — don't wait for the server's
                 // response.cancelled round trip before muting, or barge-in won't feel instant.
                 if (_state.value == VoiceCallState.GuideSpeaking) {
                     audioPlayer.interruptNow()
                 }
+                // The guide's turn is over — clear its caption now the user is speaking.
+                _assistantCaption.value = ""
                 userTranscriptBuffer = StringBuilder()
                 _state.value = VoiceCallState.UserSpeaking
             }
@@ -136,16 +206,18 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
             }
 
             "response.done" -> {
-                if (_state.value !is VoiceCallState.Error) {
-                    _state.value = VoiceCallState.Listening
-                }
+                // Generation finished, but buffered audio is still playing. Hand off to the
+                // player, which flips us to Listening only once the audio is actually heard
+                // (see onGuideFinishedSpeaking). Leave the caption on screen until then / until
+                // the user speaks — don't clear it mid-sentence here.
+                audioPlayer.markGenerationComplete()
                 val userTranscript = userTranscriptBuffer.toString().trim()
                 val assistantTranscript = assistantTranscriptBuffer.toString().trim()
                 if (userTranscript.isNotEmpty() && assistantTranscript.isNotEmpty()) {
                     onTurnComplete?.invoke(userTranscript, assistantTranscript)
                 }
+                // Reset only the buffer for the next turn; keep the visible caption.
                 assistantTranscriptBuffer = StringBuilder()
-                _assistantCaption.value = ""
             }
 
             "response.cancelled" -> {

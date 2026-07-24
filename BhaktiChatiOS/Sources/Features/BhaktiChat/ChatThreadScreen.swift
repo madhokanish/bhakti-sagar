@@ -19,6 +19,7 @@ struct ChatThreadScreen: View {
     @State private var isAtBottom = true
     @State private var latestAssistantReply: ChatMessage? = nil
     @State private var lastTranscript: String = ""
+    @State private var showVoiceCall = false
     private let composerClearance = BhaktiBottomNavBar.overlayClearance
 
     private var messages: [ChatMessage] {
@@ -121,6 +122,11 @@ struct ChatThreadScreen: View {
         .task(id: thread.id) { await appState.reloadThreadIfNeeded(threadId: thread.id, guide: guide) }
         .bhaktiPageBackground()
         .bhaktiHideNavigationBar()
+        #if os(iOS)
+        .fullScreenCover(isPresented: $showVoiceCall) {
+            VoiceCallScreen(guide: guide, conversationId: thread.remoteConversationId, api: appState.api)
+        }
+        #endif
     }
 
     // MARK: - Top bar
@@ -163,6 +169,20 @@ struct ChatThreadScreen: View {
             }
 
             Spacer()
+
+            Button {
+                showVoiceCall = true
+            } label: {
+                Image(systemName: "phone.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(BhaktiTheme.textPrimary)
+                    .frame(width: 40, height: 40)
+                    .background(BhaktiTheme.surface)
+                    .overlay(Circle().stroke(BhaktiTheme.border, lineWidth: 1))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(BhaktiPressEffect())
+            .accessibilityLabel("Start voice conversation")
 
             Menu {
                 if let latestAssistantReply {

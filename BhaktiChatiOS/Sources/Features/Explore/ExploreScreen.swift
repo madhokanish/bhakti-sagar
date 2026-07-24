@@ -74,6 +74,18 @@ struct ExploreScreen: View {
                     }
                     .buttonStyle(.plain)
 
+                    NavigationLink {
+                        WallpapersScreen()
+                    } label: {
+                        ServiceRow(
+                            systemImage: "photo.on.rectangle.angled",
+                            gradient: ExplorePalette.wallpaperGradient,
+                            title: "Wallpapers",
+                            subtitle: "Deity wallpapers to save & share"
+                        )
+                    }
+                    .buttonStyle(.plain)
+
                     Text("Coming soon")
                         .font(.system(size: 18, weight: .heavy))
                         .foregroundStyle(ExplorePalette.textPrimary)

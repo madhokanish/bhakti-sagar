@@ -223,6 +223,66 @@ final class BhaktiAPIClient {
         }
     }
 
+    /// Mints an ephemeral OpenAI Realtime API token for a Voice Mode call. Guide-agnostic,
+    /// same route the Android client hits — no backend changes needed for iOS.
+    func mintVoiceSession(guideId: String) async throws -> VoiceSessionResponse {
+        var request = URLRequest(url: baseURL.appending(path: "/api/bhaktigpt/voice/session"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["guideId": guideId])
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        guard 200..<300 ~= http.statusCode else {
+            throw APIError.server(
+                code: http.statusCode,
+                message: Self.readableServerMessage(from: data, response: http, fallback: "Voice mode is unavailable right now.")
+            )
+        }
+        return try JSONDecoder().decode(VoiceSessionResponse.self, from: data)
+    }
+
+    /// Persists one voice-call turn (transcript pair) and returns the conversation id to
+    /// reuse on the next turn. Mirrors Android's `voiceSessionApi.reportTurnComplete`.
+    func submitVoiceTurn(
+        guideId: String,
+        conversationId: String?,
+        userTranscript: String,
+        assistantTranscript: String,
+        durationSeconds: Double?
+    ) async throws -> String {
+        struct Payload: Codable {
+            let guideId: String
+            let conversationId: String?
+            let userTranscript: String
+            let assistantTranscript: String
+            let durationSeconds: Double?
+        }
+        var request = URLRequest(url: baseURL.appending(path: "/api/bhaktigpt/voice/turn-complete"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(
+            Payload(
+                guideId: guideId,
+                conversationId: conversationId,
+                userTranscript: userTranscript,
+                assistantTranscript: assistantTranscript,
+                durationSeconds: durationSeconds
+            )
+        )
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
+            throw URLError(.badServerResponse)
+        }
+        struct Response: Codable { let conversationId: String }
+        return try JSONDecoder().decode(Response.self, from: data).conversationId
+    }
+
     func fetchChoghadiyaSun(for city: ChoghadiyaCity, date: Date = .now) async throws -> ChoghadiyaSunResponse {
         Telemetry.track("choghadiya.fetch", ["city": city.id])
         let start = Telemetry.begin("choghadiya.fetch", ["city": city.id])

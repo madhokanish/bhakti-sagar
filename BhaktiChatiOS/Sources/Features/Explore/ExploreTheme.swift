@@ -18,4 +18,6 @@ enum ExplorePalette {
                                     Color(red: 0x63 / 255, green: 0x66 / 255, blue: 0xF1 / 255)]
     static let panchangGradient = [Color(red: 0xFC / 255, green: 0xD3 / 255, blue: 0x4D / 255),
                                     Color(red: 0xD9 / 255, green: 0x77 / 255, blue: 0x06 / 255)]
+    static let wallpaperGradient = [Color(red: 0xF0 / 255, green: 0xAB / 255, blue: 0xFC / 255),
+                                     Color(red: 0xA2 / 255, green: 0x1C / 255, blue: 0xAF / 255)]
 }

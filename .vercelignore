@@ -2,3 +2,7 @@ worktrees/
 output/
 tmp/
 .playwright/
+# Native mobile apps are not part of the Next.js deploy — and their live build dirs
+# (Gradle/Kotlin/R8 intermediates) contain transient files that break the tgz upload.
+BhaktiChatAndroidNative/
+BhaktiChatiOS/

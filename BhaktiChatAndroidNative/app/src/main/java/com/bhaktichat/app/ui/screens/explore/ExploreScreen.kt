@@ -152,6 +152,8 @@ fun ExploreScreen(
                 onClick = onOpenWallpapers
             )
 
+            com.bhaktichat.app.ui.components.ads.BannerAd(placement = "explore")
+
             Text("Coming soon", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = ExplorePalette.TextPrimary)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 ComingSoonCard(Icons.Filled.Stars, "Rashifal", "Daily horoscope", Modifier.weight(1f))

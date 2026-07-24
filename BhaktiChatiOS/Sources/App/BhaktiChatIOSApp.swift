@@ -12,6 +12,8 @@ public struct BhaktiChatAppRoot: View {
     @StateObject private var streaks = StreakStore()
     @StateObject private var reviewPrompt = ReviewPromptStore()
     @AppStorage("bhakti_theme_mode") private var themeMode: String = "system"
+    // First-launch consent for third-party AI processing (App Store Guideline 5.1.1(i)/5.1.2(i)).
+    @AppStorage("bhakti_ai_consent_v1") private var aiConsented: Bool = false
     @Environment(\.scenePhase) private var scenePhase
     #if os(iOS)
     @Environment(\.requestReview) private var requestReview
@@ -93,7 +95,10 @@ public struct BhaktiChatAppRoot: View {
                 }
             }
             #if os(iOS)
-            .task {
+            // Deferred until AFTER the AI-consent gate is accepted, so the ad-tracking (ATT)
+            // prompt never stacks on top of the first-launch consent screen.
+            .task(id: aiConsented) {
+                guard aiConsented else { return }
                 Task.detached(priority: .background) {
                     GADMobileAds.sharedInstance().start(completionHandler: nil)
                 }
@@ -108,5 +113,12 @@ public struct BhaktiChatAppRoot: View {
             .onOpenURL { url in
                 _ = NativeAuthService.handleOpenURL(url)
             }
+            // Consent gate: shown over everything on first launch until the user agrees, so no
+            // message or photo can reach the AI provider before consent is given.
+            #if os(iOS)
+            .fullScreenCover(isPresented: Binding(get: { !aiConsented }, set: { _ in })) {
+                AIConsentView(onAgree: { aiConsented = true })
+            }
+            #endif
     }
 }

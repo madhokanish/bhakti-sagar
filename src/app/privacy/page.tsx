@@ -24,7 +24,7 @@ export default function PrivacyPage() {
     ? {
         label: "प्राइवेसी",
         title: "प्राइवेसी पॉलिसी",
-        updated: "अंतिम अपडेट: 22 फ़रवरी 2026",
+        updated: "अंतिम अपडेट: 24 जुलाई 2026",
         intro:
           "यह पॉलिसी बताती है कि भक्ति चैट आपकी जानकारी कैसे एकत्र करता है, कैसे उपयोग करता है और कैसे सुरक्षित रखता है।",
         sections: [
@@ -39,9 +39,9 @@ export default function PrivacyPage() {
               "यह जानकारी सेवा चलाने, अनुभव बेहतर करने, सुरक्षा बनाए रखने, सहायता देने और जरूरी अपडेट भेजने के लिए उपयोग होती है।"
           },
           {
-            title: "3. जानकारी किसके साथ साझा होती है",
+            title: "3. AI प्रोसेसिंग और जानकारी की साझेदारी",
             body:
-              "हम आपका व्यक्तिगत डेटा नहीं बेचते। सीमित जानकारी विश्वसनीय सेवा प्रदाताओं के साथ साझा हो सकती है, जैसे होस्टिंग, पेमेंट, या लॉगिन सेवाएं।"
+              "भक्ति चैट अपने उत्तर बनाने के लिए आर्टिफिशियल इंटेलिजेंस (AI) का उपयोग करता है। चैट उत्तर और Divine Image बनाने के लिए, आपके भेजे गए संदेशों का टेक्स्ट और आपकी चुनी गई कोई भी फ़ोटो हमारे AI प्रदाता OpenAI, L.L.C. (https://openai.com) को भेजी जाती है, जो इन्हें केवल उत्तर बनाने के लिए प्रोसेस करता है। OpenAI अपने API से भेजे गए डेटा का उपयोग अपने मॉडल को ट्रेन करने के लिए नहीं करता। इसके अलावा, हम आपका व्यक्तिगत डेटा नहीं बेचते। सीमित जानकारी विश्वसनीय सेवा प्रदाताओं (होस्टिंग, लॉगिन, पेमेंट, एनालिटिक्स) के साथ साझा हो सकती है। ये सभी प्रदाता आपके डेटा की सुरक्षा के लिए इस पॉलिसी के समान सुरक्षा उपाय अपनाने के लिए बाध्य हैं।"
           },
           {
             title: "4. डेटा कितने समय तक रखा जाता है",
@@ -77,7 +77,7 @@ export default function PrivacyPage() {
     : {
         label: "Privacy",
         title: "Privacy Policy",
-        updated: "Last updated: February 22, 2026",
+        updated: "Last updated: July 24, 2026",
         intro:
           "This policy explains how Bhakti Chat collects, uses, and protects your information when you use our services.",
         sections: [
@@ -92,9 +92,9 @@ export default function PrivacyPage() {
               "We use data to operate and improve Bhakti Chat, protect platform security, provide support, process transactions, and send important service updates."
           },
           {
-            title: "3. Data sharing",
+            title: "3. AI processing and third-party sharing",
             body:
-              "We do not sell personal data. Limited information may be shared with trusted service providers for hosting, authentication, payments, and analytics, or when legally required."
+              "Bhakti Chat uses artificial intelligence to generate its responses. To create chat replies and Divine Image results, the text of the messages you send and any photo you choose to add are transmitted to our AI provider, OpenAI, L.L.C. (https://openai.com), which processes them solely to generate and return a response. OpenAI does not use data submitted through its API to train its models. Beyond this, we do not sell personal data. Limited information may also be shared with trusted service providers for hosting, authentication, payments, and analytics, or when legally required. All such providers are contractually required to protect your data with safeguards equivalent to those described in this policy."
           },
           {
             title: "4. Data retention",

@@ -44,6 +44,10 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
     private val _micLevel = MutableStateFlow(0f)
     val micLevel: StateFlow<Float> = _micLevel.asStateFlow()
 
+    /** Non-null once capture has concluded the mic is delivering only silence on every source. */
+    private val _micWarning = MutableStateFlow<String?>(null)
+    val micWarning: StateFlow<String?> = _micWarning.asStateFlow()
+
     private var socket: WebSocket? = null
     private val audioCapture = VoiceAudioCapture()
     private val audioPlayer = VoiceAudioPlayer()
@@ -113,9 +117,22 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
                 // until state becomes Listening — i.e. after the guide's opening line finishes.
                 // Staying on Connecting here (rather than Listening) avoids opening the mic in
                 // the brief window before the greeting starts.
-                audioCapture.start { chunk, length, peak ->
-                    sendAudioChunk(webSocket, chunk, length, peak)
-                }
+                audioCapture.start(
+                    onAudioChunk = { chunk, length, peak ->
+                        sendAudioChunk(webSocket, chunk, length, peak)
+                    },
+                    onError = { message ->
+                        // A dead microphone must NOT present as an endless silent "Listening" —
+                        // that was exactly the production symptom. Surface it.
+                        Log.e(TAG, "Audio capture failed: $message")
+                        _state.value = VoiceCallState.Error(message)
+                    },
+                    onMicAppearsDead = {
+                        _micWarning.value =
+                            "Can't hear your voice — the microphone seems silent. " +
+                                "Try disconnecting Bluetooth or restarting the call."
+                    }
+                )
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {

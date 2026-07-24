@@ -22,6 +22,7 @@ data class VoiceUiState(
     val assistantCaption: String = "",
     val userCaption: String = "",
     val micLevel: Float = 0f,
+    val micWarning: String? = null,
     val errorMessage: String? = null
 )
 
@@ -70,6 +71,11 @@ class VoiceConversationViewModel(
         viewModelScope.launch {
             realtimeClient.micLevel.collect { level ->
                 _uiState.update { it.copy(micLevel = level) }
+            }
+        }
+        viewModelScope.launch {
+            realtimeClient.micWarning.collect { warning ->
+                _uiState.update { it.copy(micWarning = warning) }
             }
         }
         realtimeClient.onTurnComplete = { userTranscript, assistantTranscript ->

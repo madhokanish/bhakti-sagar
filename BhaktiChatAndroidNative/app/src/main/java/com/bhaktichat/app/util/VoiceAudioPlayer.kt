@@ -5,7 +5,7 @@ import android.media.AudioFormat
 import android.media.AudioTrack
 import android.os.Process
 import android.util.Log
-import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
@@ -13,15 +13,20 @@ import java.util.concurrent.atomic.AtomicLong
 /**
  * Plays the guide's spoken reply for Voice Mode — continuously-arriving PCM16 mono @ 24kHz
  * chunks from OpenAI's Realtime API (`response.output_audio.delta` events), not a discrete
- * audio file. Runs a bounded queue on its own thread so the WebSocket's message-handling
- * thread is never blocked by [AudioTrack.write] — blocking there would delay processing of
- * the very next event, which might be the interruption signal that needs to mute playback.
+ * audio file. Runs its own playback thread so the WebSocket's message-handling thread is
+ * never blocked by [AudioTrack.write].
+ *
+ * The queue is deliberately UNBOUNDED: the server sends a reply's audio in a burst far
+ * faster than realtime playback drains it. The previous bounded queue (64 chunks) silently
+ * dropped whatever didn't fit — heard as stuttery/"slow" speech that cut off mid-sentence
+ * on real networks. iOS's AVAudioPlayerNode buffers unboundedly, which is why it never had
+ * this bug; a full minute of PCM16@24kHz is only ~2.9MB, so memory is a non-issue.
  */
 class VoiceAudioPlayer {
     private var audioTrack: AudioTrack? = null
     private var playbackThread: Thread? = null
     private val isRunning = AtomicBoolean(false)
-    private val queue = ArrayBlockingQueue<ByteArray>(64)
+    private val queue = LinkedBlockingQueue<ByteArray>()
 
     // Frames written to the track since the last flush; compared against the actual playback
     // head so we can tell when the guide has *finished being heard*, not just finished
@@ -39,11 +44,6 @@ class VoiceAudioPlayer {
         val track = AudioTrack.Builder()
             .setAudioAttributes(
                 AudioAttributes.Builder()
-                    // USAGE_MEDIA (not VOICE_COMMUNICATION): media reliably plays out the
-                    // loudspeaker at media volume without MODE_IN_COMMUNICATION routing, which
-                    // on some devices sent the guide's voice to the earpiece (or nowhere).
-                    // Echo is handled by the half-duplex mic gate, so we don't need the
-                    // comm-mode path's echo cancellation.
                     .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                     .build()
@@ -55,9 +55,9 @@ class VoiceAudioPlayer {
                     .setEncoding(ENCODING)
                     .build()
             )
-            // Kept small deliberately — barge-in must feel near-instant, and a larger
-            // buffer means more already-queued audio to flush on interruption.
-            .setBufferSizeInBytes(minBuffer * 2)
+            // Generous buffer to ride out scheduling jitter — underruns here are audible as
+            // stutter. Barge-in latency is unaffected: interruptNow() pause+flushes.
+            .setBufferSizeInBytes(minBuffer * 4)
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
         audioTrack = track
@@ -66,14 +66,13 @@ class VoiceAudioPlayer {
         playbackThread = Thread({
             Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
             track.play()
-            Log.d(TAG, "AudioTrack playing: usage=MEDIA rate=$SAMPLE_RATE state=${track.playState}")
-            var loggedFirstWrite = false
+            var loggedFirstAudio = false
             while (isRunning.get()) {
                 val bytes = queue.poll(20, TimeUnit.MILLISECONDS)
                 if (bytes != null) {
-                    if (!loggedFirstWrite) {
-                        loggedFirstWrite = true
-                        Log.d(TAG, "First guide audio written to speaker (${bytes.size} bytes).")
+                    if (!loggedFirstAudio) {
+                        loggedFirstAudio = true
+                        Log.i(TAG, "First guide audio written to speaker (${bytes.size} bytes).")
                     }
                     track.write(bytes, 0, bytes.size, AudioTrack.WRITE_BLOCKING)
                     framesWritten.addAndGet((bytes.size / 2).toLong()) // PCM16 mono: 2 bytes/frame
@@ -84,6 +83,7 @@ class VoiceAudioPlayer {
                     val head = track.playbackHeadPosition.toLong() and 0xFFFFFFFFL
                     if (head >= framesWritten.get()) {
                         generationComplete.set(false)
+                        Log.i(TAG, "Guide finished speaking (underruns=${track.underrunCount})")
                         onGuideFinishedSpeaking?.invoke()
                     }
                 }
@@ -91,15 +91,15 @@ class VoiceAudioPlayer {
         }, "voice-playback").apply { start() }
     }
 
+    /** Queues a chunk for playback. Never blocks and never drops — safe from any thread. */
+    fun enqueue(bytes: ByteArray) {
+        queue.offer(bytes)
+    }
+
     /** Signals that no more audio will arrive for the current reply, so the playback thread can
      *  watch for the moment the buffered audio finishes playing and fire [onGuideFinishedSpeaking]. */
     fun markGenerationComplete() {
         generationComplete.set(true)
-    }
-
-    /** Queues a chunk for playback. Never blocks — safe to call from a WebSocket callback thread. */
-    fun enqueue(bytes: ByteArray) {
-        queue.offer(bytes)
     }
 
     /**

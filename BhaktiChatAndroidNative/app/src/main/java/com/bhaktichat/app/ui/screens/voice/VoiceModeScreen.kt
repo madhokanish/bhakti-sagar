@@ -152,6 +152,20 @@ fun VoiceModeScreen(
                             .padding(top = 20.dp, start = 12.dp, end = 12.dp)
                     )
                 }
+                // Mic-dead advisory (amber, not an error) — shown when capture concluded the
+                // microphone is delivering pure silence on every source. Without this, a dead
+                // mic looks identical to a working idle one ("Listening" forever).
+                uiState.micWarning?.let { warning ->
+                    Text(
+                        text = warning,
+                        fontSize = 13.sp,
+                        color = VoiceModePalette.RingThinking,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp, start = 16.dp, end = 16.dp)
+                    )
+                }
                 uiState.errorMessage?.let { message ->
                     Text(
                         text = message,

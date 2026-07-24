@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -131,6 +132,13 @@ fun VoiceModeScreen(
                     color = VoiceModePalette.TextSecondary,
                     modifier = Modifier.padding(top = 6.dp)
                 )
+                // Live mic meter while listening — lets the user confirm the mic is hearing them
+                // (fills as they speak). Only shown when the mic is actually open.
+                if (uiState.callState is VoiceCallState.Listening ||
+                    uiState.callState is VoiceCallState.UserSpeaking
+                ) {
+                    MicLevelMeter(level = uiState.micLevel, modifier = Modifier.padding(top = 12.dp))
+                }
                 val caption = uiState.assistantCaption.ifBlank { uiState.userCaption }
                 if (caption.isNotBlank()) {
                     Text(
@@ -170,6 +178,33 @@ fun VoiceModeScreen(
                     tint = Color.White
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun MicLevelMeter(level: Float, modifier: Modifier = Modifier) {
+    // Smooth the raw level a little so the bar doesn't jitter.
+    val animated by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = level.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 90, easing = LinearEasing),
+        label = "mic-level"
+    )
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.5f)
+                .height(6.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.15f))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(animated.coerceAtLeast(0.02f))
+                    .height(6.dp)
+                    .clip(CircleShape)
+                    .background(VoiceModePalette.RingUserSpeaking)
+            )
         }
     }
 }

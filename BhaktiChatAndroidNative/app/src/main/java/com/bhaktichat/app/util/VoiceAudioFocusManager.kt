@@ -2,15 +2,19 @@ package com.bhaktichat.app.util
 
 import android.content.Context
 import android.media.AudioAttributes
-import android.media.AudioDeviceInfo
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
 
 /**
- * Requests exclusive audio focus for a Voice Mode call (feels like an actual call, so it
- * stops rather than ducks other audio) and routes audio through the speaker while active.
- * `minSdk = 24` predates [AudioFocusRequest] (API 26), hence the version branching.
+ * Requests audio focus for a Voice Mode call so other apps' audio (music, etc.) pauses while
+ * the call is active.
+ *
+ * Deliberately does NOT switch the device into `MODE_IN_COMMUNICATION` or force speakerphone
+ * routing. That telephony-style path proved unreliable on real hardware — it could route the
+ * guide's voice to the earpiece (so nothing played on the speaker) and interfere with mic
+ * capture. Playback now uses `USAGE_MEDIA`, which plays out the loudspeaker at media volume on
+ * its own, and capture uses `VOICE_RECOGNITION`; neither needs communication mode.
  */
 class VoiceAudioFocusManager(context: Context) {
     private val appContext = context.applicationContext
@@ -21,12 +25,12 @@ class VoiceAudioFocusManager(context: Context) {
     /** Returns true if focus was granted. [onFocusChange] receives AudioManager.AUDIOFOCUS_* values. */
     fun request(onFocusChange: (Int) -> Unit): Boolean {
         val attrs = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+            .setUsage(AudioAttributes.USAGE_MEDIA)
             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
             .build()
 
-        val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
                 .setAudioAttributes(attrs)
                 .setOnAudioFocusChangeListener(onFocusChange)
                 .build()
@@ -38,26 +42,9 @@ class VoiceAudioFocusManager(context: Context) {
             @Suppress("DEPRECATION")
             audioManager.requestAudioFocus(
                 listener,
-                AudioManager.STREAM_VOICE_CALL,
-                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN
             ) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
-        }
-
-        if (granted) {
-            audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
-            routeToSpeaker()
-        }
-        return granted
-    }
-
-    private fun routeToSpeaker() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            audioManager.availableCommunicationDevices
-                .firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
-                ?.let { audioManager.setCommunicationDevice(it) }
-        } else {
-            @Suppress("DEPRECATION")
-            audioManager.isSpeakerphoneOn = true
         }
     }
 
@@ -72,13 +59,5 @@ class VoiceAudioFocusManager(context: Context) {
         }
         focusRequest = null
         legacyFocusListener = null
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            audioManager.clearCommunicationDevice()
-        } else {
-            @Suppress("DEPRECATION")
-            audioManager.isSpeakerphoneOn = false
-        }
-        audioManager.mode = AudioManager.MODE_NORMAL
     }
 }

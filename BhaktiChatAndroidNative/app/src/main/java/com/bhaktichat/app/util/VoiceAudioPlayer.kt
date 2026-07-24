@@ -4,6 +4,7 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
 import android.os.Process
+import android.util.Log
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -38,7 +39,12 @@ class VoiceAudioPlayer {
         val track = AudioTrack.Builder()
             .setAudioAttributes(
                 AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                    // USAGE_MEDIA (not VOICE_COMMUNICATION): media reliably plays out the
+                    // loudspeaker at media volume without MODE_IN_COMMUNICATION routing, which
+                    // on some devices sent the guide's voice to the earpiece (or nowhere).
+                    // Echo is handled by the half-duplex mic gate, so we don't need the
+                    // comm-mode path's echo cancellation.
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                     .build()
             )
@@ -60,9 +66,15 @@ class VoiceAudioPlayer {
         playbackThread = Thread({
             Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
             track.play()
+            Log.d(TAG, "AudioTrack playing: usage=MEDIA rate=$SAMPLE_RATE state=${track.playState}")
+            var loggedFirstWrite = false
             while (isRunning.get()) {
                 val bytes = queue.poll(20, TimeUnit.MILLISECONDS)
                 if (bytes != null) {
+                    if (!loggedFirstWrite) {
+                        loggedFirstWrite = true
+                        Log.d(TAG, "First guide audio written to speaker (${bytes.size} bytes).")
+                    }
                     track.write(bytes, 0, bytes.size, AudioTrack.WRITE_BLOCKING)
                     framesWritten.addAndGet((bytes.size / 2).toLong()) // PCM16 mono: 2 bytes/frame
                 } else if (generationComplete.get()) {
@@ -126,6 +138,7 @@ class VoiceAudioPlayer {
     }
 
     companion object {
+        private const val TAG = "VoiceAudioPlayer"
         const val SAMPLE_RATE = 24_000
         private const val CHANNEL_OUT = AudioFormat.CHANNEL_OUT_MONO
         private const val ENCODING = AudioFormat.ENCODING_PCM_16BIT

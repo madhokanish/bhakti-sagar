@@ -4,6 +4,7 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.os.Process
+import android.util.Log
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -11,17 +12,21 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Realtime API expects for `input_audio_buffer.append` events. Exposes raw chunks via a
  * callback; callers are responsible for base64-encoding/sending (this class only captures).
  *
- * Uses [MediaRecorder.AudioSource.VOICE_COMMUNICATION], not `MIC` — this pairs with
- * [VoiceAudioPlayer]'s `USAGE_VOICE_COMMUNICATION` output for platform echo cancellation.
- * Without this pairing, the guide's own spoken reply bleeds into the mic on speakerphone
- * and can false-trigger the server's voice-activity detection as a user interruption.
+ * Uses [MediaRecorder.AudioSource.VOICE_RECOGNITION] — the source designed for "capture the
+ * user's speech and hand it to a recognizer", which is exactly this use case. It is far more
+ * reliable across devices than `VOICE_COMMUNICATION`, which pulls in the platform's telephony
+ * echo-cancel/AGC pipeline and (paired with MODE_IN_COMMUNICATION routing) can suppress the
+ * mic to near-silence or misroute audio on real hardware. Echo is handled instead by the
+ * caller's half-duplex gate (mic muted while the guide speaks), so we don't need — or want —
+ * that fragile comm-mode processing here.
  */
 class VoiceAudioCapture {
     private var audioRecord: AudioRecord? = null
     private var captureThread: Thread? = null
     private val isRunning = AtomicBoolean(false)
 
-    fun start(onAudioChunk: (ByteArray, Int) -> Unit) {
+    /** onAudioChunk(bytes, length, peakAmplitude 0..32767 for this chunk). */
+    fun start(onAudioChunk: (ByteArray, Int, Int) -> Unit) {
         if (isRunning.get()) return
 
         val minBuffer = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_IN, ENCODING)
@@ -30,7 +35,7 @@ class VoiceAudioCapture {
         }
 
         val record = AudioRecord(
-            MediaRecorder.AudioSource.VOICE_COMMUNICATION,
+            MediaRecorder.AudioSource.VOICE_RECOGNITION,
             SAMPLE_RATE,
             CHANNEL_IN,
             ENCODING,
@@ -38,19 +43,41 @@ class VoiceAudioCapture {
         )
         check(record.state == AudioRecord.STATE_INITIALIZED) { "AudioRecord failed to initialize" }
         audioRecord = record
+        Log.d(TAG, "AudioRecord initialized: source=VOICE_RECOGNITION rate=$SAMPLE_RATE sessionId=${record.audioSessionId}")
 
         isRunning.set(true)
         captureThread = Thread({
             Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
             val chunk = ByteArray(CHUNK_BYTES)
             record.startRecording()
+            Log.d(TAG, "startRecording() called, recordingState=${record.recordingState}")
+            var loggedFirstAudio = false
             while (isRunning.get()) {
                 val n = record.read(chunk, 0, chunk.size)
                 if (n > 0) {
-                    onAudioChunk(chunk, n)
+                    val peak = peakAmplitude(chunk, n)
+                    if (!loggedFirstAudio && peak > 200) {
+                        loggedFirstAudio = true
+                        Log.d(TAG, "First real audio detected from mic (peak=$peak) — capture is working.")
+                    }
+                    onAudioChunk(chunk, n, peak)
+                } else if (n < 0) {
+                    Log.w(TAG, "AudioRecord.read() returned error $n")
                 }
             }
         }, "voice-capture").apply { start() }
+    }
+
+    private fun peakAmplitude(chunk: ByteArray, length: Int): Int {
+        var peak = 0
+        var i = 0
+        while (i + 1 < length) {
+            val sample = (chunk[i].toInt() and 0xFF) or (chunk[i + 1].toInt() shl 8)
+            val amp = kotlin.math.abs(sample)
+            if (amp > peak) peak = amp
+            i += 2
+        }
+        return peak
     }
 
     fun stop() {
@@ -64,6 +91,7 @@ class VoiceAudioCapture {
     }
 
     companion object {
+        private const val TAG = "VoiceAudioCapture"
         const val SAMPLE_RATE = 24_000
         private const val CHANNEL_IN = AudioFormat.CHANNEL_IN_MONO
         private const val ENCODING = AudioFormat.ENCODING_PCM_16BIT

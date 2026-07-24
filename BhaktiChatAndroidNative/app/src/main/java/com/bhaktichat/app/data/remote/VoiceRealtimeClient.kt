@@ -39,6 +39,11 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
     private val _userCaption = MutableStateFlow("")
     val userCaption: StateFlow<String> = _userCaption.asStateFlow()
 
+    // Live mic input level (0..1), updated only while the mic is actually transmitting. Drives
+    // the on-screen level meter so the user can see the mic is picking up their voice.
+    private val _micLevel = MutableStateFlow(0f)
+    val micLevel: StateFlow<Float> = _micLevel.asStateFlow()
+
     private var socket: WebSocket? = null
     private val audioCapture = VoiceAudioCapture()
     private val audioPlayer = VoiceAudioPlayer()
@@ -49,6 +54,17 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
     // The guide speaks first (like the text thread's opening scene) instead of the call
     // opening in dead silence on "Listening". Fired once, when the session is ready.
     private var hasGreeted = false
+
+    // Half-duplex mic gate. THE core fix for the "stuck, never responds" bug: the session runs
+    // server VAD with interrupt_response=true + create_response=true, so if the guide's own
+    // voice reaches the mic (speaker echo, or the greeting playing while the mic is live), the
+    // server treats it as the user talking and cancels the guide's reply the instant it starts
+    // — on a loop, so nothing ever plays. Hardware echo cancellation isn't reliable enough
+    // (emulators have none; real-device AEC is imperfect). Instead we simply never transmit the
+    // mic while the guide is speaking, so its voice can't reach the VAD at all. This timestamp
+    // keeps the mic closed for a short beat after the guide finishes, letting the speaker tail
+    // die down before we resume listening.
+    @Volatile private var micOpenAtMillis = 0L
 
     // Diagnostic: track outgoing mic audio so we can tell "mic is silent" (peak ~0, e.g.
     // emulator virtual mic) apart from "server VAD isn't firing despite real audio."
@@ -71,7 +87,11 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
         // when the model finishes generating — otherwise the caption vanishes and it flips to
         // "Listening" a beat or two before the guide is done being heard.
         audioPlayer.onGuideFinishedSpeaking = {
-            if (_state.value == VoiceCallState.GuideSpeaking) {
+            // Also recover from a no-audio reply (state stuck at Thinking) so the mic can't stay
+            // closed forever if a response produced no audio.
+            val s = _state.value
+            if (s == VoiceCallState.GuideSpeaking || s == VoiceCallState.Thinking) {
+                micOpenAtMillis = System.currentTimeMillis() + MIC_RESUME_GUARD_MS
                 _state.value = VoiceCallState.Listening
             }
         }
@@ -84,10 +104,13 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
         socket = httpClient.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 audioPlayer.start()
-                audioCapture.start { chunk, length ->
-                    sendAudioChunk(webSocket, chunk, length)
+                // Mic is started (warm) but the half-duplex gate keeps it from transmitting
+                // until state becomes Listening — i.e. after the guide's opening line finishes.
+                // Staying on Connecting here (rather than Listening) avoids opening the mic in
+                // the brief window before the greeting starts.
+                audioCapture.start { chunk, length, peak ->
+                    sendAudioChunk(webSocket, chunk, length, peak)
                 }
-                _state.value = VoiceCallState.Listening
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
@@ -126,7 +149,19 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
         socket?.send(event.toString())
     }
 
-    private fun sendAudioChunk(webSocket: WebSocket, chunk: ByteArray, length: Int) {
+    private fun sendAudioChunk(webSocket: WebSocket, chunk: ByteArray, length: Int, peak: Int) {
+        // Half-duplex gate: only transmit while the guide is silent. During UserSpeaking always
+        // send (the user is mid-utterance); during Listening send once the post-guide guard has
+        // elapsed; otherwise (Connecting/Thinking/GuideSpeaking/Error/Ended) drop the chunk so
+        // the guide's own audio never reaches the server VAD.
+        val s = _state.value
+        val micOpen = s == VoiceCallState.UserSpeaking ||
+            (s == VoiceCallState.Listening && System.currentTimeMillis() >= micOpenAtMillis)
+        if (!micOpen) {
+            if (_micLevel.value != 0f) _micLevel.value = 0f
+            return
+        }
+
         val base64Audio = Base64.encodeToString(chunk, 0, length, Base64.NO_WRAP)
         val event = JSONObject().apply {
             put("type", "input_audio_buffer.append")
@@ -134,18 +169,12 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
         }
         webSocket.send(event.toString())
 
-        // Peak amplitude of this PCM16 chunk (little-endian), tracked over a ~1s window.
-        var i = 0
-        while (i + 1 < length) {
-            val sample = (chunk[i].toInt() and 0xFF) or (chunk[i + 1].toInt() shl 8)
-            val amp = kotlin.math.abs(sample)
-            if (amp > micPeakInWindow) micPeakInWindow = amp
-            i += 2
-        }
+        // Update the live level meter (throttled ~10/sec) and keep a 1s peak for the log.
+        _micLevel.value = (peak / 32767f).coerceIn(0f, 1f)
+        if (peak > micPeakInWindow) micPeakInWindow = peak
         micChunkCount++
-        // ~50 chunks * 20ms = ~1s. Log peak so silence (emulator) vs. real speech is obvious.
         if (micChunkCount % 50 == 0L) {
-            Log.d(TAG, "mic sent chunks=$micChunkCount peakAmplitude(last~1s)=$micPeakInWindow (0=silence, PCM16 max=32767)")
+            Log.d(TAG, "mic transmitting: peak(last~1s)=$micPeakInWindow (0=silence, 32767=max)")
             micPeakInWindow = 0
         }
     }
@@ -250,5 +279,8 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
 
     companion object {
         private const val TAG = "VoiceRealtimeClient"
+        // How long to keep the mic closed after the guide finishes, so the speaker tail/echo
+        // dies down before we start listening again. Short enough not to clip the user's reply.
+        private const val MIC_RESUME_GUARD_MS = 250L
     }
 }

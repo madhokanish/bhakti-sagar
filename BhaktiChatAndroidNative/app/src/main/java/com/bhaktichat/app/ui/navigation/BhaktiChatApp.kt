@@ -243,10 +243,10 @@ fun BhaktiChatApp() {
     if (shouldShowReviewPrompt) {
         ReviewPromptDialog(
             onEnjoying = {
-                appContainer.reviewPromptStore.markPromptShown()
-                launchNativeReviewFlow(context)
+                appContainer.reviewPromptStore.markPromptAccepted()
+                openPlayStoreListing(context)
             },
-            onNotNow = { appContainer.reviewPromptStore.markPromptShown() }
+            onNotNow = { appContainer.reviewPromptStore.markPromptDismissed() }
         )
     }
 
@@ -702,10 +702,10 @@ fun BhaktiChatApp() {
 }
 
 /**
- * Custom pre-prompt shown before the native Play In-App Review dialog (see
- * [launchNativeReviewFlow]) — asking permission first means the real review dialog, which
- * Play Store throttles how often it can appear, only gets used on users likely to leave a
- * good review. See [com.bhaktichat.app.util.ReviewPromptStore] for the trigger logic.
+ * Custom pre-prompt for ratings. Tapping "Yes" opens the Play Store listing directly (see
+ * [openPlayStoreListing]) so the user can rate — the previous Play In-App Review API silently
+ * no-op'd and never opened the store. See [com.bhaktichat.app.util.ReviewPromptStore] for the
+ * trigger/cadence logic.
  */
 @Composable
 private fun ReviewPromptDialog(onEnjoying: () -> Unit, onNotNow: () -> Unit) {
@@ -731,17 +731,28 @@ private fun ReviewPromptDialog(onEnjoying: () -> Unit, onNotNow: () -> Unit) {
 }
 
 /**
- * Launches Google Play's native In-App Review flow. Play Store itself decides whether to
- * actually display it (quota/frequency rules we don't control) — this call may silently be
- * a no-op, which is expected and not an error on our end.
+ * Opens the app's Play Store listing so the user can leave a rating/review. Prefers the Play
+ * Store app (market:// + explicit vending package); falls back to the browser if the Play
+ * Store app isn't available. Unlike the In-App Review API, this reliably takes the user to the
+ * store — which is what "Yes, I love it!" should do.
  */
-private fun launchNativeReviewFlow(context: android.content.Context) {
-    val activity = context.findActivity() ?: return
-    val manager = com.google.android.play.core.review.ReviewManagerFactory.create(context)
-    val request = manager.requestReviewFlow()
-    request.addOnCompleteListener { task ->
-        if (task.isSuccessful) {
-            manager.launchReviewFlow(activity, task.result)
+private fun openPlayStoreListing(context: android.content.Context) {
+    val pkg = context.packageName
+    val marketIntent = android.content.Intent(
+        android.content.Intent.ACTION_VIEW,
+        android.net.Uri.parse("market://details?id=$pkg")
+    ).apply {
+        setPackage("com.android.vending")
+        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    runCatching { context.startActivity(marketIntent) }.onFailure {
+        runCatching {
+            context.startActivity(
+                android.content.Intent(
+                    android.content.Intent.ACTION_VIEW,
+                    android.net.Uri.parse("https://play.google.com/store/apps/details?id=$pkg")
+                ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
         }
     }
 }

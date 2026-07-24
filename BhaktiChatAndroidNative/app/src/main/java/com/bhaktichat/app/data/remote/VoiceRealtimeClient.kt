@@ -66,6 +66,11 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
     // die down before we resume listening.
     @Volatile private var micOpenAtMillis = 0L
 
+    // DEBUG only: while true, the live mic is suppressed and a bundled test utterance is streamed
+    // instead — used to prove the full capture→VAD→response→playback loop in an emulator, which
+    // has no real microphone. Never set in release (no caller).
+    @Volatile private var injectingTestAudio = false
+
     // Diagnostic: track outgoing mic audio so we can tell "mic is silent" (peak ~0, e.g.
     // emulator virtual mic) apart from "server VAD isn't firing despite real audio."
     private var micChunkCount = 0L
@@ -154,6 +159,7 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
         // send (the user is mid-utterance); during Listening send once the post-guide guard has
         // elapsed; otherwise (Connecting/Thinking/GuideSpeaking/Error/Ended) drop the chunk so
         // the guide's own audio never reaches the server VAD.
+        if (injectingTestAudio) return // debug test utterance is driving the input instead
         val s = _state.value
         val micOpen = s == VoiceCallState.UserSpeaking ||
             (s == VoiceCallState.Listening && System.currentTimeMillis() >= micOpenAtMillis)
@@ -177,6 +183,44 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
             Log.d(TAG, "mic transmitting: peak(last~1s)=$micPeakInWindow (0=silence, 32767=max)")
             micPeakInWindow = 0
         }
+    }
+
+    /**
+     * DEBUG: stream a bundled speech clip to the server as if the user had spoken it, then a
+     * beat of trailing silence so server VAD detects end-of-speech. Proves the entire
+     * capture→VAD→response→playback loop works without a real microphone (emulators have none).
+     */
+    fun injectTestUtterance(pcm: ByteArray) {
+        val ws = socket ?: return
+        if (injectingTestAudio) return
+        Thread({
+            injectingTestAudio = true
+            try {
+                val chunkBytes = 960 // 20ms @ 24kHz/16-bit mono
+                var off = 0
+                while (off < pcm.size) {
+                    val len = minOf(chunkBytes, pcm.size - off)
+                    val b64 = Base64.encodeToString(pcm, off, len, Base64.NO_WRAP)
+                    ws.send(JSONObject().put("type", "input_audio_buffer.append").put("audio", b64).toString())
+                    _micLevel.value = 0.6f
+                    off += len
+                    Thread.sleep(20)
+                }
+                // ~1.2s trailing silence so the server's VAD registers end-of-speech.
+                val silence = ByteArray(chunkBytes)
+                val silenceB64 = Base64.encodeToString(silence, 0, chunkBytes, Base64.NO_WRAP)
+                repeat(60) {
+                    ws.send(JSONObject().put("type", "input_audio_buffer.append").put("audio", silenceB64).toString())
+                    Thread.sleep(20)
+                }
+                _micLevel.value = 0f
+                Log.d(TAG, "Injected test utterance (${pcm.size} bytes) — awaiting guide response.")
+            } catch (t: Throwable) {
+                Log.w(TAG, "Test utterance injection failed", t)
+            } finally {
+                injectingTestAudio = false
+            }
+        }, "voice-test-inject").start()
     }
 
     private fun handleEvent(text: String) {

@@ -13,6 +13,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -160,6 +161,29 @@ fun VoiceModeScreen(
                         modifier = Modifier.padding(top = 16.dp)
                     )
                 }
+            }
+
+            // DEBUG only: injects a bundled recorded utterance so the full loop can be verified
+            // on an emulator (which has no real microphone). Absent from release builds.
+            if (com.bhaktichat.app.BuildConfig.DEBUG &&
+                (uiState.callState is VoiceCallState.Listening || uiState.callState is VoiceCallState.UserSpeaking)
+            ) {
+                Text(
+                    text = "▶ Inject test voice (debug)",
+                    fontSize = 13.sp,
+                    color = VoiceModePalette.TextSecondary,
+                    modifier = Modifier
+                        .padding(bottom = 16.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.10f))
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                        .clickable {
+                            val pcm = runCatching {
+                                context.assets.open("voice_test_utterance.pcm").use { it.readBytes() }
+                            }.getOrNull()
+                            if (pcm != null) viewModel.injectTestUtterance(pcm)
+                        }
+                )
             }
 
             IconButton(

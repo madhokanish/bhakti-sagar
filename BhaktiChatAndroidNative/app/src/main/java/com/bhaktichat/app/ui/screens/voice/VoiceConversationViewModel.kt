@@ -122,6 +122,11 @@ class VoiceConversationViewModel(
         }
     }
 
+    /** DEBUG: inject a bundled test utterance to exercise the full loop without a real mic. */
+    fun injectTestUtterance(pcm: ByteArray) {
+        realtimeClient.injectTestUtterance(pcm)
+    }
+
     /** Idempotent — safe to call from the composable's teardown, onCleared(), and audio-focus loss. */
     fun endCall() {
         if (!hasStarted) return

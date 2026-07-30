@@ -39,13 +39,6 @@ enum DiscoveryCatalog {
             defaultGuideId: "shani"
         ),
         DiscoverySituation(
-            id: "anxiety",
-            title: "Anxiety",
-            iconSystemName: "figure.mind.and.body",
-            prompt: "Mujhe anxiety se shaanti tak wapas lao.",
-            defaultGuideId: "shiv"
-        ),
-        DiscoverySituation(
             id: "fear",
             title: "Fear",
             iconSystemName: "leaf",
@@ -58,27 +51,6 @@ enum DiscoveryCatalog {
             iconSystemName: "heart",
             prompt: "Meri relationship problem mein mujhe guidance chahiye.",
             defaultGuideId: "krishna"
-        ),
-        DiscoverySituation(
-            id: "career_confusion",
-            title: "Career Confusion",
-            iconSystemName: "briefcase",
-            prompt: "Meri career confusion mein agla sahi kadam dikhao.",
-            defaultGuideId: "krishna"
-        ),
-        DiscoverySituation(
-            id: "exams",
-            title: "Exams",
-            iconSystemName: "book",
-            prompt: "Mujhe exams ki taiyari mein focus karne mein madad karo.",
-            defaultGuideId: "krishna"
-        ),
-        DiscoverySituation(
-            id: "discipline",
-            title: "Discipline",
-            iconSystemName: "brain.head.profile",
-            prompt: "Mujhe apni discipline mazboot karne mein madad karo.",
-            defaultGuideId: "shani"
         )
     ]
 

@@ -45,7 +45,9 @@
     "tags": [
       "annapurna",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_annapurna_ji_ki_aarati",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-annapurna-ji-ki-aarati.mp3"
   },
   {
     "id": "aarti-02",
@@ -156,7 +158,9 @@
     "tags": [
       "ekadashi",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_ekadashi_mata_ki_aarati",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-ekadashi-mata-ki-aarati.mp3"
   },
   {
     "id": "aarti-03",
@@ -230,7 +234,9 @@
     "tags": [
       "kali",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_kali_mata_ki_aarati",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-kali-mata-ki-aarati.mp3"
   },
   {
     "id": "aarti-05",
@@ -301,7 +307,9 @@
     "tags": [
       "krishna",
       "aarti"
-    ]
+    ],
+    "imageAsset": "avatar_krishna",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-krishna-ji-ki-aarati.mp3"
   },
   {
     "id": "aarti-06",
@@ -349,7 +357,9 @@
     "tags": [
       "ganga",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_ganga_ji_ki_aarati",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-ganga-ji-ki-aarati.mp3"
   },
   {
     "id": "aarti-07",
@@ -405,7 +415,44 @@
     "tags": [
       "ganesha",
       "aarti"
-    ]
+    ],
+    "audioUrl": "https://bhaktichat.com/aartis/ganesh-aarti.mp3",
+    "imageAsset": "ic_ganesh_top_aarti"
+  },
+  {
+    "id": "aarti-15",
+    "slug": "hanuman-ji-ki-aarti",
+    "category": "hanuman",
+    "isTop": true,
+    "title": {
+      "english": "Shri Hanuman Ji ki Aarati",
+      "hindi": "श्री हनुमान जी की आरती"
+    },
+    "youtubeUrl": "",
+    "audioUrl": "https://bhaktichat.com/aartis/hanuman-aarti.mp3",
+    "tags": [
+      "hanuman",
+      "morning",
+      "popular"
+    ],
+    "lyrics": {
+      "english": [
+        "Aarti kije Hanuman lala ki, dushtdalan Raghunath kala ki.",
+        "Jaake bal se girivar kaanpe, rog dosh jaake nikat na jhaanke.",
+        "Anjani putra maha baldayi, santan ke prabhu sada sahayi.",
+        "De beera Raghunath pathaye, Lanka jaari siya sudhi laaye.",
+        "Lanka so kot samundra si khaai, jaat pavansut baar na laai.",
+        "Lanka jaari asur sanhaare, Siyaram ji ke kaaj sanvaare.",
+        "Lakshman murchhit pade sakaare, aani sanjivan praan ubaare.",
+        "Paithi paataal tori jamkaare, Ahiravan ki bhuja ukhaare.",
+        "Baayen bhuja asur dal maare, dahine bhuja santjan taare.",
+        "Sur nar muni aarti utaare, jai jai jai Hanuman uchaare.",
+        "Kanchan thaar kapoor lau chhaai, aarti karat Anjana maai.",
+        "Jo Hanuman ji ki aarti gaave, basi baikunth param pad paave."
+      ],
+      "hindi": []
+    },
+    "imageAsset": "hanumanji"
   },
   {
     "id": "aarti-08",
@@ -470,7 +517,9 @@
     "tags": [
       "gayatri",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_gayatri_mata_ki_aarati",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-gayatri-mata-ki-aarati.mp3"
   },
   {
     "id": "aarti-09",
@@ -557,7 +606,9 @@
     "tags": [
       "chitragupt",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_chitragupt_ji_ki_aarati",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-chitragupt-ji-ki-aarati.mp3"
   },
   {
     "id": "aarti-10",
@@ -610,7 +661,8 @@
     "tags": [
       "tulsi",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_tulsi_ji_ki_aarati"
   },
   {
     "id": "aarti-11",
@@ -716,7 +768,9 @@
     "tags": [
       "durga",
       "aarti"
-    ]
+    ],
+    "audioUrl": "https://bhaktichat.com/aartis/durga-aarti.mp3",
+    "imageAsset": "aarti_shri_durga_ji_ki_aarati"
   },
   {
     "id": "aarti-12",
@@ -767,7 +821,9 @@
     "tags": [
       "parvati",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_parvati_ji_ki_aarati",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-parvati-ji-ki-aarati.mp3"
   },
   {
     "id": "aarti-13",
@@ -816,7 +872,9 @@
     "tags": [
       "brihaspati",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_brihaspati_dev_ki_aarati",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-brihaspati-dev-ki-aarati.mp3"
   },
   {
     "id": "aarti-14",
@@ -879,7 +937,9 @@
     "tags": [
       "vishnu",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_hari_vishnu_ji_ki_aarati",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-hari-vishnu-ji-ki-aarati.mp3"
   },
   {
     "id": "aarti-16",
@@ -942,7 +1002,9 @@
     "tags": [
       "ram",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_ramchandra_ji_ki_aarati",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-ramchandra-ji-ki-aarati.mp3"
   },
   {
     "id": "aarti-18",
@@ -1029,7 +1091,9 @@
     "tags": [
       "lakshmi",
       "aarti"
-    ]
+    ],
+    "imageAsset": "ic_lakshmi_top_aarti",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-lakshmi-ji-ki-aarati.mp3"
   },
   {
     "id": "aarti-19",
@@ -1090,7 +1154,8 @@
     "tags": [
       "lalita",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_lalita_mata_ki_aarati"
   },
   {
     "id": "aarti-20",
@@ -1143,7 +1208,9 @@
     "tags": [
       "vaishno",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_vaishno_devi_ki_aarati",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-vaishno-devi-ki-aarati.mp3"
   },
   {
     "id": "aarti-21",
@@ -1184,7 +1251,9 @@
     "tags": [
       "shani",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_shani_dev_ji_ki_aarati",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-shani-dev-ji-ki-aarati.mp3"
   },
   {
     "id": "aarti-22",
@@ -1250,7 +1319,9 @@
       "aarti",
       "om jai shiv omkara",
       "mahashivratri"
-    ]
+    ],
+    "imageAsset": "ic_shiv_top_aarti",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-shiv-ji-ki-aarati.mp3"
   },
   {
     "id": "aarti-23",
@@ -1317,7 +1388,9 @@
     "tags": [
       "santoshi",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_santoshi_mata_ki_aarati",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-santoshi-mata-ki-aarati.mp3"
   },
   {
     "id": "aarti-24",
@@ -1394,7 +1467,9 @@
     "tags": [
       "vishnu",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_satyanarayan_ji_ki_aarati",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-satyanarayan-ji-ki-aarati.mp3"
   },
   {
     "id": "aarti-25",
@@ -1473,7 +1548,9 @@
     "tags": [
       "saraswati",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_saraswati_ji_ki_aarati",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-saraswati-ji-ki-aarati.mp3"
   },
   {
     "id": "aarti-26",
@@ -1529,7 +1606,9 @@
     "tags": [
       "sita",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_sita_ji_ki_aarati",
+    "audioUrl": "https://bhaktichat.com/aartis/shri-sita-ji-ki-aarati.mp3"
   },
   {
     "id": "aarti-27",
@@ -1604,6 +1683,7 @@
     "tags": [
       "surya",
       "aarti"
-    ]
+    ],
+    "imageAsset": "aarti_shri_surya_dev_ki_aarati"
   }
 ]

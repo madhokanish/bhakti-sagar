@@ -18,18 +18,12 @@ struct BannerAdView: UIViewRepresentable {
         let banner = GADBannerView(adSize: GADAdSizeBanner)
         banner.adUnitID = adUnitId
         banner.delegate = context.coordinator
-        banner.rootViewController = Self.topViewController()
+        banner.rootViewController = TopViewController.find()
         banner.load(GADRequest())
         return banner
     }
 
     func updateUIView(_ uiView: GADBannerView, context: Context) {}
-
-    private static func topViewController() -> UIViewController? {
-        UIApplication.shared.connectedScenes
-            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-            .first?.rootViewController
-    }
 
     final class Coordinator: NSObject, GADBannerViewDelegate {
         let placement: String

@@ -36,7 +36,9 @@ enum AartiRepository {
                 youtubeVideoId: extractYouTubeVideoId(from: item.youtubeUrl),
                 popularityCount: item.popularityCount,
                 isTop: item.isTop,
-                lyrics: selectedLyrics
+                lyrics: selectedLyrics,
+                audioUrl: item.audioUrl?.nonEmpty,
+                imageAsset: item.imageAsset?.nonEmpty
             )
         }
         cachedAartis = mapped
@@ -64,6 +66,8 @@ private struct RawAarti: Decodable {
     let lyrics: RawLyrics
     let tags: [String]
     let popularityCount: Int?
+    let audioUrl: String?
+    let imageAsset: String?
 }
 
 private func resolveDeity(category: String, tags: [String], title: String) -> Deity {

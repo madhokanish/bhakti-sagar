@@ -8,6 +8,7 @@ struct DivineImageResultScreen: View {
     let creationId: String
 
     @EnvironmentObject private var appState: AppState
+    @Environment(\.dismiss) private var dismiss
     @State private var saveState: SaveState = .idle
     @State private var localFeedbackRating: String?
     @State private var interstitialShown = false
@@ -76,6 +77,7 @@ struct DivineImageResultScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: BhaktiTheme.Spacing.xl) {
+                topBar
                 imageCard
                 if status == .success { actionBar }
                 if shouldShowFeedback { feedbackCard }
@@ -84,8 +86,7 @@ struct DivineImageResultScreen: View {
             .padding(BhaktiTheme.Spacing.lg)
         }
         .bhaktiPageBackground()
-        .bhaktiInlineNavigationTitle()
-        .navigationTitle(status == .generating ? "Creating…" : "Divine Image")
+        .bhaktiHideNavigationBar()
         .onAppear {
             // Seed local state from any previously persisted rating.
             if localFeedbackRating == nil {
@@ -100,12 +101,42 @@ struct DivineImageResultScreen: View {
             #if os(iOS)
             guard !interstitialShown, status == .generating else { return }
             interstitialShown = true
-            let topViewController = UIApplication.shared.connectedScenes
-                .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-                .first?.rootViewController
-            InterstitialAdManager.shared.loadThenShow(from: topViewController, placement: "divine_generation")
+            // TopViewController.find() walks to the true frontmost controller rather than
+            // just rootViewController — still correct even now that this screen is an
+            // ordinary pushed destination, not a modal (see TopViewController.swift).
+            InterstitialAdManager.shared.loadThenShow(from: TopViewController.find(), placement: "divine_generation")
             #endif
         }
+    }
+
+    // MARK: - Top bar
+
+    private var topBar: some View {
+        AppTopBar(
+            leftContent: {
+                Button { dismiss() } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(BhaktiTheme.textPrimary)
+                        .frame(width: 40, height: 40)
+                        .background(BhaktiTheme.surface)
+                        .overlay(Circle().stroke(BhaktiTheme.border, lineWidth: 1))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Back")
+            },
+            centerContent: {
+                Text(status == .generating ? "Creating…" : "Divine Image")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(BhaktiTheme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            },
+            rightContent: {
+                Color.clear.frame(width: 40, height: 40)
+            }
+        )
     }
 
     // MARK: - Feedback card (A/B test)

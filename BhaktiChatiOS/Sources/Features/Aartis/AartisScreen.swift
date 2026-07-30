@@ -2,12 +2,19 @@ import SwiftUI
 
 struct AartisScreen: View {
     @EnvironmentObject private var appState: AppState
+    @ObservedObject private var player = AartiPlayer.shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var aartis: [Aarti] = []
     @State private var errorText: String?
     @State private var query = ""
     @State private var selectedFilter = "all"
+    @State private var showNowPlaying = false
+
+    /// Every aarti with a real audio track, in list order — the continuous queue.
+    private var audioAartis: [Aarti] {
+        aartis.filter { $0.hasAudio }
+    }
 
     private var filteredAartis: [Aarti] {
         aartis
@@ -35,11 +42,16 @@ struct AartisScreen: View {
     }
 
     var body: some View {
+        ZStack(alignment: .bottom) {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 topBar
                 searchField
                 filtersRow
+
+                if !audioAartis.isEmpty, query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, selectedFilter == "all" {
+                    playAllCard
+                }
 
                 #if os(iOS)
                 // UIViewRepresentable doesn't reliably adopt GADBannerView's intrinsic
@@ -60,7 +72,7 @@ struct AartisScreen: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 12)
-            .padding(.bottom, BhaktiBottomNavBar.overlayClearance)
+            .padding(.bottom, BhaktiBottomNavBar.overlayClearance + (player.hasQueue ? 76 : 0))
         }
         .bhaktiPageBackground()
         .bhaktiHideNavigationBar()
@@ -72,6 +84,111 @@ struct AartisScreen: View {
                 errorText = error.localizedDescription
             }
         }
+
+        if player.hasQueue {
+            MiniPlayerBar(
+                player: player,
+                onPlayPause: { player.togglePlayPause() },
+                onNext: { player.next() },
+                onStop: { player.stop() },
+                onExpand: { showNowPlaying = true }
+            )
+            .padding(.horizontal, 12)
+            .padding(.bottom, BhaktiBottomNavBar.overlayClearance + 8)
+        }
+        }
+        #if os(iOS)
+        .fullScreenCover(isPresented: $showNowPlaying) {
+            AartiNowPlayingScreen()
+        }
+        #else
+        .sheet(isPresented: $showNowPlaying) {
+            AartiNowPlayingScreen()
+        }
+        #endif
+    }
+
+    private var playAllCard: some View {
+        Button {
+            player.playQueue(audioAartis, startId: audioAartis.first?.id)
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle().fill(BhaktiTheme.accentPrimary).frame(width: 44, height: 44)
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Play all aartis")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(BhaktiTheme.textPrimary)
+                    Text("\(audioAartis.count) aartis • continuous playback")
+                        .font(.caption)
+                        .foregroundStyle(BhaktiTheme.textSecondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity)
+            .background(BhaktiTheme.accentPrimary.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // A row that navigates to the lyrics on tap, with an independent play button overlaid on the
+    // trailing edge for audio-having aartis (the play button is a sibling of the NavigationLink so
+    // its taps don't trigger navigation).
+    @ViewBuilder
+    private func playableRow(_ aarti: Aarti) -> some View {
+        ZStack(alignment: .trailing) {
+            NavigationLink {
+                AartiDetailScreen(aarti: aarti)
+            } label: {
+                AartiRowCard(
+                    aarti: aarti,
+                    trailingContent: aarti.hasAudio ? { AnyView(rowTrailingReserve(aarti)) } : nil
+                )
+            }
+            .buttonStyle(.plain)
+
+            if aarti.hasAudio {
+                playButton(for: aarti)
+                    .padding(.trailing, 14)
+            }
+        }
+    }
+
+    private func rowTrailingReserve(_ aarti: Aarti) -> some View {
+        HStack(spacing: 10) {
+            if appState.isAartiSaved(aarti.id) {
+                Image(systemName: "bookmark.fill")
+                    .foregroundStyle(BhaktiTheme.accentWarm)
+                    .accessibilityLabel("Saved")
+            }
+            Color.clear.frame(width: 32, height: 32)
+        }
+    }
+
+    private func playButton(for aarti: Aarti) -> some View {
+        let isCurrent = player.currentAartiId == aarti.id
+        let showPause = isCurrent && player.isPlaying
+        return Button {
+            if isCurrent {
+                player.togglePlayPause()
+            } else {
+                player.playQueue(audioAartis, startId: aarti.id)
+            }
+        } label: {
+            Image(systemName: showPause ? "pause.circle.fill" : "play.circle.fill")
+                .font(.system(size: 30))
+                .foregroundStyle(BhaktiTheme.accentPrimary)
+        }
+        .buttonStyle(.plain)
+        .contentShape(Circle())
+        .accessibilityLabel(showPause ? "Pause \(aarti.title)" : "Play \(aarti.title)")
     }
 
     private var loadingState: some View {
@@ -208,45 +325,57 @@ struct AartisScreen: View {
                     .foregroundStyle(BhaktiTheme.accentPrimary)
                     .padding(.horizontal, 4)
 
-                NavigationLink {
-                    AartiDetailScreen(aarti: featuredAarti)
-                } label: {
-                    VStack(alignment: .leading, spacing: 10) {
-                        AartiRowCard(
-                            aarti: featuredAarti,
-                            highlighted: true,
-                            trailingContent: {
-                                AnyView(
-                                    HStack(spacing: 8) {
-                                        if appState.isAartiSaved(featuredAarti.id) {
-                                            Image(systemName: "bookmark.fill")
-                                                .foregroundStyle(BhaktiTheme.accentWarm)
-                                                .accessibilityLabel("Saved")
+                ZStack(alignment: .topTrailing) {
+                    NavigationLink {
+                        AartiDetailScreen(aarti: featuredAarti)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 10) {
+                            AartiRowCard(
+                                aarti: featuredAarti,
+                                highlighted: true,
+                                trailingContent: {
+                                    AnyView(
+                                        HStack(spacing: 8) {
+                                            if appState.isAartiSaved(featuredAarti.id) {
+                                                Image(systemName: "bookmark.fill")
+                                                    .foregroundStyle(BhaktiTheme.accentWarm)
+                                                    .accessibilityLabel("Saved")
+                                            }
+                                            if featuredAarti.hasAudio {
+                                                Color.clear.frame(width: 32, height: 32)
+                                            } else {
+                                                Text("Read")
+                                                    .font(.subheadline.weight(.semibold))
+                                                    .foregroundStyle(BhaktiTheme.accentPrimary)
+                                            }
                                         }
-                                        Text("Play")
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundStyle(BhaktiTheme.accentPrimary)
-                                    }
-                                )
-                            }
-                        )
+                                    )
+                                }
+                            )
 
-                        Text(featuredAarti.preview)
-                            .font(.subheadline)
-                            .foregroundStyle(BhaktiTheme.textSecondary)
-                            .lineLimit(3)
-                            .padding(.horizontal, 14)
-                            .padding(.bottom, 4)
+                            Text(featuredAarti.preview)
+                                .font(.subheadline)
+                                .foregroundStyle(BhaktiTheme.textSecondary)
+                                .lineLimit(3)
+                                .padding(.horizontal, 14)
+                                .padding(.bottom, 4)
+                        }
+                        .padding(8)
+                        .background(BhaktiTheme.surface.opacity(0.96))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(BhaktiTheme.border, lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
                     }
-                    .padding(8)
-                    .background(BhaktiTheme.surface.opacity(0.96))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(BhaktiTheme.border, lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .buttonStyle(.plain)
+
+                    if featuredAarti.hasAudio {
+                        playButton(for: featuredAarti)
+                            .padding(.top, 26)
+                            .padding(.trailing, 22)
+                    }
                 }
-                .buttonStyle(.plain)
             }
         }
 
@@ -270,12 +399,7 @@ struct AartisScreen: View {
         } else {
             VStack(spacing: 0) {
                 ForEach(Array(remainingAartis.enumerated()), id: \.element.id) { index, aarti in
-                    NavigationLink {
-                        AartiDetailScreen(aarti: aarti)
-                    } label: {
-                        AartiRowCard(aarti: aarti)
-                    }
-                    .buttonStyle(.plain)
+                    playableRow(aarti)
 
                     if index < remainingAartis.count - 1 {
                         Divider()
@@ -293,6 +417,88 @@ struct AartisScreen: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 20))
         }
+    }
+}
+
+/// Floating Spotify-style now-playing bar; visible whenever a queue is loaded.
+private struct MiniPlayerBar: View {
+    @ObservedObject var player: AartiPlayer
+    let onPlayPause: () -> Void
+    let onNext: () -> Void
+    let onStop: () -> Void
+    let onExpand: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(player.title.isEmpty ? "Aarti" : player.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(BhaktiTheme.textPrimary)
+                        .lineLimit(1)
+                    Text(player.isBuffering ? "Buffering…" : (player.subtitle.isEmpty ? "Now playing" : player.subtitle))
+                        .font(.caption)
+                        .foregroundStyle(BhaktiTheme.textSecondary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 8)
+
+                Button(action: onPlayPause) {
+                    Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(BhaktiTheme.accentPrimary)
+                        .frame(width: 40, height: 40)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(player.isPlaying ? "Pause" : "Play")
+
+                Button(action: onNext) {
+                    Image(systemName: "forward.end.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(BhaktiTheme.textPrimary)
+                        .frame(width: 40, height: 40)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Next aarti")
+
+                Button(action: onStop) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(BhaktiTheme.textSecondary)
+                        .frame(width: 40, height: 40)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Stop playback")
+            }
+            .padding(.leading, 16)
+            .padding(.trailing, 4)
+            .padding(.vertical, 6)
+
+            // Thin progress line, like Spotify's mini-player.
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(BhaktiTheme.accentPrimary.opacity(0.15))
+                    Rectangle()
+                        .fill(BhaktiTheme.accentPrimary)
+                        .frame(width: max(0, geo.size.width * player.progress))
+                }
+            }
+            .frame(height: 3)
+            .animation(.linear(duration: 0.3), value: player.progress)
+        }
+        .background(BhaktiTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(BhaktiTheme.border, lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 2)
+        // Tapping the bar (incl. the Spacer gaps) expands to the full-screen player, and the
+        // contentShape ensures the whole bar absorbs the tap so nothing leaks through to the
+        // list rows behind the floating overlay.
+        .contentShape(Rectangle())
+        .onTapGesture { onExpand() }
     }
 }
 

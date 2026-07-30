@@ -7,29 +7,39 @@ struct WallpapersScreen: View {
         GridItem(.flexible(), spacing: 12),
         GridItem(.flexible(), spacing: 12)
     ]
+    private let horizontalPadding: CGFloat = 16
+    private let columnSpacing: CGFloat = 12
+    private let tileAspectRatio: CGFloat = 0.72
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Deity wallpapers to save, share, or set as your status")
-                    .font(.system(size: 13))
-                    .foregroundStyle(ExplorePalette.textSecondary)
+        GeometryReader { proxy in
+            let tileWidth = (proxy.size.width - horizontalPadding * 2 - columnSpacing) / 2
 
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(WallpapersCatalog.all) { wallpaper in
-                        NavigationLink {
-                            WallpaperDetailScreen(wallpaper: wallpaper)
-                        } label: {
-                            WallpaperTile(wallpaper: wallpaper)
-                                .frame(maxWidth: .infinity)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Deity wallpapers to save, share, or set as your status")
+                        .font(.system(size: 13))
+                        .foregroundStyle(ExplorePalette.textSecondary)
+
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        ForEach(WallpapersCatalog.all) { wallpaper in
+                            NavigationLink {
+                                WallpaperDetailScreen(wallpaper: wallpaper)
+                            } label: {
+                                WallpaperTile(
+                                    wallpaper: wallpaper,
+                                    width: tileWidth,
+                                    height: tileWidth / tileAspectRatio
+                                )
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
+                .padding(.horizontal, horizontalPadding)
+                .padding(.top, 8)
+                .padding(.bottom, BhaktiBottomNavBar.overlayClearance + 12)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, BhaktiBottomNavBar.overlayClearance + 12)
         }
         .bhaktiPageBackground()
         .navigationTitle("Wallpapers")
@@ -39,12 +49,15 @@ struct WallpapersScreen: View {
 
 private struct WallpaperTile: View {
     let wallpaper: Wallpaper
+    let width: CGFloat
+    let height: CGFloat
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             PackageAssetLoader.image(named: wallpaper.assetName)
                 .resizable()
                 .scaledToFill()
+                .frame(width: width, height: height)
                 .clipped()
 
             LinearGradient(
@@ -81,7 +94,7 @@ private struct WallpaperTile: View {
             }
             .padding(14)
         }
-        .aspectRatio(0.72, contentMode: .fit)
+        .frame(width: width, height: height)
         .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }

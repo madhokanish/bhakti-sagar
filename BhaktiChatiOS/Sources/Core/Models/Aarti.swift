@@ -23,6 +23,15 @@ struct Aarti: Identifiable, Codable, Hashable {
     let popularityCount: Int?
     let isTop: Bool
     let lyrics: [String]
+    let audioUrl: String?
+    /// Per-aarti generated artwork (PackageAssetLoader asset name), when this specific aarti
+    /// has its own image rather than sharing a generic per-deity fallback.
+    let imageAsset: String?
+
+    var hasAudio: Bool {
+        guard let audioUrl else { return false }
+        return !audioUrl.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     var subtitle: String? {
         titleHi
@@ -47,6 +56,7 @@ struct Aarti: Identifiable, Codable, Hashable {
     }
 
     var hasArtwork: Bool {
+        if imageAsset != nil { return true }
         switch deity {
         case .ganesh, .shiv, .lakshmi, .krishna, .hanuman:
             return true

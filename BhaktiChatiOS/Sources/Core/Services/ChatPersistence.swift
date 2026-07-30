@@ -29,4 +29,9 @@ actor ChatPersistence {
         guard let data = try? encoder.encode(state) else { return }
         try? data.write(to: fileURL, options: [.atomic])
     }
+
+    /// Wipes the on-disk legacy store — used by account deletion so nothing lingers to re-migrate.
+    func clear() {
+        try? FileManager.default.removeItem(at: fileURL)
+    }
 }

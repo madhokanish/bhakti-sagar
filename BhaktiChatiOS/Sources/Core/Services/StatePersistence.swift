@@ -52,6 +52,18 @@ actor StatePersistence {
         return .empty
     }
 
+    /// Permanently removes all persisted chat state (CoreData blob + legacy JSON). Used by
+    /// account deletion — after this, a fresh launch loads `.empty`.
+    func clear() async {
+        await performBackgroundTask { context in
+            let request = NSFetchRequest<NSFetchRequestResult>(entityName: "AppStateBlob")
+            let deleteRequest = NSBatchDeleteRequest(fetchRequest: request)
+            _ = try? context.execute(deleteRequest)
+            if context.hasChanges { try? context.save() }
+        }
+        await legacy.clear()
+    }
+
     func save(_ state: PersistedChatState) async {
         guard let payload = try? encoder.encode(state) else { return }
 

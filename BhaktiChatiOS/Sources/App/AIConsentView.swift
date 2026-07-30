@@ -37,17 +37,17 @@ struct AIConsentView: View {
                     consentRow(
                         icon: "paperplane.fill",
                         title: "What is sent",
-                        body: "The text of the messages you send, and any photo you choose to add for a Divine Image."
+                        body: "The text of the messages you send, any photo you add for a Divine Image, and — during a voice call — the audio of your voice."
                     )
                     consentRow(
                         icon: "building.2.fill",
                         title: "Who it goes to",
-                        body: "Our AI provider, OpenAI, which processes it only to generate a reply. It is not used to train AI models."
+                        body: "OpenAI, L.L.C. (our AI provider), which processes it only to generate a reply. It is not used to train AI models."
                     )
                     consentRow(
                         icon: "hand.raised.fill",
                         title: "Your choice",
-                        body: "Nothing is sent until you send a message or create a Divine Image. You can stop anytime."
+                        body: "Nothing is sent until you send a message, start a voice call, or create a Divine Image. You can stop anytime."
                     )
                 }
                 .padding(18)
@@ -83,7 +83,7 @@ struct AIConsentView: View {
                 }
                 .buttonStyle(.plain)
 
-                Text("By tapping Agree & Continue, you consent to your messages and any photos you add being sent to OpenAI to generate responses, as described above and in our Privacy Policy.")
+                Text("By tapping Agree & Continue, you consent to your messages, any photos you add, and your voice audio during a call being sent to OpenAI, L.L.C. to generate responses, as described above and in our Privacy Policy.")
                     .font(.system(size: 11.5))
                     .foregroundStyle(BhaktiTheme.textTertiary)
                     .multilineTextAlignment(.center)

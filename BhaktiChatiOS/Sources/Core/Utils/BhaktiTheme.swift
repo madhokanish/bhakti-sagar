@@ -7,7 +7,7 @@ enum BhaktiTheme {
     // MARK: - Backgrounds
     static var background: Color {
         Color.dynamic(
-            light: Color(red: 245/255, green: 247/255, blue: 250/255),   // #F5F7FA — very light blue-gray
+            light: Color(red: 251/255, green: 247/255, blue: 243/255),   // #FBF7F3 — warm cream (v2 devotional tone)
             dark:  Color(red: 15/255,  green: 15/255,  blue: 17/255)     // #0F0F11
         )
     }
@@ -39,24 +39,29 @@ enum BhaktiTheme {
     static let accentSuccess    = Color(red: 34/255,  green: 197/255, blue: 94/255)    // #22C55E
 
     // MARK: - Text
+    // v2 warm palette — brown-biased neutrals to sit on the #FBF7F3 cream ground.
     static var textPrimary: Color {
         Color.dynamic(
-            light: Color(red: 24/255,  green: 24/255,  blue: 27/255),    // #18181B — zinc-900
+            light: Color(red: 28/255,  green: 20/255,  blue: 16/255),    // #1C1410
             dark:  Color(red: 244/255, green: 244/255, blue: 245/255)    // #F4F4F5 — zinc-100
         )
     }
     static var textSecondary: Color {
         Color.dynamic(
-            light: Color(red: 113/255, green: 113/255, blue: 122/255),   // #71717A — zinc-500
+            light: Color(red: 138/255, green: 111/255, blue: 92/255),    // #8A6F5C
             dark:  Color(red: 161/255, green: 161/255, blue: 170/255)    // #A1A1AA — zinc-400
         )
     }
     static var textTertiary: Color {
         Color.dynamic(
-            light: Color(red: 161/255, green: 161/255, blue: 170/255),   // #A1A1AA — zinc-400
+            light: Color(red: 189/255, green: 164/255, blue: 145/255),   // #BDA491
             dark:  Color(red: 113/255, green: 113/255, blue: 122/255)    // #71717A — zinc-500
         )
     }
+
+    /// Deep accent for links / "See all" affordances and warm headings.
+    static let accentDeep   = Color(red: 194/255, green: 65/255,  blue: 12/255)    // #C2410C
+    static let headingWarm  = Color(red: 92/255,  green: 59/255,  blue: 34/255)    // #5C3B22
 
     // MARK: - Gradients
     static var pageGradient: LinearGradient {

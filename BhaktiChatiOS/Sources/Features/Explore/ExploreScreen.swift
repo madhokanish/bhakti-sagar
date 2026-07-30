@@ -3,20 +3,22 @@ import SwiftUI
 /// The "Explore" tab: featured Divine Image, service rows (Aartis/Choghadiya/Festivals/
 /// Panchang), and cosmetic "Coming soon" placeholders. Mirrors Android's `ExploreScreen`
 /// in `ui/screens/explore/ExploreScreen.kt` (design_handoff_bhaktichat_ia).
+private enum ExploreRoute: Hashable {
+    case divineHome
+    case divineCreate(templateId: String)
+    case divineResult(creationId: String)
+}
+
 struct ExploreScreen: View {
-    // DivineImageHomeScreen owns its own internal NavigationStack (create/result
-    // sub-routing). SwiftUI does not support nesting a NavigationStack inside another
-    // NavigationStack's push destination — doing so via NavigationLink broke safe-area/
-    // status-bar layout on screens further down that stack. Present it modally instead,
-    // so its NavigationStack is a genuine top-level stack again.
-    @State private var showDivineImage = false
+    @EnvironmentObject private var appState: AppState
+    @State private var path: [ExploreRoute] = []
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     Button {
-                        showDivineImage = true
+                        path.append(.divineHome)
                     } label: {
                         FeaturedDivineImageCard()
                     }
@@ -102,16 +104,28 @@ struct ExploreScreen: View {
             .bhaktiPageBackground()
             .bhaktiHideNavigationBar()
             .safeAreaInset(edge: .top, spacing: 0) { topBar }
+            .navigationDestination(for: ExploreRoute.self) { route in
+                switch route {
+                case .divineHome:
+                    DivineImageHomeScreen { templateId in
+                        path.append(.divineCreate(templateId: templateId))
+                    }
+                case let .divineCreate(templateId):
+                    if let template = DivineTemplateCatalog.byId(templateId) {
+                        DivineImageCreateScreen(template: template) { creationId in
+                            path.append(.divineResult(creationId: creationId))
+                        }
+                        .environmentObject(appState)
+                    } else {
+                        Text("Template not found")
+                            .foregroundStyle(BhaktiTheme.textSecondary)
+                            .bhaktiPageBackground()
+                    }
+                case let .divineResult(creationId):
+                    DivineImageResultScreen(creationId: creationId)
+                }
+            }
         }
-        #if os(iOS)
-        .fullScreenCover(isPresented: $showDivineImage) {
-            DivineImageHomeScreen()
-        }
-        #else
-        .sheet(isPresented: $showDivineImage) {
-            DivineImageHomeScreen()
-        }
-        #endif
     }
 
     // MARK: - Top bar

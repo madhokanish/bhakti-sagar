@@ -8,7 +8,11 @@ struct AartiDetailScreen: View {
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var bookmarks: BookmarkStore
     @StateObject private var player = AartiSpeechPlayer()
+    @ObservedObject private var audioPlayer = AartiPlayer.shared
     @Environment(\.dismiss) private var dismiss
+
+    private var isAudioCurrent: Bool { audioPlayer.currentAartiId == aarti.id }
+    private var isAudioPlayingThis: Bool { isAudioCurrent && audioPlayer.isPlaying }
 
     let aarti: Aarti
 
@@ -63,15 +67,35 @@ struct AartiDetailScreen: View {
             },
             rightContent: {
                 HStack(spacing: 12) {
-                    Button {
-                        player.toggle(text: spokenText)
-                    } label: {
-                        Image(systemName: player.isSpeaking ? "stop.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundStyle(player.isSpeaking ? BhaktiTheme.accentError : BhaktiTheme.accentPrimary)
+                    if aarti.hasAudio {
+                        // Real recorded aarti — play the audio track, not the text-to-speech reading.
+                        Button {
+                            if isAudioCurrent {
+                                audioPlayer.togglePlayPause()
+                            } else {
+                                player.stop()
+                                let all = (try? AartiRepository.loadAartis()) ?? [aarti]
+                                audioPlayer.playQueue(all, startId: aarti.id)
+                            }
+                        } label: {
+                            Image(systemName: isAudioPlayingThis ? "pause.circle.fill" : "play.circle.fill")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundStyle(BhaktiTheme.accentPrimary)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(isAudioPlayingThis ? "Pause aarti" : "Play aarti")
+                    } else {
+                        // No recording available — fall back to reading the lyrics aloud (TTS).
+                        Button {
+                            player.toggle(text: spokenText)
+                        } label: {
+                            Image(systemName: player.isSpeaking ? "stop.circle.fill" : "play.circle.fill")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundStyle(player.isSpeaking ? BhaktiTheme.accentError : BhaktiTheme.accentPrimary)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(player.isSpeaking ? "Stop reading aarti" : "Read aarti aloud")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(player.isSpeaking ? "Stop reading aarti" : "Read aarti aloud")
 
                     Button {
                         bookmarks.toggleAarti(aarti.slug)

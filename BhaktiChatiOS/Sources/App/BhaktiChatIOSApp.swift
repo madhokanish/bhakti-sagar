@@ -14,6 +14,14 @@ public struct BhaktiChatAppRoot: View {
     @AppStorage("bhakti_theme_mode") private var themeMode: String = "system"
     // First-launch consent for third-party AI processing (App Store Guideline 5.1.1(i)/5.1.2(i)).
     @AppStorage("bhakti_ai_consent_v1") private var aiConsented: Bool = false
+    // Daily reminder auto-enrollment — everyone starts opted in at 10am; they can turn it off
+    // in Account. Keys shared with ProfileScreen's manual toggle.
+    @AppStorage("bhakti_notifications_enabled") private var notificationsEnabled: Bool = true
+    @AppStorage("bhakti_reminder_hour") private var reminderHour: Int = 10
+    @AppStorage("bhakti_reminder_minute") private var reminderMinute: Int = 0
+    // One-time gate so this only ever requests the system permission once per device — it must
+    // NOT re-fire and re-nag a user who has since turned notifications off themselves.
+    @AppStorage("bhakti_notifications_autoenroll_v1") private var didAutoEnrollNotifications: Bool = false
     @Environment(\.scenePhase) private var scenePhase
     #if os(iOS)
     @Environment(\.requestReview) private var requestReview
@@ -30,6 +38,22 @@ public struct BhaktiChatAppRoot: View {
     }
 
     public var body: some View {
+        // HARD GATE: until the user agrees to third-party AI processing (Guideline 5.1.1(i)),
+        // the main app — and therefore every ads/analytics/data path inside it — is not even
+        // constructed. This is deliberately a view swap, not a `.fullScreenCover`: a cover can
+        // lose a presentation race to the UMP ad-consent form (UIKit) and silently fail to show,
+        // which would let the app reach chat/voice without the OpenAI disclosure ever appearing.
+        Group {
+            if aiConsented {
+                mainApp
+            } else {
+                AIConsentView(onAgree: { aiConsented = true })
+                    .preferredColorScheme(preferredScheme)
+            }
+        }
+    }
+
+    private var mainApp: some View {
         RootTabView()
             .environmentObject(appState)
             .environmentObject(bookmarks)
@@ -102,23 +126,28 @@ public struct BhaktiChatAppRoot: View {
                 Task.detached(priority: .background) {
                     GADMobileAds.sharedInstance().start(completionHandler: nil)
                 }
-                let topViewController = UIApplication.shared.connectedScenes
-                    .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-                    .first?.rootViewController
-                AdsConsentManager.gather(from: topViewController) {
+                AdsConsentManager.gather(from: TopViewController.find()) {
                     InterstitialAdManager.shared.load()
                 }
             }
             #endif
+            // Auto-enroll everyone into the 10am daily reminder, once per device. Also deferred
+            // until after AI consent so the system notification prompt doesn't stack on top of
+            // the consent screen. Runs exactly once (didAutoEnrollNotifications gate) — after
+            // that, the toggle in Account is the only thing that changes this setting, so a user
+            // who turns it off stays off.
+            .task(id: aiConsented) {
+                guard aiConsented, !didAutoEnrollNotifications else { return }
+                didAutoEnrollNotifications = true
+                notificationsEnabled = true
+                reminderHour = 10
+                reminderMinute = 0
+                DailyReminderScheduler.requestAuthorizationAndSchedule(hour: 10, minute: 0) { granted in
+                    notificationsEnabled = granted
+                }
+            }
             .onOpenURL { url in
                 _ = NativeAuthService.handleOpenURL(url)
             }
-            // Consent gate: shown over everything on first launch until the user agrees, so no
-            // message or photo can reach the AI provider before consent is given.
-            #if os(iOS)
-            .fullScreenCover(isPresented: Binding(get: { !aiConsented }, set: { _ in })) {
-                AIConsentView(onAgree: { aiConsented = true })
-            }
-            #endif
     }
 }

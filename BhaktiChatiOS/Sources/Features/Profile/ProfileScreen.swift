@@ -4,14 +4,6 @@ import SwiftUI
 import AuthenticationServices
 #endif
 
-#if canImport(UserNotifications)
-import UserNotifications
-#endif
-
-#if canImport(UIKit)
-import UIKit
-#endif
-
 struct ProfileScreen: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appState: AppState
@@ -20,10 +12,14 @@ struct ProfileScreen: View {
     @State private var isGoogleSigningIn = false
     @State private var showGoogleSetupAlert = false
     @State private var showLogoutConfirmation = false
+    @State private var showDeleteConfirmation = false
+    @State private var isDeletingAccount = false
 
     @AppStorage("bhakti_theme_mode") private var themeMode: String = "system"
-    @AppStorage("bhakti_notifications_enabled") private var notificationsEnabled: Bool = false
-    @AppStorage("bhakti_reminder_hour") private var reminderHour: Int = 8
+    // Auto-enrolled at app launch (see BhaktiChatIOSApp) — everyone starts with the daily
+    // reminder on at 10am; these defaults just match that so a fresh read is consistent.
+    @AppStorage("bhakti_notifications_enabled") private var notificationsEnabled: Bool = true
+    @AppStorage("bhakti_reminder_hour") private var reminderHour: Int = 10
     @AppStorage("bhakti_reminder_minute") private var reminderMinute: Int = 0
     @State private var notificationPermissionDenied = false
 
@@ -34,13 +30,14 @@ struct ProfileScreen: View {
 
                 if appState.authSession.isLoggedIn {
                     signedInContent
-                    themeSection
-                    notificationsSection
                 } else {
-                    // Sign-in layout is intentionally minimal — no app
-                    // preferences here, those only appear once signed in.
                     signedOutContent
                 }
+
+                // Theme and Notifications are device-level preferences, not account data — show
+                // them regardless of sign-in state so a signed-out user can still control them.
+                themeSection
+                notificationsSection
             }
             .padding(.horizontal, 16)
             .padding(.top, 12)
@@ -58,6 +55,19 @@ struct ProfileScreen: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("You can sign back in at any time.")
+        }
+        .confirmationDialog("Delete your account?", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+            Button("Delete account", role: .destructive) {
+                isDeletingAccount = true
+                Task {
+                    await appState.deleteAccount()
+                    isDeletingAccount = false
+                    dismiss()
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently deletes your account and all your data on this device — conversations, saved aartis, bookmarks, and preferences. This can’t be undone.")
         }
         .alert("Google Sign-In isn’t ready yet", isPresented: $showGoogleSetupAlert) {
             Button("OK", role: .cancel) {}
@@ -257,6 +267,41 @@ struct ProfileScreen: View {
                 }
                 .buttonStyle(BhaktiPressEffect())
             }
+
+            // Account deletion — required by App Store Guideline 5.1.1(v). Kept visually quieter
+            // than Log out (a text button) since it's destructive and irreversible.
+            Button {
+                showDeleteConfirmation = true
+            } label: {
+                HStack(spacing: 8) {
+                    if isDeletingAccount {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .tint(BhaktiTheme.accentError)
+                    } else {
+                        Image(systemName: "trash")
+                            .font(.system(size: 14, weight: .semibold))
+                            .accessibilityHidden(true)
+                    }
+                    Text(isDeletingAccount ? "Deleting…" : "Delete account")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .foregroundStyle(BhaktiTheme.accentError)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(BhaktiTheme.accentError.opacity(0.4), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(isDeletingAccount)
+            .accessibilityLabel("Delete account")
+
+            Text("Permanently deletes your account and all data on this device.")
+                .font(.footnote)
+                .foregroundStyle(BhaktiTheme.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 
@@ -405,9 +450,12 @@ struct ProfileScreen: View {
                     set: { newValue in
                         notificationsEnabled = newValue
                         if newValue {
-                            requestNotificationPermission()
+                            DailyReminderScheduler.requestAuthorizationAndSchedule(hour: reminderHour, minute: reminderMinute) { granted in
+                                notificationPermissionDenied = !granted
+                                notificationsEnabled = granted
+                            }
                         } else {
-                            cancelDailyReminder()
+                            DailyReminderScheduler.cancel()
                         }
                     }
                 ))
@@ -438,7 +486,7 @@ struct ProfileScreen: View {
                                 let minute = components.minute ?? reminderMinute
                                 reminderHour = hour
                                 reminderMinute = minute
-                                scheduleDailyReminder(hour: hour, minute: minute)
+                                DailyReminderScheduler.schedule(hour: hour, minute: minute)
                             }
                         ),
                         displayedComponents: [.hourAndMinute]
@@ -471,56 +519,6 @@ struct ProfileScreen: View {
         return Calendar.current.date(from: components) ?? Date()
     }
 
-    private func requestNotificationPermission() {
-        #if canImport(UserNotifications)
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
-            DispatchQueue.main.async {
-                if granted {
-                    notificationPermissionDenied = false
-                    #if canImport(UIKit)
-                    UIApplication.shared.registerForRemoteNotifications()
-                    #endif
-                    scheduleDailyReminder(hour: reminderHour, minute: reminderMinute)
-                } else {
-                    notificationsEnabled = false
-                    notificationPermissionDenied = true
-                }
-            }
-        }
-        #endif
-    }
-
-    // Notification copy matches Android's DailyReminderReceiver exactly.
-    private func scheduleDailyReminder(hour: Int, minute: Int) {
-        #if canImport(UserNotifications)
-        let center = UNUserNotificationCenter.current()
-        center.removePendingNotificationRequests(withIdentifiers: ["bhakti.daily.reminder"])
-
-        let content = UNMutableNotificationContent()
-        content.title = "🕉️ Time for your daily reflection."
-        content.body = "Pause for a moment with BhaktiChat."
-        content.sound = .default
-
-        var date = DateComponents()
-        date.hour = hour
-        date.minute = minute
-        let trigger = UNCalendarNotificationTrigger(dateMatching: date, repeats: true)
-
-        let request = UNNotificationRequest(
-            identifier: "bhakti.daily.reminder",
-            content: content,
-            trigger: trigger
-        )
-        center.add(request, withCompletionHandler: nil)
-        #endif
-    }
-
-    private func cancelDailyReminder() {
-        #if canImport(UserNotifications)
-        UNUserNotificationCenter.current()
-            .removePendingNotificationRequests(withIdentifiers: ["bhakti.daily.reminder"])
-        #endif
-    }
 
     private func nativeAuthMessage(for error: Error) -> String {
         if NativeAuthService.isCancellation(error) {

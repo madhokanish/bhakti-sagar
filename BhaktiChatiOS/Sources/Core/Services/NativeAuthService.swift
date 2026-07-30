@@ -56,7 +56,7 @@ enum NativeAuthService {
         guard isGoogleConfigured else {
             throw NativeAuthError.missingGoogleConfiguration
         }
-        guard let presentingViewController = topViewController() else {
+        guard let presentingViewController = TopViewController.find() else {
             throw NativeAuthError.missingPresentationContext
         }
 
@@ -147,6 +147,20 @@ enum NativeAuthService {
         #endif
     }
 
+    /// Account deletion: fully revoke/disconnect the third-party credential (stronger than
+    /// signOut) and drop any locally-stored profile, so no trace of the account remains.
+    static func revokeAccount(provider: AuthProvider) async {
+        #if canImport(GoogleSignIn)
+        if provider == .google {
+            // `disconnect` revokes the token grant with Google, not just a local sign-out.
+            _ = try? await GIDSignIn.sharedInstance.disconnect()
+            GIDSignIn.sharedInstance.signOut()
+        }
+        #endif
+        // Apple sign-in is stored locally (no server) — remove every cached Apple profile.
+        AppleProfileStore.shared.removeAll()
+    }
+
     static func handleOpenURL(_ url: URL) -> Bool {
         #if canImport(GoogleSignIn)
         GIDSignIn.sharedInstance.handle(url)
@@ -220,26 +234,6 @@ enum NativeAuthService {
         Bundle.main.object(forInfoDictionaryKey: "GIDReversedClientID") as? String ?? ""
     }
 
-    #if os(iOS)
-    private static func topViewController(base: UIViewController? = nil) -> UIViewController? {
-        let controller = base ?? UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-            .first(where: \.isKeyWindow)?
-            .rootViewController
-
-        if let navigationController = controller as? UINavigationController {
-            return topViewController(base: navigationController.visibleViewController)
-        }
-        if let tabBarController = controller as? UITabBarController {
-            return topViewController(base: tabBarController.selectedViewController)
-        }
-        if let presented = controller?.presentedViewController {
-            return topViewController(base: presented)
-        }
-        return controller
-    }
-    #endif
 }
 
 private struct AppleAuthProfile: Codable {
@@ -264,6 +258,12 @@ private final class AppleProfileStore {
     func profile(for userID: String) -> AppleAuthProfile? {
         guard let data = defaults.data(forKey: keyPrefix + userID) else { return nil }
         return try? decoder.decode(AppleAuthProfile.self, from: data)
+    }
+
+    func removeAll() {
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix(keyPrefix) {
+            defaults.removeObject(forKey: key)
+        }
     }
 }
 

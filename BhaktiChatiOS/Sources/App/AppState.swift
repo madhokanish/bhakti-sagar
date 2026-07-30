@@ -1,10 +1,12 @@
 import Foundation
 
+/// v2 IA: Home · Bhakti Chat · Reels · Explore. `.history` is no longer a tab — its
+/// content is absorbed into the Bhakti Chat tab's conversation list.
 enum AppTab: Hashable {
     case home
     case bhaktiChat
+    case reels
     case explore
-    case history
 
     var analyticsName: String {
         switch self {
@@ -12,10 +14,10 @@ enum AppTab: Hashable {
             return "home"
         case .bhaktiChat:
             return "bhakti_chat"
+        case .reels:
+            return "reels"
         case .explore:
             return "explore"
-        case .history:
-            return "history"
         }
     }
 }
@@ -25,9 +27,16 @@ final class AppState: ObservableObject {
     private static let threadReloadCooldown: TimeInterval = 45
 
     @Published var selectedTab: AppTab = .home
+    /// Set alongside `selectedTab = .reels` to open the feed on a specific clip (e.g. tapping
+    /// a card in Home's Reels shelf). `ReelsScreen` consumes and clears it.
+    @Published var pendingReelId: String?
     @Published var selectedGuideId: String = "krishna"
     @Published var selectedThreadId: String?
     @Published private(set) var threads: [ChatThread] = []
+    /// Thread ids collapsed out of the visible conversation list by the one-thread-per-deity
+    /// migration (or superseded by a later get-or-create reuse). Kept, never deleted — see
+    /// `PersistedChatState.archivedThreadIDs`.
+    @Published private(set) var archivedThreadIDs: Set<String> = []
     @Published private(set) var messagesByThread: [String: [ChatMessage]] = [:]
     @Published private(set) var divineCreations: [DivineCreation] = []
     @Published private(set) var savedAartiIDs: Set<String> = []
@@ -67,7 +76,9 @@ final class AppState: ObservableObject {
         divineCreations = state.divineCreations
         savedAartiIDs = state.savedAartiIDs
         authSession = state.authSession
+        archivedThreadIDs = state.archivedThreadIDs
         selectedThreadId = nil
+        migrateToOneThreadPerDeityIfNeeded()
         Telemetry.end(
             "app.state.load",
             from: start,
@@ -99,6 +110,42 @@ final class AppState: ObservableObject {
         persist()
     }
 
+    /// Permanently deletes the user's account and every piece of locally-stored personal data —
+    /// required by App Store Guideline 5.1.1(v). The native Google/Apple sign-in and all app data
+    /// live only on the device (no server account), so this fully removes the account: it revokes
+    /// the third-party credential, wipes the conversation store, and clears every local preference.
+    func deleteAccount() async {
+        let provider = authSession.provider
+
+        // 1. Revoke / disconnect the third-party credential (not just a local sign-out).
+        await NativeAuthService.revokeAccount(provider: provider)
+
+        // 2. Clear the persisted conversation store (CoreData blob + legacy JSON).
+        await persistence.clear()
+
+        // 3. Reset all in-memory state to a clean, signed-out slate.
+        threads = []
+        messagesByThread = [:]
+        divineCreations = []
+        savedAartiIDs = []
+        archivedThreadIDs = []
+        typingByThread = [:]
+        sendingThreadIDs = []
+        selectedThreadId = nil
+        selectedGuideId = "krishna"
+        authSession = .guest
+
+        // 4. Remove every local preference/counter (bookmarks, streaks, usage, consent, theme…).
+        //    All app keys are "bhakti"-prefixed, so this leaves no personal data behind.
+        let defaults = UserDefaults.standard
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("bhakti") {
+            defaults.removeObject(forKey: key)
+        }
+
+        Telemetry.track("auth.delete_account", ["provider": provider.rawValue])
+        Analytics.reset()
+    }
+
     func completeNativeSignIn(_ result: NativeAuthResult) {
         signIn(
             name: result.name,
@@ -127,6 +174,10 @@ final class AppState: ObservableObject {
         persist()
     }
 
+    /// Get-or-create: BhaktiChat 2.0 keeps exactly one conversation per deity — like messaging
+    /// a person, not filing a new ticket every time. Every entry point (Home's ask field and
+    /// Life Situation cards, the guides row, Bhakti Chat's prompt tiles, Reels' "Ask about
+    /// this") resolves to the same thread for a given guide.
     @discardableResult
     func startThread(
         for guideId: String,
@@ -135,7 +186,15 @@ final class AppState: ObservableObject {
     ) async -> ChatThread {
         Telemetry.track("chat.thread.start", ["guideId": guideId])
         selectedGuideId = guideId
-        let thread = createThread(for: guideId, includeOpeningScene: includeOpeningScene)
+
+        let thread: ChatThread
+        if let existing = activeThread(for: guideId) {
+            thread = existing
+            touchThread(existing.id)
+        } else {
+            thread = createThread(for: guideId, includeOpeningScene: includeOpeningScene)
+        }
+
         if let prompt = initialPrompt?.trimmingCharacters(in: .whitespacesAndNewlines), !prompt.isEmpty,
            let guide = GuidesCatalog.byId(guideId) {
             let threadId = thread.id
@@ -146,6 +205,54 @@ final class AppState: ObservableObject {
             }
         }
         return thread
+    }
+
+    /// The single visible conversation for a deity, if one exists — never an archived one.
+    func activeThread(for guideId: String) -> ChatThread? {
+        threads
+            .filter { $0.guideId == guideId && !archivedThreadIDs.contains($0.id) }
+            .max { $0.updatedAt < $1.updatedAt }
+    }
+
+    /// Bumps `updatedAt` so a reused thread sorts to the top of the conversation list, same as
+    /// a fresh message arriving would — and sets `selectedThreadId`, exactly like `createThread`
+    /// does for a brand-new thread, so the Bhakti Chat tab actually navigates into it rather
+    /// than just landing on the conversation list.
+    private func touchThread(_ threadId: String) {
+        guard let index = threads.firstIndex(where: { $0.id == threadId }) else { return }
+        threads[index].updatedAt = Date()
+        threads.sort { $0.updatedAt > $1.updatedAt }
+        selectedThreadId = threadId
+        persist()
+    }
+
+    /// At most one row per guide, newest first — what the Bhakti Chat tab's conversation list
+    /// should actually enumerate (5 guides → up to 5 rows, never duplicates).
+    var visibleThreads: [ChatThread] {
+        threads
+            .filter { !archivedThreadIDs.contains($0.id) }
+            .sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    /// One-time collapse of pre-2.0 history: multiple threads per guide become one. The
+    /// most-recently-updated thread per guide stays live; older ones for that same guide are
+    /// archived (hidden from the list, never deleted — nothing the user wrote disappears).
+    private func migrateToOneThreadPerDeityIfNeeded() {
+        let flag = "bhakti_chat_one_thread_per_deity_migrated_v1"
+        guard !UserDefaults.standard.bool(forKey: flag) else { return }
+        UserDefaults.standard.set(true, forKey: flag)
+
+        let byGuide = Dictionary(grouping: threads, by: \.guideId)
+        var newlyArchived: Set<String> = []
+        for (_, group) in byGuide where group.count > 1 {
+            let survivor = group.max { $0.updatedAt < $1.updatedAt }
+            for thread in group where thread.id != survivor?.id {
+                newlyArchived.insert(thread.id)
+            }
+        }
+        guard !newlyArchived.isEmpty else { return }
+        archivedThreadIDs.formUnion(newlyArchived)
+        persist()
     }
 
     func addDivineCreation(_ creation: DivineCreation) {
@@ -162,6 +269,48 @@ final class AppState: ObservableObject {
         }
         divineCreations[index] = creation
         persist()
+    }
+
+    /// The "start fresh with this deity" affordance (the floating guide heads in Bhakti Chat's
+    /// "Start a new chat" row): clears that guide's *single* conversation back to just the
+    /// opening scene, rather than spawning a second thread — per the one-thread-per-deity rule,
+    /// there is still only ever one row per guide in the conversation list after this.
+    @discardableResult
+    func startFreshThread(for guideId: String) -> ChatThread {
+        Telemetry.track("chat.thread.reset", ["guideId": guideId])
+        selectedGuideId = guideId
+
+        guard let existing = activeThread(for: guideId) else {
+            return createThread(for: guideId, includeOpeningScene: true)
+        }
+
+        let now = Date()
+        messagesByThread[existing.id] = []
+        if let index = threads.firstIndex(where: { $0.id == existing.id }) {
+            threads[index].updatedAt = now
+            // Clear server-side conversation state too, so the next message starts a genuinely
+            // new remote conversation rather than continuing the old one's context.
+            threads[index].remoteConversationId = nil
+            threads[index].stateAnchor = nil
+            threads[index].earlierSummary = nil
+            threads[index].lastRemoteSyncAt = nil
+        }
+        threads.sort { $0.updatedAt > $1.updatedAt }
+
+        if let guide = GuidesCatalog.byId(guideId) {
+            let opening = ChatMessage(
+                id: UUID().uuidString,
+                threadId: existing.id,
+                role: .assistant,
+                content: guide.openingScene,
+                createdAt: now
+            )
+            messagesByThread[existing.id, default: []].append(opening)
+        }
+
+        selectedThreadId = existing.id
+        persist()
+        return existing
     }
 
     func deleteThread(_ threadId: String) {
@@ -528,7 +677,8 @@ final class AppState: ObservableObject {
             messagesByThread: messagesByThread,
             divineCreations: divineCreations,
             savedAartiIDs: savedAartiIDs,
-            authSession: authSession
+            authSession: authSession,
+            archivedThreadIDs: archivedThreadIDs
         )
         Task {
             await persistence.save(payload)

@@ -1,30 +1,37 @@
 import SwiftUI
 
-private enum HistoryTab: String, CaseIterable {
+private enum ChatTab: String, CaseIterable {
     case chats = "All chats"
-    case creations = "Your creations"
+    case creations = "Creations"
     case saved = "Saved"
 }
 
-private enum HistoryRoute: Hashable {
+private enum ChatRoute: Hashable {
     case profile
     case thread(String)
     case creation(String)
     case aarti(String) // slug
 }
 
-struct HistoryScreen: View {
+struct BhaktiChatScreen: View {
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var bookmarks: BookmarkStore
-    @State private var tab: HistoryTab = .chats
-    @State private var path: [HistoryRoute] = []
+    @State private var tab: ChatTab = .chats
+    @State private var path: [ChatRoute] = []
     @State private var searchQuery = ""
     @State private var showClearAllConfirmation = false
+
+    // Pinned composer
+    @StateObject private var speech = SpeechInputManager()
+    @State private var composerText = ""
+    @FocusState private var composerFocused: Bool
 
     // MARK: - Filtered data
 
     private var sortedThreads: [ChatThread] {
-        let all = appState.threads.sorted { $0.updatedAt > $1.updatedAt }
+        // At most one row per guide — collapsed duplicates stay in appState.threads
+        // (archived, not deleted) but never show up here.
+        let all = appState.visibleThreads
         let q = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !q.isEmpty else { return all }
         return all.filter { thread in
@@ -49,10 +56,13 @@ struct HistoryScreen: View {
                 VStack(alignment: .leading, spacing: 16) {
                     #if os(iOS)
                     // See AartisScreen — GADBannerView needs an explicit frame in SwiftUI.
-                    BannerAdView(placement: "history_list")
+                    BannerAdView(placement: "bhakti_chat_list")
                         .frame(width: 320, height: 50)
                     #endif
 
+                    startNewChatRow
+
+                    conversationsHeader
                     searchBar
                     segmentedControl
 
@@ -62,6 +72,7 @@ struct HistoryScreen: View {
                     case .saved:     savedContent
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
                 .padding(.bottom, BhaktiBottomNavBar.overlayClearance)
@@ -69,7 +80,21 @@ struct HistoryScreen: View {
             .bhaktiPageBackground()
             .bhaktiHideNavigationBar()
             .safeAreaInset(edge: .top, spacing: 0) { topBar }
-            .navigationDestination(for: HistoryRoute.self) { route in
+            .safeAreaInset(edge: .bottom, spacing: 0) { composer }
+            .onChange(of: speech.transcribedText) { _, text in
+                guard !text.isEmpty else { return }
+                composerText = text
+            }
+            // Every entry point that opens a deity's conversation (Home's guides row/ask
+            // field/situation cards, this tab's own guides row/prompt tiles, Reels' "Ask about
+            // this") sets `appState.selectedThreadId` and switches to this tab — this is what
+            // actually pushes into that thread once we land here, mirroring the retired
+            // BhaktiChatHubScreen's `openPendingThreadIfNeeded`.
+            .onAppear(perform: openPendingThreadIfNeeded)
+            .onChange(of: appState.selectedThreadId) { _, _ in
+                openPendingThreadIfNeeded()
+            }
+            .navigationDestination(for: ChatRoute.self) { route in
                 switch route {
                 case .profile:
                     ProfileScreen()
@@ -78,19 +103,19 @@ struct HistoryScreen: View {
                        let guide = GuidesCatalog.byId(thread.guideId) {
                         ChatThreadScreen(thread: thread, guide: guide)
                     } else {
-                        historyFallback("Chat not found")
+                        chatFallback("Chat not found")
                     }
                 case let .creation(creationId):
                     if appState.divineCreations.contains(where: { $0.id == creationId }) {
                         DivineImageResultScreen(creationId: creationId)
                     } else {
-                        historyFallback("Creation not found")
+                        chatFallback("Creation not found")
                     }
                 case let .aarti(slug):
                     if let aarti = (try? AartiRepository.loadAartis())?.first(where: { $0.slug == slug }) {
                         AartiDetailScreen(aarti: aarti)
                     } else {
-                        historyFallback("Aarti not found")
+                        chatFallback("Aarti not found")
                     }
                 }
             }
@@ -131,30 +156,13 @@ struct HistoryScreen: View {
                 .accessibilityLabel("Profile")
             },
             centerContent: {
-                Text("History")
-                    .font(.system(size: 17, weight: .semibold))
+                Text("Bhakti Chat")
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(BhaktiTheme.textPrimary)
             },
             rightContent: {
-                let hasContent: Bool = {
-                    switch tab {
-                    case .chats:     return !appState.threads.isEmpty
-                    case .creations: return !appState.divineCreations.isEmpty
-                    case .saved:     return false
-                    }
-                }()
-                if hasContent {
-                    Button {
-                        showClearAllConfirmation = true
-                    } label: {
-                        Text("Clear all")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(BhaktiTheme.accentError)
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    Color.clear.frame(width: 40, height: 40)
-                }
+                // No trailing control — "Clear all" moved down into the conversations header.
+                Color.clear.frame(width: 40, height: 40)
             }
         )
         .padding(.horizontal, 16)
@@ -163,6 +171,154 @@ struct HistoryScreen: View {
             Rectangle()
                 .fill(BhaktiTheme.border.opacity(0.6))
                 .frame(height: 0.5)
+        }
+    }
+
+    // MARK: - Your conversations header
+
+    private var conversationsHeader: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("Your conversations")
+                .font(.system(size: 17, weight: .heavy))
+                .foregroundStyle(BhaktiTheme.textPrimary)
+
+            Spacer(minLength: 8)
+
+            let hasContent: Bool = {
+                switch tab {
+                case .chats:     return !appState.visibleThreads.isEmpty
+                case .creations: return !appState.divineCreations.isEmpty
+                case .saved:     return false
+                }
+            }()
+
+            if hasContent {
+                Button { showClearAllConfirmation = true } label: {
+                    Text("Clear all")
+                        .font(.system(size: 11.5, weight: .bold))
+                        .foregroundStyle(BhaktiTheme.accentDeep)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    // MARK: - Start something new (from the retired hub screen)
+
+    /// Floating guide heads + a plain caption, ahead of the conversation list — tapping a guide
+    /// directly opens (or resumes, per the one-thread-per-deity rule) their chat. No intermediate
+    /// prompt-picking step; the guide tap itself is the "start a new chat" action.
+    private var startNewChatRow: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Start a new chat")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(BhaktiTheme.textSecondary)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(DiscoveryCatalog.guides) { guide in
+                        Button {
+                            startNewChat(with: guide.id)
+                        } label: {
+                            GuideAvatarItemView(
+                                title: guide.title,
+                                imageAssetName: guide.imageAssetName,
+                                isSelected: appState.selectedGuideId == guide.id,
+                                itemWidth: 84,
+                                outerDiameter: 58,
+                                imageDiameter: 58
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.trailing, 16)
+            }
+        }
+    }
+
+    // MARK: - Pinned composer
+
+    private var composer: some View {
+        HStack(spacing: 10) {
+            TextField(composerPlaceholder, text: $composerText, axis: .vertical)
+                .font(.system(size: 14))
+                .foregroundStyle(BhaktiTheme.textPrimary)
+                .lineLimit(1...4)
+                .focused($composerFocused)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 13)
+                .background(BhaktiTheme.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(BhaktiTheme.border, lineWidth: 1.5)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+
+            Button {
+                Task { await speech.toggleRecording() }
+            } label: {
+                Image(systemName: speech.isRecording ? "mic.fill" : "mic")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(speech.isRecording ? BhaktiTheme.accentPrimary : BhaktiTheme.textSecondary)
+                    .frame(width: 44, height: 44)
+                    .background(BhaktiTheme.surface)
+                    .overlay(Circle().stroke(BhaktiTheme.border, lineWidth: 1))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(speech.isRecording ? "Stop dictation" : "Dictate a message")
+
+            Button { launch(prompt: composerText) } label: {
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(BhaktiTheme.accentGradient)
+                    .clipShape(Circle())
+                    .shadow(color: BhaktiTheme.accentPrimary.opacity(0.4), radius: 6, x: 0, y: 3)
+            }
+            .buttonStyle(.plain)
+            .disabled(composerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .opacity(composerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.5 : 1)
+            .accessibilityLabel("Send")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(BhaktiTheme.background.opacity(0.97))
+        .overlay(alignment: .top) {
+            Rectangle().fill(BhaktiTheme.border.opacity(0.6)).frame(height: 0.5)
+        }
+    }
+
+    private var composerPlaceholder: String {
+        let name = GuidesCatalog.byId(appState.selectedGuideId)?.displayName ?? "your guide"
+        return "Ask \(name) anything…"
+    }
+
+    /// Every entry point here resolves to the selected deity's single conversation.
+    /// Tapping a guide head in `startNewChatRow` — always a clean, fresh chat (just the guide's
+    /// opening message), not a resume of whatever was said before. Per the one-thread-per-deity
+    /// rule this clears that guide's existing conversation rather than creating a second one.
+    private func startNewChat(with guideId: String) {
+        if speech.isRecording { speech.stop() }
+        let thread = appState.startFreshThread(for: guideId)
+        path.append(.thread(thread.id))
+    }
+
+    private func launch(prompt: String) {
+        let text = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        composerText = ""
+        composerFocused = false
+        if speech.isRecording { speech.stop() }
+        Task {
+            let thread = await appState.startThread(
+                for: appState.selectedGuideId,
+                includeOpeningScene: false,
+                initialPrompt: text
+            )
+            path.append(.thread(thread.id))
         }
     }
 
@@ -206,7 +362,7 @@ struct HistoryScreen: View {
 
     private var segmentedControl: some View {
         HStack(spacing: 8) {
-            ForEach(HistoryTab.allCases, id: \.self) { value in
+            ForEach(ChatTab.allCases, id: \.self) { value in
                 Button {
                     withAnimation(BhaktiTheme.Animation.quick) { tab = value }
                 } label: {
@@ -419,7 +575,14 @@ struct HistoryScreen: View {
 
     // MARK: - Helpers
 
-    private func historyFallback(_ text: String) -> some View {
+    private func openPendingThreadIfNeeded() {
+        guard let threadId = appState.selectedThreadId else { return }
+        guard path.last != .thread(threadId) else { return }
+        path = [.thread(threadId)]
+        appState.consumePendingThreadNavigation()
+    }
+
+    private func chatFallback(_ text: String) -> some View {
         Text(text)
             .font(.body)
             .foregroundStyle(BhaktiTheme.textSecondary)
@@ -443,7 +606,7 @@ struct HistoryScreen: View {
         .padding(.vertical, BhaktiTheme.Spacing.xxl)
     }
 
-    private func historyEmptyState(title: String, subtitle: String, tab: HistoryTab) -> some View {
+    private func historyEmptyState(title: String, subtitle: String, tab: ChatTab) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(title)
                 .font(.title3.weight(.semibold))
@@ -499,7 +662,7 @@ struct HistoryScreen: View {
 
 // MARK: - Chat card
 
-private struct HistoryChatCard: View {
+struct HistoryChatCard: View {
     let guide: Guide
     let preview: String
     let timestamp: String

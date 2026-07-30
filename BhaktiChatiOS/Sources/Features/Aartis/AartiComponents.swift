@@ -44,6 +44,12 @@ struct AartiThumbnailView: View {
     }
 
     private var thumbnailImage: Image {
+        // Per-aarti generated artwork takes priority — most named deities (Durga, Kali,
+        // Saraswati, etc.) are visually distinct enough that a shared per-deity fallback
+        // would be wrong. Deity-level images remain as a fallback for older data.
+        if let imageAsset = aarti.imageAsset {
+            return PackageAssetLoader.image(named: imageAsset)
+        }
         switch aarti.deity {
         case .ganesh:
             return PackageAssetLoader.image(named: "ic_ganesh_top_aarti")

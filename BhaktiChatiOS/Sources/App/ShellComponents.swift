@@ -238,7 +238,19 @@ struct HubPromptCard: View {
 struct BhaktiBottomNavBar: View {
     static let overlayClearance: CGFloat = 70
 
+    /// `.standard` sits below content on the cream page tint. `.overlay` floats *over*
+    /// full-bleed dark content (Reels) on a bottom-up black gradient.
+    enum Style {
+        case standard
+        case overlay
+    }
+
     @Binding var selectedTab: AppTab
+    var style: Style = .standard
+
+    private var inactiveTint: Color {
+        style == .overlay ? Color.white.opacity(0.6) : BhaktiTheme.textTertiary
+    }
 
     private func selectTab(_ tab: AppTab) {
 #if os(iOS)
@@ -255,17 +267,36 @@ struct BhaktiBottomNavBar: View {
         HStack(alignment: .bottom, spacing: 0) {
             bottomItem(tab: .home, label: "Home", systemName: "house")
             bottomLogoItem
+            bottomItem(tab: .reels, label: "Reels", systemName: "play.square")
             bottomItem(tab: .explore, label: "Explore", systemName: "safari")
-            bottomItem(tab: .history, label: "History", systemName: "clock")
         }
         .padding(.horizontal, BhaktiTheme.Spacing.sm)
         .padding(.top, BhaktiTheme.Spacing.xs)
         .padding(.bottom, BhaktiTheme.Spacing.xs)
-        .background(.ultraThinMaterial)
+        .background(barBackground)
         .overlay(alignment: .top) {
-            Rectangle()
-                .fill(BhaktiTheme.border.opacity(0.6))
-                .frame(height: 0.5)
+            if style == .standard {
+                Rectangle()
+                    .fill(BhaktiTheme.border.opacity(0.6))
+                    .frame(height: 0.5)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var barBackground: some View {
+        switch style {
+        case .standard:
+            // A raw .ultraThinMaterial let whatever was scrolling underneath (dark cards,
+            // gradients) bleed through and wash out the unselected labels/icons. Matches the
+            // near-opaque solid tint already used by AppTopBar elsewhere for this same reason.
+            BhaktiTheme.background.opacity(0.96)
+        case .overlay:
+            LinearGradient(
+                colors: [Color.clear, Color.black.opacity(0.75)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
         }
     }
 
@@ -276,12 +307,12 @@ struct BhaktiBottomNavBar: View {
             VStack(spacing: 3) {
                 Image(systemName: isSelected ? "\(systemName).fill" : systemName)
                     .font(.system(size: 21, weight: .medium))
-                    .foregroundStyle(isSelected ? BhaktiTheme.accentPrimary : BhaktiTheme.textTertiary)
+                    .foregroundStyle(isSelected ? BhaktiTheme.accentPrimary : inactiveTint)
                     .frame(height: 26)
 
                 Text(label)
                     .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? BhaktiTheme.accentPrimary : BhaktiTheme.textTertiary)
+                    .foregroundStyle(isSelected ? BhaktiTheme.accentPrimary : inactiveTint)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 
@@ -302,14 +333,14 @@ struct BhaktiBottomNavBar: View {
             VStack(spacing: 3) {
                 Image(systemName: "sparkle")
                     .font(.system(size: 26, weight: isSelected ? .bold : .medium))
-                    .foregroundStyle(isSelected ? BhaktiTheme.accentPrimary : BhaktiTheme.textTertiary)
+                    .foregroundStyle(isSelected ? BhaktiTheme.accentPrimary : inactiveTint)
                     .frame(width: 32, height: 32)
                     .scaleEffect(isSelected ? 1.08 : 1)
                     .animation(BhaktiTheme.Animation.spring, value: isSelected)
 
                 Text("Bhakti Chat")
                     .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? BhaktiTheme.accentPrimary : BhaktiTheme.textTertiary)
+                    .foregroundStyle(isSelected ? BhaktiTheme.accentPrimary : inactiveTint)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 

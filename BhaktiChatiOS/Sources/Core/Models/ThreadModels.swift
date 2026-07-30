@@ -18,6 +18,11 @@ struct PersistedChatState: Codable {
     var divineCreations: [DivineCreation]
     var savedAartiIDs: Set<String>
     var authSession: AuthSession
+    /// Thread ids hidden from the conversation list without deleting them — used to collapse
+    /// pre-2.0 "many threads per deity" history down to one visible row per guide, and by the
+    /// one-thread-per-deity migration, without losing anything the user wrote. See
+    /// `AppState.migrateToOneThreadPerDeityIfNeeded()`.
+    var archivedThreadIDs: Set<String>
 
     static let empty = PersistedChatState(
         selectedGuideId: "krishna",
@@ -25,7 +30,8 @@ struct PersistedChatState: Codable {
         messagesByThread: [:],
         divineCreations: [],
         savedAartiIDs: [],
-        authSession: .guest
+        authSession: .guest,
+        archivedThreadIDs: []
     )
 
     enum CodingKeys: String, CodingKey {
@@ -35,6 +41,7 @@ struct PersistedChatState: Codable {
         case divineCreations
         case savedAartiIDs
         case authSession
+        case archivedThreadIDs
     }
 
     init(
@@ -43,7 +50,8 @@ struct PersistedChatState: Codable {
         messagesByThread: [String: [ChatMessage]],
         divineCreations: [DivineCreation],
         savedAartiIDs: Set<String>,
-        authSession: AuthSession
+        authSession: AuthSession,
+        archivedThreadIDs: Set<String> = []
     ) {
         self.selectedGuideId = selectedGuideId
         self.threads = threads
@@ -51,6 +59,7 @@ struct PersistedChatState: Codable {
         self.divineCreations = divineCreations
         self.savedAartiIDs = savedAartiIDs
         self.authSession = authSession
+        self.archivedThreadIDs = archivedThreadIDs
     }
 
     init(from decoder: Decoder) throws {
@@ -61,5 +70,7 @@ struct PersistedChatState: Codable {
         divineCreations = try container.decodeIfPresent([DivineCreation].self, forKey: .divineCreations) ?? []
         savedAartiIDs = try container.decodeIfPresent(Set<String>.self, forKey: .savedAartiIDs) ?? []
         authSession = try container.decodeIfPresent(AuthSession.self, forKey: .authSession) ?? .guest
+        // Absent on every pre-2.0 save — defaults empty so migration runs against full history.
+        archivedThreadIDs = try container.decodeIfPresent(Set<String>.self, forKey: .archivedThreadIDs) ?? []
     }
 }

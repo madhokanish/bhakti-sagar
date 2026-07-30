@@ -10,8 +10,6 @@ import Foundation
 final class StreakStore: ObservableObject {
     @Published private(set) var currentStreak: Int
     @Published private(set) var longestStreak: Int
-    /// True once the user has closed today's streak banner; resets automatically the next day.
-    @Published private(set) var isBannerDismissedToday: Bool
 
     private let defaults: UserDefaults
     private let calendar = Calendar.current
@@ -20,16 +18,6 @@ final class StreakStore: ObservableObject {
         self.defaults = defaults
         currentStreak = defaults.integer(forKey: Keys.current)
         longestStreak = defaults.integer(forKey: Keys.longest)
-        let dismissedDay = defaults.object(forKey: Keys.dismissedDay) as? Date
-        isBannerDismissedToday = dismissedDay.map {
-            Calendar.current.isDate($0, inSameDayAs: Date())
-        } ?? false
-    }
-
-    /// Hides the streak banner for the rest of today only — reappears on the next day's visit.
-    func dismissBannerForToday() {
-        defaults.set(calendar.startOfDay(for: Date()), forKey: Keys.dismissedDay)
-        isBannerDismissedToday = true
     }
 
     /// Call once per app open. First visit of a new day increments the streak; a visit the
@@ -62,6 +50,5 @@ final class StreakStore: ObservableObject {
         static let lastDay = "bhakti_streak_last_visit_day"
         static let current = "bhakti_streak_current"
         static let longest = "bhakti_streak_longest"
-        static let dismissedDay = "bhakti_streak_banner_dismissed_day"
     }
 }

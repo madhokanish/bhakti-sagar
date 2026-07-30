@@ -12,9 +12,17 @@ struct RootTabView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(BhaktiTheme.pageGradient.ignoresSafeArea())
+        // Reels is full-bleed: the bar floats *over* the video on a dark gradient rather than
+        // insetting the content (which would letterbox the feed and leave a cream strip).
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !keyboard.isVisible {
+            if !keyboard.isVisible && appState.selectedTab != .reels {
                 BhaktiBottomNavBar(selectedTab: $appState.selectedTab)
+                    .frame(maxWidth: BhaktiTheme.contentMaxWidth)
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if !keyboard.isVisible && appState.selectedTab == .reels {
+                BhaktiBottomNavBar(selectedTab: $appState.selectedTab, style: .overlay)
                     .frame(maxWidth: BhaktiTheme.contentMaxWidth)
             }
         }
@@ -34,11 +42,11 @@ struct RootTabView: View {
         case .home:
             HomeScreen()
         case .bhaktiChat:
-            BhaktiChatHubScreen()
+            BhaktiChatScreen()
+        case .reels:
+            ReelsScreen()
         case .explore:
             ExploreScreen()
-        case .history:
-            HistoryScreen()
         }
     }
 }

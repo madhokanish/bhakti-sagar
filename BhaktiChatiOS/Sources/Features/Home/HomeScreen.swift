@@ -319,10 +319,7 @@ struct HomeScreen: View {
             .frame(maxWidth: .infinity)
             .background(
                 LinearGradient(
-                    colors: [
-                        Color(red: 0x7A / 255, green: 0x24 / 255, blue: 0x24 / 255),
-                        Color(red: 0x3D / 255, green: 0x0F / 255, blue: 0x0F / 255)
-                    ],
+                    colors: choghadiyaRowTone.gradientColors,
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -337,6 +334,11 @@ struct HomeScreen: View {
     private var choghadiyaTitle: String {
         guard let slot = currentChoghadiyaSlot else { return "Loading today's timings…" }
         return "\(slot.displayLabel) · \(toneWord(for: slot))"
+    }
+
+    private var choghadiyaRowTone: ChoghadiyaTone {
+        guard let slot = currentChoghadiyaSlot else { return .neutral }
+        return ChoghadiyaCalculator.tone(for: slot.baseLabel)
     }
 
     private func toneWord(for slot: ChoghadiyaSlot) -> String {

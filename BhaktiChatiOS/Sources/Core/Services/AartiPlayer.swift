@@ -36,6 +36,11 @@ final class AartiPlayer: ObservableObject {
     private var rateObserver: NSKeyValueObservation?
     private var statusObserver: NSKeyValueObservation?
     private var didConfigureCommands = false
+    /// Whether we were actually playing right before the current interruption began — used so
+    /// `.ended` can decide whether to resume even when the system doesn't set `.shouldResume`
+    /// (it often doesn't for in-app audio contention, e.g. Reels claiming the shared session,
+    /// as opposed to a real external interruption like a phone call).
+    private var wasPlayingBeforeInterruption = false
 
     private init() {}
 
@@ -81,6 +86,11 @@ final class AartiPlayer: ObservableObject {
             player.pause()
             isPlaying = false
         } else {
+            // Reassert our session config before resuming — Reels' own AVPlayer instances share
+            // this app's one AVAudioSession, and if theirs left it deactivated or reconfigured
+            // since we last played, a bare `player.play()` here would just sit in
+            // .waitingToPlayAtSpecifiedRate forever (buffering spinner, no audio).
+            reactivateSession()
             player.play()
             isPlaying = true
         }
@@ -141,18 +151,14 @@ final class AartiPlayer: ObservableObject {
     // MARK: - Setup
 
     private func configureSessionAndCommands() {
-        #if os(iOS)
-        let session = AVAudioSession.sharedInstance()
-        // Primary music-style playback (no ducking) so it behaves like a real player.
-        try? session.setCategory(.playback, mode: .default, options: [])
-        try? session.setActive(true, options: [])
-        #endif
+        reactivateSession()
 
         guard !didConfigureCommands else { return }
         didConfigureCommands = true
 
         let center = MPRemoteCommandCenter.shared()
         center.playCommand.addTarget { [weak self] _ in
+            self?.reactivateSession()
             self?.player.play(); self?.isPlaying = true; self?.updateNowPlaying(); return .success
         }
         center.pauseCommand.addTarget { [weak self] _ in
@@ -178,6 +184,18 @@ final class AartiPlayer: ObservableObject {
             name: AVAudioSession.interruptionNotification,
             object: AVAudioSession.sharedInstance()
         )
+        #endif
+    }
+
+    /// Re-asserts our `.playback` category and activates the shared `AVAudioSession` — safe and
+    /// cheap to call before every resume, since Reels' own players share this same session and
+    /// may have left it deactivated or reconfigured without us ever receiving a notification for
+    /// it (same-app audio contention doesn't always fire an interruption).
+    private func reactivateSession() {
+        #if os(iOS)
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .default, options: [])
+        try? session.setActive(true, options: [])
         #endif
     }
 
@@ -268,18 +286,24 @@ final class AartiPlayer: ObservableObject {
         Task { @MainActor in
             switch type {
             case .began:
+                wasPlayingBeforeInterruption = isPlaying
                 player.pause()
                 isPlaying = false
                 updateNowPlaying()
             case .ended:
                 let shouldResume = (info[AVAudioSessionInterruptionOptionKey] as? UInt)
                     .map { AVAudioSession.InterruptionOptions(rawValue: $0).contains(.shouldResume) } ?? false
-                if shouldResume, player.currentItem != nil {
-                    try? AVAudioSession.sharedInstance().setActive(true, options: [])
+                // Resume if the system says so, OR if we were the one actually playing when this
+                // started — same-app contention (e.g. Reels claiming the shared session) doesn't
+                // reliably set `.shouldResume`, and without this branch we'd otherwise just sit
+                // paused-but-still-"isPlaying"-looking forever until the user manually retries.
+                if (shouldResume || wasPlayingBeforeInterruption), player.currentItem != nil {
+                    reactivateSession()
                     player.play()
                     isPlaying = true
                     updateNowPlaying()
                 }
+                wasPlayingBeforeInterruption = false
             @unknown default:
                 break
             }

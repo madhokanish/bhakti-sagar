@@ -4,7 +4,7 @@ import AVFoundation
 import UIKit
 #endif
 
-/// Full-bleed vertical devotional video feed. Muted autoplay, one clip per page, with a
+/// Full-bleed vertical devotional video feed. Sound-on autoplay, one clip per page, with a
 /// chat handoff ("Ask about this") as the differentiating action.
 struct ReelsScreen: View {
     @EnvironmentObject private var appState: AppState
@@ -14,7 +14,7 @@ struct ReelsScreen: View {
     /// Tracked by reel id, not index: indices collide across feeds, and using one as the page's
     /// `.id()` made SwiftUI reuse page 0 on a feed switch instead of rebinding it to the new clip.
     @State private var activeReelID: String?
-    @State private var isMuted = true
+    @State private var isMuted = false
     @State private var likedIDs: Set<String> = []
     @State private var savedIDs: Set<String> = []
 
@@ -218,8 +218,12 @@ private struct ReelPageView: View {
                 .clipped()
 
 #if os(iOS)
-            // Reduce Motion: hold the poster frame, keep everything else usable.
-            if !reduceMotion {
+            // Reduce Motion: hold the poster frame, keep everything else usable. The `.aartis`
+            // feed has no real video track (it projects the audio-only aarti library into Reels
+            // shape) — attaching an AVPlayerLayer to an audio-only asset produced no sound at
+            // all, so those pages skip the layer entirely and just play audio under the poster,
+            // the same way AartiPlayer does elsewhere in the app.
+            if !reduceMotion && reel.feed != .aartis {
                 // No readiness gating: AVPlayerLooper plays *copies* of the template item, so
                 // the template's own status never reaches .readyToPlay — gating on it left the
                 // layer permanently invisible (a still poster with audio playing under it).

@@ -5,8 +5,9 @@ import UIKit
 
 /// Owns one looping `AVPlayer` for a single reel page.
 ///
-/// Muted by default — audio is only ever claimed on an explicit unmute tap, and claiming it
-/// pauses `AartiPlayer` so two surfaces never make sound at once (see `ReelsAudioCoordinator`).
+/// Sound-on by default, matching TikTok/Instagram-style feeds — tapping mutes, and claiming
+/// audio pauses `AartiPlayer` so two surfaces never make sound at once (see
+/// `ReelsAudioCoordinator`).
 @MainActor
 final class ReelVideoController: ObservableObject {
     @Published private(set) var isReady = false
@@ -20,7 +21,7 @@ final class ReelVideoController: ObservableObject {
     private var statusObservation: NSKeyValueObservation?
 
     init() {
-        player.isMuted = true
+        player.isMuted = false
         player.actionAtItemEnd = .advance
     }
 
@@ -80,6 +81,15 @@ final class ReelVideoController: ObservableObject {
 enum ReelsAudioCoordinator {
     @MainActor
     static func reelsDidClaimAudio() {
+        // Assert the same session config AartiPlayer uses. Both players share one process-wide
+        // AVAudioSession — leaving Reels' side of that implicit let it silently inherit whatever
+        // category was last set (or the system default if nothing had played yet), which is how
+        // the two surfaces could end up fighting over an inconsistently configured session.
+        #if os(iOS)
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .default, options: [])
+        try? session.setActive(true, options: [])
+        #endif
         if AartiPlayer.shared.isPlaying {
             AartiPlayer.shared.togglePlayPause()
         }

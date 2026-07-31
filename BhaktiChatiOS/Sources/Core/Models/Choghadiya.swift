@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 struct ChoghadiyaCity: Identifiable, Hashable {
     let id: String
@@ -18,6 +19,39 @@ enum ChoghadiyaTone {
     case auspicious
     case neutral
     case challenging
+
+    /// Matches the full Choghadiya screen's hero banner gradient for this tone, so any
+    /// other tone-colored surface (e.g. Home's Choghadiya row) stays visually consistent.
+    var gradientColors: [Color] {
+        switch self {
+        case .auspicious:
+            return [
+                Color(red: 19 / 255, green: 109 / 255, blue: 86 / 255),
+                Color(red: 15 / 255, green: 69 / 255, blue: 79 / 255)
+            ]
+        case .neutral:
+            return [
+                Color(red: 92 / 255, green: 74 / 255, blue: 21 / 255),
+                Color(red: 57 / 255, green: 40 / 255, blue: 14 / 255)
+            ]
+        case .challenging:
+            return [
+                Color(red: 109 / 255, green: 36 / 255, blue: 36 / 255),
+                Color(red: 63 / 255, green: 19 / 255, blue: 34 / 255)
+            ]
+        }
+    }
+
+    var accentColor: Color {
+        switch self {
+        case .auspicious:
+            return Color(red: 94 / 255, green: 211 / 255, blue: 148 / 255)
+        case .neutral:
+            return Color(red: 1, green: 184 / 255, blue: 84 / 255)
+        case .challenging:
+            return Color(red: 1, green: 112 / 255, blue: 112 / 255)
+        }
+    }
 }
 
 struct ChoghadiyaSlot: Identifiable, Hashable {

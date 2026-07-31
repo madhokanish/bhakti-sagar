@@ -199,6 +199,8 @@ private struct ReelPageView: View {
     let onSave: () -> Void
     let onAsk: () -> Void
 
+    @State private var isExportingStatus = false
+
 #if os(iOS)
     @StateObject private var controller = ReelVideoController()
 #endif
@@ -369,6 +371,27 @@ private struct ReelPageView: View {
                 railLabel(systemName: "square.and.arrow.up", label: "Share", tint: .white, accent: false)
             }
             .accessibilityLabel("Share this reel")
+
+#if os(iOS)
+            // Video-only — `.aartis` clips have no real video track, and WhatsApp Status is a
+            // photo/video format, so there's nothing meaningful to hand it for that feed.
+            if reel.feed == .top {
+                railButton(
+                    systemName: "circle.badge.plus",
+                    label: isExportingStatus ? "…" : "Status",
+                    tint: .white,
+                    accessibility: "Set as WhatsApp status",
+                    action: {
+                        guard !isExportingStatus else { return }
+                        isExportingStatus = true
+                        Task {
+                            await ReelStatusExporter.export(reel: reel)
+                            isExportingStatus = false
+                        }
+                    }
+                )
+            }
+#endif
 
             // Accented and visually dominant — this is the action that differentiates Reels.
             Button(action: onAsk) {

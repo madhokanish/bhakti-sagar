@@ -3,7 +3,9 @@ import "server-only";
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
+import { authenticateMobileHeaders } from "@/lib/mobileAuth";
 import { prisma } from "@/lib/prisma";
+import { headers as nextHeaders } from "next/headers";
 
 export const BHAKTIGPT_COOKIE = "bs_bhaktigpt_session";
 const ANON_LIMIT = 3;
@@ -72,8 +74,14 @@ export type BhaktiIdentity = {
 export async function resolveBhaktiIdentity(): Promise<BhaktiIdentity> {
   let sessionUserId: string | null = null;
   try {
-    const session = await auth();
-    sessionUserId = session?.user?.id ?? null;
+    const headerStore = nextHeaders();
+    const mobileSession = await authenticateMobileHeaders(headerStore);
+    if (mobileSession) {
+      sessionUserId = mobileSession.user.id;
+    } else {
+      const session = await auth();
+      sessionUserId = session?.user?.id ?? null;
+    }
   } catch (error) {
     // Keep Bhakti Chat available in anonymous mode even if auth/session tables are unavailable.
     console.error("[Bhakti Chat] Auth unavailable, falling back to anonymous mode.", error);

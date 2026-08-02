@@ -30,6 +30,7 @@ const canonicalStaticRoutes = [
   "/support",
   "/contact",
   "/privacy",
+  "/delete-account",
   "/terms",
   "/bhajan",
   "/mantra",

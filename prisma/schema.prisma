@@ -8,24 +8,26 @@ datasource db {
 }
 
 model User {
-  id                 String    @id @default(cuid())
-  email              String?   @unique
-  name               String?
-  image              String?
-  emailVerified      DateTime?
-  stripeCustomerId   String?   @unique
-  subscriptionStatus String    @default("inactive")
-  currency           String    @default("GBP")
-  trialEnd           DateTime?
-  currentPeriodEnd   DateTime?
-  reminder3DaySentAt DateTime?
-  reminder1DaySentAt DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  accounts           Account[]
-  sessions           Session[]
-  authEvents         AuthEvent[]
-  profile            UserProfile?
+  id                     String                  @id @default(cuid())
+  email                  String?                 @unique
+  name                   String?
+  image                  String?
+  emailVerified          DateTime?
+  stripeCustomerId       String?                 @unique
+  subscriptionStatus     String                  @default("inactive")
+  currency               String                  @default("GBP")
+  trialEnd               DateTime?
+  currentPeriodEnd       DateTime?
+  reminder3DaySentAt     DateTime?
+  reminder1DaySentAt     DateTime?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  isReviewer             Boolean                 @default(false)
+  accounts               Account[]
+  sessions               Session[]
+  mobileSessions         MobileSession[]
+  authEvents             AuthEvent[]
+  profile                UserProfile?
   bhaktiGptConversations BhaktiGptConversation[]
   bhaktiGptUsage         BhaktiGptUsage?
 }
@@ -64,6 +66,31 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model MobileSession {
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique
+  userId     String
+  expiresAt  DateTime
+  lastUsedAt DateTime  @default(now())
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model MobileAuthChallenge {
+  id         String    @id @default(cuid())
+  nonceHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([expiresAt, consumedAt])
 }
 
 model VerificationToken {

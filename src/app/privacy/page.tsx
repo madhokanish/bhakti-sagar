@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { buildMetadata, getRequestLanguage } from "@/lib/seo";
 import { breadcrumbJsonLd } from "@/lib/schema";
 
@@ -24,7 +25,7 @@ export default function PrivacyPage() {
     ? {
         label: "प्राइवेसी",
         title: "प्राइवेसी पॉलिसी",
-        updated: "अंतिम अपडेट: 24 जुलाई 2026",
+        updated: "अंतिम अपडेट: 26 जुलाई 2026",
         intro:
           "यह पॉलिसी बताती है कि भक्ति चैट आपकी जानकारी कैसे एकत्र करता है, कैसे उपयोग करता है और कैसे सुरक्षित रखता है।",
         sections: [
@@ -41,7 +42,7 @@ export default function PrivacyPage() {
           {
             title: "3. AI प्रोसेसिंग और जानकारी की साझेदारी",
             body:
-              "भक्ति चैट अपने उत्तर बनाने के लिए आर्टिफिशियल इंटेलिजेंस (AI) का उपयोग करता है। चैट उत्तर और Divine Image बनाने के लिए, आपके भेजे गए संदेशों का टेक्स्ट और आपकी चुनी गई कोई भी फ़ोटो हमारे AI प्रदाता OpenAI, L.L.C. (https://openai.com) को भेजी जाती है, जो इन्हें केवल उत्तर बनाने के लिए प्रोसेस करता है। OpenAI अपने API से भेजे गए डेटा का उपयोग अपने मॉडल को ट्रेन करने के लिए नहीं करता। इसके अलावा, हम आपका व्यक्तिगत डेटा नहीं बेचते। सीमित जानकारी विश्वसनीय सेवा प्रदाताओं (होस्टिंग, लॉगिन, पेमेंट, एनालिटिक्स) के साथ साझा हो सकती है। ये सभी प्रदाता आपके डेटा की सुरक्षा के लिए इस पॉलिसी के समान सुरक्षा उपाय अपनाने के लिए बाध्य हैं।"
+              "भक्ति चैट अपने उत्तर बनाने के लिए आर्टिफिशियल इंटेलिजेंस (AI) का उपयोग करता है। चैट उत्तर और Divine Image बनाने के लिए, आपके भेजे गए संदेशों का टेक्स्ट और आपकी चुनी गई कोई भी फ़ोटो हमारे AI प्रदाता OpenAI, L.L.C. (https://openai.com) को भेजी जाती है, जो इन्हें केवल उत्तर बनाने के लिए प्रोसेस करता है। यदि आप किसी गाइड के साथ वॉइस कॉल (बोलकर बातचीत) का उपयोग करते हैं, तो आपकी आवाज़ का ऑडियो भी इसी तरह केवल उत्तर तैयार करने के लिए OpenAI को भेजा जाता है। OpenAI अपने API से भेजे गए डेटा (टेक्स्ट, फ़ोटो या ऑडियो) का उपयोग अपने मॉडल को ट्रेन करने के लिए नहीं करता। इसके अलावा, हम आपका व्यक्तिगत डेटा नहीं बेचते। सीमित जानकारी विश्वसनीय सेवा प्रदाताओं (होस्टिंग, लॉगिन, पेमेंट, एनालिटिक्स) के साथ साझा हो सकती है। ये सभी प्रदाता आपके डेटा की सुरक्षा के लिए इस पॉलिसी के समान सुरक्षा उपाय अपनाने के लिए बाध्य हैं।"
           },
           {
             title: "4. डेटा कितने समय तक रखा जाता है",
@@ -51,7 +52,7 @@ export default function PrivacyPage() {
           {
             title: "5. आपके अधिकार",
             body:
-              "जहां लागू हो, आप अपनी जानकारी देखने, सुधारने या हटाने का अनुरोध कर सकते हैं। अनुरोध के लिए support@bhaktichat.com पर लिखें।"
+              "आप ऐप के अंदर से ही किसी भी समय अपना अकाउंट और सभी जुड़ा डेटा हटा सकते हैं: Account (प्रोफ़ाइल आइकन) → Delete account पर जाएं। इससे आपके BhaktiChat सत्र बंद हो जाते हैं और आपकी बातचीत, सेव की गई जानकारी व प्राथमिकताएं हमारे सर्वर और आपकी डिवाइस से स्थायी रूप से हट जाती हैं। आपका Google अकाउंट नहीं हटता। इसके अलावा, आप support@bhaktichat.com पर लिखकर भी अपनी जानकारी देखने, सुधारने या हटाने का अनुरोध कर सकते हैं।"
           },
           {
             title: "6. सुरक्षा",
@@ -77,7 +78,7 @@ export default function PrivacyPage() {
     : {
         label: "Privacy",
         title: "Privacy Policy",
-        updated: "Last updated: July 24, 2026",
+        updated: "Last updated: July 26, 2026",
         intro:
           "This policy explains how Bhakti Chat collects, uses, and protects your information when you use our services.",
         sections: [
@@ -94,7 +95,7 @@ export default function PrivacyPage() {
           {
             title: "3. AI processing and third-party sharing",
             body:
-              "Bhakti Chat uses artificial intelligence to generate its responses. To create chat replies and Divine Image results, the text of the messages you send and any photo you choose to add are transmitted to our AI provider, OpenAI, L.L.C. (https://openai.com), which processes them solely to generate and return a response. OpenAI does not use data submitted through its API to train its models. Beyond this, we do not sell personal data. Limited information may also be shared with trusted service providers for hosting, authentication, payments, and analytics, or when legally required. All such providers are contractually required to protect your data with safeguards equivalent to those described in this policy."
+              "Bhakti Chat uses artificial intelligence to generate its responses. To create chat replies and Divine Image results, the text of the messages you send and any photo you choose to add are transmitted to our AI provider, OpenAI, L.L.C. (https://openai.com), which processes them solely to generate and return a response. If you use Voice Mode to speak with a guide, the audio of your voice is likewise transmitted to OpenAI solely to generate a spoken response. OpenAI does not use data submitted through its API — text, photos, or voice audio — to train its models. Beyond this, we do not sell personal data. Limited information may also be shared with trusted service providers for hosting, authentication, payments, and analytics, or when legally required. All such providers are contractually required to protect your data with safeguards equivalent to those described in this policy."
           },
           {
             title: "4. Data retention",
@@ -104,7 +105,7 @@ export default function PrivacyPage() {
           {
             title: "5. Your rights",
             body:
-              "Where applicable, you may request access, correction, or deletion of your personal data. Contact us at support@bhaktichat.com."
+              "You can delete your account and associated data at any time directly in the app: go to Account (profile icon) → Delete account. This closes your BhaktiChat sessions and permanently deletes conversations, saved items, and preferences from our servers and your device. It does not delete your Google Account. You may also request access, correction, or deletion of your personal data by contacting us at support@bhaktichat.com."
           },
           {
             title: "6. Security",
@@ -139,8 +140,15 @@ export default function PrivacyPage() {
         {copy.sections.map((section) => (
           <section key={section.title}>
             <h2 className="text-base font-semibold text-sagar-ink">{section.title}</h2>
-            <p className="mt-2">{section.body}</p>
-          </section>
+          <p className="mt-2">{section.body}</p>
+          {section.title.startsWith("5.") ? (
+            <p className="mt-2">
+              <Link href="/delete-account" className="font-semibold underline underline-offset-2">
+                {isHindi ? "अकाउंट हटाने का अनुरोध करें" : "Request account deletion"}
+              </Link>
+            </p>
+          ) : null}
+        </section>
         ))}
 
         <section>

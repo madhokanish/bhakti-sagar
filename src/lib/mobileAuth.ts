@@ -308,55 +308,108 @@ export async function exchangeGoogleIdToken(input: {
   return issueMobileSession(user);
 }
 
-export async function exchangeReviewerCredentials(input: {
-  username: string;
-  accessKey: string;
-}) {
+type MobileAccessAccount = {
+  login: string;
+  password: string;
+  email: string;
+  name?: string;
+  fullAccess?: boolean;
+  reviewer?: boolean;
+};
+
+function configuredMobileAccessAccounts(): MobileAccessAccount[] {
+  const accounts: MobileAccessAccount[] = [];
+  const configured = process.env.MOBILE_ACCESS_ACCOUNTS_JSON?.trim();
+  if (configured) {
+    try {
+      const parsed = JSON.parse(configured) as MobileAccessAccount[];
+      if (!Array.isArray(parsed)) throw new Error("Expected an array");
+      for (const account of parsed) {
+        if (!account?.login || !account.password || !account.email) {
+          throw new Error("Each access account needs login, password, and email");
+        }
+        accounts.push(account);
+      }
+    } catch (error) {
+      console.error("[Mobile auth] MOBILE_ACCESS_ACCOUNTS_JSON is invalid", error);
+      throw new MobileAuthError(
+        "ACCESS_NOT_CONFIGURED",
+        "Email or username sign-in is temporarily unavailable.",
+        503
+      );
+    }
+  }
+
+  // Backward-compatible permanent account used by Google Play review.
   const expectedUsername = process.env.PLAY_REVIEW_USERNAME?.trim();
   const expectedAccessKey = process.env.PLAY_REVIEW_ACCESS_KEY?.trim();
   const reviewEmail = process.env.PLAY_REVIEW_EMAIL?.trim().toLowerCase();
+  if (expectedUsername && expectedAccessKey && reviewEmail) {
+    accounts.push({
+      login: expectedUsername,
+      password: expectedAccessKey,
+      email: reviewEmail,
+      name: "Google Play Reviewer",
+      fullAccess: true,
+      reviewer: true
+    });
+  }
+  return accounts;
+}
 
-  if (!expectedUsername || !expectedAccessKey || !reviewEmail) {
+export async function exchangeAccessCredentials(input: {
+  login: string;
+  password: string;
+}) {
+  const login = input.login.trim().toLowerCase();
+  const accounts = configuredMobileAccessAccounts();
+
+  if (accounts.length === 0) {
     throw new MobileAuthError(
-      "REVIEW_ACCESS_NOT_CONFIGURED",
-      "Google Play review access is not configured.",
+      "ACCESS_NOT_CONFIGURED",
+      "Email or username sign-in is not configured.",
       503
     );
   }
-  if (
-    !secureEqual(input.username.trim(), expectedUsername) ||
-    !secureEqual(input.accessKey, expectedAccessKey)
-  ) {
-    throw new MobileAuthError("INVALID_REVIEW_CREDENTIALS", "Review credentials are invalid.");
+  const account = accounts.find((candidate) => candidate.login.trim().toLowerCase() === login);
+  if (!account || !secureEqual(input.password, account.password)) {
+    throw new MobileAuthError("INVALID_ACCESS_CREDENTIALS", "Email, username, or password is incorrect.");
   }
 
   const user = await prisma.user.upsert({
-    where: { email: reviewEmail },
+    where: { email: account.email.trim().toLowerCase() },
     update: {
-      isReviewer: true,
-      name: "Google Play Reviewer",
-      subscriptionStatus: "active",
+      isReviewer: account.reviewer === true,
+      name: account.name?.trim() || undefined,
+      subscriptionStatus: account.fullAccess ? "active" : undefined,
       currency: "INR"
     },
     create: {
-      email: reviewEmail,
+      email: account.email.trim().toLowerCase(),
       emailVerified: new Date(),
-      name: "Google Play Reviewer",
-      isReviewer: true,
-      subscriptionStatus: "active",
+      name: account.name?.trim() || login,
+      isReviewer: account.reviewer === true,
+      subscriptionStatus: account.fullAccess ? "active" : "inactive",
       currency: "INR",
       profile: {
         create: {
-          displayName: "Google Play Reviewer",
+          displayName: account.name?.trim() || login,
           onboardingCompleted: true,
-          subscriptionStatus: "active",
-          subscriptionProvider: "play-review"
+          subscriptionStatus: account.fullAccess ? "active" : "inactive",
+          subscriptionProvider: account.reviewer ? "play-review" : "access-account"
         }
       }
     }
   });
 
   return issueMobileSession(user);
+}
+
+export async function exchangeReviewerCredentials(input: {
+  username: string;
+  accessKey: string;
+}) {
+  return exchangeAccessCredentials({ login: input.username, password: input.accessKey });
 }
 
 export async function authenticateMobileHeaders(

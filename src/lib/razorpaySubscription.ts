@@ -13,37 +13,28 @@ export function mapRazorpaySubscriptionStatus(razorpayStatus: string): string {
   return razorpayStatus;
 }
 
-export async function getUserByRazorpaySubscriptionId(razorpaySubscriptionId: string) {
-  return prisma.user.findUnique({
-    where: { razorpaySubscriptionId }
-  });
-}
-
-export async function upsertUserSubscriptionRazorpay(input: {
-  email: string;
+export async function updateUserSubscriptionRazorpayById(input: {
+  userId: string;
   razorpaySubscriptionId: string;
   subscriptionStatus?: string | null;
   trialEnd?: Date | null;
   currentPeriodEnd?: Date | null;
 }) {
-  const email = input.email.trim().toLowerCase();
-  return prisma.user.upsert({
-    where: { email },
-    update: {
+  return prisma.user.update({
+    where: { id: input.userId },
+    data: {
       razorpaySubscriptionId: input.razorpaySubscriptionId,
       subscriptionStatus: input.subscriptionStatus ?? undefined,
       trialEnd: input.trialEnd ?? undefined,
       currentPeriodEnd: input.currentPeriodEnd ?? undefined,
       currency: "INR"
-    },
-    create: {
-      email,
-      razorpaySubscriptionId: input.razorpaySubscriptionId,
-      subscriptionStatus: input.subscriptionStatus ?? "inactive",
-      trialEnd: input.trialEnd ?? null,
-      currentPeriodEnd: input.currentPeriodEnd ?? null,
-      currency: "INR"
     }
+  });
+}
+
+export async function getUserByRazorpaySubscriptionId(razorpaySubscriptionId: string) {
+  return prisma.user.findUnique({
+    where: { razorpaySubscriptionId }
   });
 }
 

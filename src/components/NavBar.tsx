@@ -100,7 +100,8 @@ export default function NavBar() {
       label: t("nav_chat")
     },
     { href: `${localePrefix}/aartis`, label: t("nav_aartis") },
-    { href: `${localePrefix}/choghadiya`, label: t("nav_choghadiya") }
+    { href: `${localePrefix}/choghadiya`, label: t("nav_choghadiya") },
+    { href: "/subscribe/upi-test", label: t("nav_subscribe") }
   ] as const;
 
   useEffect(() => {

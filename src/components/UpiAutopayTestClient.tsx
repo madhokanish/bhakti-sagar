@@ -18,12 +18,11 @@ type RazorpayCheckoutSuccess = {
   razorpay_signature: string;
 };
 
-function validEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
+type Props = {
+  email: string;
+};
 
-export default function UpiAutopayTestClient() {
-  const [email, setEmail] = useState("");
+export default function UpiAutopayTestClient({ email }: Props) {
   const [scriptReady, setScriptReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -31,10 +30,6 @@ export default function UpiAutopayTestClient() {
 
   async function startSubscription() {
     if (loading) return;
-    if (!validEmail(email)) {
-      setError("Please enter a valid email.");
-      return;
-    }
     if (!scriptReady || !window.Razorpay) {
       setError("Payment script hasn't loaded yet — try again in a moment.");
       return;
@@ -46,9 +41,7 @@ export default function UpiAutopayTestClient() {
 
     try {
       const createResponse = await fetch("/api/razorpay/subscription/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email })
+        method: "POST"
       });
       const createData = (await createResponse.json()) as { subscriptionId?: string; error?: string };
       if (!createResponse.ok || !createData.subscriptionId) {
@@ -112,23 +105,16 @@ export default function UpiAutopayTestClient() {
       />
 
       <div className="rounded-2xl border border-sagar-amber/20 bg-sagar-cream/40 p-4">
-        <p className="text-lg font-semibold text-sagar-ink">₹1 for 3 days, then ₹199/month</p>
+        <p className="text-lg font-semibold text-sagar-ink">₹5 mandate auth today, then ₹199/month</p>
         <ul className="mt-2 space-y-1 text-sm text-sagar-ink/78">
           <li>• UPI AutoPay mandate via Razorpay Checkout</li>
-          <li>• Auto-renews monthly, cancel anytime</li>
+          <li>• First ₹199 charge after a 3-day trial, auto-renews monthly, cancel anytime</li>
         </ul>
       </div>
 
-      <label className="mt-4 block text-sm text-sagar-ink/80">
-        Email
-        <input
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="you@example.com"
-          className="mt-1 w-full rounded-xl border border-sagar-amber/30 bg-white px-3 py-2 outline-none focus:border-sagar-saffron"
-        />
-      </label>
+      <p className="mt-4 text-sm text-sagar-ink/80">
+        Subscribing as <span className="font-semibold text-sagar-ink">{email}</span>
+      </p>
 
       {error ? <p className="mt-2 text-sm text-sagar-rose">{error}</p> : null}
       {result ? (

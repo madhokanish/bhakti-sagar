@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { hasSubscriptionEntitlement } from "@/lib/subscription";
 import SignOutButton from "@/components/auth/SignOutButton";
 import NotificationOptIn from "@/components/NotificationOptIn";
 
@@ -49,6 +50,7 @@ export default async function ProfilePage() {
   }
 
   const linkedProviders = Array.from(new Set(user.accounts.map((account) => account.provider)));
+  const isPro = hasSubscriptionEntitlement(user.subscriptionStatus);
 
   const createdAt = new Intl.DateTimeFormat("en-IN", {
     day: "numeric",
@@ -85,7 +87,14 @@ export default async function ProfilePage() {
           )}
 
           <div>
-            <p className="text-lg font-semibold text-sagar-ink">{user.name || "Bhakti Chat user"}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-lg font-semibold text-sagar-ink">{user.name || "Bhakti Chat user"}</p>
+              {isPro ? (
+                <span className="inline-flex items-center rounded-full bg-sagar-saffron px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
+                  Pro
+                </span>
+              ) : null}
+            </div>
             <p className="text-sm text-sagar-ink/70">{user.email || "No email available"}</p>
           </div>
         </div>

@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { hasSubscriptionEntitlement } from "@/lib/subscription";
 import UpiAutopayTestClient from "@/components/UpiAutopayTestClient";
+import ProSubscriptionStatus from "@/components/ProSubscriptionStatus";
 
 export const metadata: Metadata = {
   title: "Subscribe | BhaktiChat",
@@ -15,6 +18,9 @@ export default async function UpiAutopayTestPage() {
   if (!session?.user?.id || !session.user.email) {
     redirect("/?auth=1&callbackUrl=/subscribe/upi-test");
   }
+
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  const isPro = hasSubscriptionEntitlement(user?.subscriptionStatus);
 
   return (
     <div className="container py-8 md:py-12">
@@ -30,7 +36,14 @@ export default async function UpiAutopayTestPage() {
         </p>
       </section>
 
-      <UpiAutopayTestClient email={session.user.email} />
+      {isPro ? (
+        <ProSubscriptionStatus
+          status={user!.subscriptionStatus}
+          currentPeriodEnd={user!.currentPeriodEnd ? user!.currentPeriodEnd.toISOString() : null}
+        />
+      ) : (
+        <UpiAutopayTestClient email={session.user.email} />
+      )}
     </div>
   );
 }

@@ -49,6 +49,23 @@ export async function POST() {
     const description =
       (error as { error?: { description?: string } })?.error?.description ||
       (error instanceof Error ? error.message : "Unable to cancel subscription.");
+
+    // Razorpay reports a subscription id as "invalid or could not be found" when it
+    // belongs to a different mode (test vs live) than the currently configured API keys
+    // — e.g. a record created before a test-to-live credential switch. There's nothing
+    // left to cancel on Razorpay's side in that case, so just clear the stale local state
+    // instead of leaving the user stuck unable to cancel a subscription that doesn't
+    // really exist from the API's point of view.
+    if (description.toLowerCase().includes("could not be found")) {
+      await updateSubscriptionByRazorpaySubscriptionId({
+        razorpaySubscriptionId: user.razorpaySubscriptionId,
+        subscriptionStatus: "cancelled",
+        trialEnd: null,
+        currentPeriodEnd: null
+      });
+      return NextResponse.json({ success: true, cancelledImmediately: true, accessUntil: null });
+    }
+
     return NextResponse.json({ error: description }, { status: 500 });
   }
 }

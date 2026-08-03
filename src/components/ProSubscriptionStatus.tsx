@@ -17,7 +17,9 @@ function formatDate(iso: string | null) {
 export default function ProSubscriptionStatus({ status, currentPeriodEnd }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [cancelledUntil, setCancelledUntil] = useState<string | null>(null);
+  const [cancelled, setCancelled] = useState<{ immediately: boolean; accessUntil: string | null } | null>(
+    null
+  );
 
   async function cancelSubscription() {
     if (loading) return;
@@ -25,11 +27,18 @@ export default function ProSubscriptionStatus({ status, currentPeriodEnd }: Prop
     setError("");
     try {
       const response = await fetch("/api/razorpay/subscription/cancel", { method: "POST" });
-      const data = (await response.json()) as { accessUntil?: string; error?: string };
+      const data = (await response.json()) as {
+        cancelledImmediately?: boolean;
+        accessUntil?: string | null;
+        error?: string;
+      };
       if (!response.ok) {
         throw new Error(data.error || "Unable to cancel subscription.");
       }
-      setCancelledUntil(data.accessUntil ?? currentPeriodEnd);
+      setCancelled({
+        immediately: data.cancelledImmediately ?? true,
+        accessUntil: data.accessUntil ?? (data.cancelledImmediately ? null : currentPeriodEnd)
+      });
     } catch (cancelError) {
       setError(cancelError instanceof Error ? cancelError.message : "Unable to cancel subscription.");
     } finally {
@@ -50,10 +59,16 @@ export default function ProSubscriptionStatus({ status, currentPeriodEnd }: Prop
         </p>
       </div>
 
-      {cancelledUntil ? (
+      {cancelled ? (
         <p className="mt-3 text-sm text-sagar-ink/80">
-          Subscription cancelled — you keep Pro access until{" "}
-          <strong>{formatDate(cancelledUntil)}</strong>, then it won&apos;t renew.
+          {cancelled.immediately ? (
+            "Subscription cancelled — no charges will be made."
+          ) : (
+            <>
+              Subscription cancelled — you keep Pro access until{" "}
+              <strong>{formatDate(cancelled.accessUntil)}</strong>, then it won&apos;t renew.
+            </>
+          )}
         </p>
       ) : (
         <>

@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getRazorpayClient } from "@/lib/razorpay";
+import {
+  mapRazorpaySubscriptionStatus,
+  updateSubscriptionByRazorpaySubscriptionId
+} from "@/lib/razorpaySubscription";
 
 export const runtime = "nodejs";
 
@@ -18,14 +22,27 @@ export async function POST() {
 
   try {
     const razorpay = getRazorpayClient();
-    // cancelAtCycleEnd: keep Pro access through the period already paid for, matching
-    // the refund policy ("stays active until the end of the period you already paid for").
-    // Razorpay's own subscription.status stays "active" until the cycle actually ends, then
-    // the existing webhook handler picks up subscription.cancelled automatically.
-    const subscription = await razorpay.subscriptions.cancel(user.razorpaySubscriptionId, true);
+    // cancelAtCycleEnd only works once a subscription has an active billing cycle to
+    // defer to — i.e. after its first real charge. During the trial window (status
+    // "trialing" / Razorpay's "authenticated") there's no cycle yet, so Razorpay rejects
+    // it; cancel immediately instead. Once past the trial, defer to cycle end so access
+    // continues through the period already paid for, matching the refund policy.
+    const cancelAtCycleEnd = user.subscriptionStatus === "active";
+    const subscription = await razorpay.subscriptions.cancel(user.razorpaySubscriptionId, cancelAtCycleEnd);
+
+    if (!cancelAtCycleEnd) {
+      // Immediate cancellation — reflect it locally now rather than waiting on a webhook.
+      await updateSubscriptionByRazorpaySubscriptionId({
+        razorpaySubscriptionId: subscription.id,
+        subscriptionStatus: mapRazorpaySubscriptionStatus(subscription.status),
+        trialEnd: subscription.start_at ? new Date(subscription.start_at * 1000) : null,
+        currentPeriodEnd: subscription.current_end ? new Date(subscription.current_end * 1000) : null
+      });
+    }
 
     return NextResponse.json({
       success: true,
+      cancelledImmediately: !cancelAtCycleEnd,
       accessUntil: subscription.current_end ? new Date(subscription.current_end * 1000).toISOString() : null
     });
   } catch (error) {

@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +42,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -51,7 +53,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bhaktichat.app.MainActivity
 import com.bhaktichat.app.R
+import com.bhaktichat.app.data.subscription.CheckoutRequestData
+import com.bhaktichat.app.data.subscription.PaymentOutcome
+import com.bhaktichat.app.data.subscription.launchRazorpayCheckout
+import com.bhaktichat.app.data.subscription.preloadRazorpay
+import com.bhaktichat.app.ui.components.ads.findActivity
 import com.bhaktichat.app.ui.i18n.t
 
 /**
@@ -95,9 +103,41 @@ object ChadhaavaPalette {
 fun ChadhaavaScreen(
     viewModel: ChadhaavaViewModel,
     onBack: (() -> Unit)?,
-    onOpenUrl: (String) -> Unit
+    onOpenUrl: (String) -> Unit,
+    userEmail: String? = null
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val activity = remember(context) { context.findActivity() }
+
+    // Warm the SDK now that the user is looking at the paywall — off the app's startup path.
+    LaunchedEffect(Unit) { preloadRazorpay(context) }
+
+    // The ViewModel asks for checkout; the Activity owns the SDK and receives its result.
+    LaunchedEffect(activity) {
+        val host = activity ?: return@LaunchedEffect
+        viewModel.checkoutRequests.collect { request ->
+            launchRazorpayCheckout(
+                activity = host,
+                request = CheckoutRequestData(request.subscriptionId, request.keyId),
+                prefillEmail = userEmail
+            )
+        }
+    }
+
+    LaunchedEffect(activity) {
+        val host = activity as? MainActivity ?: return@LaunchedEffect
+        host.paymentOutcomes.collect { outcome ->
+            when (outcome) {
+                is PaymentOutcome.Success -> {
+                    // Deliberately not treated as entitlement: ask the backend (which
+                    // reconciles with Razorpay) rather than trusting the client signal.
+                    viewModel.checkNow()
+                }
+                is PaymentOutcome.Failed -> viewModel.onCheckoutFailed(outcome.description.orEmpty())
+            }
+        }
+    }
 
     Box(
         modifier = Modifier

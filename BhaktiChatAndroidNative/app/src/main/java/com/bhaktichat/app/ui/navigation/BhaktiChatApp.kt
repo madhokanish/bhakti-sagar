@@ -645,6 +645,7 @@ fun BhaktiChatApp(
                 val chadhaavaContext = LocalContext.current
                 ChadhaavaScreen(
                     viewModel = vm,
+                    userEmail = currentUser.email,
                     onBack = if (blocked != null) {
                         { navController.popBackStack() }
                     } else {

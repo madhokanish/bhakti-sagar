@@ -25,8 +25,22 @@ val localProperties = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) load(FileInputStream(f))
 }
+val webEnvironmentProperties = Properties().apply {
+    val f = rootProject.file("../.env.local")
+    if (f.exists()) load(FileInputStream(f))
+}
 val posthogApiKey: String = localProperties.getProperty("posthog.apiKey", "")
 val posthogHost: String = localProperties.getProperty("posthog.host", "https://us.i.posthog.com")
+// Web OAuth client ID used by Android Credential Manager to mint an ID token that the
+// BhaktiChat backend can verify. This is intentionally the Web client, not Android client.
+// Package/SHA Android client registrations are documented in
+// ../docs/android-auth-release-checklist.md and must not be substituted here.
+//   google.webClientId=1234-abc.apps.googleusercontent.com
+val googleWebClientId: String =
+    localProperties.getProperty("google.webClientId", "").trim()
+        .ifBlank { System.getenv("ANDROID_GOOGLE_WEB_CLIENT_ID")?.trim().orEmpty() }
+        .ifBlank { webEnvironmentProperties.getProperty("ANDROID_GOOGLE_WEB_CLIENT_ID", "").trim() }
+        .ifBlank { webEnvironmentProperties.getProperty("GOOGLE_CLIENT_ID", "").trim() }
 
 // AdMob config from local.properties (git-ignored):
 //   admob.appId=ca-app-pub-XXXX~XXXX
@@ -52,8 +66,8 @@ android {
         applicationId = "com.anish.bhaktichat"
         minSdk = 24
         targetSdk = 36
-        versionCode = 20
-        versionName = "2.3.8"
+        versionCode = 27
+        versionName = "2.5.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -63,6 +77,7 @@ android {
         // PostHog config surfaced to code via BuildConfig (values sourced from local.properties).
         buildConfigField("String", "POSTHOG_API_KEY", "\"$posthogApiKey\"")
         buildConfigField("String", "POSTHOG_HOST", "\"$posthogHost\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
 
         // AdMob App ID → manifest (same for all build types). Ad-unit ids are set per
         // build type below (test in debug, real in release).
@@ -127,6 +142,29 @@ android {
     }
 }
 
+// A release with an empty or malformed Web OAuth client ID can install normally but
+// every Google sign-in attempt will fail. Keep debug builds available for local UI work,
+// while making the Play-bound release fail loudly before compilation/package work begins.
+val validateGoogleWebClientId by tasks.registering {
+    group = "verification"
+    description = "Checks that Google sign-in is configured for release builds."
+    doLast {
+        check(
+            googleWebClientId.matches(
+                Regex("""^\d+-[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$""")
+            )
+        ) {
+            "Missing or invalid Google Web OAuth client ID. Set google.webClientId in " +
+                "BhaktiChatAndroidNative/local.properties or ANDROID_GOOGLE_WEB_CLIENT_ID " +
+                "before building a release."
+        }
+    }
+}
+
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    dependsOn(validateGoogleWebClientId)
+}
+
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
@@ -163,18 +201,26 @@ dependencies {
 
     implementation(libs.billing.ktx)
 
+    // Razorpay Checkout — UPI AutoPay mandate registration for चढ़ावा.
+    implementation(libs.razorpay.checkout)
+
     implementation(libs.posthog.android)
 
     implementation(libs.play.services.ads)
     implementation(libs.user.messaging.platform)
     implementation(libs.play.review.ktx)
     implementation(libs.androidx.lifecycle.process)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
     implementation(libs.youtube.player.core)
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.session)
+    implementation(libs.media3.ui)
 
     implementation(libs.okhttp)
     implementation("com.squareup.okhttp3:okhttp-urlconnection:4.12.0")
     implementation(libs.moshi.kotlin)
-    implementation("com.google.android.gms:play-services-auth:20.7.0")
     testImplementation("junit:junit:4.13.2")
 
     debugImplementation(platform(libs.androidx.compose.bom))

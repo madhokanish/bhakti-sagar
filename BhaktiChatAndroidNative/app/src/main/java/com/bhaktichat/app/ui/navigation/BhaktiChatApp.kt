@@ -4,15 +4,21 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -23,17 +29,19 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.bhaktichat.app.AppContainer
-import com.bhaktichat.app.BhaktiChatApplication
+import com.bhaktichat.app.data.auth.MobileUser
 import com.bhaktichat.app.data.local.MessageEntity
 import com.bhaktichat.app.domain.ChatRole
 import com.bhaktichat.app.domain.MessageStatus
 import com.bhaktichat.app.ui.components.ads.findActivity
 import com.bhaktichat.app.ui.components.shell.BhaktiBottomNavBar
 import com.bhaktichat.app.ui.screens.aartis.AartiDetailScreen
+import com.bhaktichat.app.ui.screens.aartis.AartiNowPlayingScreen
 import com.bhaktichat.app.ui.screens.aartis.AartisScreen
-import com.bhaktichat.app.ui.screens.bhaktichat.BhaktiChatHubScreen
-import com.bhaktichat.app.ui.screens.bhaktichat.BhaktiChatHubViewModel
-import com.bhaktichat.app.ui.screens.bhaktichat.BhaktiChatHubViewModelFactory
+import com.bhaktichat.app.ui.screens.chadhaava.BlockedFeature
+import com.bhaktichat.app.ui.screens.chadhaava.ChadhaavaScreen
+import com.bhaktichat.app.ui.screens.chadhaava.ChadhaavaViewModel
+import com.bhaktichat.app.ui.screens.chadhaava.ChadhaavaViewModelFactory
 import com.bhaktichat.app.ui.screens.chat.ChatThreadScreen
 import com.bhaktichat.app.ui.screens.chat.ChatThreadViewModel
 import com.bhaktichat.app.ui.screens.chat.ChatThreadViewModelFactory
@@ -65,37 +73,73 @@ import com.bhaktichat.app.ui.screens.guidepicker.GuidePickerScreen
 import com.bhaktichat.app.ui.screens.history.HistoryRoute
 import com.bhaktichat.app.ui.screens.history.HistoryViewModelFactory
 import com.bhaktichat.app.ui.screens.profile.ProfileScreen
+import com.bhaktichat.app.ui.screens.reels.ReelsScreen
+import com.bhaktichat.app.ui.screens.reels.ReelsViewModelFactory
 import com.bhaktichat.app.domain.DivineMode
 import com.bhaktichat.app.util.Analytics
 import com.bhaktichat.app.util.AnonUserKey
 import com.bhaktichat.app.util.EntitlementStore
+import com.bhaktichat.app.util.AdsConsentManager
 import kotlinx.coroutines.launch
 import java.util.UUID
 
 @Composable
-fun BhaktiChatApp() {
+fun BhaktiChatApp(
+    appContainer: AppContainer,
+    currentUser: MobileUser,
+    onSignOut: suspend () -> Unit,
+    onDeleteAccount: suspend () -> Result<Unit>
+) {
     val context = LocalContext.current
-    val appContainer = (context.applicationContext as BhaktiChatApplication).container
+
+    val language = com.bhaktichat.app.domain.AppLanguage.HINDI
+
+    androidx.compose.runtime.CompositionLocalProvider(
+        com.bhaktichat.app.ui.i18n.LocalAppLanguage provides language
+    ) {
+
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val route = backStack?.destination?.route.orEmpty()
     val density = LocalDensity.current
     val imeVisible = WindowInsets.ime.getBottom(density) > 0
     val showBottomBar = shouldShowBottomBar(route = route, imeVisible = imeVisible)
-    val authState by appContainer.authPreferences.state.collectAsStateWithLifecycle()
     val entitlementStore = appContainer.entitlementStore
-    // Ad-model: [isPro] no longer gates anything; kept only so grandfathered subscribers
-    // are still recognized (see EntitlementStore REVIEW note). Paywall removed.
+    // Entitlement is server truth (Razorpay/Chadhaava), mirrored locally by
+    // SubscriptionRepository. Grandfathered Play subscribers also read true here.
     val isPro by entitlementStore.isPro.collectAsStateWithLifecycle()
+
+    /**
+     * Wallpapers is the one feature gated behind चढ़ावा in this build. Non-subscribers are
+     * routed to the subscription screen with the blocking feature attached so it can lead
+     * with what they were trying to reach.
+     */
+    val openWallpapersOrGate: () -> Unit = {
+        if (isPro) {
+            navController.navigate(NavDestinations.WALLPAPERS)
+        } else {
+            navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_WALLPAPERS))
+        }
+    }
     val streak by appContainer.streakStore.currentStreak.collectAsStateWithLifecycle()
     val longestStreak by appContainer.streakStore.longestStreak.collectAsStateWithLifecycle()
-    val isStreakBannerDismissed by appContainer.streakStore.isBannerDismissedToday.collectAsStateWithLifecycle()
+    var showStreakDetails by rememberSaveable { mutableStateOf(false) }
+    var requestedReelId by rememberSaveable { mutableStateOf<String?>(null) }
     val shouldShowReviewPrompt by appContainer.reviewPromptStore.shouldShowPrompt.collectAsStateWithLifecycle()
     val appScope = rememberCoroutineScope()
+    val aartiPlayerState by appContainer.aartiPlayerController.state.collectAsStateWithLifecycle()
 
     // Record the daily-darshan streak on open. (Intro upsell removed — ad-based model.)
     LaunchedEffect(Unit) {
+        context.findActivity()?.let { activity ->
+            AdsConsentManager.gather(activity) { }
+        }
         appContainer.streakStore.recordVisit()
+        appContainer.aartiPlayerController.initialize()
+        // BhaktiChat 2.0: one conversation per guide. Collapses any pre-2.0 duplicate
+        // threads down to one visible row per guide (archived, not deleted). Idempotent —
+        // safe to run on every launch.
+        appContainer.threadsRepository.collapseDuplicateThreadsIfNeeded()
     }
 
     // Analytics: one screen view per navigation route change (single-Activity app, so
@@ -139,18 +183,23 @@ fun BhaktiChatApp() {
         appScope.launch {
             val guide = appContainer.guidesRepository.getGuide(guideId) ?: return@launch
             Analytics.guideSelected(guideId = guide.id)
-            val thread = appContainer.threadsRepository.createThread(guide.id)
+            // One conversation per guide (BhaktiChat 2.0) — reuse the existing thread rather
+            // than creating a new one every time this is called.
+            val thread = appContainer.threadsRepository.getOrCreateThread(guide.id)
+            val isNewThread = appContainer.messagesRepository.listMessages(thread.id).isEmpty()
             val now = System.currentTimeMillis()
             var typingMessageId: String? = null
 
-            if (includeOpener) {
+            // Only seed the opener into a genuinely empty thread — reusing an existing
+            // conversation should resume it, not re-greet the user from scratch.
+            if (includeOpener && isNewThread) {
                 appContainer.messagesRepository.addMessage(
                     MessageEntity(
                         id = UUID.randomUUID().toString(),
                         threadId = thread.id,
                         guideId = guide.id,
                         role = ChatRole.ASSISTANT.wire,
-                        content = guide.openingScene,
+                        content = guide.openingScene(com.bhaktichat.app.domain.AppLanguage.HINDI),
                         createdAt = now,
                         status = MessageStatus.SENT.name
                     )
@@ -201,7 +250,6 @@ fun BhaktiChatApp() {
                     messages = appContainer.messagesRepository
                         .listMessages(thread.id)
                         .filterNot { it.isTypingIndicator },
-                    authState = authState,
                     currentState = ChatConversationState(),
                     remoteConversationId = null,
                     chatApiClient = appContainer.chatApiClient,
@@ -217,7 +265,7 @@ fun BhaktiChatApp() {
                     return@launch
                 }
                 val response = sendResult.getOrNull()?.replyText
-                    ?: "I am reflecting upon your question. Please try again in a moment."
+                    ?: "मैं आपके प्रश्न पर विचार कर रहा हूँ। कृपया कुछ क्षण बाद फिर प्रयास करें।"
                 appContainer.messagesRepository.replaceTypingWithResponse(typingId, response)
                 val updatedAt = System.currentTimeMillis()
                 appContainer.threadsRepository.touchThread(thread.id, updatedAt)
@@ -238,6 +286,34 @@ fun BhaktiChatApp() {
         }
     }
 
+    // The "start a new chat" affordance (floating guide heads in the BhaktiChat tab) —
+    // always a clean, fresh conversation, not a resume of whatever was said before. Per the
+    // one-thread-per-guide rule this clears that guide's existing thread rather than
+    // creating a second one.
+    fun startFreshThread(guideId: String) {
+        appScope.launch {
+            val guide = appContainer.guidesRepository.getGuide(guideId) ?: return@launch
+            Analytics.guideSelected(guideId = guide.id)
+            val thread = appContainer.threadsRepository.getOrCreateThread(guide.id)
+            val now = System.currentTimeMillis()
+            appContainer.messagesRepository.deleteThreadMessages(thread.id)
+            appContainer.threadsRepository.resetThreadState(thread.id, now)
+            appContainer.messagesRepository.addMessage(
+                MessageEntity(
+                    id = UUID.randomUUID().toString(),
+                    threadId = thread.id,
+                    guideId = guide.id,
+                    role = ChatRole.ASSISTANT.wire,
+                    content = guide.openingScene(com.bhaktichat.app.domain.AppLanguage.HINDI),
+                    createdAt = now,
+                    status = MessageStatus.SENT.name
+                )
+            )
+            appContainer.threadsRepository.touchThread(thread.id, now)
+            navController.navigate(NavDestinations.threadRoute(thread.id))
+        }
+    }
+
     // Paywall removed (ad-based model). Features are free for all users.
 
     if (shouldShowReviewPrompt) {
@@ -250,6 +326,15 @@ fun BhaktiChatApp() {
         )
     }
 
+    if (showStreakDetails) {
+        StreakDetailDialog(
+            currentStreak = streak,
+            longestStreak = longestStreak,
+            onDismiss = { showStreakDetails = false }
+        )
+    }
+
+    androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
     androidx.compose.material3.Scaffold(
         containerColor = androidx.compose.material3.MaterialTheme.colorScheme.background,
         bottomBar = {
@@ -294,13 +379,49 @@ fun BhaktiChatApp() {
                     },
                     onOpenSubscribe = { entitlementStore.presentManually() },
                     onOpenDivineImage = { navController.navigate(NavDestinations.DIVINE_IMAGE_HOME) },
-                    userName = authState.name,
+                    onOpenReels = { reelId ->
+                        requestedReelId = reelId
+                        Analytics.reelOpened()
+                        navController.navigate(NavDestinations.REELS)
+                    },
+                    onOpenWallpapers = openWallpapersOrGate,
+                    onPlayAartiFromFeed = { aartiId, startPositionMillis ->
+                        appScope.launch {
+                            val all = appContainer.aartiRepository.loadAartis()
+                            val playable = all.filter { it.hasAudio }
+                            if (playable.any { it.id == aartiId }) {
+                                appContainer.aartiPlayerController.playQueue(
+                                    aartis = playable,
+                                    startId = aartiId,
+                                    startPositionMillis = startPositionMillis
+                                )
+                                navController.navigate(NavDestinations.AARTIS)
+                            }
+                        }
+                    },
+                    onToggleAartiSpotlight = {
+                        if (aartiPlayerState.currentAartiId != null) {
+                            appContainer.aartiPlayerController.togglePlayPause()
+                        } else {
+                            appScope.launch {
+                                val all = appContainer.aartiRepository.loadAartis()
+                                val start = all.firstOrNull { it.isTop } ?: all.firstOrNull()
+                                if (start != null) {
+                                    appContainer.aartiPlayerController.playQueue(
+                                        all.filter { it.hasAudio },
+                                        start.id
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    reelsRepository = appContainer.reelsRepository,
+                    aartiRepository = appContainer.aartiRepository,
+                    choghadiyaRepository = appContainer.choghadiyaRepository,
+                    aartiPlayerState = aartiPlayerState,
+                    userName = "",
                     streak = streak,
-                    longestStreak = longestStreak,
-                    isStreakBannerDismissed = isStreakBannerDismissed,
-                    onDismissStreakBanner = { appContainer.streakStore.dismissBannerForToday() },
-                    // Full darshan-streak view is future work; row is tappable but no-ops for now.
-                    onOpenStreak = { },
+                    onOpenStreak = { showStreakDetails = true },
                     isPro = isPro
                 )
             }
@@ -314,34 +435,34 @@ fun BhaktiChatApp() {
                         defaultValue = null
                     }
                 )
-            ) { entry ->
-                val vm: BhaktiChatHubViewModel = viewModel(
-                    factory = BhaktiChatHubViewModelFactory(
-                        guidesRepository = appContainer.guidesRepository,
+            ) {
+                // BhaktiChat 2.0: the old guide-picker hub is retired — "start a new chat"
+                // (guide heads + composer) is merged directly into the conversation list below
+                // (see HistoryRoute's StartNewChatRow/ChatComposer), same as iOS's
+                // BhaktiChatScreen. The `guide` query arg is unused: nothing in the app actually
+                // navigates here with one set (confirmed via grep) — it only ever existed for
+                // the retired hub's own initial-guide preselection.
+                HistoryRoute(
+                    factory = HistoryViewModelFactory(
                         threadsRepository = appContainer.threadsRepository,
                         messagesRepository = appContainer.messagesRepository,
-                        chatApiClient = appContainer.chatApiClient,
-                        authPreferences = appContainer.authPreferences,
-                        entitlementStore = entitlementStore,
-                        reviewPromptStore = appContainer.reviewPromptStore,
-                        initialGuideId = entry.arguments?.getString(NavDestinations.HUB_GUIDE_ARG)
-                    )
-                )
-                val uiState by vm.uiState.collectAsStateWithLifecycle()
-
-                BhaktiChatHubScreen(
-                    uiState = uiState,
-                    uiEvents = vm.uiEvents,
+                        guidesRepository = appContainer.guidesRepository,
+                        creationRepository = appContainer.divineCreationRepository,
+                        bookmarkStore = appContainer.bookmarkStore,
+                        aartiRepository = appContainer.aartiRepository
+                    ),
+                    bookmarkStore = appContainer.bookmarkStore,
                     onOpenProfile = { navController.navigate(NavDestinations.PROFILE) },
-                    onSelectGuide = vm::selectGuide,
-                    onInputChange = vm::onInputChanged,
-                    onStartThreadFromChip = vm::startThreadFromChip,
-                    onStartThreadFromInput = vm::startThreadFromInput,
                     onOpenThread = { threadId ->
                         navController.navigate(NavDestinations.threadRoute(threadId))
                     },
-                    isPro = isPro,
-                    onOpenSubscribe = { entitlementStore.presentManually() }
+                    onOpenCreation = { creationId ->
+                        navController.navigate(NavDestinations.divineImageResultRoute(creationId))
+                    },
+                    onStartFreshChat = { guideId -> startFreshThread(guideId) },
+                    onSendPrompt = { guideId, prompt ->
+                        launchThread(guideId = guideId, initialPrompt = prompt, includeOpener = false)
+                    }
                 )
             }
 
@@ -358,7 +479,6 @@ fun BhaktiChatApp() {
                         threadsRepository = appContainer.threadsRepository,
                         messagesRepository = appContainer.messagesRepository,
                         chatApiClient = appContainer.chatApiClient,
-                        authPreferences = appContainer.authPreferences,
                         entitlementStore = entitlementStore,
                         reviewPromptStore = appContainer.reviewPromptStore
                     )
@@ -405,7 +525,8 @@ fun BhaktiChatApp() {
                             conversationId = conversationId,
                             voiceSessionApi = appContainer.voiceSessionApi,
                             voiceWebSocketClient = appContainer.voiceWebSocketClient,
-                            audioFocusManager = VoiceAudioFocusManager(LocalContext.current)
+                            audioFocusManager = VoiceAudioFocusManager(LocalContext.current),
+                            language = com.bhaktichat.app.domain.AppLanguage.HINDI
                         )
                     )
                     VoiceModeScreen(
@@ -426,7 +547,7 @@ fun BhaktiChatApp() {
                 DivineImageScreen(
                     uiState = uiState,
                     onBack = { navController.popBackStack() },
-                    onOpenHistory = { navController.navigate(NavDestinations.HISTORY) },
+                    onOpenHistory = { navController.navigate(NavDestinations.bhaktiChatRoute()) },
                     onOpenCreation = { creationId ->
                         navController.navigate(NavDestinations.divineImageResultRoute(creationId))
                     },
@@ -443,6 +564,21 @@ fun BhaktiChatApp() {
                 )
             }
 
+            composable(NavDestinations.REELS) {
+                ReelsScreen(
+                    factory = ReelsViewModelFactory(
+                        reelsRepository = appContainer.reelsRepository,
+                        initialReelId = requestedReelId
+                    ),
+                    onAskAbout = { reel ->
+                        val prompt = "मैंने अभी एक रील देखी — \"${reel.title}\"। ${reel.caption}\n\n" +
+                            "इसका मेरे जीवन में क्या अर्थ है?"
+                        launchThread(guideId = reel.deityId, initialPrompt = prompt, includeOpener = false)
+                    }
+                )
+                LaunchedEffect(Unit) { requestedReelId = null }
+            }
+
             composable(NavDestinations.EXPLORE) {
                 ExploreScreen(
                     onOpenProfile = { navController.navigate(NavDestinations.PROFILE) },
@@ -454,7 +590,7 @@ fun BhaktiChatApp() {
                     },
                     onOpenFestivals = { navController.navigate(NavDestinations.FESTIVALS) },
                     onOpenPanchang = { navController.navigate(NavDestinations.PANCHANG) },
-                    onOpenWallpapers = { navController.navigate(NavDestinations.WALLPAPERS) }
+                    onOpenWallpapers = openWallpapersOrGate
                 )
             }
 
@@ -467,10 +603,62 @@ fun BhaktiChatApp() {
             }
 
             composable(NavDestinations.WALLPAPERS) {
-                WallpapersScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenWallpaper = { wallpaperId ->
-                        navController.navigate(NavDestinations.wallpaperDetailRoute(wallpaperId))
+                // Backstop for any path that reaches this destination directly (deep link,
+                // restored back stack, or entitlement lapsing while the screen is open).
+                if (!isPro) {
+                    LaunchedEffect(Unit) {
+                        navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_WALLPAPERS)) {
+                            popUpTo(NavDestinations.WALLPAPERS) { inclusive = true }
+                        }
+                    }
+                } else {
+                    WallpapersScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenWallpaper = { wallpaperId ->
+                            navController.navigate(NavDestinations.wallpaperDetailRoute(wallpaperId))
+                        }
+                    )
+                }
+            }
+
+            composable(
+                route = NavDestinations.CHADHAAVA,
+                arguments = listOf(
+                    navArgument(NavDestinations.CHADHAAVA_BLOCKED_ARG) {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val blocked = backStackEntry.arguments
+                    ?.getString(NavDestinations.CHADHAAVA_BLOCKED_ARG)
+                    ?.takeIf { it == BLOCKED_WALLPAPERS }
+                    ?.let { BlockedFeature.WALLPAPERS }
+
+                val vm: ChadhaavaViewModel = viewModel(
+                    factory = ChadhaavaViewModelFactory(
+                        repository = appContainer.subscriptionRepository,
+                        blockedBy = blocked
+                    )
+                )
+                val chadhaavaContext = LocalContext.current
+                ChadhaavaScreen(
+                    viewModel = vm,
+                    onBack = if (blocked != null) {
+                        { navController.popBackStack() }
+                    } else {
+                        null
+                    },
+                    onOpenUrl = { url ->
+                        runCatching {
+                            chadhaavaContext.startActivity(
+                                android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW,
+                                    android.net.Uri.parse(url)
+                                )
+                            )
+                        }
                     }
                 )
             }
@@ -594,27 +782,6 @@ fun BhaktiChatApp() {
                 )
             }
 
-            composable(NavDestinations.HISTORY) {
-                HistoryRoute(
-                    factory = HistoryViewModelFactory(
-                        threadsRepository = appContainer.threadsRepository,
-                        messagesRepository = appContainer.messagesRepository,
-                        guidesRepository = appContainer.guidesRepository,
-                        creationRepository = appContainer.divineCreationRepository,
-                        bookmarkStore = appContainer.bookmarkStore,
-                        aartiRepository = appContainer.aartiRepository
-                    ),
-                    bookmarkStore = appContainer.bookmarkStore,
-                    onOpenProfile = { navController.navigate(NavDestinations.PROFILE) },
-                    onOpenThread = { threadId ->
-                        navController.navigate(NavDestinations.threadRoute(threadId))
-                    },
-                    onOpenCreation = { creationId ->
-                        navController.navigate(NavDestinations.divineImageResultRoute(creationId))
-                    }
-                )
-            }
-
             composable(NavDestinations.GUIDE_PICKER) {
                 GuidePickerScreen(onGuideClick = { guideId ->
                     launchThread(
@@ -629,6 +796,7 @@ fun BhaktiChatApp() {
                 AartisScreen(
                     repository = appContainer.aartiRepository,
                     savedAartisStore = appContainer.savedAartisStore,
+                    playerController = appContainer.aartiPlayerController,
                     onBack = {
                         if (!navController.popBackStack(NavDestinations.HOME, inclusive = false)) {
                             navController.navigate(NavDestinations.HOME) {
@@ -687,17 +855,25 @@ fun BhaktiChatApp() {
 
             composable(NavDestinations.PROFILE) {
                 ProfileScreen(
-                    authState = authState,
+                    currentUser = currentUser,
                     onBack = { navController.popBackStack() },
-                    onSignIn = { name, email, photoUrl ->
-                        appContainer.authPreferences.signIn(name, email, photoUrl)
-                    },
-                    onSignOut = {
-                        appContainer.authPreferences.signOut()
-                    }
+                    onSignOut = onSignOut,
+                    onDeleteAccount = onDeleteAccount
                 )
             }
         }
+    }
+
+    // Rendered here (app root, same window as the Scaffold) rather than as a Dialog from inside
+    // the Aartis screen — see the doc comment on AartiNowPlayingScreen for why.
+    if (aartiPlayerState.isFullScreen) {
+        AartiNowPlayingScreen(
+            state = aartiPlayerState,
+            playerController = appContainer.aartiPlayerController,
+            onDismiss = { appContainer.aartiPlayerController.collapseFullScreen() }
+        )
+    }
+    }
     }
 }
 
@@ -711,23 +887,101 @@ fun BhaktiChatApp() {
 private fun ReviewPromptDialog(onEnjoying: () -> Unit, onNotNow: () -> Unit) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onNotNow,
-        title = { androidx.compose.material3.Text("Enjoying BhaktiChat? 🙏") },
+        title = { androidx.compose.material3.Text("क्या आपको BhaktiChat पसंद आ रहा है? 🙏") },
         text = {
             androidx.compose.material3.Text(
-                "If BhaktiChat has been helpful, a quick rating helps other seekers find it too."
+                "यदि BhaktiChat आपके लिए सहायक रहा है, तो आपकी छोटी-सी रेटिंग अन्य साधकों को भी इसे खोजने में मदद करेगी।"
             )
         },
         confirmButton = {
             androidx.compose.material3.TextButton(onClick = onEnjoying) {
-                androidx.compose.material3.Text("Yes, I love it!")
+                androidx.compose.material3.Text("हाँ, बहुत पसंद है!")
             }
         },
         dismissButton = {
             androidx.compose.material3.TextButton(onClick = onNotNow) {
-                androidx.compose.material3.Text("Not now")
+                androidx.compose.material3.Text("अभी नहीं")
             }
         }
     )
+}
+
+@Composable
+private fun StreakDetailDialog(
+    currentStreak: Int,
+    longestStreak: Int,
+    onDismiss: () -> Unit
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            androidx.compose.material3.Text(
+                text = "🔥",
+                style = androidx.compose.material3.MaterialTheme.typography.displaySmall
+            )
+        },
+        title = {
+            androidx.compose.material3.Text(
+                text = "आपकी दर्शन श्रृंखला",
+                style = androidx.compose.material3.MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            androidx.compose.foundation.layout.Column(
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(
+                    12.dp
+                )
+            ) {
+                androidx.compose.material3.Text(
+                    text = "आप BhaktiChat पर लगातार $currentStreak दिनों से दर्शन कर रहे हैं।",
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
+                )
+                androidx.compose.material3.Surface(
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                        16.dp
+                    ),
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    androidx.compose.foundation.layout.Row(
+                        modifier = androidx.compose.ui.Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceAround
+                    ) {
+                        StreakMetric(value = currentStreak, label = "अभी")
+                        StreakMetric(value = longestStreak, label = "सर्वश्रेष्ठ")
+                    }
+                }
+                androidx.compose.material3.Text(
+                    text = "अपनी श्रृंखला बनाए रखने के लिए रोज़ दर्शन करें।",
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                androidx.compose.material3.Text("ठीक है")
+            }
+        }
+    )
+}
+
+@Composable
+private fun StreakMetric(value: Int, label: String) {
+    androidx.compose.foundation.layout.Column(
+        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+    ) {
+        androidx.compose.material3.Text(
+            text = value.toString(),
+            style = androidx.compose.material3.MaterialTheme.typography.headlineMedium,
+            color = androidx.compose.material3.MaterialTheme.colorScheme.primary
+        )
+        androidx.compose.material3.Text(
+            text = "$label दिन",
+            style = androidx.compose.material3.MaterialTheme.typography.labelMedium
+        )
+    }
 }
 
 /**
@@ -771,5 +1025,10 @@ private fun shouldShowBottomBar(route: String, imeVisible: Boolean): Boolean {
         route == NavDestinations.PANCHANG ||
         route == NavDestinations.WALLPAPERS ||
         route == NavDestinations.DIVINE_IMAGE_HOME ||
-        route == NavDestinations.HISTORY
+        route == NavDestinations.REELS ||
+        // चढ़ावा is a tab, so the bar stays visible on it.
+        route.startsWith(NavDestinations.CHADHAAVA_BASE)
 }
+
+/** Route argument value marking wallpapers as the feature that gated the user. */
+internal const val BLOCKED_WALLPAPERS = "wallpapers"

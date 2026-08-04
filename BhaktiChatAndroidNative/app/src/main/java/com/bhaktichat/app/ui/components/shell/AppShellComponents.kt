@@ -211,7 +211,7 @@ fun PersistentInputBar(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,
-                    contentDescription = "Add",
+                    contentDescription = "जोड़ें",
                     tint = BhaktiThemeTokens.TextSecondary,
                     modifier = Modifier.size(20.dp)
                 )
@@ -250,7 +250,7 @@ fun PersistentInputBar(
 
             InputActionCircle(
                 onClick = onMicClick,
-                contentDescription = "Voice",
+                contentDescription = "आवाज़",
                 shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f)
             ) {
@@ -262,7 +262,7 @@ fun PersistentInputBar(
             }
             InputActionCircle(
                 onClick = onPrimaryAction,
-                contentDescription = "Send",
+                contentDescription = "भेजें",
                 shape = CircleShape,
                 containerColor = BhaktiThemeTokens.AccentPrimary
             ) {
@@ -635,6 +635,16 @@ private fun RowScope.BottomNavBarItem(
         targetValue = if (selected) BhaktiThemeTokens.AccentPrimary else Color.Transparent,
         label = "bottomNavDotColor"
     )
+    val label = com.bhaktichat.app.ui.i18n.t(
+        when (item.route) {
+            com.bhaktichat.app.ui.navigation.NavDestinations.HOME -> "nav_home"
+            com.bhaktichat.app.ui.navigation.NavDestinations.BHAKTI_CHAT_BASE -> "nav_bhakti_chat"
+            com.bhaktichat.app.ui.navigation.NavDestinations.REELS -> "nav_reels"
+            com.bhaktichat.app.ui.navigation.NavDestinations.EXPLORE -> "nav_explore"
+            com.bhaktichat.app.ui.navigation.NavDestinations.CHADHAAVA_BASE -> "nav_chadhaava"
+            else -> item.label
+        }
+    )
     Column(
         modifier = Modifier
             .weight(1f)
@@ -646,10 +656,18 @@ private fun RowScope.BottomNavBarItem(
     ) {
         // Icon — centerpiece sparkle gets a 26dp scaled glyph (iOS parity);
         // standard tabs use the 24dp outlined/filled pair.
-        if (item.isCenterpiece) {
+        if (item.drawableRes != null) {
+            // Tabs whose glyph is a drawn vector rather than a Material icon (चढ़ावा's diya).
+            Icon(
+                painter = androidx.compose.ui.res.painterResource(item.drawableRes),
+                contentDescription = label,
+                tint = tint,
+                modifier = Modifier.size(24.dp)
+            )
+        } else if (item.isCenterpiece) {
             Icon(
                 imageVector = item.selectedIcon ?: item.icon!!,
-                contentDescription = item.label,
+                contentDescription = label,
                 tint = tint,
                 modifier = Modifier
                     .size(26.dp)
@@ -658,13 +676,13 @@ private fun RowScope.BottomNavBarItem(
         } else {
             Icon(
                 imageVector = if (selected) item.selectedIcon ?: item.icon!! else item.icon!!,
-                contentDescription = item.label,
+                contentDescription = label,
                 tint = tint,
                 modifier = Modifier.size(24.dp)
             )
         }
         Text(
-            text = item.label,
+            text = label,
             style = MaterialTheme.typography.labelSmall,
             color = tint,
             maxLines = 1

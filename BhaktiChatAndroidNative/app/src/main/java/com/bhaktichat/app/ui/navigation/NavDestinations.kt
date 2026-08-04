@@ -27,12 +27,12 @@ object NavDestinations {
     const val DIVINE_IMAGE_CREATION_ID_ARG = "creationId"
     const val DIVINE_IMAGE_CREATE = "divine_image_create/{mode}/{templateId}"
     const val DIVINE_IMAGE_RESULT = "divine_image_result/{creationId}"
-    const val HISTORY = "history"
     const val CHAT_ENTRY = "chat_entry"
     const val GUIDE_PICKER = "guide_picker"
     const val CHAT =
         "chat/{guideId}?prefill={prefill}&prompt={prompt}&fresh={fresh}&skipOpener={skipOpener}&launchId={launchId}"
     const val EXPLORE = "explore"
+    const val REELS = "reels"
     const val AARTIS = "aartis"
     const val AARTI_DETAIL = "aarti/{aartiId}"
     const val CHOGHADIYA = "choghadiya"
@@ -44,6 +44,19 @@ object NavDestinations {
     const val VOICE_MODE_CONVERSATION_ARG = "conversationId"
     const val VOICE_MODE = "voice/{$VOICE_MODE_GUIDE_ARG}?conversationId={$VOICE_MODE_CONVERSATION_ARG}"
     const val PROFILE = "profile"
+
+    /**
+     * चढ़ावा — the subscription surface. Reached from the 5th nav tab, or from a gated
+     * feature, in which case [CHADHAAVA_BLOCKED_ARG] carries which feature sent the user
+     * here so the screen can lead with it.
+     */
+    const val CHADHAAVA_BASE = "chadhaava"
+    const val CHADHAAVA_BLOCKED_ARG = "blocked"
+    const val CHADHAAVA = "chadhaava?blocked={blocked}"
+
+    fun chadhaavaRoute(blockedFeature: String? = null): String =
+        if (blockedFeature.isNullOrBlank()) CHADHAAVA_BASE
+        else "$CHADHAAVA_BASE?blocked=${Uri.encode(blockedFeature)}"
 
     fun bhaktiChatRoute(guideId: String? = null, prefill: String? = null): String {
         val params = buildList {

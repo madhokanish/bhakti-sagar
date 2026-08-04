@@ -5,12 +5,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.SmartDisplay
 import androidx.compose.material.icons.outlined.Explore
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.SmartDisplay
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.bhaktichat.app.R
 
 data class BottomNavItem(
     val route: String,
@@ -22,32 +23,39 @@ data class BottomNavItem(
 )
 
 /**
- * The 4-tab IA (design_handoff_bhaktichat_ia): Home · Chat · Explore · History.
- * Divine Image, Aartis, Choghadiya (and future Rashifal/Kundli) live under Explore.
+ * BhaktiChat 2.0's 4-tab IA: Home · BhaktiChat · Reels · Explore. History's conversation
+ * list is absorbed into the BhaktiChat tab (its own tab slot is retired); Reels takes the
+ * freed slot. Divine Image, Aartis, Choghadiya (and future Rashifal/Kundli) live under Explore.
  */
 val bottomNavItems = listOf(
     BottomNavItem(
         route = NavDestinations.HOME,
-        label = "Home",
+        label = "होम",
         icon = Icons.Outlined.Home,
         selectedIcon = Icons.Filled.Home
     ),
     BottomNavItem(
         route = NavDestinations.BHAKTI_CHAT_BASE,
-        label = "Chat",
+        label = "BhaktiChat",
         icon = Icons.AutoMirrored.Outlined.Chat,
         selectedIcon = Icons.AutoMirrored.Filled.Chat
     ),
     BottomNavItem(
+        route = NavDestinations.REELS,
+        label = "रील्स",
+        icon = Icons.Outlined.SmartDisplay,
+        selectedIcon = Icons.Filled.SmartDisplay
+    ),
+    BottomNavItem(
         route = NavDestinations.EXPLORE,
-        label = "Explore",
+        label = "खोजें",
         icon = Icons.Outlined.Explore,
         selectedIcon = Icons.Filled.Explore
     ),
     BottomNavItem(
-        route = NavDestinations.HISTORY,
-        label = "History",
-        icon = Icons.Outlined.History,
-        selectedIcon = Icons.Filled.History
+        route = NavDestinations.CHADHAAVA_BASE,
+        label = "चढ़ावा",
+        // A drawn diya rather than a Material glyph — see ic_diya.xml.
+        drawableRes = R.drawable.ic_diya
     )
 )

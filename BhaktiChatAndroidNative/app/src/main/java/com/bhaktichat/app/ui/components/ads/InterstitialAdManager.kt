@@ -23,7 +23,13 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
  * divine-image generation wait — those are active devotional/anticipation moments.
  */
 class InterstitialAdManager(
-    private val adUnitId: String = BuildConfig.ADMOB_INTERSTITIAL_ID
+    private val adUnitId: String = BuildConfig.ADMOB_INTERSTITIAL_ID,
+    /**
+     * An ad-free experience is part of the Chadhaava subscription. Checked here rather than
+     * at each call site so a future placement can't forget it, and read lazily so entitlement
+     * gained mid-session takes effect without recreating this manager.
+     */
+    private val isPro: () -> Boolean = { false }
 ) {
     private var ad: InterstitialAd? = null
     private var loading = false
@@ -37,6 +43,7 @@ class InterstitialAdManager(
 
     /** Preloads an interstitial if one isn't already loaded/loading. Safe to call repeatedly. */
     fun load(context: Context) {
+        if (isPro()) return
         if (ad != null || loading) return
         loading = true
         InterstitialAd.load(
@@ -72,6 +79,12 @@ class InterstitialAdManager(
      * can continue their navigation uniformly.
      */
     fun show(activity: Activity, placement: String, onDone: () -> Unit = {}) {
+        // Subscribers see no interstitial, but onDone must still run so their navigation
+        // continues exactly as it would for a free user.
+        if (isPro()) {
+            onDone()
+            return
+        }
         val current = ad
         if (current == null) {
             load(activity)
@@ -104,6 +117,10 @@ class InterstitialAdManager(
      * ad load finishes.
      */
     fun loadThenShow(activity: Activity, placement: String, onDone: () -> Unit = {}) {
+        if (isPro()) {
+            onDone()
+            return
+        }
         if (ad != null) {
             show(activity, placement, onDone)
             return

@@ -36,14 +36,23 @@ class EntitlementStore(context: Context) {
 
     // --- Persisted, observable state --------------------------------------
 
-    // REVIEW: existing subscriber handling — decide before removing.
-    // The app has pivoted to an ad-based model; all features are now free for everyone
-    // (see the always-open gates below). This [isPro] flag is intentionally KEPT so that
-    // users who already purchased a subscription are still recognized (SubscriptionManager
-    // reconciles it against Play on launch). It no longer gates any feature, but is
-    // preserved for grandfathering / analytics until you decide how to treat existing
-    // subscribers (honor until lapse vs. refund/notify).
-    private val _isPro = MutableStateFlow(prefs.getBoolean(KEY_PRO_ACTIVE, false))
+    // Entitlement has two independent sources and they must not clobber each other:
+    //
+    //  - [playPro]   Google Play Billing, reconciled on every launch by SubscriptionManager.
+    //                Only grandfathered subscribers from before the ad-model pivot have this.
+    //  - [serverPro] The BhaktiChat backend (Razorpay UPI AutoPay mandate), synced by
+    //                SubscriptionRepository. This is the current subscription rail.
+    //
+    // Keeping them separate matters: SubscriptionManager.reconcile() calls [revokePro] when
+    // Play reports no active subscription — which is true for every Razorpay subscriber. If
+    // both rails shared one flag, that launch-time reconcile would silently revoke Pro from
+    // everyone who paid through Razorpay.
+    private var playPro = prefs.getBoolean(KEY_PRO_ACTIVE, false)
+    private var serverPro = prefs.getBoolean(KEY_SERVER_PRO_ACTIVE, false)
+
+    private val _isPro = MutableStateFlow(playPro || serverPro)
+
+    /** True when either rail grants entitlement. The only flag feature gates should read. */
     val isPro: StateFlow<Boolean> = _isPro.asStateFlow()
 
     // Set once the server reports the free message limit is exhausted. Persisted so the
@@ -173,18 +182,37 @@ class EntitlementStore(context: Context) {
     }
 
     /**
-     * Mock subscription success. Replace with real billing logic in
-     * [com.bhaktichat.app.data.billing.SubscriptionManager.purchase]; this flips the
-     * persisted flag and closes the paywall.
+     * Grants entitlement from the **Google Play** rail. Called by
+     * [com.bhaktichat.app.data.billing.SubscriptionManager] after an acknowledged purchase
+     * or a launch-time reconcile. Does not touch the server rail.
      */
     fun grantPro() {
+        playPro = true
         serverChatLimitReached = false
         prefs.edit()
             .putBoolean(KEY_PRO_ACTIVE, true)
             .putBoolean(KEY_SERVER_CHAT_LIMIT, false)
             .apply()
-        _isPro.value = true
+        recomputeIsPro()
         _shouldShowPaywall.value = false
+    }
+
+    /**
+     * Applies entitlement from the **backend** (Razorpay subscription), the current rail.
+     * Called by SubscriptionRepository whenever server truth is fetched. Does not touch the
+     * Play rail, so a grandfathered Play subscriber is never revoked by a server response
+     * and vice versa.
+     */
+    fun setServerPro(active: Boolean) {
+        if (serverPro == active) return
+        serverPro = active
+        prefs.edit().putBoolean(KEY_SERVER_PRO_ACTIVE, active).apply()
+        if (active) {
+            serverChatLimitReached = false
+            prefs.edit().putBoolean(KEY_SERVER_CHAT_LIMIT, false).apply()
+            _shouldShowPaywall.value = false
+        }
+        recomputeIsPro()
     }
 
     // --- Debug / QA helpers ----------------------------------------------
@@ -205,10 +233,19 @@ class EntitlementStore(context: Context) {
         _imagesUsed.value = 0
     }
 
-    /** Revoke Pro entitlement for QA. */
+    /**
+     * Revokes the **Google Play** rail only — called by SubscriptionManager's launch-time
+     * reconcile when Play reports no active subscription, and by QA tooling. A Razorpay
+     * subscriber has no Play purchase, so this must not disturb [serverPro].
+     */
     fun revokePro() {
+        playPro = false
         prefs.edit().putBoolean(KEY_PRO_ACTIVE, false).apply()
-        _isPro.value = false
+        recomputeIsPro()
+    }
+
+    private fun recomputeIsPro() {
+        _isPro.value = playPro || serverPro
     }
 
     /** Clear the "intro paywall shown" flag so the first-open sheet reappears — for QA. */
@@ -230,6 +267,7 @@ class EntitlementStore(context: Context) {
 
         private const val PREFS_NAME = "bhakti_entitlements"
         private const val KEY_PRO_ACTIVE = "bhakti_pro_active"
+        private const val KEY_SERVER_PRO_ACTIVE = "bhakti_server_pro_active"
         private const val KEY_MESSAGES_USED = "bhakti_free_messages_used"
         private const val KEY_IMAGES_USED = "bhakti_free_images_used"
         private const val KEY_DISMISSED_AT = "bhakti_paywall_dismissed_at"

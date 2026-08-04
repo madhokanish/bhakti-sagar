@@ -31,7 +31,7 @@ export default function RefundsPage() {
           {
             title: "1. सदस्यता और ट्रायल",
             body:
-              "Bhakti Chat Membership ₹1 में 3 दिन के ट्रायल के साथ शुरू होती है। ट्रायल के बाद, जब तक आप रद्द नहीं करते, सदस्यता स्वतः हर महीने ₹199 पर रिन्यू होती रहती है। भुगतान UPI AutoPay या कार्ड के ज़रिए ऑटो-पे मैंडेट से लिया जाता है।"
+              "Bhakti Chat Membership 3 दिन के ट्रायल के साथ शुरू होती है। मैंडेट (ऑटो-पे) सत्यापित करने के लिए शुरू में ₹5 का शुल्क लिया जाता है, जो अपने आप वापस कर दिया जाता है। ट्रायल के बाद, जब तक आप रद्द नहीं करते, सदस्यता स्वतः हर महीने ₹199 पर रिन्यू होती रहती है। भुगतान UPI AutoPay या कार्ड के ज़रिए ऑटो-पे मैंडेट से लिया जाता है।"
           },
           {
             title: "2. रद्दीकरण",
@@ -41,7 +41,7 @@ export default function RefundsPage() {
           {
             title: "3. रिफंड",
             body:
-              "₹1 का ट्रायल शुल्क गैर-वापसी योग्य (non-refundable) है। मासिक ₹199 शुल्क भी सामान्यतः गैर-वापसी योग्य है, जिसमें आंशिक रूप से उपयोग किया गया बिलिंग पीरियड शामिल है — रद्द करने पर उस अवधि के बचे हुए दिनों का आंशिक रिफंड नहीं दिया जाता। यदि आपको गलत या डुप्लीकेट (duplicate) शुल्क दिखाई देता है, तो कृपया हमसे संपर्क करें; सत्यापन के बाद ऐसे शुल्क को पूरी तरह रिफंड किया जाएगा।"
+              "मैंडेट सत्यापन वाला ₹5 का शुल्क अपने आप पूरी तरह वापस कर दिया जाता है — इसके लिए कोई अनुरोध करने की आवश्यकता नहीं है। मासिक ₹199 शुल्क सामान्यतः गैर-वापसी योग्य (non-refundable) है, जिसमें आंशिक रूप से उपयोग किया गया बिलिंग पीरियड शामिल है — रद्द करने पर उस अवधि के बचे हुए दिनों का आंशिक रिफंड नहीं दिया जाता। यदि आपको गलत या डुप्लीकेट (duplicate) शुल्क दिखाई देता है, तो कृपया हमसे संपर्क करें; सत्यापन के बाद ऐसे शुल्क को पूरी तरह रिफंड किया जाएगा।"
           },
           {
             title: "4. भुगतान विफलता",
@@ -67,7 +67,7 @@ export default function RefundsPage() {
           {
             title: "1. Subscription and trial",
             body:
-              "Bhakti Chat Membership starts with a 3-day trial for ₹1. Unless you cancel, the subscription then automatically renews at ₹199 per month. Payment is collected via an auto-pay mandate, using UPI AutoPay or card, depending on the payment method you choose."
+              "Bhakti Chat Membership starts with a 3-day trial. To verify your auto-pay mandate, an initial ₹5 authentication charge is made and is automatically refunded. Unless you cancel, the subscription then automatically renews at ₹199 per month. Payment is collected via an auto-pay mandate, using UPI AutoPay or card, depending on the payment method you choose."
           },
           {
             title: "2. Cancellation",
@@ -77,7 +77,7 @@ export default function RefundsPage() {
           {
             title: "3. Refunds",
             body:
-              "The ₹1 trial charge is non-refundable. The monthly ₹199 charge is also generally non-refundable, including for the unused portion of a billing period after cancellation — we do not prorate or refund partial periods. If you notice an incorrect or duplicate charge, please contact us; once verified, such charges will be refunded in full."
+              "The ₹5 mandate authentication charge is refunded in full automatically — you do not need to request it. The monthly ₹199 charge is generally non-refundable, including for the unused portion of a billing period after cancellation — we do not prorate or refund partial periods. If you notice an incorrect or duplicate charge, please contact us; once verified, such charges will be refunded in full."
           },
           {
             title: "4. Failed payments",

@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getRazorpayClient } from "@/lib/razorpay";
-import { updateUserSubscriptionRazorpayById } from "@/lib/razorpaySubscription";
+import {
+  TOTAL_BILLING_CYCLES,
+  TRIAL_DAYS,
+  updateUserSubscriptionRazorpayById
+} from "@/lib/razorpaySubscription";
 
 export const runtime = "nodejs";
-
-// Matches the Daily Bhakti flow we're mirroring: a small mandate authentication
-// charge now (Razorpay decides the amount — ₹5 in test mode), first real ₹199
-// charge after a 3-day trial.
-const TRIAL_DAYS = 3;
-// Razorpay Subscriptions require a total_count; there's no "forever" option.
-// 120 monthly cycles (10 years) is effectively indefinite for this use case.
-const TOTAL_BILLING_CYCLES = 120;
 
 export async function POST() {
   const session = await auth();

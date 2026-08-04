@@ -1,17 +1,22 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { requireMobileSession } from "@/lib/mobileAuth";
+import { mobileAuthErrorResponse } from "@/lib/mobileAuthResponse";
 import { cancelSubscriptionForUser } from "@/lib/razorpaySubscription";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function POST() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Please sign in to manage your subscription." }, { status: 401 });
+export async function POST(request: Request) {
+  let userId: string;
+  try {
+    const session = await requireMobileSession(request);
+    userId = session.user.id;
+  } catch (error) {
+    return mobileAuthErrorResponse(error);
   }
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user?.razorpaySubscriptionId) {
     return NextResponse.json({ error: "No active subscription found." }, { status: 400 });
   }

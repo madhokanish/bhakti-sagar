@@ -34,18 +34,17 @@ fun launchRazorpayCheckout(
     val checkout = Checkout()
     checkout.setKeyID(request.keyId)
 
+    // Kept to the minimal documented set for subscription checkout. amount, currency and
+    // the billing schedule all come from subscription_id — restating them here is at best
+    // redundant and at worst conflicting input for the checkout form.
     val options = JSONObject().apply {
         put("name", "BhaktiChat")
-        put("description", "चढ़ावा")
+        put("description", "Chadhava")
         put("subscription_id", request.subscriptionId)
-        put("currency", "INR")
-        // The subscription itself carries the amount and schedule; Checkout reads them
-        // from subscription_id, so no amount is passed here.
         put("theme", JSONObject().put("color", "#EA580C"))
         if (!prefillEmail.isNullOrBlank()) {
             put("prefill", JSONObject().put("email", prefillEmail))
         }
-        put("retry", JSONObject().put("enabled", false))
     }
 
     runCatching { checkout.open(activity, options) }

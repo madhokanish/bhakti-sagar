@@ -134,7 +134,7 @@ fun ChadhaavaScreen(
                     // reconciles with Razorpay) rather than trusting the client signal.
                     viewModel.checkNow()
                 }
-                is PaymentOutcome.Failed -> viewModel.onCheckoutFailed(outcome.description.orEmpty())
+                is PaymentOutcome.Failed -> viewModel.onCheckoutFailed(outcome.code, outcome.description)
             }
         }
     }
@@ -184,7 +184,6 @@ fun ChadhaavaScreen(
                     dimmed = true
                 )
                 ErrorSheet(
-                    message = current.message,
                     onRetry = viewModel::startCheckout,
                     onDismiss = viewModel::dismissError
                 )
@@ -233,6 +232,8 @@ private fun OfferState(
 
             Spacer(Modifier.height(14.dp))
             PriceCard(compact = blockedBy != null)
+            Spacer(Modifier.height(18.dp))
+            TempleOfferingCard()
             Spacer(Modifier.height(18.dp))
             BillingTimeline()
             Spacer(Modifier.height(18.dp))
@@ -492,6 +493,7 @@ private fun PriceCard(compact: Boolean) {
 @Composable
 private fun RefundReassurance() {
     Surface(
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
         color = ChadhaavaPalette.SuccessSurface,
         border = BorderStroke(1.dp, ChadhaavaPalette.SuccessBorder)
@@ -502,7 +504,7 @@ private fun RefundReassurance() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             CheckCircle(size = 22.dp)
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = t("chadhaava_refund_title"),
                     fontSize = 13.5.sp,
@@ -533,6 +535,144 @@ private fun CheckCircle(size: androidx.compose.ui.unit.Dp) {
             tint = Color.White,
             modifier = Modifier.size(size * 0.62f)
         )
+    }
+}
+
+/**
+ * The differentiator card: a weekly puja performed in the subscriber's name at two named
+ * temples, with photo/video sent back.
+ *
+ * This is a promise about a real-world religious service, not a software feature. Every
+ * claim here must actually be fulfilled each week for real subscribers — the named temples,
+ * the sankalp, and the photos. The header image is a placeholder and should be replaced
+ * with documentary photography of the actual puja; a stock temple shot undercuts the one
+ * claim on this screen that cannot be verified in-app.
+ */
+@Composable
+private fun TempleOfferingCard() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = ChadhaavaPalette.Card,
+        border = BorderStroke(1.5.dp, ChadhaavaPalette.CardBorderAccent)
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(104.dp)
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.temple_chadhaava),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0x242A1C15), Color(0xD62A1C15))
+                            )
+                        )
+                )
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(horizontal = 13.dp, vertical = 11.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_diya),
+                            contentDescription = null,
+                            tint = Color(0xFFFEF3C7),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = t("chadhaava_temple_eyebrow"),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFFFEF3C7)
+                        )
+                    }
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        text = t("chadhaava_temple_title"),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                        lineHeight = 20.sp
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.padding(13.dp),
+                verticalArrangement = Arrangement.spacedBy(11.dp)
+            ) {
+                Text(
+                    text = t("chadhaava_temple_intro"),
+                    fontSize = 12.sp,
+                    color = ChadhaavaPalette.TextSecondary,
+                    lineHeight = 18.sp
+                )
+                TempleRow(t("chadhaava_temple_1_name"), t("chadhaava_temple_1_place"))
+                TempleRow(t("chadhaava_temple_2_name"), t("chadhaava_temple_2_place"))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = ChadhaavaPalette.SurfaceWarm
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 9.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CheckCircle(size = 16.dp)
+                        Text(
+                            text = t("chadhaava_temple_proof"),
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ChadhaavaPalette.TextBody
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TempleRow(name: String, place: String) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(9.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(top = 5.dp)
+                .size(7.dp)
+                .background(ChadhaavaPalette.Accent, CircleShape)
+        )
+        Column {
+            Text(
+                text = name,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = ChadhaavaPalette.TextPrimary
+            )
+            Text(
+                text = place,
+                fontSize = 11.sp,
+                color = ChadhaavaPalette.TextSecondary
+            )
+        }
     }
 }
 
@@ -643,6 +783,7 @@ private fun Benefits(blockedBy: BlockedFeature?) {
     // Ranked by emotional pull, not feature completeness. When the user was blocked on a
     // specific feature, that feature leads instead.
     val base = listOf(
+        Benefit("chadhaava_benefit_puja", "chadhaava_benefit_puja_sub", "chadhaava_badge_new"),
         Benefit("chadhaava_benefit_voice", "chadhaava_benefit_voice_sub", "chadhaava_badge_popular", true),
         Benefit("chadhaava_benefit_chat", "chadhaava_benefit_chat_sub"),
         Benefit("chadhaava_benefit_image", "chadhaava_benefit_image_sub"),
@@ -1026,6 +1167,7 @@ private fun ActiveState(
             )
             Spacer(Modifier.height(10.dp))
             listOf(
+                "chadhaava_benefit_puja",
                 "chadhaava_benefit_voice",
                 "chadhaava_benefit_chat",
                 "chadhaava_benefit_image",
@@ -1130,7 +1272,7 @@ private fun ProcessingSheet(elapsedSeconds: Int, onCheckNow: () -> Unit) {
 }
 
 @Composable
-private fun ErrorSheet(message: String, onRetry: () -> Unit, onDismiss: () -> Unit) {
+private fun ErrorSheet(onRetry: () -> Unit, onDismiss: () -> Unit) {
     BottomSheetScaffold {
         Text(
             text = t("chadhaava_error_title"),
@@ -1140,10 +1282,11 @@ private fun ErrorSheet(message: String, onRetry: () -> Unit, onDismiss: () -> Un
             textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(8.dp))
-        // "Nothing was deducted" is load-bearing — it always leads, with any gateway detail
-        // appended after it rather than replacing it.
+        // Only our own copy is ever shown. The gateway's raw payload goes to logcat — it is
+        // developer detail and reads as alarming nonsense to a devotee. "Nothing was
+        // deducted" leads, because that is the user's actual worry.
         Text(
-            text = t("chadhaava_error_body") + if (message.isNotBlank()) "\n\n$message" else "",
+            text = t("chadhaava_error_body"),
             fontSize = 13.sp,
             color = ChadhaavaPalette.TextSecondary,
             textAlign = TextAlign.Center,

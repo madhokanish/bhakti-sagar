@@ -106,6 +106,59 @@ private val table: Map<String, Entry> = mapOf(
         "Cancel before then if it's not for you — you pay nothing"
     ),
 
+    // --- Temple offering card ---
+    "chadhaava_temple_eyebrow" to Entry(
+        "Asli mandir · Asli pooja",
+        "असली मंदिर · असली पूजा",
+        "Real temples · Real puja"
+    ),
+    "chadhaava_temple_title" to Entry(
+        "Aapke naam se chadhava chadhaya jayega",
+        "आपके नाम से चढ़ावा चढ़ाया जाएगा",
+        "An offering will be made in your name"
+    ),
+    "chadhaava_temple_intro" to Entry(
+        "Har hafte hone wali pooja mein aapka naam sankalp ke saath liya jata hai — do prachin mandiron mein, pandit ji dwara.",
+        "हर हफ़्ते होने वाली पूजा में आपका नाम संकल्प के साथ लिया जाता है — दो प्राचीन मंदिरों में, पंडित जी द्वारा।",
+        "Your name is taken with the sankalp in the weekly puja — at two ancient temples, by the pandit."
+    ),
+    "chadhaava_temple_1_name" to Entry(
+        "Omkareshwar Jyotirling",
+        "ओंकारेश्वर ज्योतिर्लिंग",
+        "Omkareshwar Jyotirlinga"
+    ),
+    "chadhaava_temple_1_place" to Entry(
+        "Khandwa, Madhya Pradesh",
+        "खंडवा, मध्य प्रदेश",
+        "Khandwa, Madhya Pradesh"
+    ),
+    "chadhaava_temple_2_name" to Entry(
+        "Kaal Bhairav Mandir, Kashi",
+        "काल भैरव मंदिर, काशी",
+        "Kaal Bhairav Temple, Kashi"
+    ),
+    "chadhaava_temple_2_place" to Entry(
+        "Varanasi, Uttar Pradesh",
+        "वाराणसी, उत्तर प्रदेश",
+        "Varanasi, Uttar Pradesh"
+    ),
+    "chadhaava_temple_proof" to Entry(
+        "Pooja ki photo aur video aapko bheji jaati hai",
+        "पूजा की फ़ोटो और वीडियो आपको भेजी जाती है",
+        "Photos and video of the puja are sent to you"
+    ),
+    "chadhaava_benefit_puja" to Entry(
+        "Aapke naam se saptahik pooja",
+        "आपके नाम से साप्ताहिक पूजा",
+        "Weekly puja in your name"
+    ),
+    "chadhaava_benefit_puja_sub" to Entry(
+        "Omkareshwar aur Kashi mein — photo sahit",
+        "ओंकारेश्वर और काशी में — फ़ोटो सहित",
+        "At Omkareshwar and Kashi — with photos"
+    ),
+    "chadhaava_badge_new" to Entry("Naya", "नया", "New"),
+
     "chadhaava_benefits_title" to Entry(
         "Aapko kya milega",
         "आपको क्या मिलेगा",

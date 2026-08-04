@@ -1,5 +1,6 @@
 package com.bhaktichat.app.ui.screens.chadhaava
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -37,7 +38,11 @@ sealed interface ChadhaavaUiState {
         val daysRemaining: Int?
     ) : ChadhaavaUiState
 
-    data class Failed(val message: String) : ChadhaavaUiState
+    /**
+     * Payment did not complete. Carries no gateway detail on purpose — the copy shown is
+     * always ours, so a raw error payload can never leak into the UI.
+     */
+    data object Failed : ChadhaavaUiState
 }
 
 /** Emitted when the screen should hand off to Razorpay Checkout. */
@@ -89,17 +94,33 @@ class ChadhaavaViewModel(
                 // 409 means a mandate already exists; the repository has already adopted the
                 // server's state, so just render it rather than showing an error.
                 if (error.code == "ALREADY_SUBSCRIBED") render(repository.state.value)
-                else _uiState.value = ChadhaavaUiState.Failed(error.message)
-            } catch (_: Exception) {
-                _uiState.value = ChadhaavaUiState.Failed("")
+                else {
+                    Log.w(TAG, "Create subscription failed: ${error.code} ${error.message}")
+                    _uiState.value = ChadhaavaUiState.Failed
+                }
+            } catch (error: Exception) {
+                Log.w(TAG, "Create subscription failed", error)
+                _uiState.value = ChadhaavaUiState.Failed
             }
         }
     }
 
-    /** The UPI app reported failure, or the user backed out of it. */
-    fun onCheckoutFailed(message: String) {
+    /**
+     * Checkout reported a failure.
+     *
+     * The gateway's [description] is a raw JSON blob meant for developers — it is logged,
+     * never shown. Users only ever see our own copy, which leads with "nothing was
+     * deducted". A user backing out of the payment sheet is not an error, so that returns
+     * quietly to the offer instead of raising an alarming screen.
+     */
+    fun onCheckoutFailed(code: Int, description: String?) {
         pollJob?.cancel()
-        _uiState.value = ChadhaavaUiState.Failed(message)
+        Log.w(TAG, "Checkout failed (code=$code): $description")
+        _uiState.value = if (code == CODE_PAYMENT_CANCELLED) {
+            ChadhaavaUiState.Offer(blockedBy)
+        } else {
+            ChadhaavaUiState.Failed
+        }
     }
 
     /**
@@ -144,7 +165,7 @@ class ChadhaavaViewModel(
                 }
             }
             if (_uiState.value is ChadhaavaUiState.Processing) {
-                _uiState.value = ChadhaavaUiState.Failed("")
+                _uiState.value = ChadhaavaUiState.Failed
             }
         }
     }
@@ -174,6 +195,9 @@ class ChadhaavaViewModel(
     }
 
     private companion object {
+        const val TAG = "Chadhaava"
+        /** com.razorpay.Checkout.PAYMENT_CANCELED — user dismissed the payment sheet. */
+        const val CODE_PAYMENT_CANCELLED = 0
         const val POLL_INTERVAL_SECONDS = 3
         const val POLL_TIMEOUT_SECONDS = 180
     }

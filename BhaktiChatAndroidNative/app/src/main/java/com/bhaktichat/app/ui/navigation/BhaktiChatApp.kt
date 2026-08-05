@@ -466,7 +466,8 @@ fun BhaktiChatApp(
                         guidesRepository = appContainer.guidesRepository,
                         creationRepository = appContainer.divineCreationRepository,
                         bookmarkStore = appContainer.bookmarkStore,
-                        aartiRepository = appContainer.aartiRepository
+                        aartiRepository = appContainer.aartiRepository,
+                        languageStore = appContainer.languageStore
                     ),
                     bookmarkStore = appContainer.bookmarkStore,
                     onOpenProfile = { navController.navigate(NavDestinations.PROFILE) },

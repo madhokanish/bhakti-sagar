@@ -1,4 +1,5 @@
 package com.bhaktichat.app.ui.screens.chat
+import com.bhaktichat.app.ui.i18n.LocalAppLanguage
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
@@ -174,6 +175,7 @@ fun ChatThreadScreen(
 
     // Voice input wiring (Feature 2) — prefix-strip delta merge mirrors iOS so we
     // don't duplicate text when partial transcripts grow.
+    val resolvedGuideName = guide?.displayName(LocalAppLanguage.current).orEmpty()
     val speechManager = remember(context) { SpeechInputManager(
             context,
             (context.applicationContext as com.bhaktichat.app.BhaktiChatApplication).container.languageStore
@@ -279,13 +281,13 @@ fun ChatThreadScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             GuideAvatar(
                                 avatarRes = guide.avatarRes,
-                                contentDescription = guide.displayName,
+                                contentDescription = guide.displayName(LocalAppLanguage.current),
                                 sizeDp = 34,
                                 verticalBias = guide.avatarVerticalBias
                             )
                             Column(modifier = Modifier.padding(start = 10.dp)) {
                                 Text(
-                                    text = guide.displayName,
+                                    text = guide.displayName(LocalAppLanguage.current),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
@@ -301,7 +303,7 @@ fun ChatThreadScreen(
                                             .background(Color(0xFF22C55E), CircleShape)
                                     )
                                     Text(
-                                        text = guide.status.ifBlank { "उपलब्ध" },
+                                        text = guide.status(LocalAppLanguage.current).ifBlank { "उपलब्ध" },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -357,7 +359,7 @@ fun ChatThreadScreen(
                             DropdownMenuItem(
                                 text = { Text("बातचीत कॉपी करें") },
                                 onClick = {
-                                    val guideName = guide?.displayName.orEmpty()
+                                    val guideName = resolvedGuideName
                                     val transcript = uiState.messages
                                         .filterNot { it.isTypingIndicator }
                                         .joinToString("\n\n") { msg ->
@@ -530,7 +532,7 @@ fun ChatThreadScreen(
                                 message = item.message,
                                 avatarRes = guide?.avatarRes,
                                 avatarBias = guide?.avatarVerticalBias ?: -1f,
-                                guideName = guide?.displayName.orEmpty(),
+                                guideName = guide?.displayName(LocalAppLanguage.current).orEmpty(),
                                 isSelected = selectedMessageId == item.message.id,
                                 isLastAssistant = item.message.id == lastAssistantId,
                                 onTapBubble = {

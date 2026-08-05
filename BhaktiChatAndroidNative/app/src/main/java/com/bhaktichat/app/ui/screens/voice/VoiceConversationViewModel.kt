@@ -42,7 +42,7 @@ class VoiceConversationViewModel(
     private val language: AppLanguage
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
-        VoiceUiState(guideName = guide.displayName, guideProfileImageRes = guide.profileImageRes)
+        VoiceUiState(guideName = guide.displayName(language), guideProfileImageRes = guide.profileImageRes)
     )
     val uiState: StateFlow<VoiceUiState> = _uiState.asStateFlow()
 

@@ -1,4 +1,5 @@
 package com.bhaktichat.app.ui.screens.history
+import com.bhaktichat.app.util.LanguageStore
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -75,7 +76,9 @@ class HistoryViewModel(
     private val guidesRepository: GuidesRepository,
     private val creationRepository: DivineCreationRepository,
     private val bookmarkStore: BookmarkStore? = null,
-    private val aartiRepository: AartiRepository? = null
+    private val aartiRepository: AartiRepository? = null,
+    // Read at call time rather than captured: history rows rebuild on language change.
+    private val languageStore: LanguageStore
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HistoryUiState())
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
@@ -91,7 +94,7 @@ class HistoryViewModel(
                     val latestMessage = messagesRepository.latestMessage(thread.id) ?: return@mapNotNull null
                     HistoryItem(
                         threadId = thread.id,
-                        guideName = guide.displayName,
+                        guideName = guide.displayName(languageStore.language.value),
                         preview = latestMessage.content.lineSequence().firstOrNull().orEmpty(),
                         timeLabel = formatTime(latestMessage.createdAt),
                         avatarRes = guide.avatarRes
@@ -148,7 +151,7 @@ class HistoryViewModel(
                 if (msg.id in ids) {
                     results += SavedMessageItem(
                         messageId = msg.id,
-                        guideName = guide.displayName,
+                        guideName = guide.displayName(languageStore.language.value),
                         avatarRes = guide.avatarRes,
                         preview = msg.content.lineSequence().firstOrNull().orEmpty(),
                         timeLabel = formatTime(msg.createdAt),
@@ -227,7 +230,8 @@ class HistoryViewModelFactory(
     private val guidesRepository: GuidesRepository,
     private val creationRepository: DivineCreationRepository,
     private val bookmarkStore: BookmarkStore? = null,
-    private val aartiRepository: AartiRepository? = null
+    private val aartiRepository: AartiRepository? = null,
+    private val languageStore: LanguageStore
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -237,7 +241,8 @@ class HistoryViewModelFactory(
             guidesRepository = guidesRepository,
             creationRepository = creationRepository,
             bookmarkStore = bookmarkStore,
-            aartiRepository = aartiRepository
+            aartiRepository = aartiRepository,
+            languageStore = languageStore
         ) as T
     }
 }

@@ -1,4 +1,5 @@
 package com.bhaktichat.app.ui.components.home
+import com.bhaktichat.app.ui.i18n.LocalAppLanguage
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -70,7 +71,7 @@ private fun CompactGuideCard(
             ) {
                 TopFocusedImage(
                     imageRes = guide.profileImageRes,
-                    contentDescription = guide.displayName,
+                    contentDescription = guide.displayName(LocalAppLanguage.current),
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -82,7 +83,7 @@ private fun CompactGuideCard(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = guide.displayName,
+                    text = guide.displayName(LocalAppLanguage.current),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1

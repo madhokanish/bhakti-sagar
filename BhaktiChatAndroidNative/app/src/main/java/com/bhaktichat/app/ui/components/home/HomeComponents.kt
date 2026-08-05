@@ -1,4 +1,5 @@
 package com.bhaktichat.app.ui.components.home
+import com.bhaktichat.app.ui.i18n.LocalAppLanguage
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
@@ -163,7 +164,7 @@ fun GuideCard(
             ) {
                 TopFocusedImage(
                     imageRes = guide.profileImageRes,
-                    contentDescription = guide.displayName,
+                    contentDescription = guide.displayName(LocalAppLanguage.current),
                     modifier = Modifier.fillMaxSize(),
                     scaleX = 1.06f,
                     scaleY = 1.48f
@@ -189,7 +190,7 @@ fun GuideCard(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = guide.displayName,
+                    text = guide.displayName(LocalAppLanguage.current),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1

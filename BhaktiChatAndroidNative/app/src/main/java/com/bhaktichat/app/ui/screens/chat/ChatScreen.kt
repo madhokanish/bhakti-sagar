@@ -1,4 +1,5 @@
 package com.bhaktichat.app.ui.screens.chat
+import com.bhaktichat.app.ui.i18n.LocalAppLanguage
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -131,13 +132,13 @@ fun ChatScreen(
                     ) {
                         GuideAvatar(
                             avatarRes = guide.avatarRes,
-                            contentDescription = guide.displayName,
+                            contentDescription = guide.displayName(LocalAppLanguage.current),
                             sizeDp = 34,
                             verticalBias = guide.avatarVerticalBias
                         )
                         Column(modifier = Modifier.padding(start = 10.dp)) {
                             Text(
-                                text = guide.displayName,
+                                text = guide.displayName(LocalAppLanguage.current),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -189,7 +190,7 @@ fun ChatScreen(
             ) {
                 if (!hasUserMessages && !uiState.isStreaming) {
                     SuggestedPromptsRow(
-                        prompts = guide.suggestedPrompts,
+                        prompts = guide.suggestedPrompts(LocalAppLanguage.current),
                         onSelect = onSelectPrompt
                     )
                 }
@@ -254,7 +255,7 @@ fun ChatScreen(
                     message = message,
                     avatarRes = guide.avatarRes,
                     avatarBiasY = guide.avatarVerticalBias,
-                    guideName = guide.displayName,
+                    guideName = guide.displayName(LocalAppLanguage.current),
                     showFollowUps = !uiState.isStreaming &&
                         index == uiState.messages.lastIndex &&
                         ChatRole.fromWire(message.role) == ChatRole.ASSISTANT,
@@ -267,7 +268,7 @@ fun ChatScreen(
                     TypingIndicator(
                         avatarRes = guide.avatarRes,
                         avatarBiasY = guide.avatarVerticalBias,
-                        guideName = guide.displayName
+                        guideName = guide.displayName(LocalAppLanguage.current)
                     )
                 }
             }

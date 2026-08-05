@@ -1,5 +1,9 @@
 package com.bhaktichat.app.data.subscription
 
+import com.bhaktichat.app.ui.i18n.str
+
+import com.bhaktichat.app.util.LanguageStore
+
 import com.bhaktichat.app.data.auth.AuthRepository
 import com.bhaktichat.app.data.auth.AuthState
 import com.bhaktichat.app.util.EntitlementStore
@@ -28,6 +32,7 @@ class SubscriptionRepository(
     baseUrl: String,
     private val authRepository: AuthRepository,
     private val entitlementStore: EntitlementStore,
+    private val languageStore: LanguageStore,
     private val api: SubscriptionApi = SubscriptionApi(baseUrl),
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 ) {
@@ -79,7 +84,7 @@ class SubscriptionRepository(
     /** Creates a subscription server-side, ready to hand to Razorpay Checkout. */
     suspend fun createSubscription(): CreatedSubscription {
         val token = authRepository.currentSession?.accessToken
-            ?: throw SubscriptionApiException("AUTH_REQUIRED", 401, "कृपया पहले साइन इन करें।")
+            ?: throw SubscriptionApiException("AUTH_REQUIRED", 401, languageStore.str("please_sign_in"))
         try {
             return api.create(token)
         } catch (error: SubscriptionApiException) {
@@ -92,7 +97,7 @@ class SubscriptionRepository(
 
     suspend fun cancel(): CancelOutcome {
         val token = authRepository.currentSession?.accessToken
-            ?: throw SubscriptionApiException("AUTH_REQUIRED", 401, "कृपया पहले साइन इन करें।")
+            ?: throw SubscriptionApiException("AUTH_REQUIRED", 401, languageStore.str("please_sign_in"))
         val outcome = api.cancel(token)
         // Cancelling at cycle end leaves the user entitled until the period ends, so re-read
         // rather than assuming access is gone.

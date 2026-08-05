@@ -1,4 +1,5 @@
 package com.bhaktichat.app.ui.components.shell
+import com.bhaktichat.app.ui.i18n.t
 
 import com.bhaktichat.app.ui.components.GuideAvatar
 import androidx.compose.animation.core.Spring
@@ -211,7 +212,7 @@ fun PersistentInputBar(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,
-                    contentDescription = "जोड़ें",
+                    contentDescription = t("common_add"),
                     tint = BhaktiThemeTokens.TextSecondary,
                     modifier = Modifier.size(20.dp)
                 )
@@ -250,7 +251,7 @@ fun PersistentInputBar(
 
             InputActionCircle(
                 onClick = onMicClick,
-                contentDescription = "आवाज़",
+                contentDescription = t("common_voice"),
                 shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f)
             ) {
@@ -262,7 +263,7 @@ fun PersistentInputBar(
             }
             InputActionCircle(
                 onClick = onPrimaryAction,
-                contentDescription = "भेजें",
+                contentDescription = t("chat_send"),
                 shape = CircleShape,
                 containerColor = BhaktiThemeTokens.AccentPrimary
             ) {

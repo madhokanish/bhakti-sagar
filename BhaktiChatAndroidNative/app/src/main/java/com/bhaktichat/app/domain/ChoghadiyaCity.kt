@@ -3,9 +3,13 @@ package com.bhaktichat.app.domain
 import java.util.Locale
 import java.util.TimeZone
 
+/**
+ * [nameKey] is a translation key, not display text — resolved as `t(city.nameKey)` so the
+ * list reads in the user's script. [slug] stays the stable identifier used for lookup.
+ */
 data class ChoghadiyaCity(
     val slug: String,
-    val name: String,
+    val nameKey: String,
     val lat: Double,
     val lon: Double,
     val tz: String
@@ -13,14 +17,14 @@ data class ChoghadiyaCity(
 
 object ChoghadiyaCities {
     val all: List<ChoghadiyaCity> = listOf(
-        ChoghadiyaCity("london", "लंदन, यूनाइटेड किंगडम", 51.5072, -0.1276, "Europe/London"),
-        ChoghadiyaCity("new-york", "न्यूयॉर्क, अमेरिका", 40.7128, -74.0060, "America/New_York"),
-        ChoghadiyaCity("toronto", "टोरंटो, कनाडा", 43.6532, -79.3832, "America/Toronto"),
-        ChoghadiyaCity("dubai", "दुबई, संयुक्त अरब अमीरात", 25.2048, 55.2708, "Asia/Dubai"),
-        ChoghadiyaCity("sydney", "सिडनी, ऑस्ट्रेलिया", -33.8688, 151.2093, "Australia/Sydney"),
-        ChoghadiyaCity("singapore", "सिंगापुर", 1.3521, 103.8198, "Asia/Singapore"),
-        ChoghadiyaCity("delhi", "दिल्ली, भारत", 28.6139, 77.2090, "Asia/Kolkata"),
-        ChoghadiyaCity("mumbai", "मुंबई, भारत", 19.0760, 72.8777, "Asia/Kolkata")
+        ChoghadiyaCity("london", "city_london", 51.5072, -0.1276, "Europe/London"),
+        ChoghadiyaCity("new-york", "city_newyork", 40.7128, -74.0060, "America/New_York"),
+        ChoghadiyaCity("toronto", "city_toronto", 43.6532, -79.3832, "America/Toronto"),
+        ChoghadiyaCity("dubai", "city_dubai", 25.2048, 55.2708, "Asia/Dubai"),
+        ChoghadiyaCity("sydney", "city_sydney", -33.8688, 151.2093, "Australia/Sydney"),
+        ChoghadiyaCity("singapore", "city_singapore", 1.3521, 103.8198, "Asia/Singapore"),
+        ChoghadiyaCity("delhi", "city_delhi", 28.6139, 77.2090, "Asia/Kolkata"),
+        ChoghadiyaCity("mumbai", "city_mumbai", 19.0760, 72.8777, "Asia/Kolkata")
     )
 
     fun defaultCity(): ChoghadiyaCity {

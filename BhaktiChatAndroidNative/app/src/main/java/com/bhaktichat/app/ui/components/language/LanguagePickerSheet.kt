@@ -78,28 +78,15 @@ fun LanguagePickerSheet(
                 ) {
                     LanguageOption(
                         title = "हिंदी",
-                        subtitle = "देवनागरी में",
                         selected = current == AppLanguage.HINDI,
                         onClick = { onSelect(AppLanguage.HINDI) }
                     )
                     LanguageOption(
                         title = "English",
-                        subtitle = "In English letters",
                         selected = current == AppLanguage.HINGLISH,
                         onClick = { onSelect(AppLanguage.HINGLISH) }
                     )
                 }
-
-                Text(
-                    text = "आप इसे बाद में प्रोफ़ाइल में बदल सकते हैं · You can change this later in Profile",
-                    fontSize = 11.sp,
-                    color = LanguagePalette.TextMuted,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 16.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 18.dp)
-                )
             }
         }
     }
@@ -108,7 +95,6 @@ fun LanguagePickerSheet(
 @Composable
 private fun LanguageOption(
     title: String,
-    subtitle: String,
     selected: Boolean,
     onClick: () -> Unit
 ) {
@@ -128,20 +114,13 @@ private fun LanguageOption(
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 15.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = LanguagePalette.TextPrimary
-                )
-                Text(
-                    text = subtitle,
-                    fontSize = 12.sp,
-                    color = LanguagePalette.TextSecondary,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-            }
+            Text(
+                modifier = Modifier.weight(1f),
+                text = title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = LanguagePalette.TextPrimary
+            )
             if (selected) {
                 Box(
                     modifier = Modifier

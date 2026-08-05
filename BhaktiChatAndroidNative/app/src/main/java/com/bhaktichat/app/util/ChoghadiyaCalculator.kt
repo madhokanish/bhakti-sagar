@@ -1,5 +1,8 @@
 package com.bhaktichat.app.util
 
+import com.bhaktichat.app.domain.AppLanguage
+import com.bhaktichat.app.ui.i18n.translate
+
 import com.bhaktichat.app.domain.ChoghadiyaSlot
 import java.time.DayOfWeek
 import java.time.Duration
@@ -31,7 +34,8 @@ object ChoghadiyaCalculator {
         sunrise: Instant,
         sunset: Instant,
         nextSunrise: Instant,
-        zoneId: ZoneId
+        zoneId: ZoneId,
+        language: AppLanguage
     ): List<ChoghadiyaSlot> {
         val sunriseLocal = sunrise.atZone(zoneId)
         val sunsetLocal = sunset.atZone(zoneId)
@@ -52,7 +56,7 @@ object ChoghadiyaCalculator {
                         label = name,
                         start = HindiTimeFormatter.format(start),
                         end = HindiTimeFormatter.format(end),
-                        quality = qualityText(name),
+                        quality = qualityText(name, language),
                         startEpochMillis = start.toInstant().toEpochMilli(),
                         endEpochMillis = end.toInstant().toEpochMilli(),
                         isNight = false
@@ -65,10 +69,10 @@ object ChoghadiyaCalculator {
                 val end = if (index == 7) nextSunriseLocal else sunsetLocal.plus(Duration.ofMillis((nightStepMillis * (index + 1)).toLong()))
                 add(
                     ChoghadiyaSlot(
-                        label = "$name (रात्रि)",
+                        label = "$name (${translate("chogh_night", language)})",
                         start = HindiTimeFormatter.format(start),
                         end = HindiTimeFormatter.format(end),
-                        quality = qualityText(name),
+                        quality = qualityText(name, language),
                         startEpochMillis = start.toInstant().toEpochMilli(),
                         endEpochMillis = end.toInstant().toEpochMilli(),
                         isNight = true
@@ -78,13 +82,13 @@ object ChoghadiyaCalculator {
         }
     }
 
-    private fun qualityText(label: String): String = when (label) {
-        "Amrit" -> "सर्वोत्तम"
-        "Shubh" -> "शुभ"
-        "Labh" -> "लाभ"
-        "Char" -> "सामान्य"
-        "Kaal" -> "हानि"
-        "Rog" -> "अशुभ"
-        else -> "सावधानी"
-    }
+    private fun qualityText(label: String, language: AppLanguage): String = translate(when (label) {
+        "Amrit" -> "chogh_best"
+        "Shubh" -> "chogh_shubh"
+        "Labh" -> "chogh_laabh"
+        "Char" -> "chogh_normal"
+        "Kaal" -> "chogh_loss"
+        "Rog" -> "chogh_inauspicious"
+        else -> "chogh_caution"
+    }, language)
 }

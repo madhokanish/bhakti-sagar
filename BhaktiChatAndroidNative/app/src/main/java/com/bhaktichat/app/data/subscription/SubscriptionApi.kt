@@ -82,7 +82,7 @@ class SubscriptionApi(
                         code = json.optString("code").ifBlank { "HTTP_${response.code}" },
                         status = response.code,
                         message = json.optString("error")
-                            .ifBlank { "सदस्यता सेवा में समस्या (${response.code})।" },
+                            .ifBlank { "Membership service error (${response.code})." },
                         subscription = json.optJSONObject("subscription")?.let(::parseSummary)
                     )
                 }

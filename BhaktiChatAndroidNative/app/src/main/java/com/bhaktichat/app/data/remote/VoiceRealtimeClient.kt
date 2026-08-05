@@ -129,8 +129,8 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
                     },
                     onMicAppearsDead = {
                         _micWarning.value =
-                            "आपकी आवाज़ सुनाई नहीं दे रही है — माइक्रोफ़ोन शांत लग रहा है। " +
-                                "ब्लूटूथ हटाकर या बातचीत फिर शुरू करके देखें।"
+                            "We can't hear you — the microphone seems silent. " +
+                                "Try removing Bluetooth or restarting the call."
                     }
                 )
             }

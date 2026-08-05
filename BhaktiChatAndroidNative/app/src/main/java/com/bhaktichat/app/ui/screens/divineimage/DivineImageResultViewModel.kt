@@ -1,5 +1,9 @@
 package com.bhaktichat.app.ui.screens.divineimage
 
+import com.bhaktichat.app.util.LanguageStore
+
+import com.bhaktichat.app.ui.i18n.translate
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -44,7 +48,8 @@ class DivineImageResultViewModel(
     private val creationRepository: DivineCreationRepository,
     private val generator: DivineImageGenerator,
     private val feedbackClient: DivineFeedbackClient,
-    private val anonUserKey: String
+    private val anonUserKey: String,
+    private val languageStore: LanguageStore
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DivineImageResultUiState())
     val uiState: StateFlow<DivineImageResultUiState> = _uiState.asStateFlow()
@@ -77,7 +82,7 @@ class DivineImageResultViewModel(
             creationRepository.upsertCreation(
                 creation.copy(
                     status = CreationStatus.FAILED,
-                    errorMessage = "रद्द किया गया"
+                    errorMessage = translate("common_cancelled", languageStore.language.value)
                 )
             )
             _uiEvents.emit(DivineImageResultUiEvent.NavigateHome)
@@ -123,7 +128,7 @@ class DivineImageResultViewModel(
                 onFailure = { throwable ->
                     generatingCreation.copy(
                         status = CreationStatus.FAILED,
-                        errorMessage = "अभी यह छवि नहीं बन सकी। कृपया फिर प्रयास करें।"
+                        errorMessage = translate("di_err_generate_failed", languageStore.language.value)
                     )
                 }
             )
@@ -256,7 +261,8 @@ class DivineImageResultViewModelFactory(
     private val creationRepository: DivineCreationRepository,
     private val generator: DivineImageGenerator,
     private val feedbackClient: DivineFeedbackClient,
-    private val anonUserKey: String
+    private val anonUserKey: String,
+    private val languageStore: LanguageStore
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -266,7 +272,8 @@ class DivineImageResultViewModelFactory(
             creationRepository = creationRepository,
             generator = generator,
             feedbackClient = feedbackClient,
-            anonUserKey = anonUserKey
+            anonUserKey = anonUserKey,
+            languageStore = languageStore
         ) as T
     }
 }

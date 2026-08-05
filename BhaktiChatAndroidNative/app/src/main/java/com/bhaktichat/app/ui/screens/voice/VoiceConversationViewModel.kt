@@ -1,5 +1,7 @@
 package com.bhaktichat.app.ui.screens.voice
 
+import com.bhaktichat.app.ui.i18n.translate
+
 import android.media.AudioManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -56,7 +58,7 @@ class VoiceConversationViewModel(
                     it.copy(
                         callState = callState,
                         errorMessage = if (callState is VoiceCallState.Error) {
-                            "आवाज़ से बातचीत में समस्या हुई। कृपया फिर प्रयास करें।"
+                            translate("voice_call_problem", language)
                         } else {
                             it.errorMessage
                         }
@@ -107,7 +109,7 @@ class VoiceConversationViewModel(
 
         val focusGranted = audioFocusManager.request { focusChange -> handleAudioFocusChange(focusChange) }
         if (!focusGranted) {
-            _uiState.update { it.copy(errorMessage = "आवाज़ शुरू नहीं हो सकी। कृपया फिर प्रयास करें।") }
+            _uiState.update { it.copy(errorMessage = translate("voice_start_failed", language)) }
             hasStarted = false
             return
         }
@@ -118,7 +120,7 @@ class VoiceConversationViewModel(
                     realtimeClient.connect(session.ephemeralKey, session.model, guide.openingScene(language))
                 }
                 .onFailure {
-                    _uiState.update { it.copy(errorMessage = "आवाज़ से बातचीत शुरू नहीं हो सकी। कृपया फिर प्रयास करें।") }
+                    _uiState.update { it.copy(errorMessage = translate("voice_call_start_failed", language)) }
                 }
         }
     }

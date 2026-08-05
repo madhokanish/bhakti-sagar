@@ -1,4 +1,5 @@
 package com.bhaktichat.app.ui.components.home
+import com.bhaktichat.app.ui.i18n.t
 import com.bhaktichat.app.ui.i18n.LocalAppLanguage
 
 import androidx.compose.foundation.clickable
@@ -100,16 +101,17 @@ private fun CompactGuideCard(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("बात करें")
+                    Text(t("talk_now"))
                 }
             }
         }
     }
 }
 
+@Composable
 private fun guidePromise(guideId: String): String = when (guideId) {
-    "krishna" -> "स्पष्टता के लिए गीता ज्ञान"
-    "lakshmi" -> "समृद्धि के लिए शांत मार्गदर्शन"
-    "shani" -> "कठिन समय में अनुशासन"
-    else -> "स्नेहपूर्ण आध्यात्मिक मार्गदर्शन"
+    "krishna" -> t("guide_blurb_krishna")
+    "lakshmi" -> t("guide_blurb_lakshmi")
+    "shani" -> t("guide_blurb_shani")
+    else -> t("guide_blurb_generic")
 }

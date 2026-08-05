@@ -820,7 +820,7 @@ private fun SavedAartiRow(
             ) {
                 Image(
                     painter = painterResource(id = thumbnailRes),
-                    contentDescription = "${item.title} का चिह्न",
+                    contentDescription = item.title,
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)

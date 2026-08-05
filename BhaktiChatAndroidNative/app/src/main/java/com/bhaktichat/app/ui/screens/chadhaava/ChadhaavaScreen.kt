@@ -233,8 +233,6 @@ private fun OfferState(
             Spacer(Modifier.height(14.dp))
             PriceCard(compact = blockedBy != null)
             Spacer(Modifier.height(18.dp))
-            TempleOfferingCard()
-            Spacer(Modifier.height(18.dp))
             BillingTimeline()
             Spacer(Modifier.height(18.dp))
             Benefits(blockedBy = blockedBy)
@@ -473,16 +471,13 @@ private fun PriceCard(compact: Boolean) {
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
-                        Text(
-                            text = t("chadhaava_plan_name"),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = ChadhaavaPalette.TextPrimary
-                        )
+                        // "Masik ₹199/mahina" said the same thing twice — the label is gone
+                        // and the price now carries the timing.
                         Text(
                             text = t("chadhaava_plan_price"),
                             fontSize = 11.sp,
-                            color = ChadhaavaPalette.TextSecondary
+                            fontWeight = FontWeight.SemiBold,
+                            color = ChadhaavaPalette.TextPrimary
                         )
                     }
                 }
@@ -554,105 +549,6 @@ private fun CheckCircle(size: androidx.compose.ui.unit.Dp) {
  * with documentary photography of the actual puja; a stock temple shot undercuts the one
  * claim on this screen that cannot be verified in-app.
  */
-@Composable
-private fun TempleOfferingCard() {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(20.dp),
-        color = ChadhaavaPalette.Card,
-        border = BorderStroke(1.5.dp, ChadhaavaPalette.CardBorderAccent)
-    ) {
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(104.dp)
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.temple_chadhaava),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color(0x242A1C15), Color(0xD62A1C15))
-                            )
-                        )
-                )
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(horizontal = 13.dp, vertical = 11.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_diya),
-                            contentDescription = null,
-                            tint = Color(0xFFFEF3C7),
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = t("chadhaava_temple_eyebrow"),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFFFEF3C7)
-                        )
-                    }
-                    Spacer(Modifier.height(3.dp))
-                    Text(
-                        text = t("chadhaava_temple_title"),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.White,
-                        lineHeight = 20.sp
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier.padding(13.dp),
-                verticalArrangement = Arrangement.spacedBy(11.dp)
-            ) {
-                Text(
-                    text = t("chadhaava_temple_intro"),
-                    fontSize = 12.sp,
-                    color = ChadhaavaPalette.TextSecondary,
-                    lineHeight = 18.sp
-                )
-                TempleRow(t("chadhaava_temple_1_name"), t("chadhaava_temple_1_place"))
-                TempleRow(t("chadhaava_temple_2_name"), t("chadhaava_temple_2_place"))
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = ChadhaavaPalette.SurfaceWarm
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 9.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        CheckCircle(size = 16.dp)
-                        Text(
-                            text = t("chadhaava_temple_proof"),
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = ChadhaavaPalette.TextBody
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun TempleRow(name: String, place: String) {
@@ -789,7 +685,6 @@ private fun Benefits(blockedBy: BlockedFeature?) {
     // Ranked by emotional pull, not feature completeness. When the user was blocked on a
     // specific feature, that feature leads instead.
     val base = listOf(
-        Benefit("chadhaava_benefit_puja", "chadhaava_benefit_puja_sub", "chadhaava_badge_new"),
         Benefit("chadhaava_benefit_voice", "chadhaava_benefit_voice_sub", "chadhaava_badge_popular", true),
         Benefit("chadhaava_benefit_chat", "chadhaava_benefit_chat_sub"),
         Benefit("chadhaava_benefit_image", "chadhaava_benefit_image_sub"),
@@ -1191,7 +1086,6 @@ private fun ActiveState(
             )
             Spacer(Modifier.height(10.dp))
             listOf(
-                "chadhaava_benefit_puja",
                 "chadhaava_benefit_voice",
                 "chadhaava_benefit_chat",
                 "chadhaava_benefit_image",

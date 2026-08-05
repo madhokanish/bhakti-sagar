@@ -1,5 +1,7 @@
 package com.bhaktichat.app.ui.screens.chat
 
+import com.bhaktichat.app.ui.i18n.translate
+
 import com.bhaktichat.app.data.local.MessageEntity
 import com.bhaktichat.app.data.remote.ChatApiClient
 import com.bhaktichat.app.data.remote.ChatApiClientRequest

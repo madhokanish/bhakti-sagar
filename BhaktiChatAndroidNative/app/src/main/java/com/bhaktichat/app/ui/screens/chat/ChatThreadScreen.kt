@@ -179,6 +179,7 @@ fun ChatThreadScreen(
     // don't duplicate text when partial transcripts grow.
     val resolvedGuideName = guide?.displayName(LocalAppLanguage.current).orEmpty()
     val micDeniedMessage = t("chat_mic_denied")
+    val youLabel = t("chat_you")
     val copiedLatestMessage = t("chat_copied_latest")
     val copiedConvoMessage = t("chat_copied_convo")
     val copiedMessage = t("chat_copied")
@@ -371,7 +372,7 @@ fun ChatThreadScreen(
                                     val transcript = uiState.messages
                                         .filterNot { it.isTypingIndicator }
                                         .joinToString("\n\n") { msg ->
-                                            val speaker = if (ChatRole.fromWire(msg.role) == ChatRole.USER) "आप" else guideName
+                                            val speaker = if (ChatRole.fromWire(msg.role) == ChatRole.USER) youLabel else guideName
                                             "$speaker: ${msg.content}"
                                         }
                                     clipboardManager.setText(AnnotatedString(transcript))

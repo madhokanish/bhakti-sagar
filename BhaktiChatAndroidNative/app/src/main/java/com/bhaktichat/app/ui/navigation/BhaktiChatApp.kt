@@ -508,7 +508,8 @@ fun BhaktiChatApp(
                         chatApiClient = appContainer.chatApiClient,
                         entitlementStore = entitlementStore,
                         reviewPromptStore = appContainer.reviewPromptStore,
-                        userFirstName = currentUser.name.orEmpty()
+                        userFirstName = currentUser.name.orEmpty(),
+                        languageStore = appContainer.languageStore
                     )
                 )
                 val uiState by vm.uiState.collectAsStateWithLifecycle()
@@ -784,7 +785,8 @@ fun BhaktiChatApp(
                         creationRepository = appContainer.divineCreationRepository,
                         generator = appContainer.divineImageGenerator,
                         feedbackClient = appContainer.divineFeedbackClient,
-                        anonUserKey = AnonUserKey.get(context)
+                        anonUserKey = AnonUserKey.get(context),
+                        languageStore = appContainer.languageStore
                     )
                 )
                 val uiState by vm.uiState.collectAsStateWithLifecycle()
@@ -865,7 +867,10 @@ fun BhaktiChatApp(
 
             composable(NavDestinations.CHOGHADIYA) {
                 val vm: ChoghadiyaViewModel = viewModel(
-                    factory = ChoghadiyaViewModelFactory(appContainer.choghadiyaRepository)
+                    factory = ChoghadiyaViewModelFactory(
+                        appContainer.choghadiyaRepository,
+                        appContainer.languageStore
+                    )
                 )
                 ChoghadiyaRoute(
                     viewModel = vm,
@@ -966,7 +971,7 @@ private fun StreakDetailDialog(
                 )
             ) {
                 androidx.compose.material3.Text(
-                    text = "आप BhaktiChat पर लगातार $currentStreak दिनों से दर्शन कर रहे हैं।",
+                    text = t("streak_body").format(currentStreak),
                     style = androidx.compose.material3.MaterialTheme.typography.bodyLarge
                 )
                 androidx.compose.material3.Surface(
@@ -1011,7 +1016,7 @@ private fun StreakMetric(value: Int, label: String) {
             color = androidx.compose.material3.MaterialTheme.colorScheme.primary
         )
         androidx.compose.material3.Text(
-            text = "$label दिन",
+            text = t("streak_days_suffix").format(label),
             style = androidx.compose.material3.MaterialTheme.typography.labelMedium
         )
     }

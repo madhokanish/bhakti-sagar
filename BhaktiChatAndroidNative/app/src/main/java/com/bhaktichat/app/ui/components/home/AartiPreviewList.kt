@@ -1,4 +1,5 @@
 package com.bhaktichat.app.ui.components.home
+import com.bhaktichat.app.ui.i18n.t
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,8 +32,8 @@ fun AartiPreviewList(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         SectionHeader(
-            title = "आरती संग्रह",
-            actionLabel = "सभी देखें",
+            title = t("aarti_collection"),
+            actionLabel = t("see_all"),
             onActionClick = onOpenAllAartis
         )
 
@@ -48,7 +49,7 @@ fun AartiPreviewList(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
-                        text = "विशेष चयन",
+                        text = t("featured_pick"),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary,
@@ -62,7 +63,7 @@ fun AartiPreviewList(
                         TextButton(
                             onClick = { onOpenAarti(aarti.id) }
                         ) {
-                            Text("चलाएँ")
+                            Text(t("common_play"))
                         }
                     }
                 }
@@ -87,7 +88,7 @@ fun AartiPreviewList(
                             onClick = { onOpenAarti(aarti.id) }
                         ) {
                             TextButton(onClick = { onOpenAarti(aarti.id) }) {
-                                Text("खोलें")
+                                Text(t("common_open"))
                             }
                         }
                         if (index < otherAartis.lastIndex) {
@@ -106,7 +107,7 @@ fun AartiPreviewList(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "पवित्र शिक्षाओं से प्रेरित, शांत चिंतन के लिए निर्मित।",
+                text = t("aarti_blurb"),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

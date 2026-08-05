@@ -1,5 +1,9 @@
 package com.bhaktichat.app.playback
 
+import com.bhaktichat.app.util.LanguageStore
+
+import com.bhaktichat.app.ui.i18n.translate
+
 import android.content.ComponentName
 import android.content.Context
 import android.os.Bundle
@@ -46,7 +50,9 @@ data class AartiPlayerState(
  * exposes a simple [StateFlow] + play/pause/next/prev API. ExoPlayer auto-advances through the
  * queue, which gives the "one aarti after another" continuous playback for free.
  */
-class AartiPlayerController(private val context: Context) {
+class AartiPlayerController(private val context: Context,
+    private val languageStore: LanguageStore
+) {
     private var controller: MediaController? = null
     private var isConnecting = false
     private var pendingPlayback: Triple<List<Aarti>, String?, Long>? = null
@@ -165,7 +171,7 @@ class AartiPlayerController(private val context: Context) {
             .setMediaMetadata(
                 MediaMetadata.Builder()
                     .setTitle(a.title)
-                    .setArtist(a.subtitle?.takeIf { it.isNotBlank() } ?: "आरती")
+                    .setArtist(a.subtitle?.takeIf { it.isNotBlank() } ?: translate("aarti", languageStore.language.value))
                     .setExtras(
                         Bundle().apply {
                             putString(EXTRA_IMAGE_ASSET_NAME, a.imageAssetName)

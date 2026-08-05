@@ -39,5 +39,5 @@ data class Aarti(
             .filter { it.isNotBlank() && !it.endsWith("...") }
             .take(2)
             .joinToString(" ")
-            .ifBlank { "पूरे बोल पढ़ने के लिए टैप करें।" }
+            .ifBlank { "" }
 }

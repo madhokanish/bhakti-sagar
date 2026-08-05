@@ -1,5 +1,9 @@
 package com.bhaktichat.app.data.repo
 
+import com.bhaktichat.app.util.LanguageStore
+
+import com.bhaktichat.app.ui.i18n.translate
+
 import android.content.Context
 import com.bhaktichat.app.domain.Aarti
 import com.bhaktichat.app.domain.Deity
@@ -10,7 +14,9 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 
-class AartiRepository(private val context: Context) {
+class AartiRepository(private val context: Context,
+    private val languageStore: LanguageStore
+) {
     private val cacheLock = Mutex()
     @Volatile
     private var cachedAartis: List<Aarti>? = null
@@ -30,8 +36,8 @@ class AartiRepository(private val context: Context) {
                     val title = item.optJSONObject("title")
                     val englishTitle = title.optStringOrNull("english")
                     val hindiTitle = title.optStringOrNull("hindi")
-                    val catalogTitle = englishTitle ?: hindiTitle ?: "आरती"
-                    val displayTitle = hindiTitle ?: "आरती"
+                    val catalogTitle = englishTitle ?: hindiTitle ?: translate("aarti", languageStore.language.value)
+                    val displayTitle = hindiTitle ?: translate("aarti", languageStore.language.value)
                     val displayHindiTitle = displayTitle
                     val isTop = item.optBoolean("isTop", false)
 

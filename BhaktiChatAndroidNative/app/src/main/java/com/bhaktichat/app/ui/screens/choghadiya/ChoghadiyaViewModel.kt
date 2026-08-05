@@ -1,5 +1,10 @@
 package com.bhaktichat.app.ui.screens.choghadiya
 
+import com.bhaktichat.app.ui.i18n.translate
+import com.bhaktichat.app.ui.i18n.str
+
+import com.bhaktichat.app.util.LanguageStore
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -79,7 +84,8 @@ data class ChoghadiyaUiState(
 )
 
 class ChoghadiyaViewModel(
-    private val repository: ChoghadiyaRepository
+    private val repository: ChoghadiyaRepository,
+    private val languageStore: LanguageStore
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
         ChoghadiyaUiState(
@@ -151,7 +157,7 @@ class ChoghadiyaViewModel(
                 if (selectedCity.slug != cityAtRequest.slug) return@onFailure
                 latestDayData = null
                 isLoading = false
-                errorMessage = "अभी चौघड़िया लोड नहीं हो सका। कृपया फिर प्रयास करें।"
+                errorMessage = languageStore.str("chogh_load_failed")
                 publishState()
             }
         }
@@ -190,8 +196,8 @@ class ChoghadiyaViewModel(
         val timeline = dayData?.slots?.map { slot ->
             TimelineItemUi(
                 id = "${slot.label}_${slot.startEpochMillis}",
-                title = slot.displayLabel,
-                timeRange = "${slot.start} से ${slot.end} तक",
+                title = slot.displayLabel(languageStore.language.value),
+                timeRange = translate("chogh_time_range", languageStore.language.value).format(slot.start, slot.end),
                 meaningKey = timelineMeaningKey(slot),
                 tone = toneFor(slot),
                 isCurrent = currentSlot?.startEpochMillis == slot.startEpochMillis,
@@ -221,7 +227,7 @@ class ChoghadiyaViewModel(
     private fun filterCities(query: String): List<ChoghadiyaCity> {
         if (query.isBlank()) return ChoghadiyaCities.all
         return ChoghadiyaCities.all.filter { city ->
-            city.name.contains(query.trim(), ignoreCase = true)
+            translate(city.nameKey, languageStore.language.value).contains(query.trim(), ignoreCase = true)
         }
     }
 
@@ -229,8 +235,8 @@ class ChoghadiyaViewModel(
         val totalDuration = (endEpochMillis - startEpochMillis).coerceAtLeast(1L)
         val elapsed = (now - startEpochMillis).coerceAtLeast(0L).coerceAtMost(totalDuration)
         return CurrentKaalUi(
-            displayLabel = displayLabel,
-            timeRange = "$start से $end तक",
+            displayLabel = displayLabel(languageStore.language.value),
+            timeRange = translate("chogh_time_range", languageStore.language.value).format(start, end),
             guidanceKey = currentGuidanceKey(this),
             tone = toneFor(this),
             progress = (elapsed.toFloat() / totalDuration.toFloat()).coerceIn(0f, 1f)
@@ -243,9 +249,9 @@ class ChoghadiyaViewModel(
         val hours = duration.toHours()
         val minutes = duration.minusHours(hours).toMinutes()
         return NextGoodKaalUi(
-            displayLabel = displayLabel,
+            displayLabel = displayLabel(languageStore.language.value),
             start = start,
-            startsAt = "$start से $end तक",
+            startsAt = translate("chogh_time_range", languageStore.language.value).format(start, end),
             countdownHours = hours,
             countdownMinutes = minutes
         )
@@ -283,12 +289,15 @@ class ChoghadiyaViewModel(
 }
 
 class ChoghadiyaViewModelFactory(
-    private val repository: ChoghadiyaRepository
+    private val repository: ChoghadiyaRepository,
+    private val languageStore: LanguageStore
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ChoghadiyaViewModel::class.java)) {
-            return ChoghadiyaViewModel(repository) as T
+            return ChoghadiyaViewModel(repository,
+            languageStore = languageStore
+        ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

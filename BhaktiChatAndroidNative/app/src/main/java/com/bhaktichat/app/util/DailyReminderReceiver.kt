@@ -1,5 +1,7 @@
 package com.bhaktichat.app.util
 
+import com.bhaktichat.app.ui.i18n.str
+
 import android.Manifest
 import android.app.AlarmManager
 import android.app.NotificationChannel
@@ -46,8 +48,8 @@ class DailyReminderReceiver : BroadcastReceiver() {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("🕉️ दैनिक चिंतन का समय")
-            .setContentText("BhaktiChat के साथ कुछ पल शांत होकर बिताएँ।")
+            .setContentTitle(LanguageStore(context).str("reminder_title"))
+            .setContentText(LanguageStore(context).str("reminder_body"))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .setContentIntent(contentPending)
@@ -68,10 +70,10 @@ class DailyReminderReceiver : BroadcastReceiver() {
                 if (manager.getNotificationChannel(CHANNEL_ID) == null) {
                     val channel = NotificationChannel(
                         CHANNEL_ID,
-                        "दैनिक चिंतन",
+                        LanguageStore(context).str("reminder_channel"),
                         NotificationManager.IMPORTANCE_DEFAULT
                     ).apply {
-                        description = "चिंतन के लिए स्नेहपूर्ण दैनिक स्मरण।"
+                        description = LanguageStore(context).str("reminder_channel_desc")
                     }
                     manager.createNotificationChannel(channel)
                 }

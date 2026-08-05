@@ -167,7 +167,7 @@ fun DivineImageResultScreen(
                         IconButton(onClick = onShareWithSystem) {
                             Icon(
                                 imageVector = Icons.Filled.IosShare,
-                                contentDescription = "साझा करें",
+                                contentDescription = t("common_share"),
                                 tint = DivineImagePalette.DeepAccent
                             )
                         }
@@ -223,13 +223,13 @@ fun DivineImageResultScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             GradientActionButton(
-                                label = "सहेजें",
+                                label = t("common_save"),
                                 icon = Icons.Filled.Download,
                                 modifier = Modifier.weight(1f),
                                 onClick = onSave
                             )
                             OutlineActionButton(
-                                label = "साझा करें",
+                                label = t("common_share"),
                                 icon = Icons.Filled.IosShare,
                                 modifier = Modifier.weight(1f),
                                 onClick = onShareWithSystem
@@ -398,7 +398,7 @@ private fun GeneratingState(
         )
 
         Text(
-            text = "रद्द करें",
+            text = t("common_cancel"),
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = DivineImagePalette.TextMuted,
@@ -519,7 +519,7 @@ private fun FeedbackRow(
             OutlinedButton(onClick = { onFeedback("down") }, modifier = Modifier.weight(1f)) {
                 Icon(imageVector = Icons.Outlined.ThumbDown, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("सुधार चाहिए")
+                Text(t("di_needs_work"))
             }
         }
     }

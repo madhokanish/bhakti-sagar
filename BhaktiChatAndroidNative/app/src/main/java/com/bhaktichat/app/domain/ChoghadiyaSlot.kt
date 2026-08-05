@@ -1,5 +1,7 @@
 package com.bhaktichat.app.domain
 
+import com.bhaktichat.app.ui.i18n.translate
+
 data class ChoghadiyaSlot(
     val label: String,
     val start: String,
@@ -12,18 +14,24 @@ data class ChoghadiyaSlot(
     val baseLabel: String
         get() = label.substringBefore(" (")
 
-    val displayLabel: String
-        get() {
-            val hindiName = when (baseLabel) {
-                "Shubh" -> "शुभ"
-                "Labh" -> "लाभ"
-                "Amrit" -> "अमृत"
-                "Char" -> "चल"
-                "Rog" -> "रोग"
-                "Kaal" -> "काल"
-                "Udveg" -> "उद्वेग"
-                else -> "चौघड़िया"
-            }
-            return if (isNight) "$hindiName (रात्रि)" else hindiName
-        }
+    /**
+     * The period name in the user's script. [baseLabel] stays the canonical English key the
+     * calculator produces; only the presentation changes.
+     */
+    fun displayLabel(language: AppLanguage): String {
+        val name = translate(
+            when (baseLabel) {
+                "Shubh" -> "chogh_shubh"
+                "Labh" -> "chogh_laabh"
+                "Amrit" -> "chogh_amrit"
+                "Char" -> "chogh_chal"
+                "Rog" -> "chogh_rog"
+                "Kaal" -> "chogh_kaal"
+                "Udveg" -> "chogh_udveg"
+                else -> "chogh_title"
+            },
+            language
+        )
+        return if (isNight) "$name (${translate("chogh_night", language)})" else name
+    }
 }

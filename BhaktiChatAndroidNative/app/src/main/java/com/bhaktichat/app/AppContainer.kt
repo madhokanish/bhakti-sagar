@@ -133,18 +133,20 @@ class AppContainer(
     val subscriptionRepository = SubscriptionRepository(
         baseUrl = BuildConfig.API_BASE_URL,
         authRepository = authRepository,
-        entitlementStore = entitlementStore
+        entitlementStore = entitlementStore,
+        languageStore = languageStore
     )
     val guidesRepository: GuidesRepository = DefaultGuidesRepository()
     val threadsRepository: ThreadsRepository = RoomThreadsRepository(db.threadDao())
     val messagesRepository: MessagesRepository = RoomMessagesRepository(db.messageDao())
     val chatApiClient: ChatApiClient = PromptAwareChatApiClient(chatApi)
     val chatRepository = ChatRepository(db.messageDao(), chatApi)
-    val aartiRepository = AartiRepository(appContext)
+    val aartiRepository = AartiRepository(appContext, languageStore)
     val reelsRepository = ReelsRepository(appContext, aartiRepository)
     val choghadiyaRepository = ChoghadiyaRepository(
         baseUrl = BuildConfig.API_BASE_URL,
-        httpClient = httpClient
+        httpClient = httpClient,
+        languageStore = languageStore
     )
     val divineTemplateRepository: DivineTemplateRepository = StaticDivineTemplateRepository()
     val divineCreationRepository: DivineCreationRepository = InMemoryDivineCreationRepository()
@@ -165,7 +167,7 @@ class AppContainer(
 
     // Continuous aarti player (Media3 MediaController bound to AartiPlaybackService). App-scoped
     // so playback + the mini-player survive navigation between screens.
-    val aartiPlayerController = com.bhaktichat.app.playback.AartiPlayerController(appContext)
+    val aartiPlayerController = com.bhaktichat.app.playback.AartiPlayerController(appContext, languageStore)
 
     fun close() {
         aartiPlayerController.release()

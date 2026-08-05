@@ -1,5 +1,7 @@
 package com.bhaktichat.app.data.repo
 
+import com.bhaktichat.app.util.LanguageStore
+
 import com.bhaktichat.app.domain.ChoghadiyaCity
 import com.bhaktichat.app.domain.ChoghadiyaSlot
 import com.bhaktichat.app.util.ChoghadiyaCalculator
@@ -25,7 +27,8 @@ data class ChoghadiyaDayData(
 
 class ChoghadiyaRepository(
     private val baseUrl: String,
-    private val httpClient: OkHttpClient
+    private val httpClient: OkHttpClient,
+    private val languageStore: LanguageStore
 ) {
     private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE
 
@@ -84,7 +87,8 @@ class ChoghadiyaRepository(
                     sunrise = sunriseInstant,
                     sunset = sunsetInstant,
                     nextSunrise = nextSunriseInstant,
-                    zoneId = zoneId
+                    zoneId = zoneId,
+                    language = languageStore.language.value
                 ),
                 sunrise = HindiTimeFormatter.format(sunriseInstant.atZone(zoneId)),
                 sunset = HindiTimeFormatter.format(sunsetInstant.atZone(zoneId)),

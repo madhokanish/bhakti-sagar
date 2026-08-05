@@ -42,30 +42,29 @@ private val table: Map<String, Entry> = mapOf(
     // --- चढ़ावा / subscription screen -------------------------------------------------
     "chadhaava_title" to Entry("Chadhava", "चढ़ावा", "Chadhava"),
     "chadhaava_headline" to Entry(
-        "Poora app unlock karein",
-        "पूरा ऐप अनलॉक करें",
-        "Unlock the full app"
+        "Sirf ₹5 mein poora BhaktiChat kholiye",
+        "सिर्फ़ ₹5 में पूरा BhaktiChat खोलिए",
+        "Open all of BhaktiChat for just ₹5"
     ),
     "chadhaava_price_amount" to Entry("₹5", "₹5", "₹5"),
     "chadhaava_price_now" to Entry("abhi", "अभी", "now"),
     "chadhaava_price_sub" to Entry(
-        "Bas itna — poora app 3 din ke liye khul jata hai",
-        "बस इतना — पूरा ऐप 3 दिन के लिए खुल जाता है",
-        "That's all — the full app opens for 3 days"
+        "3 din tak BhaktiChat ke saare features bilkul free",
+        "3 दिन तक BhaktiChat के सारे फ़ीचर बिलकुल फ़्री",
+        "All BhaktiChat features free for 3 days"
     ),
     "chadhaava_refund_title" to Entry(
-        "Yeh ₹5 turant wapas bhej diye jaate hain",
-        "यह ₹5 तुरंत वापस भेज दिए जाते हैं",
-        "This ₹5 is sent back right away"
+        "₹5 kuch hi minute mein wapas",
+        "₹5 कुछ ही मिनट में वापस",
+        "₹5 back within minutes"
     ),
     "chadhaava_refund_sub" to Entry(
-        "Usi UPI account mein, payment ke kuch hi minute mein",
-        "उसी UPI खाते में, भुगतान के कुछ ही मिनट में",
-        "To the same UPI account, within minutes of payment"
+        "₹5 usi UPI account mein wapas aa jayenge",
+        "₹5 उसी UPI अकाउंट में वापस आ जाएँगे",
+        "₹5 comes back to the same UPI account"
     ),
-    "chadhaava_plan_name" to Entry("Masik", "मासिक", "Monthly"),
-    "chadhaava_plan_price" to Entry("₹199/mahina", "₹199/महीना", "₹199/month"),
-    "chadhaava_plan_starts" to Entry("3 din baad shuru", "3 दिन बाद शुरू", "Starts after 3 days"),
+    "chadhaava_plan_price" to Entry("3 din baad ₹199/mahina", "3 दिन बाद ₹199/महीना", "₹199/month after 3 days"),
+    "chadhaava_plan_starts" to Entry("Kabhi bhi cancel karein", "कभी भी कैंसल करें", "Cancel anytime"),
 
     "chadhaava_timeline_title" to Entry(
         "Aage kya hoga — saaf-saaf",
@@ -107,57 +106,6 @@ private val table: Map<String, Entry> = mapOf(
     ),
 
     // --- Temple offering card ---
-    "chadhaava_temple_eyebrow" to Entry(
-        "Asli mandir · Asli pooja",
-        "असली मंदिर · असली पूजा",
-        "Real temples · Real puja"
-    ),
-    "chadhaava_temple_title" to Entry(
-        "Aapke naam se chadhava chadhaya jayega",
-        "आपके नाम से चढ़ावा चढ़ाया जाएगा",
-        "An offering will be made in your name"
-    ),
-    "chadhaava_temple_intro" to Entry(
-        "Har hafte hone wali pooja mein aapka naam sankalp ke saath liya jata hai — do prachin mandiron mein, pandit ji dwara.",
-        "हर हफ़्ते होने वाली पूजा में आपका नाम संकल्प के साथ लिया जाता है — दो प्राचीन मंदिरों में, पंडित जी द्वारा।",
-        "Your name is taken with the sankalp in the weekly puja — at two ancient temples, by the pandit."
-    ),
-    "chadhaava_temple_1_name" to Entry(
-        "Omkareshwar Jyotirling",
-        "ओंकारेश्वर ज्योतिर्लिंग",
-        "Omkareshwar Jyotirlinga"
-    ),
-    "chadhaava_temple_1_place" to Entry(
-        "Khandwa, Madhya Pradesh",
-        "खंडवा, मध्य प्रदेश",
-        "Khandwa, Madhya Pradesh"
-    ),
-    "chadhaava_temple_2_name" to Entry(
-        "Kaal Bhairav Mandir, Kashi",
-        "काल भैरव मंदिर, काशी",
-        "Kaal Bhairav Temple, Kashi"
-    ),
-    "chadhaava_temple_2_place" to Entry(
-        "Varanasi, Uttar Pradesh",
-        "वाराणसी, उत्तर प्रदेश",
-        "Varanasi, Uttar Pradesh"
-    ),
-    "chadhaava_temple_proof" to Entry(
-        "Pooja ki photo aur video aapko bheji jaati hai",
-        "पूजा की फ़ोटो और वीडियो आपको भेजी जाती है",
-        "Photos and video of the puja are sent to you"
-    ),
-    "chadhaava_benefit_puja" to Entry(
-        "Aapke naam se saptahik pooja",
-        "आपके नाम से साप्ताहिक पूजा",
-        "Weekly puja in your name"
-    ),
-    "chadhaava_benefit_puja_sub" to Entry(
-        "Omkareshwar aur Kashi mein — photo sahit",
-        "ओंकारेश्वर और काशी में — फ़ोटो सहित",
-        "At Omkareshwar and Kashi — with photos"
-    ),
-    "chadhaava_badge_new" to Entry("Naya", "नया", "New"),
 
     "chadhaava_benefits_title" to Entry(
         "Aapko kya milega",
@@ -256,14 +204,14 @@ private val table: Map<String, Entry> = mapOf(
     ),
 
     "chadhaava_cta_line1" to Entry(
-        "₹5 ka chadhava kijiye",
-        "₹5 का चढ़ावा अर्पित करें",
-        "Offer ₹5 · unlock everything"
+        "₹5 mein Chadhawa shuru karein",
+        "₹5 में चढ़ावा शुरू करें",
+        "Start Chadhawa for ₹5"
     ),
     "chadhaava_cta_line2" to Entry(
-        "Turant wapas · 3 din poora app free",
-        "तुरंत वापस · 3 दिन पूरा ऐप खुला",
-        "Refunded right away · 3 days full access"
+        "₹5 turant wapas • 3 din BhaktiChat free",
+        "₹5 तुरंत वापस • 3 दिन BhaktiChat फ़्री",
+        "₹5 back right away • 3 days of BhaktiChat free"
     ),
     "chadhaava_cta_blocked_wallpaper" to Entry(
         "₹5 dekar wallpaper kholein",
@@ -271,9 +219,9 @@ private val table: Map<String, Entry> = mapOf(
         "Pay ₹5 to unlock wallpapers"
     ),
     "chadhaava_trust" to Entry(
-        "UPI auto-pay · kabhi bhi cancel karein",
-        "UPI ऑटो-पे · कभी भी कैंसल करें",
-        "UPI auto-pay · cancel anytime"
+        "UPI AutoPay • 3 din baad ₹199/mahina • kabhi bhi cancel karein",
+        "UPI ऑटो-पे • 3 दिन बाद ₹199/महीना • कभी भी कैंसल करें",
+        "UPI AutoPay • ₹199/month after 3 days • cancel anytime"
     ),
     "chadhaava_link_refunds" to Entry("Refund neeti", "रिफंड नीति", "Refund policy"),
     "chadhaava_link_terms" to Entry("Sharten", "शर्तें", "Terms"),
@@ -1451,6 +1399,85 @@ private val table: Map<String, Entry> = mapOf(
         "Maine abhi ek reel dekhi — ", "मैंने अभी एक रील देखी — ", "Maine abhi ek reel dekhi — "
     ),
 
+    // --- Choghadiya ---
+    // Period names are traditional terms: transliterated for Latin script (Amrit, Shubh,
+    // Laabh), never translated into an English gloss.
+    "chogh_amrit" to Entry("Amrit", "अमृत", "Amrit"),
+    "chogh_shubh" to Entry("Shubh", "शुभ", "Shubh"),
+    "chogh_laabh" to Entry("Laabh", "लाभ", "Laabh"),
+    "chogh_chal" to Entry("Chal", "चल", "Chal"),
+    "chogh_rog" to Entry("Rog", "रोग", "Rog"),
+    "chogh_kaal" to Entry("Kaal", "काल", "Kaal"),
+    "chogh_udveg" to Entry("Udveg", "उद्वेग", "Udveg"),
+    "chogh_title" to Entry("Choghadiya", "चौघड़िया", "Choghadiya"),
+    "chogh_night" to Entry("Raatri", "रात्रि", "Raatri"),
+    "chogh_best" to Entry("Best", "सर्वोत्तम", "Best"),
+    "chogh_normal" to Entry("Normal", "सामान्य", "Normal"),
+    "chogh_caution" to Entry("Caution", "सावधानी", "Caution"),
+    "chogh_inauspicious" to Entry("Ashubh", "अशुभ", "Ashubh"),
+    "chogh_loss" to Entry("Haani", "हानि", "Haani"),
+    "city_mumbai" to Entry("Mumbai, India", "मुंबई, भारत", "Mumbai, India"),
+    "city_delhi" to Entry("Delhi, India", "दिल्ली, भारत", "Delhi, India"),
+    "city_london" to Entry("London, United Kingdom", "लंदन, यूनाइटेड किंगडम", "London, United Kingdom"),
+    "city_newyork" to Entry("New York, USA", "न्यूयॉर्क, अमेरिका", "New York, USA"),
+    "city_dubai" to Entry("Dubai, UAE", "दुबई, संयुक्त अरब अमीरात", "Dubai, UAE"),
+    "city_singapore" to Entry("Singapore", "सिंगापुर", "Singapore"),
+    "city_sydney" to Entry("Sydney, Australia", "सिडनी, ऑस्ट्रेलिया", "Sydney, Australia"),
+    "city_toronto" to Entry("Toronto, Canada", "टोरंटो, कनाडा", "Toronto, Canada"),
+    "chogh_load_failed" to Entry("Abhi Choghadiya load nahi ho saka. Phir try kijiye.", "अभी चौघड़िया लोड नहीं हो सका। कृपया फिर प्रयास करें।", "Abhi Choghadiya load nahi ho saka. Phir try kijiye."),
+
+    "chogh_time_range" to Entry("%1\$s to %2\$s", "%1\$s से %2\$s तक", "%1\$s to %2\$s"),
+
+    // --- Remaining UI copy ---
+    "streak_days_suffix" to Entry("%1\$s din", "\$label दिन", "%1\$s din"),
+    "streak_body" to Entry("Aap BhaktiChat par lagatar %1\$s din se darshan kar rahe hain.", "आप BhaktiChat पर लगातार \$currentStreak दिनों से दर्शन कर रहे हैं।", "Aap BhaktiChat par lagatar %1\$s din se darshan kar rahe hain."),
+    "common_cancel" to Entry("Cancel", "रद्द करें", "Cancel"),
+    "common_save" to Entry("Save", "सहेजें", "Save"),
+    "common_share" to Entry("Share", "साझा करें", "Share"),
+    "di_needs_work" to Entry("Behtar ho sakta hai", "सुधार चाहिए", "Behtar ho sakta hai"),
+    "common_cancelled" to Entry("Cancel kar diya gaya", "रद्द किया गया", "Cancel kar diya gaya"),
+    "di_one_tap" to Entry("Ek tap ›", "एक टैप ›", "Ek tap ›"),
+    "chat_hindi_script_failed" to Entry("Maaf kijiye, jawaab Hindi mein taiyaar nahi ho saka. Ek baar phir poochhiye.", "क्षमा करें, उत्तर हिंदी लिपि में तैयार नहीं हो सका। कृपया एक बार फिर पूछें।", "Maaf kijiye, jawaab Hindi mein taiyaar nahi ho saka. Ek baar phir poochhiye."),
+    "chat_summary_failed" to Entry("Main abhi chhota jawaab nahi de paya. Ek baar phir likhiye.", "मैं अभी संक्षेप में उत्तर नहीं दे पाया। कृपया एक बार फिर लिखें।", "Main abhi chhota jawaab nahi de paya. Ek baar phir likhiye."),
+    "chat_you" to Entry("Aap", "आप", "Aap"),
+    "common_something_wrong" to Entry("Kuch gadbad hui. Phir try kijiye.", "कुछ गड़बड़ हुई। कृपया फिर प्रयास करें।", "Kuch gadbad hui. Phir try kijiye."),
+    "chat_send_failed" to Entry("Message bheja nahi ja saka. Phir try kijiye.", "संदेश भेजा नहीं जा सका। कृपया फिर प्रयास करें।", "Message bheja nahi ja saka. Phir try kijiye."),
+    "voice_start_failed" to Entry("Awaaz shuru nahi ho saki. Phir try kijiye.", "आवाज़ शुरू नहीं हो सकी। कृपया फिर प्रयास करें।", "Awaaz shuru nahi ho saki. Phir try kijiye."),
+    "voice_call_problem" to Entry("Voice call mein dikkat aayi. Phir try kijiye.", "आवाज़ से बातचीत में समस्या हुई। कृपया फिर प्रयास करें।", "Voice call mein dikkat aayi. Phir try kijiye."),
+    "voice_call_start_failed" to Entry("Voice call shuru nahi ho saki. Phir try kijiye.", "आवाज़ से बातचीत शुरू नहीं हो सकी। कृपया फिर प्रयास करें।", "Voice call shuru nahi ho saki. Phir try kijiye."),
+    "aarti" to Entry("Aarti", "आरती", "Aarti"),
+    "di_made_with" to Entry("Divine Image se banaya gaya", "दिव्य छवि से निर्मित", "Divine Image se banaya gaya"),
+    "aarti_collection" to Entry("Aarti sangrah", "आरती संग्रह", "Aarti sangrah"),
+    "common_open" to Entry("Kholiye", "खोलें", "Kholiye"),
+    "common_play" to Entry("Chalaiye", "चलाएँ", "Chalaiye"),
+    "aarti_blurb" to Entry("Pavitra shikshaon se inspired, shaant chintan ke liye.", "पवित्र शिक्षाओं से प्रेरित, शांत चिंतन के लिए निर्मित।", "Pavitra shikshaon se inspired, shaant chintan ke liye."),
+    "featured_pick" to Entry("Khaas chunav", "विशेष चयन", "Khaas chunav"),
+    "see_all" to Entry("Sabhi dekhiye", "सभी देखें", "Sabhi dekhiye"),
+    "talk_now" to Entry("Baat kijiye", "बात करें", "Baat kijiye"),
+    "start_talking" to Entry("Baat shuru kijiye", "बात शुरू करें", "Baat shuru kijiye"),
+    "krishna_image_desc" to Entry("Shri Krishna ki tasveer", "श्री कृष्ण की छवि", "Shri Krishna ki tasveer"),
+    "guide_blurb_shani" to Entry("Mushkil waqt mein discipline", "कठिन समय में अनुशासन", "Mushkil waqt mein discipline"),
+    "guide_blurb_lakshmi" to Entry("Samruddhi ke liye shaant margdarshan", "समृद्धि के लिए शांत मार्गदर्शन", "Samruddhi ke liye shaant margdarshan"),
+    "guide_blurb_generic" to Entry("Sneh bhara spiritual margdarshan", "स्नेहपूर्ण आध्यात्मिक मार्गदर्शन", "Sneh bhara spiritual margdarshan"),
+    "guide_blurb_krishna" to Entry("Clarity ke liye Gita gyaan", "स्पष्टता के लिए गीता ज्ञान", "Clarity ke liye Gita gyaan"),
+    "today_guidance" to Entry("Aaj ka margdarshan", "आज का मार्गदर्शन", "Aaj ka margdarshan"),
+    "one_minute_reflection" to Entry("Ek minute ka chintan", "एक मिनट का चिंतन", "Ek minute ka chintan"),
+    "choghadiya_glance" to Entry("Choghadiya ki jhalak", "चौघड़िया की झलक", "Choghadiya ki jhalak"),
+    "common_view" to Entry("Dekhiye", "देखें", "Dekhiye"),
+    "auspicious_time" to Entry("Shubh samay", "शुभ समय", "Shubh samay"),
+    "common_voice" to Entry("Awaaz", "आवाज़", "Awaaz"),
+    "common_add" to Entry("Add", "जोड़ें", "Add"),
+    "reminder_channel" to Entry("Daily chintan", "दैनिक चिंतन", "Daily chintan"),
+    "reminder_channel_desc" to Entry("Chintan ke liye ek pyaara daily reminder.", "चिंतन के लिए स्नेहपूर्ण दैनिक स्मरण।", "Chintan ke liye ek pyaara daily reminder."),
+    "reminder_title" to Entry("🕉️ Daily chintan ka samay", "🕉️ दैनिक चिंतन का समय", "🕉️ Daily chintan ka samay"),
+    "reminder_body" to Entry("BhaktiChat ke saath kuch pal shaant bitaiye.", "BhaktiChat के साथ कुछ पल शांत होकर बिताएँ।", "BhaktiChat ke saath kuch pal shaant bitaiye."),
+    "voice_mic_unavailable" to Entry("Microphone available nahi hai. Baat phir shuru kijiye.", "माइक्रोफ़ोन उपलब्ध नहीं है। कृपया बातचीत फिर शुरू करें।", "Microphone available nahi hai. Baat phir shuru kijiye."),
+    "sub_service_error" to Entry("Membership service mein dikkat (%1\$s).", "सदस्यता सेवा में समस्या (\${response.code})।", "Membership service mein dikkat (%1\$s)."),
+    "please_sign_in" to Entry("Pehle sign in kijiye.", "कृपया पहले साइन इन करें।", "Pehle sign in kijiye."),
+    "voice_not_heard" to Entry("Aapki awaaz sunai nahi de rahi — microphone shaant lag raha hai. ", "आपकी आवाज़ सुनाई नहीं दे रही है — माइक्रोफ़ोन शांत लग रहा है। ", "Aapki awaaz sunai nahi de rahi — microphone shaant lag raha hai. "),
+    "voice_try_bluetooth" to Entry("Bluetooth hata kar ya baat phir shuru karke dekhiye.", "ब्लूटूथ हटाकर या बातचीत फिर शुरू करके देखें।", "Bluetooth hata kar ya baat phir shuru karke dekhiye."),
+    "aarti_tap_lyrics" to Entry("Poore bol padhne ke liye tap kijiye.", "पूरे बोल पढ़ने के लिए टैप करें।", "Poore bol padhne ke liye tap kijiye."),
+
     // --- Panchang ---
     "panchang_title" to Entry("Panchang", "पंचांग", "Panchang"),
     "go_back" to Entry("Go back", "वापस जाएँ", "Go back"),
@@ -1566,11 +1593,14 @@ private fun Entry.forLanguage(language: AppLanguage): String = when (language) {
  * degrade to *something* readable rather than rendering an error string as if it were copy.
  */
 fun translate(key: String, language: AppLanguage): String {
+    // A key that isn't in the table falls back to itself, which makes the mistake visible.
+    // A key that IS present but blank stays blank: that is a deliberate "render nothing",
+    // and echoing the key name there would print `some_key_name` into the UI.
     val entry = table[key] ?: return key
-    return entry.forLanguage(language)
-        .ifBlank { entry.hinglish }
-        .ifBlank { entry.hindi }
-        .ifBlank { key }
+    val exact = entry.forLanguage(language)
+    if (exact.isNotBlank()) return exact
+    if (entry.hinglish.isBlank() && entry.hindi.isBlank() && entry.english.isBlank()) return ""
+    return entry.hinglish.ifBlank { entry.hindi }.ifBlank { key }
 }
 
 fun translateTone(key: String, language: AppLanguage): String =

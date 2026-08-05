@@ -1,4 +1,6 @@
 package com.bhaktichat.app.ui.screens.history
+
+import com.bhaktichat.app.ui.i18n.str
 import com.bhaktichat.app.util.LanguageStore
 
 import androidx.lifecycle.ViewModel
@@ -102,7 +104,7 @@ class HistoryViewModel(
                 }
 
                 val creationItems = creations.map { creation ->
-                    val creationSubtitle = "दिव्य छवि से निर्मित"
+                    val creationSubtitle = languageStore.str("di_made_with")
                     HistoryCreationItem(
                         creationId = creation.id,
                         title = divineChoiceDisplayText(creation.templateTitle, languageStore.language.value),
@@ -173,7 +175,7 @@ class HistoryViewModel(
                 SavedAartiItem(
                     aartiId = it.id,
                     title = it.title,
-                    subtitle = it.subtitle ?: "आरती",
+                    subtitle = it.subtitle ?: languageStore.str("aarti"),
                     deity = it.deity
                 )
             }

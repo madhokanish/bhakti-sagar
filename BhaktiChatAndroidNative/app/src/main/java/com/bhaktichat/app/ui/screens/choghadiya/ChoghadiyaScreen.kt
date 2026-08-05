@@ -1,4 +1,5 @@
 package com.bhaktichat.app.ui.screens.choghadiya
+import com.bhaktichat.app.ui.i18n.LocalAppLanguage
 
 import android.Manifest
 import android.content.Context
@@ -303,7 +304,7 @@ fun ChoghadiyaScreen(
                         onClick = onOpenCitySelector,
                         label = {
                             Text(
-                                text = uiState.selectedCity.name.substringBefore(','),
+                                text = t(uiState.selectedCity.nameKey).substringBefore(','),
                                 maxLines = 1
                             )
                         },
@@ -803,13 +804,13 @@ private fun MeaningAccordion(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    MeaningRow("शुभ", t("choghadiya_accordion_shubh"))
-                    MeaningRow("लाभ", t("choghadiya_accordion_labh"))
-                    MeaningRow("अमृत", t("choghadiya_accordion_amrit"))
-                    MeaningRow("रोग", t("choghadiya_accordion_rog"))
-                    MeaningRow("चल", t("choghadiya_accordion_chal"))
-                    MeaningRow("काल", t("choghadiya_accordion_kaal"))
-                    MeaningRow("उद्वेग", t("choghadiya_accordion_udveg"))
+                    MeaningRow(t("chogh_shubh"), t("choghadiya_accordion_shubh"))
+                    MeaningRow(t("chogh_laabh"), t("choghadiya_accordion_labh"))
+                    MeaningRow(t("chogh_amrit"), t("choghadiya_accordion_amrit"))
+                    MeaningRow(t("chogh_rog"), t("choghadiya_accordion_rog"))
+                    MeaningRow(t("chogh_chal"), t("choghadiya_accordion_chal"))
+                    MeaningRow(t("chogh_kaal"), t("choghadiya_accordion_kaal"))
+                    MeaningRow(t("chogh_udveg"), t("choghadiya_accordion_udveg"))
                     Spacer(modifier = Modifier.height(4.dp))
                 }
             }
@@ -988,7 +989,7 @@ fun CitySelectorBottomSheet(
                                 onClick = { onCitySelected(city) },
                                 label = {
                                     Text(
-                                        text = city.name.substringBefore(','),
+                                        text = t(city.nameKey).substringBefore(','),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -1037,7 +1038,7 @@ fun CitySelectorBottomSheet(
                             ) {
                                 Column(horizontalAlignment = Alignment.Start) {
                                     Text(
-                                        text = city.name,
+                                        text = t(city.nameKey),
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )

@@ -1,5 +1,9 @@
 package com.bhaktichat.app.ui.screens.chat
 
+import com.bhaktichat.app.util.LanguageStore
+
+import com.bhaktichat.app.ui.i18n.translate
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -44,7 +48,8 @@ class ChatThreadViewModel(
     private val chatApiClient: ChatApiClient,
     private val entitlementStore: EntitlementStore,
     private val reviewPromptStore: ReviewPromptStore,
-    private val userFirstName: String = ""
+    private val userFirstName: String = "",
+    private val languageStore: LanguageStore
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ThreadUiState())
     val uiState: StateFlow<ThreadUiState> = _uiState.asStateFlow()
@@ -63,7 +68,7 @@ class ChatThreadViewModel(
                     guide = guide,
                     isLoading = false,
                     error = if (thread == null || guide == null) {
-                        "मैं आपके प्रश्न पर विचार कर रहा हूँ। कृपया कुछ क्षण बाद फिर प्रयास करें।"
+                        translate("chat_thinking_fallback", languageStore.language.value)
                     } else {
                         null
                     }
@@ -158,7 +163,7 @@ class ChatThreadViewModel(
             }
 
             val response = sendResult.getOrNull()?.replyText
-                ?: "मैं आपके प्रश्न पर विचार कर रहा हूँ। कृपया कुछ क्षण बाद फिर प्रयास करें।"
+                ?: translate("chat_thinking_fallback", languageStore.language.value)
             withContext(Dispatchers.IO) {
                 messagesRepository.replaceTypingWithResponse(typingMessage.id, response)
                 threadsRepository.touchThread(thread.id, System.currentTimeMillis())
@@ -184,7 +189,7 @@ class ChatThreadViewModel(
             _uiState.update {
                 it.copy(
                     isSending = false,
-                    error = sendResult.exceptionOrNull()?.let { "संदेश भेजा नहीं जा सका। कृपया फिर प्रयास करें।" }
+                    error = sendResult.exceptionOrNull()?.let { translate("chat_send_failed", languageStore.language.value) }
                 )
             }
             } catch (cancellation: CancellationException) {
@@ -195,7 +200,7 @@ class ChatThreadViewModel(
                 _uiState.update {
                     it.copy(
                         isSending = false,
-                        error = "कुछ गड़बड़ हुई। कृपया फिर प्रयास करें।"
+                        error = translate("common_something_wrong", languageStore.language.value)
                     )
                 }
             }
@@ -235,7 +240,8 @@ class ChatThreadViewModelFactory(
     private val chatApiClient: ChatApiClient,
     private val entitlementStore: EntitlementStore,
     private val reviewPromptStore: ReviewPromptStore,
-    private val userFirstName: String = ""
+    private val userFirstName: String = "",
+    private val languageStore: LanguageStore
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -247,7 +253,8 @@ class ChatThreadViewModelFactory(
             chatApiClient = chatApiClient,
             entitlementStore = entitlementStore,
             reviewPromptStore = reviewPromptStore,
-            userFirstName = userFirstName
+            userFirstName = userFirstName,
+            languageStore = languageStore
         ) as T
     }
 }

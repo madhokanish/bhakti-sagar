@@ -300,7 +300,7 @@ private fun OneTapMomentCard(
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = "एक टैप ›",
+                text = t("di_one_tap"),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFFFFD8A8)

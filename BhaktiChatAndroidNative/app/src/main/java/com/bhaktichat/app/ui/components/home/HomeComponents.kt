@@ -1,4 +1,5 @@
 package com.bhaktichat.app.ui.components.home
+import com.bhaktichat.app.ui.i18n.t
 import com.bhaktichat.app.ui.i18n.LocalAppLanguage
 
 import androidx.compose.animation.core.animateDpAsState
@@ -84,7 +85,7 @@ fun HeroCard(
         Box(modifier = Modifier.fillMaxSize()) {
             TopFocusedImage(
                 imageRes = imageRes,
-                contentDescription = "श्री कृष्ण की छवि",
+                contentDescription = t("krishna_image_desc"),
                 modifier = Modifier.fillMaxSize(),
                 scaleX = 1f,
                 scaleY = 1f
@@ -121,7 +122,7 @@ fun HeroCard(
                     maxLines = 2
                 )
                 Button(onClick = onStartConversation, shape = RoundedCornerShape(14.dp)) {
-                    Text("बात शुरू करें")
+                    Text(t("start_talking"))
                 }
             }
         }
@@ -207,7 +208,7 @@ fun GuideCard(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("बात करें")
+                    Text(t("talk_now"))
                 }
             }
         }

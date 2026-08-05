@@ -1,4 +1,5 @@
 package com.bhaktichat.app.ui.components.home
+import com.bhaktichat.app.ui.i18n.t
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,17 +32,17 @@ fun TodayQuickActions(
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         TodayActionCard(
-            title = "आज का मार्गदर्शन",
-            subtitle = "एक मिनट का चिंतन",
-            buttonLabel = "खोलें",
+            title = t("today_guidance"),
+            subtitle = t("one_minute_reflection"),
+            buttonLabel = t("common_open"),
             icon = Icons.Filled.WbSunny,
             onClick = onOpenGuidance,
             modifier = Modifier.weight(1f)
         )
         TodayActionCard(
-            title = "शुभ समय",
-            subtitle = "चौघड़िया की झलक",
-            buttonLabel = "देखें",
+            title = t("auspicious_time"),
+            subtitle = t("choghadiya_glance"),
+            buttonLabel = t("common_view"),
             icon = Icons.Filled.Schedule,
             onClick = onOpenChoghadiya,
             modifier = Modifier.weight(1f)

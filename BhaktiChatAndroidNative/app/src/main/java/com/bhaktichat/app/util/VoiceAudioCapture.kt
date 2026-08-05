@@ -63,7 +63,7 @@ class VoiceAudioCapture {
                 if (opened == null) {
                     if (isLastSource && !micConfirmedAlive) {
                         isRunning.set(false)
-                        onError("माइक्रोफ़ोन उपलब्ध नहीं है। कृपया बातचीत फिर शुरू करें।")
+                        onError("Microphone unavailable. Please restart the call.")
                         return@Thread
                     }
                     continue

@@ -567,7 +567,7 @@ private fun ChoghadiyaPreviewRow(
         KaalTone.NEUTRAL -> t("choghadiya_verdict_neutral")
         KaalTone.CHALLENGING -> t("choghadiya_verdict_unfavourable")
     }
-    val title = slot?.let { t("choghadiya_kaal_active").format(it.displayLabel) }
+    val title = slot?.let { t("choghadiya_kaal_active").format(it.displayLabel(LocalAppLanguage.current)) }
         ?: if (isLoading) t("home_choghadiya_loading") else t("home_choghadiya_unavailable")
 
     Column(
@@ -625,7 +625,7 @@ private fun ChoghadiyaPreviewRow(
 
         if (slot != null) {
             Text(
-                text = "${slot.start} से ${slot.end} तक",
+                text = t("chogh_time_range").format(slot.start, slot.end),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White.copy(alpha = 0.96f),

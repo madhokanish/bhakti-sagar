@@ -66,8 +66,8 @@ android {
         applicationId = "com.anish.bhaktichat"
         minSdk = 24
         targetSdk = 36
-        versionCode = 29
-        versionName = "2.6.1"
+        versionCode = 30
+        versionName = "2.6.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

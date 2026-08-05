@@ -256,10 +256,14 @@ private fun Hero() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(210.dp)
+            // 190dp keeps the container close to the artwork's own ~2:1 ratio. The two
+            // figures sit at the far left and right edges, so a taller box would make Crop
+            // scale to fill the height and shave both of them off. Slight top/bottom crop
+            // on wider screens only costs sky and floor.
+            .height(190.dp)
     ) {
         Image(
-            painter = painterResource(R.drawable.hero_krishna),
+            painter = painterResource(R.drawable.chadhaava_hero),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()

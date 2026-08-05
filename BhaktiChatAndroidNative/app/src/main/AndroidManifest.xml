@@ -23,10 +23,33 @@
           cannot enumerate installed UPI apps and the Intent flow silently shows no apps.
           Required, not optional: NPCI deprecated the Collect flow (manual VPA entry) in
           Feb 2026, so Intent is the only way to register a mandate on mobile.
+
+          Both forms below are needed. The <intent> filter alone is NOT enough for the
+          Razorpay SDK: it looks up the major PSP apps by package name, and on Android 11+
+          a direct package lookup only resolves if that package is named in <package>.
+          With intents alone the SDK finds zero UPI apps and silently drops UPI from
+          Checkout — while mobile web still shows it, because a browser is not subject to
+          our app's package visibility. That asymmetry is the giveaway.
         -->
+        <package android:name="com.google.android.apps.nbu.paisa.user" /> <!-- Google Pay -->
+        <package android:name="com.phonepe.app" /> <!-- PhonePe -->
+        <package android:name="net.one97.paytm" /> <!-- Paytm -->
+        <package android:name="in.org.npci.upiapp" /> <!-- BHIM -->
+        <package android:name="in.amazon.mShop.android.shopping" /> <!-- Amazon Pay -->
+        <package android:name="com.whatsapp" /> <!-- WhatsApp Pay -->
+        <package android:name="com.dreamplug.androidapp" /> <!-- CRED -->
+        <package android:name="com.myairtelapp" /> <!-- Airtel Thanks -->
+        <package android:name="com.freecharge.android" /> <!-- Freecharge -->
+        <package android:name="com.mobikwik_new" /> <!-- MobiKwik -->
+        <!-- Catches any other UPI-capable app not named above. -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="upi" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="upi" android:host="mandate" />
         </intent>
     </queries>
 

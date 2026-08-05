@@ -41,6 +41,10 @@ fun launchRazorpayCheckout(
         put("name", "BhaktiChat")
         put("description", "Chadhava")
         put("subscription_id", request.subscriptionId)
+        // Explicitly ask for UPI. The Android Standard Checkout docs call for this to
+        // activate the UPI Intent flow; without it the SDK can fall back to showing only
+        // card/eMandate even when the account has UPI enabled.
+        put("method", JSONObject().put("upi", true))
         put("theme", JSONObject().put("color", "#EA580C"))
         if (!prefillEmail.isNullOrBlank()) {
             put("prefill", JSONObject().put("email", prefillEmail))

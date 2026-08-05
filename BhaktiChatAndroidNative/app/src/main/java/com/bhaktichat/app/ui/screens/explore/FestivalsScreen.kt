@@ -1,4 +1,5 @@
 package com.bhaktichat.app.ui.screens.explore
+import com.bhaktichat.app.ui.i18n.t
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,13 +34,25 @@ import androidx.compose.ui.unit.sp
 import com.bhaktichat.app.ui.components.shell.AppTopBar
 import com.bhaktichat.app.ui.components.shell.BhaktiBottomNavBarDefaults
 
-private data class Festival(val day: String, val month: String, val name: String, val sub: String, val grad: List<Color>)
+/**
+ * Holds translation keys rather than resolved strings: this list is a top-level `val`, so it
+ * is built once at class-init, long before any composition exists. Resolving copy here would
+ * freeze it to whichever language happened to be active at startup — and `t()` is not even
+ * callable outside composition. [FestivalCard] resolves each key as it draws.
+ */
+private data class Festival(
+    val day: String,
+    val monthKey: String,
+    val nameKey: String,
+    val subKey: String,
+    val grad: List<Color>
+)
 
 private val festivals = listOf(
-    Festival("16", "AUG", "Hariyali Teej", "Monsoon festival honouring Goddess Parvati", listOf(Color(0xFF6EE7B7), Color(0xFF059669))),
-    Festival("18", "AUG", "Nag Panchami", "Worship of the serpent deities", listOf(Color(0xFFA5B4FC), Color(0xFF6366F1))),
-    Festival("28", "AUG", "Raksha Bandhan", "The sacred bond between siblings", listOf(Color(0xFFFCA5A5), Color(0xFFDC2626))),
-    Festival("04", "SEP", "Krishna Janmashtami", "Birth of Lord Krishna", listOf(Color(0xFFFDBA74), Color(0xFFEA580C)))
+    Festival("16", "month_august", "festival_hariyali_teej", "festival_hariyali_teej_desc", listOf(Color(0xFF6EE7B7), Color(0xFF059669))),
+    Festival("18", "month_august", "festival_naag_panchami", "festival_naag_panchami_desc", listOf(Color(0xFFA5B4FC), Color(0xFF6366F1))),
+    Festival("28", "month_august", "festival_raksha_bandhan", "festival_raksha_bandhan_desc", listOf(Color(0xFFFCA5A5), Color(0xFFDC2626))),
+    Festival("04", "month_september", "festival_janmashtami", "festival_janmashtami_desc", listOf(Color(0xFFFDBA74), Color(0xFFEA580C)))
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,10 +70,10 @@ fun FestivalsScreen(onBack: () -> Unit) {
                 .padding(bottom = BhaktiBottomNavBarDefaults.overlayClearance + 12.dp)
         ) {
             AppTopBar(
-                title = "Festivals",
+                title = t("festivals_title"),
                 leftContent = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back", tint = ExplorePalette.TextPrimary)
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, t("go_back"), tint = ExplorePalette.TextPrimary)
                     }
                 }
             )
@@ -68,7 +81,7 @@ fun FestivalsScreen(onBack: () -> Unit) {
                 modifier = Modifier.padding(horizontal = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("Upcoming Hindu festivals & vrat", fontSize = 14.sp, color = ExplorePalette.TextSecondary)
+                Text(t("festivals_subtitle"), fontSize = 14.sp, color = ExplorePalette.TextSecondary)
                 festivals.forEach { f -> FestivalCard(f) }
             }
         }
@@ -96,11 +109,11 @@ private fun FestivalCard(f: Festival) {
             verticalArrangement = Arrangement.Center
         ) {
             Text(f.day, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, textAlign = TextAlign.Center)
-            Text(f.month, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.9f))
+            Text(t(f.monthKey), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.9f))
         }
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(f.name, fontSize = 15.5.sp, fontWeight = FontWeight.Bold, color = ExplorePalette.TextPrimary)
-            Text(f.sub, fontSize = 12.5.sp, color = ExplorePalette.TextSecondary)
+            Text(t(f.nameKey), fontSize = 15.5.sp, fontWeight = FontWeight.Bold, color = ExplorePalette.TextPrimary)
+            Text(t(f.subKey), fontSize = 12.5.sp, color = ExplorePalette.TextSecondary)
         }
     }
 }

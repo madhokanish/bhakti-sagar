@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bhaktichat.app.domain.Wallpapers
 import com.bhaktichat.app.ui.components.shell.AppTopBar
+import com.bhaktichat.app.ui.i18n.t
 import com.bhaktichat.app.ui.components.shell.BhaktiBottomNavBarDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,15 +51,15 @@ fun WallpapersScreen(
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             AppTopBar(
-                title = "Wallpapers",
+                title = t("wallpapers_title"),
                 leftContent = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back", tint = ExplorePalette.TextPrimary)
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, t("back"), tint = ExplorePalette.TextPrimary)
                     }
                 }
             )
             Text(
-                text = "Deity wallpapers to save, share, or set as your status",
+                text = t("wallpapers_subtitle"),
                 fontSize = 13.sp,
                 color = ExplorePalette.TextSecondary,
                 modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 2.dp, bottom = 12.dp)
@@ -75,8 +76,8 @@ fun WallpapersScreen(
             ) {
                 items(Wallpapers.all, key = { it.id }) { wallpaper ->
                     WallpaperTile(
-                        title = wallpaper.title,
-                        subtitle = wallpaper.subtitle,
+                        title = t("wallpaper_title_${wallpaper.id}"),
+                        subtitle = t("wallpaper_subtitle_${wallpaper.id}"),
                         imageRes = wallpaper.imageRes,
                         onClick = { onOpenWallpaper(wallpaper.id) }
                     )

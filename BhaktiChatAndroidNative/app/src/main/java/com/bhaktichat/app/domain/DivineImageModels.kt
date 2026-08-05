@@ -11,15 +11,22 @@ enum class DivineMode {
 data class DivineTemplate(
     val id: String,
     val mode: DivineMode,
-    val title: String,
-    val description: String,
+    /** Keyed by [AppLanguage] — mirrors [Guide.openingScenes]'s map + lookup-function shape. */
+    val titles: Map<AppLanguage, String>,
+    val descriptions: Map<AppLanguage, String>,
     @DrawableRes val thumbnailRes: Int,
     val promptSkeleton: String,
     val deityTag: String? = null,
     val templeName: String? = null,
     val sceneName: String? = null,
     val isHomePrimary: Boolean = false
-)
+) {
+    fun title(language: AppLanguage): String =
+        titles[language] ?: titles.getValue(AppLanguage.HINGLISH)
+
+    fun description(language: AppLanguage): String =
+        descriptions[language] ?: descriptions.getValue(AppLanguage.HINGLISH)
+}
 
 data class DivineCreation(
     val id: String,

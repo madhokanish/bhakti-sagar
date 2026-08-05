@@ -20,7 +20,10 @@ import kotlinx.coroutines.flow.asStateFlow
  * distinguishable, otherwise anyone choosing the default would be prompted on every launch.
  */
 class LanguageStore(context: Context) {
-    private val prefs = context.applicationContext
+    // applicationContext is null when this is built from Application.attachBaseContext —
+    // the Application isn't attached to its context yet at that point. Falling back to the
+    // context we were handed is safe: SharedPreferences are per-process regardless.
+    private val prefs = (context.applicationContext ?: context)
         .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val _language = MutableStateFlow(readPersisted())

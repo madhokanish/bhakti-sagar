@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.bhaktichat.app.ui.i18n.t
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.PlayerConstants
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
@@ -40,8 +41,8 @@ fun YouTubePlayerEmbed(
 ) {
     if (videoId.isNullOrBlank()) {
         VideoPlaceholder(
-            title = "Video coming soon",
-            body = "Read the lyrics below while the video is being prepared.",
+            title = t("video_coming_soon"),
+            body = t("video_coming_soon_body"),
             modifier = modifier
         )
         return

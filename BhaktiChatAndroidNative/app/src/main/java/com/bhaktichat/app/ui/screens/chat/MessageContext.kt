@@ -60,7 +60,7 @@ data class ChatGuardrailsState(
 )
 
 data class ChatConversationState(
-    val locale: ConversationLanguage = ConversationLanguage.HINGLISH,
+    val locale: ConversationLanguage = ConversationLanguage.HINDI,
     val mode: ChatTurnMode = ChatTurnMode.CASUAL,
     val story: ChatStoryState = ChatStoryState(),
     val relationship: ChatRelationshipState = ChatRelationshipState(),
@@ -99,7 +99,7 @@ data class ChatConversationState(
             if (rawPayload.isNullOrBlank()) return ChatConversationState()
 
             return ChatConversationState(
-                locale = rawPayload.extractConversationLanguage("locale") ?: ConversationLanguage.HINGLISH,
+                locale = rawPayload.extractConversationLanguage("locale") ?: ConversationLanguage.HINDI,
                 mode = rawPayload.extractTurnMode("mode") ?: ChatTurnMode.CASUAL,
                 story = ChatStoryState(
                     active = rawPayload.extractBoolean("active"),

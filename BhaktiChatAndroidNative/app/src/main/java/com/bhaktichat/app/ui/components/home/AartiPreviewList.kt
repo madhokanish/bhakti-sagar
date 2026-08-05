@@ -31,8 +31,8 @@ fun AartiPreviewList(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         SectionHeader(
-            title = "Aarti Sangreh",
-            actionLabel = "See all",
+            title = "आरती संग्रह",
+            actionLabel = "सभी देखें",
             onActionClick = onOpenAllAartis
         )
 
@@ -48,7 +48,7 @@ fun AartiPreviewList(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
-                        text = "Top pick",
+                        text = "विशेष चयन",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary,
@@ -62,7 +62,7 @@ fun AartiPreviewList(
                         TextButton(
                             onClick = { onOpenAarti(aarti.id) }
                         ) {
-                            Text("Play")
+                            Text("चलाएँ")
                         }
                     }
                 }
@@ -87,7 +87,7 @@ fun AartiPreviewList(
                             onClick = { onOpenAarti(aarti.id) }
                         ) {
                             TextButton(onClick = { onOpenAarti(aarti.id) }) {
-                                Text("Open")
+                                Text("खोलें")
                             }
                         }
                         if (index < otherAartis.lastIndex) {
@@ -106,7 +106,7 @@ fun AartiPreviewList(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Inspired by sacred teachings. Built for calm reflection.",
+                text = "पवित्र शिक्षाओं से प्रेरित, शांत चिंतन के लिए निर्मित।",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

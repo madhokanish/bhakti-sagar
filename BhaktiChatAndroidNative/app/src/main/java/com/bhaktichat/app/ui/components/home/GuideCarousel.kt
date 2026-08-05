@@ -99,7 +99,7 @@ private fun CompactGuideCard(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Chat")
+                    Text("बात करें")
                 }
             }
         }
@@ -107,8 +107,8 @@ private fun CompactGuideCard(
 }
 
 private fun guidePromise(guideId: String): String = when (guideId) {
-    "krishna" -> "Gita wisdom for clarity"
-    "lakshmi" -> "Calm guidance for abundance"
-    "shani" -> "Discipline through hard times"
-    else -> "Gentle spiritual guidance"
+    "krishna" -> "स्पष्टता के लिए गीता ज्ञान"
+    "lakshmi" -> "समृद्धि के लिए शांत मार्गदर्शन"
+    "shani" -> "कठिन समय में अनुशासन"
+    else -> "स्नेहपूर्ण आध्यात्मिक मार्गदर्शन"
 }

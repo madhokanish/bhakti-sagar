@@ -55,6 +55,7 @@ import com.bhaktichat.app.domain.Deity
 import com.bhaktichat.app.ui.theme.BhaktiThemeTokens
 import com.bhaktichat.app.util.AartiSpeechPlayer
 import com.bhaktichat.app.data.local.SavedAartisStore
+import com.bhaktichat.app.ui.i18n.t
 import com.bhaktichat.app.ui.screens.aartis.components.YouTubePlayerEmbed
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,6 +77,8 @@ fun AartiDetailScreen(
 
     val currentAarti = aarti ?: return
     val watchUrl = currentAarti.youtubeVideoId?.let { "https://www.youtube.com/watch?v=$it" }
+    val explainNamedPromptTemplate = t("aarti_explain_prompt_named")
+    val explainGenericPrompt = t("aarti_explain_prompt_generic")
 
     // Text-to-speech (Feature 3)
     var isPlaying by remember { mutableStateOf(false) }
@@ -102,7 +105,7 @@ fun AartiDetailScreen(
                 IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back"
+                        contentDescription = t("back")
                     )
                 }
             },
@@ -123,7 +126,11 @@ fun AartiDetailScreen(
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Filled.Stop else Icons.Filled.PlayArrow,
-                        contentDescription = if (isPlaying) "Stop reading" else "Read aloud",
+                        contentDescription = if (isPlaying) {
+                            t("aarti_stop_reading_content_description")
+                        } else {
+                            t("aarti_read_aloud_content_description")
+                        },
                         tint = if (isPlaying) BhaktiThemeTokens.AccentError else MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -136,7 +143,7 @@ fun AartiDetailScreen(
                         )
                     }
                 ) {
-                    Text("Copy")
+                    Text(t("copy"))
                 }
             }
         )
@@ -160,13 +167,13 @@ fun AartiDetailScreen(
                             val prefill = currentAarti.title
                                 .trim()
                                 .takeIf { it.isNotBlank() }
-                                ?.let { "Explain $it aarti to me" }
-                                ?: "Explain this aarti to me"
+                                ?.let { explainNamedPromptTemplate.format(it) }
+                                ?: explainGenericPrompt
                             onAskKrishna(prefill)
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Ask Lord Krishna")
+                        Text(t("ask_lord_krishna"))
                     }
                     OutlinedButton(
                         onClick = { savedStore.toggleSaved(currentAarti.id) },
@@ -185,7 +192,7 @@ fun AartiDetailScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = if (isBookmarked) "Saved" else "Save",
+                            text = if (isBookmarked) t("saved") else t("save"),
                             modifier = Modifier.padding(start = 8.dp)
                         )
                     }
@@ -203,7 +210,7 @@ fun AartiDetailScreen(
 
             item("lyrics-header") {
                 Text(
-                    text = "Lyrics",
+                    text = t("lyrics"),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -217,7 +224,7 @@ fun AartiDetailScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Lyrics will appear here.",
+                            text = t("aarti_lyrics_empty"),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(16.dp)
@@ -233,7 +240,7 @@ fun AartiDetailScreen(
             if (currentAarti.youtubeVideoId != null) {
                 item("video-section-title") {
                     Text(
-                        text = "Video",
+                        text = t("video"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -260,7 +267,7 @@ fun AartiDetailScreen(
                                 contentDescription = null,
                                 modifier = Modifier.padding(end = 8.dp)
                             )
-                            Text("Watch on YouTube")
+                            Text(t("watch_on_youtube"))
                         }
                     }
                 }
@@ -290,7 +297,7 @@ private fun AartiHeaderCard(aarti: Aarti) {
             ) {
                 Image(
                     painter = painterResource(id = aartiThumbnailRes(aarti.deity)),
-                    contentDescription = "${aarti.title} icon",
+                    contentDescription = t("aarti_icon_content_description").format(aarti.title),
                     modifier = Modifier
                         .size(96.dp)
                         .clip(RoundedCornerShape(18.dp)),
@@ -348,7 +355,7 @@ private fun VerseCard(index: Int, text: String) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Verse $index",
+                text = t("aarti_verse_label").format(index),
                 style = MaterialTheme.typography.labelMedium,
                 color = BhaktiThemeTokens.AccentPrimary,
                 fontWeight = FontWeight.SemiBold
@@ -369,13 +376,14 @@ private fun aartiThumbnailRes(deity: Deity): Int = when (deity) {
     else -> R.drawable.ic_default_aarti
 }
 
+@Composable
 private fun deityDisplayName(deity: Deity): String = when (deity) {
-    Deity.KRISHNA -> "Lord Krishna"
-    Deity.GANESH -> "Lord Ganesh"
-    Deity.SHIV -> "Lord Shiv"
-    Deity.LAKSHMI -> "Goddess Lakshmi"
-    Deity.DEVI -> "Devi"
-    Deity.VISHNU -> "Lord Vishnu"
-    Deity.HANUMAN -> "Lord Hanuman"
-    Deity.OTHER -> "Aarti"
+    Deity.KRISHNA -> t("deity_krishna")
+    Deity.GANESH -> t("deity_ganesh")
+    Deity.SHIV -> t("deity_shiv")
+    Deity.LAKSHMI -> t("deity_lakshmi")
+    Deity.DEVI -> t("deity_devi")
+    Deity.VISHNU -> t("deity_vishnu")
+    Deity.HANUMAN -> t("deity_hanuman")
+    Deity.OTHER -> t("deity_other")
 }

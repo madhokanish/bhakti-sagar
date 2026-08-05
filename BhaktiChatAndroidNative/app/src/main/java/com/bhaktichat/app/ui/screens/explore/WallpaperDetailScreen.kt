@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import com.bhaktichat.app.BuildConfig
 import com.bhaktichat.app.domain.Wallpapers
+import com.bhaktichat.app.ui.i18n.t
 import java.io.File
 import java.io.FileOutputStream
 
@@ -59,11 +60,17 @@ fun WallpaperDetailScreen(
         onBack()
         return
     }
+    val savedToPhotosText = t("saved_to_photos")
+    val shareWallpaperTitle = t("share_wallpaper")
+    val setAsWallpaperTitle = t("set_as_wallpaper")
+    val noWallpaperAppMessage = t("no_wallpaper_app_found")
+    val wallpaperTitle = t("wallpaper_title_${wallpaper.id}")
+    val wallpaperSubtitle = t("wallpaper_subtitle_${wallpaper.id}")
 
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         Image(
             painter = painterResource(id = wallpaper.imageRes),
-            contentDescription = wallpaper.title,
+            contentDescription = wallpaperTitle,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit
         )
@@ -84,7 +91,7 @@ fun WallpaperDetailScreen(
             onClick = onBack,
             modifier = Modifier.align(Alignment.TopStart).padding(10.dp)
         ) {
-            Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back", tint = Color.White)
+            Icon(Icons.AutoMirrored.Outlined.ArrowBack, t("back"), tint = Color.White)
         }
 
         Column(
@@ -95,36 +102,36 @@ fun WallpaperDetailScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Column {
-                Text(wallpaper.title, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                Text(wallpaper.subtitle, fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f))
+                Text(wallpaperTitle, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                Text(wallpaperSubtitle, fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 WallpaperAction(
                     icon = Icons.Filled.Download,
-                    label = "Save",
+                    label = t("save"),
                     modifier = Modifier.weight(1f),
                     onClick = {
                         val uri = drawableToCacheUri(context, wallpaper.imageRes, "wallpaper_${wallpaper.id}")
                         saveImageToDevice(context, uri)
-                        Toast.makeText(context, "Saved to Photos", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, savedToPhotosText, Toast.LENGTH_SHORT).show()
                     }
                 )
                 WallpaperAction(
                     icon = Icons.Filled.IosShare,
-                    label = "Share",
+                    label = t("share"),
                     modifier = Modifier.weight(1f),
                     onClick = {
                         val uri = drawableToCacheUri(context, wallpaper.imageRes, "wallpaper_${wallpaper.id}")
-                        shareImage(context, uri)
+                        shareImage(context, uri, shareWallpaperTitle)
                     }
                 )
                 WallpaperAction(
                     icon = Icons.Filled.Wallpaper,
-                    label = "Set",
+                    label = t("set_wallpaper_button"),
                     modifier = Modifier.weight(1f),
                     onClick = {
                         val uri = drawableToCacheUri(context, wallpaper.imageRes, "wallpaper_${wallpaper.id}")
-                        setAsWallpaper(context, uri)
+                        setAsWallpaper(context, uri, setAsWallpaperTitle, noWallpaperAppMessage)
                     }
                 )
             }
@@ -200,19 +207,19 @@ private fun saveImageToDevice(context: Context, sourceUri: Uri) {
 private const val SHARE_CAPTION =
     "Sharing my BhaktiChat wallpaper 🙏\nGet yours free: https://bhaktichat.com"
 
-private fun shareImage(context: Context, uri: Uri) {
+private fun shareImage(context: Context, uri: Uri, chooserTitle: String) {
     val sendIntent = Intent(Intent.ACTION_SEND).apply {
         type = "image/*"
         putExtra(Intent.EXTRA_STREAM, uri)
         putExtra(Intent.EXTRA_TEXT, SHARE_CAPTION)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(sendIntent, "Share wallpaper"))
+    context.startActivity(Intent.createChooser(sendIntent, chooserTitle))
 }
 
 /** Hands off to the system's own wallpaper picker/cropper via ACTION_ATTACH_DATA — works
  *  regardless of source image aspect ratio since the OS handles cropping, not us. */
-private fun setAsWallpaper(context: Context, uri: Uri) {
+private fun setAsWallpaper(context: Context, uri: Uri, chooserTitle: String, noAppFoundMessage: String) {
     val intent = Intent(Intent.ACTION_ATTACH_DATA).apply {
         setDataAndType(uri, "image/*")
         putExtra("mimeType", "image/*")
@@ -220,8 +227,8 @@ private fun setAsWallpaper(context: Context, uri: Uri) {
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
     runCatching {
-        context.startActivity(Intent.createChooser(intent, "Set as wallpaper"))
+        context.startActivity(Intent.createChooser(intent, chooserTitle))
     }.onFailure {
-        Toast.makeText(context, "No wallpaper app found on this device.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, noAppFoundMessage, Toast.LENGTH_SHORT).show()
     }
 }

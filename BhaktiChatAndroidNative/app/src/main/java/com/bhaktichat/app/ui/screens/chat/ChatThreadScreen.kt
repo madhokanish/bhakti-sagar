@@ -121,11 +121,11 @@ fun buildChatListItems(messages: List<MessageEntity>): List<ChatListItem> {
         val msgCal = Calendar.getInstance().also { it.timeInMillis = message.createdAt }
 
         val label = when {
-            isSameDay(msgCal, todayCal) -> "Today"
-            isSameDay(msgCal, yesterdayCal) -> "Yesterday"
+            isSameDay(msgCal, todayCal) -> "आज"
+            isSameDay(msgCal, yesterdayCal) -> "कल"
             else -> {
                 val day = msgCal.get(Calendar.DAY_OF_MONTH)
-                val month = msgCal.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault())
+                val month = msgCal.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.forLanguageTag("hi-IN"))
                     ?: ""
                 "$day $month"
             }
@@ -174,7 +174,10 @@ fun ChatThreadScreen(
 
     // Voice input wiring (Feature 2) — prefix-strip delta merge mirrors iOS so we
     // don't duplicate text when partial transcripts grow.
-    val speechManager = remember(context) { SpeechInputManager(context) }
+    val speechManager = remember(context) { SpeechInputManager(
+            context,
+            (context.applicationContext as com.bhaktichat.app.BhaktiChatApplication).container.languageStore
+        ) }
     val voiceState by speechManager.state.collectAsState()
     var lastTranscript by remember { mutableStateOf("") }
     val applyTranscriptDelta: (String) -> Unit = { newTranscript ->
@@ -196,7 +199,7 @@ fun ChatThreadScreen(
         if (granted) {
             speechManager.start { transcript -> applyTranscriptDelta(transcript) }
         } else {
-            Toast.makeText(context, "Microphone permission denied", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "माइक्रोफ़ोन की अनुमति नहीं मिली", Toast.LENGTH_SHORT).show()
         }
     }
     LaunchedEffect(voiceState.isRecording) {
@@ -267,7 +270,7 @@ fun ChatThreadScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "वापस जाएँ"
                         )
                     }
                 },
@@ -298,7 +301,7 @@ fun ChatThreadScreen(
                                             .background(Color(0xFF22C55E), CircleShape)
                                     )
                                     Text(
-                                        text = guide.status.ifBlank { "Online" },
+                                        text = guide.status.ifBlank { "उपलब्ध" },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -306,7 +309,7 @@ fun ChatThreadScreen(
                             }
                         }
                     } else {
-                        Text(text = "Bhakti Chat")
+                        Text(text = "BhaktiChat")
                     }
                 },
                 actions = {
@@ -318,7 +321,7 @@ fun ChatThreadScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Call,
-                                contentDescription = "Start voice conversation"
+                                contentDescription = "आवाज़ से बातचीत शुरू करें"
                             )
                         }
                     }
@@ -326,7 +329,7 @@ fun ChatThreadScreen(
                         IconButton(onClick = { showThreadMenu = true }) {
                             Icon(
                                 imageVector = Icons.Filled.MoreVert,
-                                contentDescription = "Thread options"
+                                contentDescription = "बातचीत के विकल्प"
                             )
                         }
                         DropdownMenu(
@@ -341,34 +344,34 @@ fun ChatThreadScreen(
                                 }
                             if (latestAssistantReply != null) {
                                 DropdownMenuItem(
-                                    text = { Text("Copy latest reply") },
+                                    text = { Text("नवीनतम उत्तर कॉपी करें") },
                                     onClick = {
                                         clipboardManager.setText(
                                             AnnotatedString(latestAssistantReply.content)
                                         )
-                                        Toast.makeText(context, "Latest reply copied", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "नवीनतम उत्तर कॉपी किया गया", Toast.LENGTH_SHORT).show()
                                         showThreadMenu = false
                                     }
                                 )
                             }
                             DropdownMenuItem(
-                                text = { Text("Copy conversation") },
+                                text = { Text("बातचीत कॉपी करें") },
                                 onClick = {
                                     val guideName = guide?.displayName.orEmpty()
                                     val transcript = uiState.messages
                                         .filterNot { it.isTypingIndicator }
                                         .joinToString("\n\n") { msg ->
-                                            val speaker = if (ChatRole.fromWire(msg.role) == ChatRole.USER) "You" else guideName
+                                            val speaker = if (ChatRole.fromWire(msg.role) == ChatRole.USER) "आप" else guideName
                                             "$speaker: ${msg.content}"
                                         }
                                     clipboardManager.setText(AnnotatedString(transcript))
-                                    Toast.makeText(context, "Conversation copied", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "बातचीत कॉपी की गई", Toast.LENGTH_SHORT).show()
                                     showThreadMenu = false
                                 }
                             )
                             if (onClearChat != null) {
                                 DropdownMenuItem(
-                                    text = { Text("Clear chat") },
+                                    text = { Text("बातचीत मिटाएँ") },
                                     onClick = {
                                         onClearChat()
                                         showThreadMenu = false
@@ -403,7 +406,7 @@ fun ChatThreadScreen(
                             .focusRequester(focusRequester),
                         placeholder = {
                             Text(
-                                "Type your message…",
+                                "अपना संदेश लिखें…",
                                 color = BhaktiThemeTokens.TextTertiary
                             )
                         },
@@ -452,7 +455,7 @@ fun ChatThreadScreen(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = if (voiceState.isRecording) Icons.Filled.MicOff else Icons.Filled.Mic,
-                                contentDescription = if (voiceState.isRecording) "Stop voice input" else "Start voice input",
+                                contentDescription = if (voiceState.isRecording) "आवाज़ से लिखना रोकें" else "आवाज़ से लिखना शुरू करें",
                                 tint = if (voiceState.isRecording) Color.White else BhaktiThemeTokens.TextSecondary,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -476,7 +479,7 @@ fun ChatThreadScreen(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Send,
-                                contentDescription = "Send",
+                                contentDescription = "भेजें",
                                 tint = Color.White,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -495,7 +498,7 @@ fun ChatThreadScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Loading conversation…",
+                    text = "बातचीत लोड हो रही है…",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -536,7 +539,7 @@ fun ChatThreadScreen(
                                 },
                                 onCopyMessage = {
                                     clipboardManager.setText(AnnotatedString(item.message.content))
-                                    Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "कॉपी किया गया", Toast.LENGTH_SHORT).show()
                                     selectedMessageId = null
                                 },
                                 onRegenerate = onRegenerate
@@ -570,7 +573,7 @@ fun ChatThreadScreen(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Filled.KeyboardArrowDown,
-                                contentDescription = "Scroll to bottom",
+                                contentDescription = "सबसे नीचे जाएँ",
                                 tint = Color.White,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -738,13 +741,13 @@ private fun ThreadMessageItem(
                     IconButton(onClick = onCopyMessage) {
                         Icon(
                             imageVector = Icons.Filled.ContentCopy,
-                            contentDescription = "Copy message",
+                            contentDescription = "संदेश कॉपी करें",
                             modifier = Modifier.size(18.dp),
                             tint = BhaktiThemeTokens.TextSecondary
                         )
                     }
                     Text(
-                        text = "Copy",
+                        text = "कॉपी करें",
                         style = MaterialTheme.typography.labelMedium,
                         color = BhaktiThemeTokens.TextSecondary,
                         modifier = Modifier.clickable(onClick = onCopyMessage)
@@ -779,7 +782,7 @@ private fun ThreadMessageItem(
                                 tint = BhaktiThemeTokens.TextSecondary
                             )
                             Text(
-                                text = "Regenerate",
+                                text = "फिर उत्तर दें",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = BhaktiThemeTokens.TextSecondary
                             )
@@ -803,7 +806,7 @@ private fun ThreadMessageItem(
                 )
                 if (isUser) {
                     Text(
-                        text = " · Sent",
+                        text = " · भेजा गया",
                         style = MaterialTheme.typography.labelSmall,
                         color = BhaktiThemeTokens.TextSecondary
                     )

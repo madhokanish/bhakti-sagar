@@ -24,14 +24,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.bhaktichat.app.R
 import com.bhaktichat.app.domain.Guide
 import com.bhaktichat.app.domain.Guides
 import com.bhaktichat.app.ui.components.GuideAvatar
+import com.bhaktichat.app.ui.i18n.t
 
 @Composable
 fun GuidePickerScreen(onGuideClick: (String) -> Unit) {
@@ -53,12 +52,12 @@ private fun GuideListScreen(
     ) {
         item("header") {
             Text(
-                text = stringResource(R.string.guide_picker_title),
+                text = t("guide_picker_title"),
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp)
             )
             Text(
-                text = stringResource(R.string.guide_picker_subtitle),
+                text = t("guide_picker_subtitle"),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
@@ -85,7 +84,7 @@ private fun GuideListScreen(
         if (guides.size <= 3) {
             item("footer") {
                 Text(
-                    text = stringResource(R.string.guide_picker_footer),
+                    text = t("guide_picker_footer"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp)
@@ -101,6 +100,7 @@ private fun GuideRowItem(
     onClick: () -> Unit
 ) {
     val haptics = LocalHapticFeedback.current
+    val guideName = t("guide_title_${guide.id}")
 
     Row(
         modifier = Modifier
@@ -116,10 +116,7 @@ private fun GuideRowItem(
         Box(modifier = Modifier.size(60.dp)) {
             GuideAvatar(
                 avatarRes = guide.avatarRes,
-                contentDescription = stringResource(
-                    R.string.guide_picker_avatar_content_description,
-                    guide.displayName
-                ),
+                contentDescription = t("guide_picker_avatar_content_description").format(guideName),
                 sizeDp = 60
             )
             Surface(
@@ -144,14 +141,14 @@ private fun GuideRowItem(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = guide.displayName,
+                    text = guideName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = stringResource(previewTextRes(guide.id)),
+                    text = t(previewTextKey(guide.id)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -166,7 +163,7 @@ private fun GuideRowItem(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = stringResource(R.string.guide_picker_chat),
+                    text = t("guide_picker_chat"),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -175,11 +172,13 @@ private fun GuideRowItem(
     }
 }
 
-private fun previewTextRes(guideId: String): Int {
+private fun previewTextKey(guideId: String): String {
     return when (guideId) {
-        "krishna" -> R.string.guide_preview_krishna
-        "lakshmi" -> R.string.guide_preview_lakshmi
-        "shani" -> R.string.guide_preview_shani
-        else -> R.string.guide_picker_subtitle
+        "krishna" -> "guide_preview_krishna"
+        "lakshmi" -> "guide_preview_lakshmi"
+        "shani" -> "guide_preview_shani"
+        "shiv" -> "guide_preview_shiv"
+        "hanuman" -> "guide_preview_hanuman"
+        else -> "guide_picker_subtitle"
     }
 }

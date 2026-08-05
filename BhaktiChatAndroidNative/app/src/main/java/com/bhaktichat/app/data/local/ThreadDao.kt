@@ -8,14 +8,31 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ThreadDao {
-    @Query("SELECT * FROM threads ORDER BY updatedAt DESC")
+    // Archived (collapsed pre-2.0 duplicate) threads never show up here — only in
+    // listAllThreadsIncludingArchived, used solely by the one-time collapse migration.
+    @Query("SELECT * FROM threads WHERE isArchived = 0 ORDER BY updatedAt DESC")
     fun observeThreads(): Flow<List<ThreadEntity>>
 
-    @Query("SELECT * FROM threads ORDER BY updatedAt DESC")
+    @Query("SELECT * FROM threads WHERE isArchived = 0 ORDER BY updatedAt DESC")
     suspend fun listThreads(): List<ThreadEntity>
+
+    @Query("SELECT * FROM threads ORDER BY updatedAt DESC")
+    suspend fun listAllThreadsIncludingArchived(): List<ThreadEntity>
 
     @Query("SELECT * FROM threads WHERE id = :threadId LIMIT 1")
     suspend fun getThread(threadId: String): ThreadEntity?
+
+    @Query("SELECT * FROM threads WHERE guideId = :guideId AND isArchived = 0 ORDER BY updatedAt DESC LIMIT 1")
+    suspend fun getActiveThreadForGuide(guideId: String): ThreadEntity?
+
+    @Query("UPDATE threads SET isArchived = 1 WHERE id = :threadId")
+    suspend fun archiveThread(threadId: String)
+
+    @Query(
+        "UPDATE threads SET updatedAt = :updatedAt, remoteConversationId = NULL, statePayload = '' " +
+            "WHERE id = :threadId"
+    )
+    suspend fun resetThreadState(threadId: String, updatedAt: Long)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(thread: ThreadEntity)

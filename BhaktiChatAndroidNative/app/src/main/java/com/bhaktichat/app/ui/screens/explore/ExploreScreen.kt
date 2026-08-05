@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import com.bhaktichat.app.R
 import com.bhaktichat.app.ui.components.shell.AppTopBar
 import com.bhaktichat.app.ui.components.shell.BhaktiBottomNavBarDefaults
+import com.bhaktichat.app.ui.i18n.t
 
 /** Warm saffron/cream palette for the new 4-tab IA screens (design_handoff_bhaktichat_ia). */
 object ExplorePalette {
@@ -91,12 +92,12 @@ fun ExploreScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AppTopBar(
-                title = "Explore",
+                title = t("explore_title"),
                 leftContent = {
                     IconButton(onClick = onOpenProfile) {
                         Icon(
                             imageVector = Icons.Outlined.Person,
-                            contentDescription = "Profile"
+                            contentDescription = t("profile_content_description")
                         )
                     }
                 }
@@ -114,50 +115,50 @@ fun ExploreScreen(
         ) {
             FeaturedDivineImageCard(onClick = onOpenDivineImage)
 
-            Text("Services", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = ExplorePalette.TextPrimary)
+            Text(t("explore_services"), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = ExplorePalette.TextPrimary)
 
             ServiceRow(
                 icon = Icons.Filled.MusicNote,
                 gradient = ExplorePalette.AartiGrad,
-                title = "Aartis",
-                subtitle = "30+ devotional songs with lyrics & audio",
+                title = t("explore_aartis_title"),
+                subtitle = t("explore_aartis_subtitle"),
                 onClick = onOpenAartis
             )
             ServiceRow(
                 icon = Icons.Filled.WbSunny,
                 gradient = ExplorePalette.ChoghadiyaGrad,
-                title = "Choghadiya",
-                subtitle = "Today's auspicious timings for your city",
+                title = t("explore_choghadiya_title"),
+                subtitle = t("explore_choghadiya_subtitle"),
                 onClick = onOpenChoghadiya
             )
             ServiceRow(
                 icon = Icons.Filled.Celebration,
                 gradient = ExplorePalette.FestivalGrad,
-                title = "Festivals",
-                subtitle = "Upcoming Hindu festivals & vrat",
+                title = t("explore_festivals_title"),
+                subtitle = t("explore_festivals_subtitle"),
                 onClick = onOpenFestivals
             )
             ServiceRow(
                 icon = Icons.Filled.CalendarMonth,
                 gradient = ExplorePalette.PanchangGrad,
-                title = "Panchang",
-                subtitle = "Tithi, nakshatra, sunrise & sunset today",
+                title = t("explore_panchang_title"),
+                subtitle = t("explore_panchang_subtitle"),
                 onClick = onOpenPanchang
             )
             ServiceRow(
                 icon = Icons.Filled.Wallpaper,
                 gradient = ExplorePalette.WallpaperGrad,
-                title = "Wallpapers",
-                subtitle = "Deity wallpapers to save & share",
+                title = t("explore_wallpapers_title"),
+                subtitle = t("explore_wallpapers_subtitle"),
                 onClick = onOpenWallpapers
             )
 
             com.bhaktichat.app.ui.components.ads.BannerAd(placement = "explore")
 
-            Text("Coming soon", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = ExplorePalette.TextPrimary)
+            Text(t("explore_coming_soon"), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = ExplorePalette.TextPrimary)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ComingSoonCard(Icons.Filled.Stars, "Rashifal", "Daily horoscope", Modifier.weight(1f))
-                ComingSoonCard(Icons.Filled.GridView, "Kundli", "Birth chart", Modifier.weight(1f))
+                ComingSoonCard(Icons.Filled.Stars, t("explore_rashifal_title"), t("explore_rashifal_subtitle"), Modifier.weight(1f))
+                ComingSoonCard(Icons.Filled.GridView, t("explore_kundli_title"), t("explore_kundli_subtitle"), Modifier.weight(1f))
             }
         }
     }
@@ -174,7 +175,7 @@ private fun FeaturedDivineImageCard(onClick: () -> Unit) {
     ) {
         Image(
             painter = painterResource(id = R.drawable.photo_with_god),
-            contentDescription = "Divine Image",
+            contentDescription = t("explore_divine_image_content_description"),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -196,10 +197,10 @@ private fun FeaturedDivineImageCard(onClick: () -> Unit) {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Icon(Icons.Filled.AutoAwesome, null, tint = Color(0xFFFFE7C6), modifier = Modifier.size(13.dp))
-                Text("FEATURED", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFFE7C6), letterSpacing = 1.sp)
+                Text(t("explore_featured"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFFE7C6), letterSpacing = 1.sp)
             }
-            Text("Divine Image", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-            Text("Turn your photo into a sacred darshan", fontSize = 13.sp, color = Color.White.copy(alpha = 0.9f))
+            Text(t("explore_divine_image_title"), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+            Text(t("explore_divine_image_subtitle"), fontSize = 13.sp, color = Color.White.copy(alpha = 0.9f))
             Spacer(Modifier.height(2.dp))
             Row(
                 modifier = Modifier
@@ -209,7 +210,7 @@ private fun FeaturedDivineImageCard(onClick: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text("Create yours", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ExplorePalette.DeepAccent)
+                Text(t("explore_create_yours"), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ExplorePalette.DeepAccent)
                 Icon(Icons.Filled.ChevronRight, null, tint = ExplorePalette.DeepAccent, modifier = Modifier.size(16.dp))
             }
         }
@@ -271,7 +272,7 @@ private fun ComingSoonCard(icon: ImageVector, title: String, subtitle: String, m
                 .background(ExplorePalette.TextMuted.copy(alpha = 0.15f))
                 .padding(horizontal = 8.dp, vertical = 3.dp)
         ) {
-            Text("Coming soon", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = ExplorePalette.TextSecondary)
+            Text(t("explore_coming_soon"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = ExplorePalette.TextSecondary)
         }
     }
 }

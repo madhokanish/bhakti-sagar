@@ -12,6 +12,7 @@ import com.bhaktichat.app.domain.CreationStatus
 import com.bhaktichat.app.domain.Deity
 import com.bhaktichat.app.util.BookmarkStore
 import com.bhaktichat.app.util.formatTime
+import com.bhaktichat.app.ui.screens.divineimage.divineChoiceDisplayText
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -98,14 +99,10 @@ class HistoryViewModel(
                 }
 
                 val creationItems = creations.map { creation ->
-                    val creationSubtitle = creation.inputPrompt
-                        .lineSequence()
-                        .firstOrNull()
-                        .orEmpty()
-                        .ifBlank { "Generated in Divine Image" }
+                    val creationSubtitle = "दिव्य छवि से निर्मित"
                     HistoryCreationItem(
                         creationId = creation.id,
-                        title = creation.templateTitle,
+                        title = divineChoiceDisplayText(creation.templateTitle),
                         subtitle = creationSubtitle,
                         timeLabel = formatTime(creation.createdAt),
                         previewUri = creation.outputImageUri,
@@ -173,7 +170,7 @@ class HistoryViewModel(
                 SavedAartiItem(
                     aartiId = it.id,
                     title = it.title,
-                    subtitle = it.subtitle ?: "Aarti",
+                    subtitle = it.subtitle ?: "आरती",
                     deity = it.deity
                 )
             }

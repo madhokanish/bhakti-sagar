@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -47,6 +48,8 @@ import com.bhaktichat.app.domain.DivineCreation
 import com.bhaktichat.app.domain.DivineMode
 import com.bhaktichat.app.domain.DivineTemplate
 import com.bhaktichat.app.ui.components.shell.AppTopBar
+import com.bhaktichat.app.ui.i18n.LocalAppLanguage
+import com.bhaktichat.app.ui.i18n.t
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,12 +77,12 @@ fun DivineImageScreen(
         ) {
             item("topbar") {
                 AppTopBar(
-                    title = "Divine Image",
+                    title = t("divine_image_title"),
                     leftContent = {
                         IconButton(onClick = onBack) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = "Back"
+                                contentDescription = t("back")
                             )
                         }
                     }
@@ -89,7 +92,7 @@ fun DivineImageScreen(
 
             item("subtitle") {
                 Text(
-                    text = "Turn your photo into a sacred moment in seconds.",
+                    text = t("divine_image_hub_subtitle"),
                     fontSize = 14.sp,
                     color = DivineImagePalette.TextSecondary
                 )
@@ -107,18 +110,27 @@ fun DivineImageScreen(
 
             if (uiState.inspirations.isNotEmpty()) {
                 item("moments_header") {
-                    SectionHeader(title = "One-tap moments")
+                    SectionHeader(title = t("one_tap_moments"))
                 }
-                item("moments_rail") {
-                    LazyRow(
+                items(
+                    items = uiState.inspirations.chunked(2),
+                    key = { row -> row.joinToString("_") { it.id } }
+                ) { row ->
+                    Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(vertical = 2.dp)
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        items(uiState.inspirations, key = { it.id }) { template ->
+                        row.forEach { template ->
                             OneTapMomentCard(
                                 template = template,
-                                onClick = { onOpenTemplate(template.mode, template.id) }
+                                onClick = { onOpenTemplate(template.mode, template.id) },
+                                modifier = Modifier.weight(1f)
                             )
+                        }
+                        // Odd item out on the last row — a spacer keeps its card at half
+                        // width instead of stretching to fill the row alone.
+                        if (row.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
                         }
                     }
                 }
@@ -126,8 +138,8 @@ fun DivineImageScreen(
 
             item("creations_header") {
                 SectionHeader(
-                    title = "Your creations",
-                    actionLabel = "History ›".takeIf { uiState.recentCreations.isNotEmpty() },
+                    title = t("your_creations_short"),
+                    actionLabel = t("history_link").takeIf { uiState.recentCreations.isNotEmpty() },
                     onAction = onOpenHistory
                 )
             }
@@ -150,6 +162,7 @@ private fun ModeCard(
     template: DivineTemplate,
     onClick: () -> Unit
 ) {
+    val language = LocalAppLanguage.current
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -159,7 +172,7 @@ private fun ModeCard(
     ) {
         Image(
             painter = painterResource(id = template.thumbnailRes),
-            contentDescription = template.title,
+            contentDescription = template.title(language),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -186,13 +199,13 @@ private fun ModeCard(
                 verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
                 Text(
-                    text = template.title,
+                    text = template.title(language),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.White
                 )
                 Text(
-                    text = template.description,
+                    text = template.description(language),
                     fontSize = 12.5.sp,
                     color = Color.White.copy(alpha = 0.88f),
                     maxLines = 2,
@@ -222,18 +235,19 @@ private fun ModeCard(
 @Composable
 private fun OneTapMomentCard(
     template: DivineTemplate,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
+    val language = LocalAppLanguage.current
     Box(
-        modifier = Modifier
-            .width(138.dp)
+        modifier = modifier
             .height(168.dp)
             .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
     ) {
         Image(
             painter = painterResource(id = template.thumbnailRes),
-            contentDescription = template.title,
+            contentDescription = template.title(language),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
@@ -278,7 +292,7 @@ private fun OneTapMomentCard(
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Text(
-                text = template.title,
+                text = template.title(language),
                 fontSize = 12.5.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
@@ -286,7 +300,7 @@ private fun OneTapMomentCard(
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = "ONE TAP ›",
+                text = "एक टैप ›",
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFFFFD8A8)
@@ -317,7 +331,7 @@ private fun YourCreationsRow(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "Your divine moments will appear here",
+                text = t("your_divine_moments_empty"),
                 fontSize = 13.sp,
                 color = DivineImagePalette.TextMuted
             )

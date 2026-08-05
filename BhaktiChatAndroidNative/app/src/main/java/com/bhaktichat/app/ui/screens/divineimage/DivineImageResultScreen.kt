@@ -117,7 +117,7 @@ fun DivineImageResultScreen(
                 DivineImageResultUiEvent.NavigateHome -> onBackToHome()
                 is DivineImageResultUiEvent.SaveImage -> {
                     saveImageToDevice(context, Uri.parse(event.uri))
-                    Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "सहेजा गया", Toast.LENGTH_SHORT).show()
                 }
                 is DivineImageResultUiEvent.ShareImage -> {
                     shareImage(
@@ -131,7 +131,7 @@ fun DivineImageResultScreen(
     }
 
     val status = creation?.status ?: CreationStatus.GENERATING
-    val topTitle = if (status == CreationStatus.GENERATING) "Creating…" else "Divine Image"
+    val topTitle = if (status == CreationStatus.GENERATING) "बन रहा है…" else "दिव्य छवि"
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -145,7 +145,7 @@ fun DivineImageResultScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = "वापस जाएँ",
                             tint = DivineImagePalette.TextPrimary
                         )
                     }
@@ -155,7 +155,7 @@ fun DivineImageResultScreen(
                         IconButton(onClick = onShareWithSystem) {
                             Icon(
                                 imageVector = Icons.Filled.IosShare,
-                                contentDescription = "Share",
+                                contentDescription = "साझा करें",
                                 tint = DivineImagePalette.DeepAccent
                             )
                         }
@@ -183,13 +183,13 @@ fun DivineImageResultScreen(
                     item("result_title") {
                         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text(
-                                text = creation.templateTitle.ifBlank { "Your divine moment" },
+                                text = divineChoiceDisplayText(creation.templateTitle).ifBlank { "आपका दिव्य दर्शन" },
                                 fontSize = 19.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = DivineImagePalette.TextPrimary
                             )
                             Text(
-                                text = "Created just now",
+                                text = "अभी बनाया गया",
                                 fontSize = 12.5.sp,
                                 color = DivineImagePalette.TextSecondary
                             )
@@ -211,13 +211,13 @@ fun DivineImageResultScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             GradientActionButton(
-                                label = "Save",
+                                label = "सहेजें",
                                 icon = Icons.Filled.Download,
                                 modifier = Modifier.weight(1f),
                                 onClick = onSave
                             )
                             OutlineActionButton(
-                                label = "Share",
+                                label = "साझा करें",
                                 icon = Icons.Filled.IosShare,
                                 modifier = Modifier.weight(1f),
                                 onClick = onShareWithSystem
@@ -233,12 +233,12 @@ fun DivineImageResultScreen(
                         ) {
                             Spacer(modifier = Modifier.weight(1f))
                             TextIconAction(
-                                label = "Regenerate",
+                                label = "फिर बनाएँ",
                                 icon = Icons.Filled.Refresh,
                                 onClick = onRegenerate
                             )
                             TextIconAction(
-                                label = "Create another",
+                                label = "एक और बनाएँ",
                                 icon = Icons.Filled.Add,
                                 onClick = onBackToHome
                             )
@@ -255,7 +255,7 @@ fun DivineImageResultScreen(
                 item("failed") {
                     val failureMessage = creation?.errorMessage
                         ?.takeIf { it.isNotBlank() }
-                        ?: "We could not create this right now. Please try again."
+                        ?: "अभी यह छवि नहीं बन सकी। कृपया फिर प्रयास करें।"
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = DivineImagePalette.Card,
@@ -277,13 +277,13 @@ fun DivineImageResultScreen(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 GradientActionButton(
-                                    label = "Try again",
+                                    label = "फिर प्रयास करें",
                                     icon = Icons.Filled.Refresh,
                                     modifier = Modifier.weight(1f),
                                     onClick = onRegenerate
                                 )
                                 OutlineActionButton(
-                                    label = "Back",
+                                    label = "वापस जाएँ",
                                     icon = null,
                                     modifier = Modifier.weight(1f),
                                     onClick = onBackToHome
@@ -346,7 +346,7 @@ private fun GeneratingState(
                     trackColor = Color.White.copy(alpha = 0.25f)
                 )
                 Text(
-                    text = "Weaving your divine moment",
+                    text = "आपका दिव्य दर्शन रचा जा रहा है",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -374,19 +374,19 @@ private fun GeneratingState(
                 modifier = Modifier.size(16.dp)
             )
             Text(
-                text = "This usually takes 60–90 seconds",
+                text = "इसमें सामान्यतः 60–90 सेकंड लगते हैं",
                 fontSize = 13.sp,
                 color = DivineImagePalette.TextSecondary
             )
         }
         Text(
-            text = "Keep the app open while we create your image.",
+            text = "छवि बनते समय ऐप खुला रखें।",
             fontSize = 12.sp,
             color = DivineImagePalette.TextMuted
         )
 
         Text(
-            text = "Cancel",
+            text = "रद्द करें",
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = DivineImagePalette.TextMuted,
@@ -442,7 +442,7 @@ private fun ResultImageCard(uriString: String?) {
     ) {
         UriPreviewImage(
             uriString = uriString,
-            contentDescription = "Divine image",
+            contentDescription = "दिव्य छवि",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
             decodeMaxPx = 1200
@@ -488,7 +488,7 @@ private fun FeedbackRow(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Thanks for your feedback 🙏",
+                    text = "आपकी प्रतिक्रिया के लिए धन्यवाद 🙏",
                     fontSize = 13.sp,
                     color = DivineImagePalette.TextSecondary
                 )
@@ -502,12 +502,12 @@ private fun FeedbackRow(
             OutlinedButton(onClick = { onFeedback("up") }, modifier = Modifier.weight(1f)) {
                 Icon(imageVector = Icons.Outlined.ThumbUp, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Looks great")
+                Text("बहुत सुंदर")
             }
             OutlinedButton(onClick = { onFeedback("down") }, modifier = Modifier.weight(1f)) {
                 Icon(imageVector = Icons.Outlined.ThumbDown, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Needs work")
+                Text("सुधार चाहिए")
             }
         }
     }
@@ -605,7 +605,7 @@ private fun saveImageToDevice(
                     put(MediaStore.Images.Media.IS_PENDING, 1)
                 }
                 val outputUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-                    ?: error("Unable to create MediaStore entry.")
+                    ?: error("छवि सहेजने का स्थान नहीं बन सका।")
                 resolver.openOutputStream(outputUri)?.use { output ->
                     inputStream.copyTo(output)
                 }
@@ -636,7 +636,7 @@ private fun saveImageToDevice(
 }
 
 private const val SHARE_CAPTION =
-    "I created my Divine Moment with BhaktiChat 🙏🪔\nMake your own — free: https://bhaktichat.com"
+    "मैंने BhaktiChat से अपना दिव्य दर्शन बनाया 🙏🪔\nआप भी निःशुल्क बनाएँ: https://bhaktichat.com"
 
 private fun shareImage(
     context: Context,
@@ -659,10 +659,10 @@ private fun shareImage(
             context.startActivity(sendIntent)
             return
         }
-        Toast.makeText(context, "App not installed. Opening share sheet.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "संबंधित ऐप नहीं मिला। साझा करने के विकल्प खोले जा रहे हैं।", Toast.LENGTH_SHORT).show()
     }
 
     context.startActivity(
-        Intent.createChooser(sendIntent, "Share divine moment")
+        Intent.createChooser(sendIntent, "दिव्य दर्शन साझा करें")
     )
 }

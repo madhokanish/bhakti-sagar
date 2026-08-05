@@ -14,7 +14,6 @@ import com.bhaktichat.app.domain.ChatRole
 import com.bhaktichat.app.domain.Guide
 import com.bhaktichat.app.domain.MessageStatus
 import com.bhaktichat.app.util.Analytics
-import com.bhaktichat.app.util.AuthPreferences
 import com.bhaktichat.app.util.EntitlementStore
 import com.bhaktichat.app.util.ReviewPromptStore
 import kotlinx.coroutines.CancellationException
@@ -43,7 +42,6 @@ class ChatThreadViewModel(
     private val threadsRepository: ThreadsRepository,
     private val messagesRepository: MessagesRepository,
     private val chatApiClient: ChatApiClient,
-    private val authPreferences: AuthPreferences,
     private val entitlementStore: EntitlementStore,
     private val reviewPromptStore: ReviewPromptStore
 ) : ViewModel() {
@@ -64,7 +62,7 @@ class ChatThreadViewModel(
                     guide = guide,
                     isLoading = false,
                     error = if (thread == null || guide == null) {
-                        "I am reflecting upon your question. Please try again in a moment."
+                        "मैं आपके प्रश्न पर विचार कर रहा हूँ। कृपया कुछ क्षण बाद फिर प्रयास करें।"
                     } else {
                         null
                     }
@@ -137,7 +135,6 @@ class ChatThreadViewModel(
                     messages = messagesRepository
                         .listMessages(thread.id)
                         .filterNot { it.isTypingIndicator },
-                    authState = authPreferences.state.value,
                     currentState = conversationState,
                     remoteConversationId = remoteConversationId,
                     chatApiClient = chatApiClient,
@@ -159,7 +156,7 @@ class ChatThreadViewModel(
             }
 
             val response = sendResult.getOrNull()?.replyText
-                ?: "I am reflecting upon your question. Please try again in a moment."
+                ?: "मैं आपके प्रश्न पर विचार कर रहा हूँ। कृपया कुछ क्षण बाद फिर प्रयास करें।"
             withContext(Dispatchers.IO) {
                 messagesRepository.replaceTypingWithResponse(typingMessage.id, response)
                 threadsRepository.touchThread(thread.id, System.currentTimeMillis())
@@ -185,7 +182,7 @@ class ChatThreadViewModel(
             _uiState.update {
                 it.copy(
                     isSending = false,
-                    error = sendResult.exceptionOrNull()?.message
+                    error = sendResult.exceptionOrNull()?.let { "संदेश भेजा नहीं जा सका। कृपया फिर प्रयास करें।" }
                 )
             }
             } catch (cancellation: CancellationException) {
@@ -196,7 +193,7 @@ class ChatThreadViewModel(
                 _uiState.update {
                     it.copy(
                         isSending = false,
-                        error = error.message ?: "Something went wrong. Please try again."
+                        error = "कुछ गड़बड़ हुई। कृपया फिर प्रयास करें।"
                     )
                 }
             }
@@ -234,7 +231,6 @@ class ChatThreadViewModelFactory(
     private val threadsRepository: ThreadsRepository,
     private val messagesRepository: MessagesRepository,
     private val chatApiClient: ChatApiClient,
-    private val authPreferences: AuthPreferences,
     private val entitlementStore: EntitlementStore,
     private val reviewPromptStore: ReviewPromptStore
 ) : ViewModelProvider.Factory {
@@ -246,7 +242,6 @@ class ChatThreadViewModelFactory(
             threadsRepository = threadsRepository,
             messagesRepository = messagesRepository,
             chatApiClient = chatApiClient,
-            authPreferences = authPreferences,
             entitlementStore = entitlementStore,
             reviewPromptStore = reviewPromptStore
         ) as T

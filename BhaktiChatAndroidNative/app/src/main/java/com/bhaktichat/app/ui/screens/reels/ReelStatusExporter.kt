@@ -32,7 +32,9 @@ object ReelStatusExporter {
         } ?: return false
 
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
-            type = "video/mp4"
+            // The Aarti feed is audio-only; sharing it as video/mp4 made Android offer the
+            // wrong targets. Reel status exports remain video, while Aarti sharing is audio.
+            type = if (reel.hasVideoTrack) "video/mp4" else "audio/mpeg"
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }

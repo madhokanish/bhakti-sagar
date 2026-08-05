@@ -78,6 +78,7 @@ import com.bhaktichat.app.BhaktiChatApplication
 import com.bhaktichat.app.R
 import com.bhaktichat.app.domain.DivineMode
 import com.bhaktichat.app.ui.components.shell.AppTopBar
+import com.bhaktichat.app.ui.i18n.LocalAppLanguage
 import com.bhaktichat.app.ui.theme.BhaktiThemeTokens
 import kotlinx.coroutines.flow.Flow
 
@@ -109,6 +110,7 @@ fun DivineImageCreateScreen(
     onGenerate: () -> Unit
 ) {
     val template = uiState.template
+    val language = LocalAppLanguage.current
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = onPickImage
@@ -151,12 +153,12 @@ fun DivineImageCreateScreen(
         ) {
             item("top_bar") {
                 AppTopBar(
-                    title = template?.title ?: "Create Divine Moment",
+                    title = template?.title(language) ?: "दिव्य दर्शन बनाएँ",
                     leftContent = {
                         IconButton(onClick = onBack) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = "Back",
+                                contentDescription = "वापस जाएँ",
                                 tint = BhaktiThemeTokens.TextPrimary
                             )
                         }
@@ -165,7 +167,7 @@ fun DivineImageCreateScreen(
             }
 
             item("intro_blurb") {
-                template?.description?.takeIf { it.isNotBlank() }?.let { desc ->
+                template?.description(language)?.takeIf { it.isNotBlank() }?.let { desc ->
                     Text(
                         text = desc,
                         style = MaterialTheme.typography.bodyMedium,
@@ -206,7 +208,7 @@ fun DivineImageCreateScreen(
                         item("scene_section") {
                             ChipSection(
                                 number = "3",
-                                title = "Pick the scene",
+                                title = "दृश्य चुनें",
                                 options = uiState.sceneOptions,
                                 selected = uiState.selectedScene,
                                 onSelect = onSelectScene
@@ -217,7 +219,7 @@ fun DivineImageCreateScreen(
                         item("temple_section") {
                             ChipSection(
                                 number = "2",
-                                title = "Choose a temple",
+                                title = "मंदिर चुनें",
                                 options = uiState.templeOptions,
                                 selected = uiState.selectedTemple,
                                 onSelect = onSelectTemple
@@ -226,7 +228,7 @@ fun DivineImageCreateScreen(
                         item("moment_section") {
                             ChipSection(
                                 number = "3",
-                                title = "Pick the moment",
+                                title = "दर्शन का पल चुनें",
                                 options = uiState.templeMomentOptions,
                                 selected = uiState.selectedTempleMoment,
                                 onSelect = onSelectTempleMoment
@@ -272,7 +274,7 @@ private fun PhotoZone(
     onUseDemoPhoto: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SectionHeader(number = "1", title = "Your photo")
+        SectionHeader(number = "1", title = "आपकी फोटो")
 
         Box(
             modifier = Modifier
@@ -284,7 +286,7 @@ private fun PhotoZone(
             if (selectedImageUri != null) {
                 UriPreviewImage(
                     uriString = selectedImageUri.toString(),
-                    contentDescription = "Selected photo",
+                    contentDescription = "चुनी हुई फोटो",
                     modifier = Modifier
                         .fillMaxSize()
                         .border(
@@ -314,7 +316,7 @@ private fun PhotoZone(
                         modifier = Modifier.size(12.dp)
                     )
                     Text(
-                        text = "Change",
+                        text = "बदलें",
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
@@ -346,14 +348,14 @@ private fun PhotoZone(
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            text = "Tap to add your photo",
+                            text = "अपनी फोटो जोड़ने के लिए टैप करें",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = DivineImagePalette.TextPrimary
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "A clear face photo works best.",
+                            text = "चेहरे की साफ फोटो सबसे अच्छी रहती है।",
                             fontSize = 12.5.sp,
                             color = DivineImagePalette.TextSecondary
                         )
@@ -377,7 +379,7 @@ private fun PhotoZone(
                 modifier = Modifier.size(14.dp)
             )
             Text(
-                text = "Try with demo photo",
+                text = "नमूना फोटो से आज़माएँ",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Medium,
                 color = BhaktiThemeTokens.AccentPrimary
@@ -395,7 +397,7 @@ private fun PresetSummaryCard(
     sceneOrMoment: String?
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SectionHeader(number = "2", title = "Your divine moment")
+        SectionHeader(number = "2", title = "आपका दिव्य दर्शन")
 
         Surface(
             modifier = Modifier.fillMaxWidth(),
@@ -457,7 +459,7 @@ private fun PresetSummaryCard(
                     verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     Text(
-                        text = deityName ?: templeName.orEmpty(),
+                        text = divineChoiceDisplayText(deityName ?: templeName.orEmpty()),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = BhaktiThemeTokens.TextPrimary,
@@ -466,7 +468,7 @@ private fun PresetSummaryCard(
                     )
                     sceneOrMoment?.takeIf { it.isNotBlank() }?.let {
                         Text(
-                            text = it.capitalizeFirst(),
+                            text = divineChoiceDisplayText(it),
                             style = MaterialTheme.typography.bodySmall,
                             color = BhaktiThemeTokens.TextSecondary,
                             maxLines = 2,
@@ -480,7 +482,7 @@ private fun PresetSummaryCard(
                     color = BhaktiThemeTokens.AccentPrimary
                 ) {
                     Text(
-                        text = "PRESET",
+                        text = "तैयार विकल्प",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         color = Color.White,
                         fontSize = 10.sp,
@@ -501,7 +503,7 @@ private fun DeitySection(
     onSelect: (String) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        SectionHeader(number = "2", title = "Choose your guide")
+        SectionHeader(number = "2", title = "अपने देवता चुनें")
 
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -586,7 +588,7 @@ private fun DeityAvatarChip(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = deityName.firstOrNull()?.toString().orEmpty(),
+                            text = divineChoiceDisplayText(deityName).firstOrNull()?.toString().orEmpty(),
                             color = BhaktiThemeTokens.AccentPrimary,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold
@@ -627,7 +629,7 @@ private fun ChipSection(
         ) {
             items(options, key = { it }) { option ->
                 OptionChip(
-                    label = option.capitalizeFirst(),
+                    label = divineChoiceDisplayText(option),
                     selected = option == selected,
                     onClick = { onSelect(option) }
                 )
@@ -705,18 +707,18 @@ private fun AdvancedPromptSection(
         ) {
             Icon(
                 imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                contentDescription = if (expanded) "Collapse" else "Expand",
+                contentDescription = if (expanded) "विवरण छिपाएँ" else "विवरण दिखाएँ",
                 tint = BhaktiThemeTokens.TextSecondary,
                 modifier = Modifier.size(18.dp)
             )
             Text(
-                text = "Add extra details",
+                text = "अतिरिक्त विवरण जोड़ें",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = BhaktiThemeTokens.TextPrimary
             )
             Text(
-                text = "(optional)",
+                text = "(वैकल्पिक)",
                 style = MaterialTheme.typography.bodySmall,
                 color = BhaktiThemeTokens.TextTertiary
             )
@@ -731,7 +733,7 @@ private fun AdvancedPromptSection(
                     .heightIn(min = 96.dp),
                 placeholder = {
                     Text(
-                        text = "e.g. 'sunset background', 'wearing kurta', 'looking peaceful'",
+                        text = "जैसे ‘सूर्यास्त की पृष्ठभूमि’, ‘कुर्ता पहने हुए’, ‘शांत भाव’",
                         style = MaterialTheme.typography.bodyMedium,
                         color = BhaktiThemeTokens.TextTertiary
                     )
@@ -796,10 +798,10 @@ private fun GenerateDock(
     onGenerate: () -> Unit
 ) {
     val footerHint = when {
-        isGenerating -> "Creating your divine moment · 60-90 seconds"
-        !hasPhoto -> "Add your photo to continue"
-        !canGenerate -> "Complete the steps above to continue"
-        else -> "Ready · tap to generate"
+        isGenerating -> "आपका दिव्य दर्शन बन रहा है · 60–90 सेकंड"
+        !hasPhoto -> "आगे बढ़ने के लिए अपनी फोटो जोड़ें"
+        !canGenerate -> "आगे बढ़ने के लिए ऊपर के चरण पूरे करें"
+        else -> "तैयार · बनाने के लिए टैप करें"
     }
     val footerHintColor = if (canGenerate && !isGenerating) {
         DivineImagePalette.Success
@@ -857,7 +859,7 @@ private fun GenerateDock(
                         )
                     }
                     Text(
-                        text = if (isGenerating) "Generating..." else "Generate divine image",
+                        text = if (isGenerating) "बन रहा है..." else "दिव्य छवि बनाएँ",
                         color = Color.White,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
@@ -929,12 +931,12 @@ private fun deityAvatarRes(deity: String): Int? = when (deity) {
 }
 
 private fun deityShortName(deity: String): String = when (deity) {
-    "Lord Krishna" -> "Krishna"
-    "Lakshmi Ji"   -> "Lakshmi"
-    "Shiv Ji"      -> "Shiv"
-    "Hanuman Ji"   -> "Hanuman"
-    "Ganesh Ji"    -> "Ganesh"
-    else           -> deity
+    "Lord Krishna" -> "कृष्ण"
+    "Lakshmi Ji"   -> "लक्ष्मी"
+    "Shiv Ji"      -> "शिव"
+    "Hanuman Ji"   -> "हनुमान"
+    "Ganesh Ji"    -> "गणेश"
+    else           -> divineChoiceDisplayText(deity)
 }
 
 private fun String.capitalizeFirst(): String =

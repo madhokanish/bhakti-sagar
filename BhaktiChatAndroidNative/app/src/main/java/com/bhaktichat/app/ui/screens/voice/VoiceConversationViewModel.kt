@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.bhaktichat.app.data.remote.VoiceRealtimeClient
 import com.bhaktichat.app.data.remote.VoiceSessionApi
+import com.bhaktichat.app.domain.AppLanguage
 import com.bhaktichat.app.domain.Guide
 import com.bhaktichat.app.domain.VoiceCallState
 import com.bhaktichat.app.util.VoiceAudioFocusManager
@@ -37,7 +38,8 @@ class VoiceConversationViewModel(
     private var conversationId: String?,
     private val voiceSessionApi: VoiceSessionApi,
     private val realtimeClient: VoiceRealtimeClient,
-    private val audioFocusManager: VoiceAudioFocusManager
+    private val audioFocusManager: VoiceAudioFocusManager,
+    private val language: AppLanguage
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
         VoiceUiState(guideName = guide.displayName, guideProfileImageRes = guide.profileImageRes)
@@ -53,7 +55,11 @@ class VoiceConversationViewModel(
                 _uiState.update {
                     it.copy(
                         callState = callState,
-                        errorMessage = (callState as? VoiceCallState.Error)?.message ?: it.errorMessage
+                        errorMessage = if (callState is VoiceCallState.Error) {
+                            "आवाज़ से बातचीत में समस्या हुई। कृपया फिर प्रयास करें।"
+                        } else {
+                            it.errorMessage
+                        }
                     )
                 }
             }
@@ -101,7 +107,7 @@ class VoiceConversationViewModel(
 
         val focusGranted = audioFocusManager.request { focusChange -> handleAudioFocusChange(focusChange) }
         if (!focusGranted) {
-            _uiState.update { it.copy(errorMessage = "Could not get audio focus. Please try again.") }
+            _uiState.update { it.copy(errorMessage = "आवाज़ शुरू नहीं हो सकी। कृपया फिर प्रयास करें।") }
             hasStarted = false
             return
         }
@@ -109,10 +115,10 @@ class VoiceConversationViewModel(
         viewModelScope.launch {
             voiceSessionApi.startSession(guide.serverPromptKey)
                 .onSuccess { session ->
-                    realtimeClient.connect(session.ephemeralKey, session.model, guide.openingScene)
+                    realtimeClient.connect(session.ephemeralKey, session.model, guide.openingScene(language))
                 }
-                .onFailure { error ->
-                    _uiState.update { it.copy(errorMessage = error.message ?: "Could not start voice session.") }
+                .onFailure {
+                    _uiState.update { it.copy(errorMessage = "आवाज़ से बातचीत शुरू नहीं हो सकी। कृपया फिर प्रयास करें।") }
                 }
         }
     }
@@ -151,7 +157,8 @@ class VoiceConversationViewModelFactory(
     private val conversationId: String?,
     private val voiceSessionApi: VoiceSessionApi,
     private val voiceWebSocketClient: okhttp3.OkHttpClient,
-    private val audioFocusManager: VoiceAudioFocusManager
+    private val audioFocusManager: VoiceAudioFocusManager,
+    private val language: AppLanguage
 ) : ViewModelProvider.Factory {
     // VoiceRealtimeClient holds per-call socket/audio state (guards against being connected
     // twice), so it must be a fresh instance per call — only the underlying OkHttpClient
@@ -163,7 +170,8 @@ class VoiceConversationViewModelFactory(
             conversationId = conversationId,
             voiceSessionApi = voiceSessionApi,
             realtimeClient = VoiceRealtimeClient(voiceWebSocketClient),
-            audioFocusManager = audioFocusManager
+            audioFocusManager = audioFocusManager,
+            language = language
         ) as T
     }
 }

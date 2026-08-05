@@ -219,7 +219,7 @@ class RemoteDivineImageGenerator(
             setShadowLayer(textSize * 0.18f, 0f, 0f, android.graphics.Color.argb(120, 0, 0, 0))
         }
         canvas.drawText(
-            "BhaktiChat · bhaktichat.com",
+            "BhaktiChat",
             bitmap.width - padding,
             bitmap.height - padding,
             paint
@@ -295,7 +295,7 @@ class FakeDivineImageGenerator(
             setShadowLayer(textSize * 0.18f, 0f, 0f, android.graphics.Color.argb(120, 0, 0, 0))
         }
         canvas.drawText(
-            "BhaktiChat · bhaktichat.com",
+            "BhaktiChat",
             bitmap.width - padding,
             bitmap.height - padding,
             paint

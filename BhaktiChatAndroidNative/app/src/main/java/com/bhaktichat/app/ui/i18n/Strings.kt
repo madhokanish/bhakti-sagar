@@ -37,7 +37,7 @@ private val table: Map<String, Entry> = mapOf(
     "nav_explore" to Entry("Explore", "एक्सप्लोर", "Explore"),
     // चढ़ावा has no English equivalent that fits the 10sp nav label, so the Devanagari
     // label is kept in every locale (per the design's 360dp width check).
-    "nav_chadhaava" to Entry("चढ़ावा", "चढ़ावा", "चढ़ावा"),
+    "nav_chadhaava" to Entry("Chadhava", "चढ़ावा", "Chadhava"),
 
     // --- चढ़ावा / subscription screen -------------------------------------------------
     "chadhaava_title" to Entry("Chadhava", "चढ़ावा", "Chadhava"),
@@ -1120,6 +1120,179 @@ private val table: Map<String, Entry> = mapOf(
     "reel_caption_shabari-ram-charo-dham" to Entry("Bhakti ka poorn hona aavashyak nahi — uska prem se arpit hona hi paryapt hai.", "भक्ति का पूर्ण होना आवश्यक नहीं—उसका प्रेम से अर्पित होना ही पर्याप्त है।", "Bhakti ka poorn hona aavashyak nahi — uska prem se arpit hona hi paryapt hai."),
     "reel_audio_shabari-ram-charo-dham" to Entry("Ram · Original audio", "राम · मूल ध्वनि", "Ram · Original audio"),
 
+
+
+    // --- Auth (non-composable: resolved via LanguageStore.str) ---
+    "auth_session_expired" to Entry(
+        "Your session has expired. Please sign in again.",
+        "आपका सत्र समाप्त हो गया है। कृपया फिर से साइन इन करें।",
+        "Your session has expired. Please sign in again."
+    ),
+    "auth_google_not_configured" to Entry(
+        "Google sign-in is not configured yet.", "Google साइन-इन अभी कॉन्फ़िगर नहीं है।",
+        "Google sign-in is not configured yet."
+    ),
+    "auth_adding_google" to Entry("Adding Google account…", "Google खाता जोड़ा जा रहा है…", "Adding Google account…"),
+    "auth_no_google_account" to Entry(
+        "No Google account is available on this device.", "इस डिवाइस पर Google खाता उपलब्ध नहीं है।",
+        "No Google account is available on this device."
+    ),
+    "auth_check_connection" to Entry(
+        "Check your internet connection and try again.", "इंटरनेट कनेक्शन जाँचें और फिर से प्रयास करें।",
+        "Check your internet connection and try again."
+    ),
+    "auth_google_failed" to Entry(
+        "Google sign-in could not be completed. Please try again.",
+        "Google साइन-इन पूरा नहीं हो सका। फिर से प्रयास करें।",
+        "Google sign-in could not be completed. Please try again."
+    ),
+    "auth_signing_in" to Entry("Signing in…", "साइन इन किया जा रहा है…", "Signing in…"),
+    "auth_access_failed" to Entry(
+        "Could not sign in with that email or username.",
+        "ईमेल या उपयोगकर्ता नाम से साइन इन पूरा नहीं हो सका।",
+        "Could not sign in with that email or username."
+    ),
+    "auth_challenge_expired" to Entry(
+        "Sign-in took too long. Please try again.", "साइन-इन में देर हो गई। कृपया फिर से प्रयास करें।",
+        "Sign-in took too long. Please try again."
+    ),
+    "auth_invalid_google_token" to Entry(
+        "Could not verify your Google account.", "Google खाते की पुष्टि नहीं हो सकी।",
+        "Could not verify your Google account."
+    ),
+    "auth_verified_email_required" to Entry(
+        "This Google account needs a verified email.", "इस Google खाते में सत्यापित ईमेल आवश्यक है।",
+        "This Google account needs a verified email."
+    ),
+    "auth_account_link_required" to Entry(
+        "This email is already linked to BhaktiChat. Contact support to link it safely.",
+        "यह ईमेल पहले से BhaktiChat से जुड़ा है। सुरक्षित रूप से जोड़ने के लिए सहायता से संपर्क करें।",
+        "This email is already linked to BhaktiChat. Contact support to link it safely."
+    ),
+    "auth_not_available" to Entry(
+        "Google sign-in is not available right now.", "Google साइन-इन अभी उपलब्ध नहीं है।",
+        "Google sign-in is not available right now."
+    ),
+
+    // --- Billing (non-composable) ---
+    "billing_checkout_failed" to Entry(
+        "The purchase page could not open. Please try again.",
+        "खरीदारी वाला पृष्ठ नहीं खुल सका। कृपया फिर प्रयास करें।",
+        "The purchase page could not open. Please try again."
+    ),
+    "billing_store_not_ready" to Entry(
+        "The store is not ready yet. Please try again in a moment.",
+        "स्टोर अभी तैयार नहीं है। कृपया कुछ क्षण बाद फिर प्रयास करें।",
+        "The store is not ready yet. Please try again in a moment."
+    ),
+    "period_week" to Entry("week", "सप्ताह", "week"),
+    "period_month" to Entry("month", "महीना", "month"),
+    "period_3_months" to Entry("3 months", "3 महीने", "3 months"),
+    "period_6_months" to Entry("6 months", "6 महीने", "6 months"),
+    "period_year" to Entry("year", "वर्ष", "year"),
+    "trial_free" to Entry("Free trial", "निःशुल्क परीक्षण", "Free trial"),
+    "unit_day" to Entry("day", "दिन", "day"),
+    "unit_week" to Entry("week", "सप्ताह", "week"),
+    "unit_month" to Entry("month", "महीना", "month"),
+    "unit_year" to Entry("year", "वर्ष", "year"),
+
+    // --- Speech input (non-composable) ---
+    "speech_mic_permission" to Entry(
+        "Microphone permission is required.", "माइक्रोफ़ोन की अनुमति आवश्यक है।",
+        "Microphone permission is required."
+    ),
+    "speech_unavailable" to Entry(
+        "Voice recognition is not available on this device.",
+        "इस डिवाइस पर आवाज़ पहचान उपलब्ध नहीं है।",
+        "Voice recognition is not available on this device."
+    ),
+    "speech_start_failed" to Entry(
+        "Could not start voice typing.", "आवाज़ से लिखना शुरू नहीं हो सका।", "Could not start voice typing."
+    ),
+    "speech_audio_error" to Entry(
+        "There was a problem recording your voice.", "आवाज़ रिकॉर्ड करने में समस्या हुई।",
+        "There was a problem recording your voice."
+    ),
+    "speech_generic_error" to Entry(
+        "There was a problem with voice typing.", "आवाज़ से लिखने में समस्या हुई।",
+        "There was a problem with voice typing."
+    ),
+    "speech_network_error" to Entry(
+        "A network problem occurred during voice recognition.",
+        "आवाज़ पहचान के दौरान नेटवर्क की समस्या हुई।",
+        "A network problem occurred during voice recognition."
+    ),
+    "speech_timeout" to Entry(
+        "Voice recognition took too long.", "आवाज़ पहचान में बहुत समय लग गया।",
+        "Voice recognition took too long."
+    ),
+    "speech_no_match" to Entry(
+        "Could not understand that. Please speak again.", "आवाज़ समझ नहीं आई। कृपया फिर बोलें।",
+        "Could not understand that. Please speak again."
+    ),
+    "speech_busy" to Entry(
+        "Voice recognition is busy. Please try again.", "आवाज़ पहचान अभी व्यस्त है। कृपया फिर प्रयास करें।",
+        "Voice recognition is busy. Please try again."
+    ),
+    "speech_service_error" to Entry(
+        "There was a problem with the voice recognition service.", "आवाज़ पहचान सेवा में समस्या हुई।",
+        "There was a problem with the voice recognition service."
+    ),
+    "speech_no_speech" to Entry("No speech was heard.", "कोई आवाज़ सुनाई नहीं दी।", "No speech was heard."),
+    // --- Panchang ---
+    "panchang_title" to Entry("Panchang", "पंचांग", "Panchang"),
+    "go_back" to Entry("Go back", "वापस जाएँ", "Go back"),
+    "panchang_tithi" to Entry("Tithi", "तिथि", "Tithi"),
+    "panchang_tithi_value" to Entry("Shukla Dwitiya", "शुक्ल द्वितीया", "Shukla Dwitiya"),
+    "panchang_nakshatra" to Entry("Nakshatra", "नक्षत्र", "Nakshatra"),
+    "panchang_nakshatra_value" to Entry("Pushya", "पुष्य", "Pushya"),
+    "panchang_vaar" to Entry("Day", "वार", "Day"),
+    "panchang_vaar_value" to Entry("Saturday", "शनिवार", "Saturday"),
+    "panchang_yoga" to Entry("Yoga", "योग", "Yoga"),
+    "panchang_yoga_value" to Entry("Siddhi", "सिद्धि", "Siddhi"),
+    "panchang_karan" to Entry("Karan", "करण", "Karan"),
+    "panchang_karan_value" to Entry("Balav", "बालव", "Balav"),
+    "panchang_rahu_kaal" to Entry("Rahu Kaal", "राहु काल", "Rahu Kaal"),
+    "panchang_rahu_kaal_value" to Entry("9:00 – 10:30 AM", "9:00 – 10:30 पूर्वाह्न", "9:00 – 10:30 AM"),
+    "panchang_date_location" to Entry(
+        "Saturday, 5 July · Mumbai", "शनिवार, 5 जुलाई · मुंबई", "Saturday, 5 July · Mumbai"
+    ),
+    "panchang_sunrise" to Entry("Sunrise", "सूर्योदय", "Sunrise"),
+    "panchang_sunrise_value" to Entry("6:04 AM", "6:04 पूर्वाह्न", "6:04 AM"),
+    "panchang_sunset" to Entry("Sunset", "सूर्यास्त", "Sunset"),
+    "panchang_sunset_value" to Entry("7:15 PM", "7:15 अपराह्न", "7:15 PM"),
+
+    // --- Festivals ---
+    "festivals_title" to Entry("Festivals", "त्योहार", "Festivals"),
+    "festivals_subtitle" to Entry(
+        "Upcoming Hindu festivals & vrat", "आने वाले हिंदू त्योहार और व्रत", "Upcoming Hindu festivals & vrat"
+    ),
+    "month_august" to Entry("August", "अगस्त", "August"),
+    "month_september" to Entry("September", "सितंबर", "September"),
+    "festival_hariyali_teej" to Entry("Hariyali Teej", "हरियाली तीज", "Hariyali Teej"),
+    "festival_hariyali_teej_desc" to Entry(
+        "A monsoon festival celebrated in honour of Devi Parvati",
+        "देवी पार्वती के सम्मान में मनाया जाने वाला वर्षा ऋतु का पर्व",
+        "A monsoon festival celebrated in honour of Devi Parvati"
+    ),
+    "festival_naag_panchami" to Entry("Naag Panchami", "नाग पंचमी", "Naag Panchami"),
+    "festival_naag_panchami_desc" to Entry(
+        "A festival for worshipping the serpent deities",
+        "नाग देवताओं की पूजा का पर्व",
+        "A festival for worshipping the serpent deities"
+    ),
+    "festival_raksha_bandhan" to Entry("Raksha Bandhan", "रक्षा बंधन", "Raksha Bandhan"),
+    "festival_raksha_bandhan_desc" to Entry(
+        "A festival of the sacred bond between brother and sister",
+        "भाई-बहन के पवित्र संबंध का पर्व",
+        "A festival of the sacred bond between brother and sister"
+    ),
+    "festival_janmashtami" to Entry("Krishna Janmashtami", "कृष्ण जन्माष्टमी", "Krishna Janmashtami"),
+    "festival_janmashtami_desc" to Entry(
+        "The birth celebration of Bhagwan Shri Krishna",
+        "भगवान श्री कृष्ण का जन्मोत्सव",
+        "The birth celebration of Bhagwan Shri Krishna"
+    ),
     // --- Profile / Settings ---
     "language" to Entry("Language", "भाषा", "Language"),
     "language_subtitle" to Entry(
@@ -1202,3 +1375,11 @@ fun t(key: String): String = translate(key, LocalAppLanguage.current)
 @Composable
 @ReadOnlyComposable
 fun tTone(key: String): String = translateTone(key, LocalAppLanguage.current)
+
+/**
+ * Shorthand for the many non-composable call sites (repositories, managers, ViewModels)
+ * that need a translated string: `languageStore.str("key")`. Reads the language at call
+ * time, so a message built after the user switches uses the new language.
+ */
+fun com.bhaktichat.app.util.LanguageStore.str(key: String): String =
+    translate(key, language.value)

@@ -9,6 +9,7 @@ import com.bhaktichat.app.R
 import com.bhaktichat.app.data.remote.DivineImageGenerator
 import com.bhaktichat.app.data.repo.DivineCreationRepository
 import com.bhaktichat.app.data.repo.DivineTemplateRepository
+import com.bhaktichat.app.domain.AppLanguage
 import com.bhaktichat.app.domain.CreationStatus
 import com.bhaktichat.app.domain.DivineCreation
 import com.bhaktichat.app.domain.DivineMode
@@ -270,8 +271,7 @@ class DivineImageCreateViewModel(
                 onFailure = { throwable ->
                     creation.copy(
                         status = CreationStatus.FAILED,
-                        errorMessage = throwable.message?.take(220)
-                            ?: "We could not create this right now. Please try again."
+                        errorMessage = "अभी यह छवि नहीं बन सकी। कृपया फिर प्रयास करें।"
                     )
                 }
             )
@@ -289,18 +289,18 @@ class DivineImageCreateViewModel(
 
     private fun validationError(current: DivineImageCreateUiState): String? {
         if (current.selectedImageUri == null) {
-            return "Please choose a photo first."
+            return "कृपया पहले एक फोटो चुनें।"
         }
         return when (mode) {
             DivineMode.PHOTO_WITH_GOD -> when {
-                current.selectedDeity.isNullOrBlank() -> "Please choose a deity."
-                current.selectedScene.isNullOrBlank() -> "Please choose a scene."
+                current.selectedDeity.isNullOrBlank() -> "कृपया एक देवता चुनें।"
+                current.selectedScene.isNullOrBlank() -> "कृपया एक दृश्य चुनें।"
                 else -> null
             }
 
             DivineMode.PHOTO_AT_TEMPLE -> when {
-                current.selectedTempleName().isBlank() -> "Please choose or enter a temple."
-                current.selectedTempleMoment.isNullOrBlank() -> "Please choose a temple moment."
+                current.selectedTempleName().isBlank() -> "कृपया कोई मंदिर चुनें या उसका नाम लिखें।"
+                current.selectedTempleMoment.isNullOrBlank() -> "कृपया मंदिर का एक दृश्य चुनें।"
                 else -> null
             }
         }
@@ -339,15 +339,20 @@ class DivineImageCreateViewModel(
     }
 
     private fun buildCreationTitle(current: DivineImageCreateUiState): String {
+        // Persisted DivineCreation.templateTitle is a stable record label (history, prompt
+        // fallback), not live on-screen chrome — kept in English regardless of the user's
+        // display language, matching its behavior before this field became language-aware.
         return when (mode) {
-            DivineMode.PHOTO_WITH_GOD -> current.selectedScene ?: template.title
+            DivineMode.PHOTO_WITH_GOD -> divineChoiceDisplayText(
+                current.selectedScene ?: template.title(AppLanguage.HINDI)
+            )
             DivineMode.PHOTO_AT_TEMPLE -> {
                 val temple = current.selectedTempleName()
                 val moment = current.selectedTempleMoment.orEmpty()
                 if (temple.isBlank() || moment.isBlank()) {
-                    template.title
+                    template.title(AppLanguage.HINDI)
                 } else {
-                    "$moment · $temple"
+                    "${divineChoiceDisplayText(moment)} · ${divineChoiceDisplayText(temple)}"
                 }
             }
         }
@@ -360,6 +365,34 @@ class DivineImageCreateViewModel(
         fun defaultDemoPhotoUri(packageName: String): Uri =
             Uri.parse("android.resource://$packageName/${R.drawable.demopic}")
     }
+}
+
+internal fun divineChoiceDisplayText(value: String): String = when (value.trim()) {
+    "Lord Krishna" -> "श्री कृष्ण"
+    "Shiv Ji" -> "शिव जी"
+    "Hanuman Ji" -> "हनुमान जी"
+    "Lakshmi Ji" -> "लक्ष्मी जी"
+    "Ganesh Ji" -> "गणेश जी"
+    "Lord Krishna blessing you" -> "श्री कृष्ण आपको आशीर्वाद दे रहे हैं"
+    "Lord Krishna standing beside you in Vrindavan" -> "वृंदावन में श्री कृष्ण आपके साथ खड़े हैं"
+    "Lord Krishna teaching Gita" -> "श्री कृष्ण गीता का ज्ञान दे रहे हैं"
+    "Shiv Ji blessing you" -> "शिव जी आपको आशीर्वाद दे रहे हैं"
+    "Shiv Ji meditating beside you" -> "शिव जी आपके पास ध्यान कर रहे हैं"
+    "Hanuman Ji protecting you" -> "हनुमान जी आपकी रक्षा कर रहे हैं"
+    "Hanuman Ji blessing you" -> "हनुमान जी आपको आशीर्वाद दे रहे हैं"
+    "Lakshmi Ji blessing you" -> "लक्ष्मी जी आपको आशीर्वाद दे रही हैं"
+    "Lakshmi Ji showering prosperity" -> "लक्ष्मी जी समृद्धि का आशीर्वाद दे रही हैं"
+    "Kedarnath Temple" -> "केदारनाथ मंदिर"
+    "Akshardham Temple Delhi" -> "अक्षरधाम मंदिर, दिल्ली"
+    "Tirupati Balaji Temple" -> "तिरुपति बालाजी मंदिर"
+    "Rameshwaram Temple" -> "रामेश्वरम मंदिर"
+    "Kashi Vishwanath Temple" -> "काशी विश्वनाथ मंदिर"
+    "Golden Temple Amritsar" -> "स्वर्ण मंदिर, अमृतसर"
+    "Standing in front of the temple" -> "मंदिर के सामने खड़े हुए"
+    "Doing aarti" -> "आरती करते हुए"
+    "Offering prayers" -> "प्रार्थना अर्पित करते हुए"
+    "Walking in temple courtyard" -> "मंदिर के प्रांगण में चलते हुए"
+    else -> value
 }
 
 class DivineImageCreateViewModelFactory(

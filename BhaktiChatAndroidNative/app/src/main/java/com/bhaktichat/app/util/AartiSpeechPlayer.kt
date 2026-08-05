@@ -32,8 +32,8 @@ class AartiSpeechPlayer(
         tts = TextToSpeech(context.applicationContext) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 isReady = true
-                // Prefer Indian English, but fall back gracefully if unavailable.
-                val target = Locale("en", "IN")
+                // Aarti lyrics are Devanagari Hindi, so use a Hindi voice when available.
+                val target = Locale.forLanguageTag("hi-IN")
                 val available = tts?.isLanguageAvailable(target) ?: TextToSpeech.LANG_NOT_SUPPORTED
                 if (available >= TextToSpeech.LANG_AVAILABLE) {
                     tts?.language = target

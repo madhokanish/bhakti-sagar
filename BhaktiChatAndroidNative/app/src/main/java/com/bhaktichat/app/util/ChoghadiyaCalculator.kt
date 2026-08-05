@@ -6,11 +6,8 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 object ChoghadiyaCalculator {
-    private val formatter = DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH)
     private val dayTable: Map<DayOfWeek, List<String>> = mapOf(
         DayOfWeek.SUNDAY to listOf("Udveg", "Char", "Labh", "Amrit", "Kaal", "Shubh", "Rog", "Udveg"),
         DayOfWeek.MONDAY to listOf("Amrit", "Kaal", "Shubh", "Rog", "Udveg", "Char", "Labh", "Amrit"),
@@ -53,8 +50,8 @@ object ChoghadiyaCalculator {
                 add(
                     ChoghadiyaSlot(
                         label = name,
-                        start = start.format(formatter),
-                        end = end.format(formatter),
+                        start = HindiTimeFormatter.format(start),
+                        end = HindiTimeFormatter.format(end),
                         quality = qualityText(name),
                         startEpochMillis = start.toInstant().toEpochMilli(),
                         endEpochMillis = end.toInstant().toEpochMilli(),
@@ -68,9 +65,9 @@ object ChoghadiyaCalculator {
                 val end = if (index == 7) nextSunriseLocal else sunsetLocal.plus(Duration.ofMillis((nightStepMillis * (index + 1)).toLong()))
                 add(
                     ChoghadiyaSlot(
-                        label = "$name (Night)",
-                        start = start.format(formatter),
-                        end = end.format(formatter),
+                        label = "$name (रात्रि)",
+                        start = HindiTimeFormatter.format(start),
+                        end = HindiTimeFormatter.format(end),
                         quality = qualityText(name),
                         startEpochMillis = start.toInstant().toEpochMilli(),
                         endEpochMillis = end.toInstant().toEpochMilli(),
@@ -82,12 +79,12 @@ object ChoghadiyaCalculator {
     }
 
     private fun qualityText(label: String): String = when (label) {
-        "Amrit" -> "Best"
-        "Shubh" -> "Good"
-        "Labh" -> "Gain"
-        "Char" -> "Neutral"
-        "Kaal" -> "Loss"
-        "Rog" -> "Evil"
-        else -> "Bad"
+        "Amrit" -> "सर्वोत्तम"
+        "Shubh" -> "शुभ"
+        "Labh" -> "लाभ"
+        "Char" -> "सामान्य"
+        "Kaal" -> "हानि"
+        "Rog" -> "अशुभ"
+        else -> "सावधानी"
     }
 }

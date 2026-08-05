@@ -83,7 +83,7 @@ fun HeroCard(
         Box(modifier = Modifier.fillMaxSize()) {
             TopFocusedImage(
                 imageRes = imageRes,
-                contentDescription = "Lord Krishna hero image",
+                contentDescription = "श्री कृष्ण की छवि",
                 modifier = Modifier.fillMaxSize(),
                 scaleX = 1f,
                 scaleY = 1f
@@ -120,7 +120,7 @@ fun HeroCard(
                     maxLines = 2
                 )
                 Button(onClick = onStartConversation, shape = RoundedCornerShape(14.dp)) {
-                    Text("Start Chat")
+                    Text("बात शुरू करें")
                 }
             }
         }
@@ -206,7 +206,7 @@ fun GuideCard(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Chat")
+                    Text("बात करें")
                 }
             }
         }

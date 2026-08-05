@@ -27,25 +27,35 @@ enum class KaalTone {
     CHALLENGING
 }
 
+/** Shared with Home's live Choghadiya preview row, which computes a tone straight from a
+ *  repository-fetched slot rather than through this screen's ViewModel. */
+fun kaalToneFor(baseLabel: String): KaalTone = when (baseLabel) {
+    "Shubh", "Labh", "Amrit" -> KaalTone.AUSPICIOUS
+    "Char" -> KaalTone.NEUTRAL
+    else -> KaalTone.CHALLENGING
+}
+
 data class CurrentKaalUi(
-    val title: String,
+    val displayLabel: String,
     val timeRange: String,
-    val guidance: String,
+    val guidanceKey: String,
     val tone: KaalTone,
     val progress: Float
 )
 
 data class NextGoodKaalUi(
-    val title: String,
+    val displayLabel: String,
+    val start: String,
     val startsAt: String,
-    val countdown: String
+    val countdownHours: Long,
+    val countdownMinutes: Long
 )
 
 data class TimelineItemUi(
     val id: String,
     val title: String,
     val timeRange: String,
-    val meaning: String,
+    val meaningKey: String,
     val tone: KaalTone,
     val isCurrent: Boolean,
     val isFuture: Boolean
@@ -141,7 +151,7 @@ class ChoghadiyaViewModel(
                 if (selectedCity.slug != cityAtRequest.slug) return@onFailure
                 latestDayData = null
                 isLoading = false
-                errorMessage = throwable.message ?: "Unable to load choghadiya right now."
+                errorMessage = "अभी चौघड़िया लोड नहीं हो सका। कृपया फिर प्रयास करें।"
                 publishState()
             }
         }
@@ -181,8 +191,8 @@ class ChoghadiyaViewModel(
             TimelineItemUi(
                 id = "${slot.label}_${slot.startEpochMillis}",
                 title = slot.displayLabel,
-                timeRange = "${slot.start} to ${slot.end}",
-                meaning = timelineMeaning(slot),
+                timeRange = "${slot.start} से ${slot.end} तक",
+                meaningKey = timelineMeaningKey(slot),
                 tone = toneFor(slot),
                 isCurrent = currentSlot?.startEpochMillis == slot.startEpochMillis,
                 isFuture = slot.startEpochMillis > now
@@ -203,7 +213,7 @@ class ChoghadiyaViewModel(
             sunset = dayData?.sunset ?: "--",
             nextSunrise = dayData?.nextSunrise ?: "--",
             todayLabel = LocalDate.now(ZoneId.of(selectedCity.tz))
-                .format(DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.ENGLISH)),
+                .format(DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.forLanguageTag("hi-IN"))),
             isCitySheetOpen = isCitySheetOpen
         )
     }
@@ -219,19 +229,25 @@ class ChoghadiyaViewModel(
         val totalDuration = (endEpochMillis - startEpochMillis).coerceAtLeast(1L)
         val elapsed = (now - startEpochMillis).coerceAtLeast(0L).coerceAtMost(totalDuration)
         return CurrentKaalUi(
-            title = "${displayLabel} kaal active",
-            timeRange = "$start to $end",
-            guidance = currentGuidance(this),
+            displayLabel = displayLabel,
+            timeRange = "$start से $end तक",
+            guidanceKey = currentGuidanceKey(this),
             tone = toneFor(this),
             progress = (elapsed.toFloat() / totalDuration.toFloat()).coerceIn(0f, 1f)
         )
     }
 
     private fun ChoghadiyaSlot.toNextGoodKaalUi(now: Long): NextGoodKaalUi {
+        val remaining = (startEpochMillis - now).coerceAtLeast(0L)
+        val duration = Duration.ofMillis(remaining)
+        val hours = duration.toHours()
+        val minutes = duration.minusHours(hours).toMinutes()
         return NextGoodKaalUi(
-            title = "${displayLabel} kaal at $start",
-            startsAt = "$start to $end",
-            countdown = countdownTo(startEpochMillis, now)
+            displayLabel = displayLabel,
+            start = start,
+            startsAt = "$start से $end तक",
+            countdownHours = hours,
+            countdownMinutes = minutes
         )
     }
 
@@ -239,55 +255,30 @@ class ChoghadiyaViewModel(
         return slot.baseLabel in setOf("Shubh", "Labh", "Amrit")
     }
 
-    private fun toneFor(slot: ChoghadiyaSlot): KaalTone {
+    private fun toneFor(slot: ChoghadiyaSlot): KaalTone = kaalToneFor(slot.baseLabel)
+
+    private fun currentGuidanceKey(slot: ChoghadiyaSlot): String {
         return when (slot.baseLabel) {
-            "Shubh", "Labh", "Amrit" -> KaalTone.AUSPICIOUS
-            "Char" -> KaalTone.NEUTRAL
-            else -> KaalTone.CHALLENGING
+            "Shubh" -> "choghadiya_guidance_shubh"
+            "Labh" -> "choghadiya_guidance_labh"
+            "Amrit" -> "choghadiya_guidance_amrit"
+            "Char" -> "choghadiya_guidance_char"
+            "Rog" -> "choghadiya_guidance_rog"
+            "Kaal" -> "choghadiya_guidance_kaal"
+            else -> "choghadiya_guidance_udveg"
         }
     }
 
-    private fun currentGuidance(slot: ChoghadiyaSlot): String {
+    private fun timelineMeaningKey(slot: ChoghadiyaSlot): String {
         return when (slot.baseLabel) {
-            "Shubh" -> "Good for starting new work and important decisions."
-            "Labh" -> "Helpful for business, progress, and practical gains."
-            "Amrit" -> "Excellent for meaningful actions, prayers, and fresh starts."
-            "Char" -> "Steady for movement, admin work, and flexible plans."
-            "Rog" -> "Best for routine tasks and reflection."
-            "Kaal" -> "Avoid major decisions. Keep tasks simple and low risk."
-            else -> "Pause, review, and move gently before taking big action."
+            "Shubh" -> "choghadiya_meaning_shubh"
+            "Labh" -> "choghadiya_meaning_labh"
+            "Amrit" -> "choghadiya_meaning_amrit"
+            "Char" -> "choghadiya_meaning_char"
+            "Rog" -> "choghadiya_meaning_rog"
+            "Kaal" -> "choghadiya_meaning_kaal"
+            else -> "choghadiya_meaning_udveg"
         }
-    }
-
-    private fun timelineMeaning(slot: ChoghadiyaSlot): String {
-        return when (slot.baseLabel) {
-            "Shubh" -> "A supportive window for important actions."
-            "Labh" -> "Useful for growth, planning, and practical gains."
-            "Amrit" -> "Strong for blessings, new starts, and sacred work."
-            "Char" -> "Good for movement, communication, and routine flow."
-            "Rog" -> "Keep to ordinary tasks and avoid high stakes decisions."
-            "Kaal" -> "Better for restraint, patience, and lighter commitments."
-            else -> "A restless phase. Move slowly and avoid pressure."
-        }
-    }
-
-    private fun countdownTo(targetMillis: Long, nowMillis: Long): String {
-        val remaining = (targetMillis - nowMillis).coerceAtLeast(0L)
-        val duration = Duration.ofMillis(remaining)
-        val hours = duration.toHours()
-        val minutes = duration.minusHours(hours).toMinutes()
-
-        return when {
-            hours > 0 && minutes > 0 -> "In ${hours.formatUnit("hour")} ${minutes.formatUnit("minute")}"
-            hours > 0 -> "In ${hours.formatUnit("hour")}"
-            minutes > 0 -> "In ${minutes.formatUnit("minute")}"
-            else -> "Starting now"
-        }
-    }
-
-    private fun Long.formatUnit(unit: String): String {
-        val suffix = if (this == 1L) unit else "${unit}s"
-        return "$this $suffix"
     }
 }
 

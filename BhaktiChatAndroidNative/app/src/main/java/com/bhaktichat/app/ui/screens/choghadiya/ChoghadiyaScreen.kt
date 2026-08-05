@@ -90,6 +90,7 @@ import com.bhaktichat.app.domain.ChoghadiyaCity
 import com.bhaktichat.app.ui.theme.BhaktiThemeTokens
 import com.bhaktichat.app.ui.components.AppBottomSheet
 import com.bhaktichat.app.ui.components.shell.BhaktiBottomNavBarDefaults
+import com.bhaktichat.app.ui.i18n.t
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
@@ -202,9 +203,9 @@ fun ChoghadiyaRoute(
     if (showPermissionDialog) {
         AlertDialog(
             onDismissRequest = { showPermissionDialog = false },
-            title = { Text("Enable location access") },
+            title = { Text(t("choghadiya_enable_location_title")) },
             text = {
-                Text("Allow location access so the app can automatically choose the nearest city for todays choghadiya.")
+                Text(t("choghadiya_enable_location_body"))
             },
             confirmButton = {
                 TextButton(
@@ -218,12 +219,12 @@ fun ChoghadiyaRoute(
                         )
                     }
                 ) {
-                    Text("Allow")
+                    Text(t("choghadiya_allow"))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showPermissionDialog = false }) {
-                    Text("Not now")
+                    Text(t("choghadiya_not_now"))
                 }
             }
         )
@@ -232,9 +233,9 @@ fun ChoghadiyaRoute(
     if (showEnableLocationDialog) {
         AlertDialog(
             onDismissRequest = { showEnableLocationDialog = false },
-            title = { Text("Turn on location") },
+            title = { Text(t("choghadiya_turn_on_location_title")) },
             text = {
-                Text("Location services are off. Turn them on so BhaktiChat can automatically use your current city.")
+                Text(t("choghadiya_turn_on_location_body"))
             },
             confirmButton = {
                 TextButton(
@@ -244,12 +245,12 @@ fun ChoghadiyaRoute(
                         context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
                     }
                 ) {
-                    Text("Open settings")
+                    Text(t("choghadiya_open_settings"))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showEnableLocationDialog = false }) {
-                    Text("Not now")
+                    Text(t("choghadiya_not_now"))
                 }
             }
         )
@@ -279,14 +280,14 @@ fun ChoghadiyaScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back to Home"
+                            contentDescription = t("choghadiya_back_to_home")
                         )
                     }
                 },
                 title = {
                     Column {
                         Text(
-                            text = "Choghadiya",
+                            text = t("explore_choghadiya_title"),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -309,7 +310,7 @@ fun ChoghadiyaScreen(
                         trailingIcon = {
                             Icon(
                                 imageVector = Icons.Filled.KeyboardArrowDown,
-                                contentDescription = "Open city selector"
+                                contentDescription = t("choghadiya_open_city_selector")
                             )
                         }
                     )
@@ -360,9 +361,10 @@ fun ChoghadiyaScreen(
                 }
 
                 item("ask-shani") {
+                    val askShaniPrompt = t("choghadiya_explain_todays_choghadiya")
                     ChatCtaCard(
                         onAskShani = {
-                            onAskShani("Explain todays choghadiya")
+                            onAskShani(askShaniPrompt)
                         }
                     )
                 }
@@ -390,7 +392,7 @@ private fun HeroSummaryCard(uiState: ChoghadiyaUiState) {
     val current = uiState.currentKaal
     val tone = current?.tone ?: KaalTone.NEUTRAL
     val colors = heroGradientFor(tone)
-    val icon = iconFor(current?.title.orEmpty())
+    val icon = iconFor(current?.displayLabel.orEmpty())
 
     Card(
         shape = RoundedCornerShape(24.dp),
@@ -406,7 +408,7 @@ private fun HeroSummaryCard(uiState: ChoghadiyaUiState) {
             if (current == null && uiState.loading) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "Right now",
+                        text = t("choghadiya_right_now"),
                         style = MaterialTheme.typography.titleMedium,
                         color = Color.White.copy(alpha = 0.92f)
                     )
@@ -415,22 +417,23 @@ private fun HeroSummaryCard(uiState: ChoghadiyaUiState) {
             } else if (current == null) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Right now",
+                        text = t("choghadiya_right_now"),
                         style = MaterialTheme.typography.titleMedium,
                         color = Color.White.copy(alpha = 0.92f)
                     )
                     Text(
-                        text = "Unable to calculate the current period yet.",
+                        text = t("choghadiya_unable_to_calculate"),
                         style = MaterialTheme.typography.headlineSmall,
                         color = Color.White
                     )
                     Text(
-                        text = uiState.error ?: "Please try another city or retry in a moment.",
+                        text = uiState.error ?: t("choghadiya_try_another_city"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.92f)
                     )
                 }
             } else {
+                val currentTitle = t("choghadiya_kaal_active").format(current.displayLabel)
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -442,7 +445,7 @@ private fun HeroSummaryCard(uiState: ChoghadiyaUiState) {
                         ) {
                             Icon(
                                 imageVector = icon,
-                                contentDescription = current.title,
+                                contentDescription = currentTitle,
                                 tint = Color.White,
                                 modifier = Modifier.padding(10.dp)
                             )
@@ -454,7 +457,7 @@ private fun HeroSummaryCard(uiState: ChoghadiyaUiState) {
                         )
                     }
                     Text(
-                        text = current.title,
+                        text = currentTitle,
                         style = MaterialTheme.typography.headlineSmall,
                         color = Color.White,
                         fontWeight = FontWeight.Bold
@@ -465,7 +468,7 @@ private fun HeroSummaryCard(uiState: ChoghadiyaUiState) {
                         color = Color.White.copy(alpha = 0.95f)
                     )
                     Text(
-                        text = current.guidance,
+                        text = t(current.guidanceKey),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.94f)
                     )
@@ -499,11 +502,11 @@ private fun NextGoodTimeCard(uiState: ChoghadiyaUiState) {
             ) {
                 Icon(
                     imageVector = Icons.Filled.Schedule,
-                    contentDescription = "Next auspicious period",
+                    contentDescription = t("choghadiya_next_auspicious_period"),
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Next auspicious period",
+                    text = t("choghadiya_next_auspicious_period"),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -512,13 +515,13 @@ private fun NextGoodTimeCard(uiState: ChoghadiyaUiState) {
             val nextGood = uiState.nextGoodKaal
             if (nextGood == null) {
                 Text(
-                    text = "No more auspicious periods are left in the current cycle.",
+                    text = t("choghadiya_no_more_auspicious"),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
                 Text(
-                    text = nextGood.title,
+                    text = t("choghadiya_kaal_at").format(nextGood.displayLabel, nextGood.start),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -528,7 +531,7 @@ private fun NextGoodTimeCard(uiState: ChoghadiyaUiState) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = nextGood.countdown,
+                    text = countdownText(nextGood.countdownHours, nextGood.countdownMinutes),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -552,17 +555,17 @@ private fun SunCycleCard(uiState: ChoghadiyaUiState) {
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             SunInfoBlock(
-                label = "Sunrise",
+                label = t("choghadiya_sunrise"),
                 value = uiState.sunrise,
                 modifier = Modifier.weight(1f)
             )
             SunInfoBlock(
-                label = "Sunset",
+                label = t("choghadiya_sunset"),
                 value = uiState.sunset,
                 modifier = Modifier.weight(1f)
             )
             SunInfoBlock(
-                label = "Next sunrise",
+                label = t("choghadiya_next_sunrise"),
                 value = uiState.nextSunrise,
                 modifier = Modifier.weight(1f)
             )
@@ -606,7 +609,7 @@ private fun SunInfoBlock(
 private fun TimelineSection(uiState: ChoghadiyaUiState) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            text = "Today timeline",
+            text = t("choghadiya_today_timeline"),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold
         )
@@ -735,7 +738,7 @@ private fun TimelineRow(
                             shape = RoundedCornerShape(999.dp)
                         ) {
                             Text(
-                                text = "Now",
+                                text = t("choghadiya_now_badge"),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = accent,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
@@ -749,7 +752,7 @@ private fun TimelineRow(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = item.meaning,
+                    text = t(item.meaningKey),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -780,13 +783,17 @@ private fun MeaningAccordion(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "What do these mean?",
+                        text = t("choghadiya_what_do_these_mean"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                     Icon(
                         imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                        contentDescription = if (expanded) "Collapse meanings" else "Expand meanings"
+                        contentDescription = if (expanded) {
+                            t("choghadiya_collapse_meanings")
+                        } else {
+                            t("choghadiya_expand_meanings")
+                        }
                     )
                 }
             }
@@ -796,13 +803,13 @@ private fun MeaningAccordion(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    MeaningRow("Shubh", "Supportive for important actions, planning, and new starts.")
-                    MeaningRow("Labh", "Useful for gains, business progress, and practical wins.")
-                    MeaningRow("Amrit", "Excellent for sacred work, blessings, and meaningful beginnings.")
-                    MeaningRow("Rog", "Better for routine tasks. Avoid high stakes commitments.")
-                    MeaningRow("Chal", "Good for movement, travel, and flexible work.")
-                    MeaningRow("Kaal", "Best handled with patience, caution, and low risk tasks.")
-                    MeaningRow("Udveg", "A restless phase. Slow down and avoid pressure.")
+                    MeaningRow("शुभ", t("choghadiya_accordion_shubh"))
+                    MeaningRow("लाभ", t("choghadiya_accordion_labh"))
+                    MeaningRow("अमृत", t("choghadiya_accordion_amrit"))
+                    MeaningRow("रोग", t("choghadiya_accordion_rog"))
+                    MeaningRow("चल", t("choghadiya_accordion_chal"))
+                    MeaningRow("काल", t("choghadiya_accordion_kaal"))
+                    MeaningRow("उद्वेग", t("choghadiya_accordion_udveg"))
                     Spacer(modifier = Modifier.height(4.dp))
                 }
             }
@@ -841,12 +848,12 @@ private fun ChatCtaCard(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "Not sure when to act?",
+                text = t("choghadiya_not_sure_when"),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "Ask for practical guidance before you begin an important task.",
+                text = t("choghadiya_ask_before_important_task"),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -877,7 +884,7 @@ private fun ChatCtaCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
-                        text = "Ask Shani Dev",
+                        text = t("choghadiya_ask_shani_dev"),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White
@@ -930,7 +937,7 @@ fun CitySelectorBottomSheet(
         ) {
             item("header") {
                 Text(
-                    text = "Choose a city",
+                    text = t("choghadiya_choose_a_city"),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -942,7 +949,7 @@ fun CitySelectorBottomSheet(
                     onValueChange = onSearchQueryChange,
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Search cities") }
+                    placeholder = { Text(t("choghadiya_search_cities")) }
                 )
             }
 
@@ -953,10 +960,10 @@ fun CitySelectorBottomSheet(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.MyLocation,
-                        contentDescription = "Auto detect location"
+                        contentDescription = t("choghadiya_auto_detect_location")
                     )
                     Text(
-                        text = "Auto detect location",
+                        text = t("choghadiya_auto_detect_location"),
                         modifier = Modifier.padding(start = 8.dp)
                     )
                 }
@@ -965,7 +972,7 @@ fun CitySelectorBottomSheet(
             if (uiState.recentCities.isNotEmpty()) {
                 item("recent-title") {
                     Text(
-                        text = "Recently used",
+                        text = t("choghadiya_recently_used"),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -994,7 +1001,7 @@ fun CitySelectorBottomSheet(
 
             item("all-cities-title") {
                 Text(
-                    text = "All cities",
+                    text = t("choghadiya_all_cities"),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -1003,7 +1010,7 @@ fun CitySelectorBottomSheet(
             if (uiState.filteredCities.isEmpty()) {
                 item("empty-search") {
                     Text(
-                        text = "No cities match your search.",
+                        text = t("choghadiya_no_cities_match"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1042,7 +1049,7 @@ fun CitySelectorBottomSheet(
                                 }
                                 if (city.slug == uiState.selectedCity.slug) {
                                     Text(
-                                        text = "Selected",
+                                        text = t("choghadiya_selected"),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -1171,13 +1178,35 @@ private fun distanceSquared(
 
 /** Honest verdict for the "right now" period — the header must match the tone, not
  *  always claim "auspicious" (which was misleading during Kaal/Rog/Udveg periods). */
+@Composable
 private fun heroVerdictLabel(tone: KaalTone): String = when (tone) {
-    KaalTone.AUSPICIOUS -> "Favourable time right now"
-    KaalTone.NEUTRAL -> "Neutral time right now"
-    KaalTone.CHALLENGING -> "Not favourable right now"
+    KaalTone.AUSPICIOUS -> t("choghadiya_verdict_favourable")
+    KaalTone.NEUTRAL -> t("choghadiya_verdict_neutral")
+    KaalTone.CHALLENGING -> t("choghadiya_verdict_unfavourable")
 }
 
-private fun heroGradientFor(tone: KaalTone): List<Color> {
+@Composable
+private fun countdownText(hours: Long, minutes: Long): String {
+    return when {
+        hours > 0 && minutes > 0 -> {
+            val hourWord = if (hours == 1L) t("choghadiya_hour_singular") else t("choghadiya_hour_plural")
+            val minuteWord = if (minutes == 1L) t("choghadiya_minute_singular") else t("choghadiya_minute_plural")
+            t("choghadiya_countdown_in").format("$hours $hourWord $minutes $minuteWord")
+        }
+        hours > 0 -> {
+            val hourWord = if (hours == 1L) t("choghadiya_hour_singular") else t("choghadiya_hour_plural")
+            t("choghadiya_countdown_in").format("$hours $hourWord")
+        }
+        minutes > 0 -> {
+            val minuteWord = if (minutes == 1L) t("choghadiya_minute_singular") else t("choghadiya_minute_plural")
+            t("choghadiya_countdown_in").format("$minutes $minuteWord")
+        }
+        else -> t("choghadiya_countdown_now")
+    }
+}
+
+/** Public — Home's live Choghadiya row uses the same tone gradient as this screen's banner. */
+fun heroGradientFor(tone: KaalTone): List<Color> {
     return when (tone) {
         KaalTone.AUSPICIOUS -> listOf(Color(0xFF2E7D32), Color(0xFF66BB6A))
         KaalTone.NEUTRAL -> listOf(Color(0xFFB26A00), Color(0xFFE3A63F))

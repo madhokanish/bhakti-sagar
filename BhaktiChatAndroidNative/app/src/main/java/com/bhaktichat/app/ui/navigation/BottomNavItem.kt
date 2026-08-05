@@ -15,6 +15,8 @@ import com.bhaktichat.app.R
 
 data class BottomNavItem(
     val route: String,
+    /** Fallback only — the nav bar resolves each route's label through the translation
+     *  table (see BhaktiBottomNavBar). Never rendered while every route has a key. */
     val label: String,
     val icon: ImageVector? = null,
     val selectedIcon: ImageVector? = icon,
@@ -30,7 +32,7 @@ data class BottomNavItem(
 val bottomNavItems = listOf(
     BottomNavItem(
         route = NavDestinations.HOME,
-        label = "होम",
+        label = "Home",
         icon = Icons.Outlined.Home,
         selectedIcon = Icons.Filled.Home
     ),
@@ -42,19 +44,19 @@ val bottomNavItems = listOf(
     ),
     BottomNavItem(
         route = NavDestinations.REELS,
-        label = "रील्स",
+        label = "Reels",
         icon = Icons.Outlined.SmartDisplay,
         selectedIcon = Icons.Filled.SmartDisplay
     ),
     BottomNavItem(
         route = NavDestinations.EXPLORE,
-        label = "खोजें",
+        label = "Explore",
         icon = Icons.Outlined.Explore,
         selectedIcon = Icons.Filled.Explore
     ),
     BottomNavItem(
         route = NavDestinations.CHADHAAVA_BASE,
-        label = "चढ़ावा",
+        label = "Chadhava",
         // A drawn diya rather than a Material glyph — see ic_diya.xml.
         drawableRes = R.drawable.ic_diya
     )

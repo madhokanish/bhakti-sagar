@@ -19,6 +19,23 @@ interface ThreadsRepository {
     )
     suspend fun deleteThread(threadId: String)
     suspend fun deleteAllThreads()
+
+    /** Get-or-create: BhaktiChat 2.0 keeps exactly one visible conversation per guide — like
+     *  messaging a person, not filing a new ticket every time. */
+    suspend fun getOrCreateThread(guideId: String): ThreadEntity
+
+    /** Clears server-side conversation state (remote id + state anchor) so the next message
+     *  starts genuinely fresh context. Message *history* is cleared separately, by the caller,
+     *  via MessagesRepository.deleteThreadMessages — thread metadata and chat messages are
+     *  different repositories on Android. */
+    suspend fun resetThreadState(threadId: String, updatedAt: Long = System.currentTimeMillis())
+
+    /** One-time-in-effect collapse of pre-2.0 duplicate threads: per guide, keeps the
+     *  most-recently-updated thread and archives the rest (hidden from the list, never
+     *  deleted). Idempotent and self-limiting — once every guide has at most one active
+     *  thread, later calls are no-ops — so it's safe to call on every app start rather than
+     *  needing a separate one-time flag. */
+    suspend fun collapseDuplicateThreadsIfNeeded()
 }
 
 class RoomThreadsRepository(
@@ -66,5 +83,28 @@ class RoomThreadsRepository(
 
     override suspend fun deleteAllThreads() {
         threadDao.deleteAllThreads()
+    }
+
+    override suspend fun getOrCreateThread(guideId: String): ThreadEntity {
+        return threadDao.getActiveThreadForGuide(guideId) ?: createThread(guideId)
+    }
+
+    override suspend fun resetThreadState(threadId: String, updatedAt: Long) {
+        threadDao.resetThreadState(threadId, updatedAt)
+    }
+
+    override suspend fun collapseDuplicateThreadsIfNeeded() {
+        val byGuide = threadDao.listAllThreadsIncludingArchived()
+            .filter { !it.isArchived }
+            .groupBy { it.guideId }
+        for ((_, group) in byGuide) {
+            if (group.size <= 1) continue
+            val survivorId = group.maxByOrNull { it.updatedAt }?.id ?: continue
+            for (thread in group) {
+                if (thread.id != survivorId) {
+                    threadDao.archiveThread(thread.id)
+                }
+            }
+        }
     }
 }

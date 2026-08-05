@@ -1,6 +1,7 @@
 package com.bhaktichat.app.data.repo
 
 import com.bhaktichat.app.R
+import com.bhaktichat.app.domain.AppLanguage
 import com.bhaktichat.app.domain.DivineMode
 import com.bhaktichat.app.domain.DivineTemplate
 
@@ -68,8 +69,16 @@ class StaticDivineTemplateRepository : DivineTemplateRepository {
         DivineTemplate(
             id = "photo_with_god",
             mode = DivineMode.PHOTO_WITH_GOD,
-            title = "Photo with God",
-            description = "Create a sacred photo with your chosen deity",
+            titles = mapOf(
+                AppLanguage.HINGLISH to "Photo with God",
+                AppLanguage.HINDI to "भगवान के साथ फोटो",
+                AppLanguage.ENGLISH to "Photo with God"
+            ),
+            descriptions = mapOf(
+                AppLanguage.HINGLISH to "Create a sacred photo with your chosen deity",
+                AppLanguage.HINDI to "अपने आराध्य के साथ एक दिव्य छवि बनाएँ",
+                AppLanguage.ENGLISH to "Create a sacred photo with your chosen deity"
+            ),
             thumbnailRes = R.drawable.photo_with_god,
             promptSkeleton = godPromptTemplate,
             isHomePrimary = true
@@ -77,8 +86,16 @@ class StaticDivineTemplateRepository : DivineTemplateRepository {
         DivineTemplate(
             id = "photo_at_temple",
             mode = DivineMode.PHOTO_AT_TEMPLE,
-            title = "Photo at Temple",
-            description = "Place yourself at a sacred temple",
+            titles = mapOf(
+                AppLanguage.HINGLISH to "Photo at Temple",
+                AppLanguage.HINDI to "मंदिर में फोटो",
+                AppLanguage.ENGLISH to "Photo at Temple"
+            ),
+            descriptions = mapOf(
+                AppLanguage.HINGLISH to "Place yourself at a sacred temple",
+                AppLanguage.HINDI to "अपनी फोटो को पवित्र मंदिर के दृश्य में सजाएँ",
+                AppLanguage.ENGLISH to "Place yourself at a sacred temple"
+            ),
             thumbnailRes = R.drawable.photo_at_temple,
             promptSkeleton = templePromptTemplate,
             isHomePrimary = true
@@ -86,8 +103,16 @@ class StaticDivineTemplateRepository : DivineTemplateRepository {
         DivineTemplate(
             id = "krishna_blessing_you",
             mode = DivineMode.PHOTO_WITH_GOD,
-            title = "Lord Krishna blessing you",
-            description = "One tap devotional setup",
+            titles = mapOf(
+                AppLanguage.HINGLISH to "Lord Krishna blessing you",
+                AppLanguage.HINDI to "श्री कृष्ण का आशीर्वाद",
+                AppLanguage.ENGLISH to "Lord Krishna blessing you"
+            ),
+            descriptions = mapOf(
+                AppLanguage.HINGLISH to "One tap devotional setup",
+                AppLanguage.HINDI to "एक टैप में श्री कृष्ण के साथ दिव्य छवि",
+                AppLanguage.ENGLISH to "One tap devotional setup"
+            ),
             thumbnailRes = R.drawable.card_krishna,
             promptSkeleton = godPromptTemplate,
             deityTag = "Lord Krishna",
@@ -96,8 +121,16 @@ class StaticDivineTemplateRepository : DivineTemplateRepository {
         DivineTemplate(
             id = "hanuman_protecting_you",
             mode = DivineMode.PHOTO_WITH_GOD,
-            title = "Hanuman Ji protecting you",
-            description = "One tap devotional setup",
+            titles = mapOf(
+                AppLanguage.HINGLISH to "Hanuman Ji protecting you",
+                AppLanguage.HINDI to "हनुमान जी का रक्षा-आशीर्वाद",
+                AppLanguage.ENGLISH to "Hanuman Ji protecting you"
+            ),
+            descriptions = mapOf(
+                AppLanguage.HINGLISH to "One tap devotional setup",
+                AppLanguage.HINDI to "एक टैप में हनुमान जी के साथ दिव्य छवि",
+                AppLanguage.ENGLISH to "One tap devotional setup"
+            ),
             thumbnailRes = R.drawable.hanumanji,
             promptSkeleton = godPromptTemplate,
             deityTag = "Hanuman Ji",
@@ -106,8 +139,16 @@ class StaticDivineTemplateRepository : DivineTemplateRepository {
         DivineTemplate(
             id = "shiva_meditating_beside_you",
             mode = DivineMode.PHOTO_WITH_GOD,
-            title = "Shiv Ji meditating beside you",
-            description = "One tap devotional setup",
+            titles = mapOf(
+                AppLanguage.HINGLISH to "Shiv Ji meditating beside you",
+                AppLanguage.HINDI to "आपके साथ ध्यानमग्न शिव जी",
+                AppLanguage.ENGLISH to "Shiv Ji meditating beside you"
+            ),
+            descriptions = mapOf(
+                AppLanguage.HINGLISH to "One tap devotional setup",
+                AppLanguage.HINDI to "एक टैप में शिव जी के साथ दिव्य छवि",
+                AppLanguage.ENGLISH to "One tap devotional setup"
+            ),
             thumbnailRes = R.drawable.shivji,
             promptSkeleton = godPromptTemplate,
             deityTag = "Shiv Ji",
@@ -116,8 +157,16 @@ class StaticDivineTemplateRepository : DivineTemplateRepository {
         DivineTemplate(
             id = "lakshmi_blessing_your_home",
             mode = DivineMode.PHOTO_WITH_GOD,
-            title = "Lakshmi Ji blessing your home",
-            description = "One tap devotional setup",
+            titles = mapOf(
+                AppLanguage.HINGLISH to "Lakshmi Ji blessing your home",
+                AppLanguage.HINDI to "आपके घर में लक्ष्मी जी का आशीर्वाद",
+                AppLanguage.ENGLISH to "Lakshmi Ji blessing your home"
+            ),
+            descriptions = mapOf(
+                AppLanguage.HINGLISH to "One tap devotional setup",
+                AppLanguage.HINDI to "एक टैप में लक्ष्मी जी के साथ दिव्य छवि",
+                AppLanguage.ENGLISH to "One tap devotional setup"
+            ),
             thumbnailRes = R.drawable.card_lakshmi,
             promptSkeleton = godPromptTemplate,
             deityTag = "Lakshmi Ji",

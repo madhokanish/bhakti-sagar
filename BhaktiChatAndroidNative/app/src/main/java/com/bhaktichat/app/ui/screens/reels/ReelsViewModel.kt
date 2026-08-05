@@ -19,9 +19,13 @@ data class ReelsUiState(
     val savedIds: Set<String> = emptySet()
 )
 
-class ReelsViewModel(private val reelsRepository: ReelsRepository) : ViewModel() {
+class ReelsViewModel(
+    private val reelsRepository: ReelsRepository,
+    initialReelId: String? = null
+) : ViewModel() {
     private val _uiState = MutableStateFlow(ReelsUiState())
     val uiState: StateFlow<ReelsUiState> = _uiState.asStateFlow()
+    private var pendingInitialReelId: String? = initialReelId
 
     init {
         // Shuffled fresh on every visit to the tab (this ViewModel is scoped to the composable,
@@ -39,7 +43,19 @@ class ReelsViewModel(private val reelsRepository: ReelsRepository) : ViewModel()
 
     private fun loadFeed(feed: ReelFeed) {
         viewModelScope.launch {
-            val reels = reelsRepository.reels(feed).shuffled()
+            val shuffled = reelsRepository.reels(feed).shuffled()
+            val requestedId = pendingInitialReelId
+            val reels = if (requestedId != null) {
+                val requested = shuffled.firstOrNull { it.id == requestedId }
+                if (requested != null) {
+                    listOf(requested) + shuffled.filterNot { it.id == requestedId }
+                } else {
+                    shuffled
+                }
+            } else {
+                shuffled
+            }
+            pendingInitialReelId = null
             _uiState.update { it.copy(feed = feed, reels = reels) }
         }
     }
@@ -49,10 +65,11 @@ class ReelsViewModel(private val reelsRepository: ReelsRepository) : ViewModel()
 }
 
 class ReelsViewModelFactory(
-    private val reelsRepository: ReelsRepository
+    private val reelsRepository: ReelsRepository,
+    private val initialReelId: String? = null
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         @Suppress("UNCHECKED_CAST")
-        return ReelsViewModel(reelsRepository) as T
+        return ReelsViewModel(reelsRepository, initialReelId) as T
     }
 }

@@ -5,7 +5,6 @@ import com.bhaktichat.app.data.remote.ChatApiClient
 import com.bhaktichat.app.data.remote.ChatApiClientRequest
 import com.bhaktichat.app.domain.ChatRole
 import com.bhaktichat.app.domain.Guide
-import com.bhaktichat.app.util.AuthState
 import java.util.Locale
 
 data class ChatPromptAppVariables(
@@ -68,7 +67,7 @@ object ChatTurnRouter {
 
 object ChatPromptAssembler {
     private const val SYSTEM_PROMPT = """
-You are Bhakti Chat, an AI devotional mentor inspired by scripture and tradition.
+You are BhaktiChat, an AI devotional mentor inspired by scripture and tradition.
 
 Speak in first person as the selected guide with warmth and authority.
 Address each guide respectfully in tone and naming.
@@ -108,7 +107,7 @@ Sometimes offer one meaningful insight and pause there.
 
 Mandatory disclaimer:
 
-Bhakti Chat is an AI guide inspired by tradition and scriptures.
+BhaktiChat is an AI guide inspired by tradition and scriptures.
 It is not a deity and does not provide predictions.
 For medical, legal, or financial investing advice, consult a qualified professional.
 """
@@ -231,7 +230,7 @@ Additional guardrails for this turn:
             "Respond only in Roman Hindi (Hinglish). Never use Devanagari. Keep conversational WhatsApp style."
 
         ConversationLanguage.HINDI ->
-            "Respond only in Hindi using Devanagari. Use simple devotional tone."
+            "Respond only in natural Hindi using Devanagari. Do not use any Latin letters, Roman Hindi, or English abbreviations. Translate technical words into readable Hindi. Use a simple devotional tone."
     }
 
     private fun guidePersonaPrompt(guideId: String): String = when (guideId) {
@@ -449,7 +448,6 @@ object ChatTurnProcessor {
         guide: Guide,
         messageText: String,
         messages: List<MessageEntity>,
-        authState: AuthState,
         currentState: ChatConversationState,
         remoteConversationId: String?,
         chatApiClient: ChatApiClient,
@@ -466,8 +464,8 @@ object ChatTurnProcessor {
 
         val messageContext = AddressingEngine.buildMessageContext(
             guideId = guide.id,
-            isAuthenticated = authState.isLoggedIn,
-            firstName = authState.name,
+            isAuthenticated = false,
+            firstName = "",
             userMessage = messageText,
             previousAssistantMessage = previousAssistantMessage,
             recentUserMessages = recentUserMessages
@@ -479,8 +477,14 @@ object ChatTurnProcessor {
             mode = mode,
             conversationState = currentState,
             messages = messages,
-            firstName = authState.name
+            firstName = ""
         )
+
+        val streamCallback = if (messageContext.detectedLanguage == ConversationLanguage.HINDI) {
+            null
+        } else {
+            onToken
+        }
 
         return chatApiClient.sendMessage(
             ChatApiClientRequest(
@@ -502,7 +506,7 @@ object ChatTurnProcessor {
                 optionalRewriteDirective = promptPayload.appVariables.optionalRewriteDirective,
                 systemPromptStack = promptPayload.systemPromptStack
             ),
-            onToken
+            streamCallback
         ).map { apiResponse ->
             val prefixedReply = maybeApplyAddressingPrefix(
                 rawReply = apiResponse.replyText,
@@ -536,15 +540,24 @@ object ChatTurnProcessor {
                 formattedReply
             }
 
+            val scriptSafeReply = if (
+                messageContext.detectedLanguage == ConversationLanguage.HINDI &&
+                finalizedReply.any { it in 'A'..'Z' || it in 'a'..'z' }
+            ) {
+                "क्षमा करें, उत्तर हिंदी लिपि में तैयार नहीं हो सका। कृपया एक बार फिर पूछें।"
+            } else {
+                finalizedReply
+            }
+
             ChatTurnProcessorResult(
-                replyText = finalizedReply,
+                replyText = scriptSafeReply,
                 conversationId = apiResponse.conversationId,
                 mode = mode,
                 nextState = currentState.advance(
                     locale = messageContext.detectedLanguage,
                     mode = mode,
                     userMessage = messageText,
-                    assistantReply = finalizedReply
+                    assistantReply = scriptSafeReply
                 )
             )
         }
@@ -587,7 +600,7 @@ object ChatOutputGuard {
 
             ConversationLanguage.HINDI -> trimmed.none {
                 Character.UnicodeBlock.of(it) == Character.UnicodeBlock.DEVANAGARI
-            }
+            } || trimmed.any { it in 'A'..'Z' || it in 'a'..'z' }
         }
         return lacksReadableBlocks || questionOveruse || storyViolation || languageViolation
     }

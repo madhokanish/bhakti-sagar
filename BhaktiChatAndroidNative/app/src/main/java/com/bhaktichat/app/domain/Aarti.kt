@@ -20,10 +20,17 @@ data class Aarti(
     val durationMinutes: Int?,
     val tags: List<String>,
     val youtubeVideoId: String?,
+    val audioUrl: String?,
     val popularityCount: Long?,
     val isTop: Boolean,
-    val lyrics: List<String>
+    val lyrics: List<String>,
+    /** Per-aarti generated artwork (drawable resource name), when this specific aarti has its
+     * own image rather than sharing a generic per-deity fallback. */
+    val imageAssetName: String?
 ) {
+    /** True when a real recorded aarti track is available to stream (vs. lyrics-only / TTS). */
+    val hasAudio: Boolean get() = !audioUrl.isNullOrBlank()
+
     val subtitle: String?
         get() = titleHi.takeIf { it.isNotBlank() && !it.equals(title, ignoreCase = true) }
 
@@ -32,5 +39,5 @@ data class Aarti(
             .filter { it.isNotBlank() && !it.endsWith("...") }
             .take(2)
             .joinToString(" ")
-            .ifBlank { "Tap to read full lyrics." }
+            .ifBlank { "पूरे बोल पढ़ने के लिए टैप करें।" }
 }

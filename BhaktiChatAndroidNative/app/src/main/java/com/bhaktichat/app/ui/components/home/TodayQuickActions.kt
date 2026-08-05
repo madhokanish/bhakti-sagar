@@ -31,17 +31,17 @@ fun TodayQuickActions(
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         TodayActionCard(
-            title = "Today’s guidance",
-            subtitle = "1 minute reflection",
-            buttonLabel = "Open",
+            title = "आज का मार्गदर्शन",
+            subtitle = "एक मिनट का चिंतन",
+            buttonLabel = "खोलें",
             icon = Icons.Filled.WbSunny,
             onClick = onOpenGuidance,
             modifier = Modifier.weight(1f)
         )
         TodayActionCard(
-            title = "Auspicious time",
-            subtitle = "Choghadiya snapshot",
-            buttonLabel = "View",
+            title = "शुभ समय",
+            subtitle = "चौघड़िया की झलक",
+            buttonLabel = "देखें",
             icon = Icons.Filled.Schedule,
             onClick = onOpenChoghadiya,
             modifier = Modifier.weight(1f)

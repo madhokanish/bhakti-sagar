@@ -77,7 +77,7 @@ class DivineImageResultViewModel(
             creationRepository.upsertCreation(
                 creation.copy(
                     status = CreationStatus.FAILED,
-                    errorMessage = "Cancelled"
+                    errorMessage = "रद्द किया गया"
                 )
             )
             _uiEvents.emit(DivineImageResultUiEvent.NavigateHome)
@@ -123,8 +123,7 @@ class DivineImageResultViewModel(
                 onFailure = { throwable ->
                     generatingCreation.copy(
                         status = CreationStatus.FAILED,
-                        errorMessage = throwable.message?.take(220)
-                            ?: "We could not create this right now. Please try again."
+                        errorMessage = "अभी यह छवि नहीं बन सकी। कृपया फिर प्रयास करें।"
                     )
                 }
             )

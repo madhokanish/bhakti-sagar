@@ -1,5 +1,7 @@
 package com.bhaktichat.app.util
 
+import com.bhaktichat.app.ui.i18n.str
+
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -19,7 +21,10 @@ import java.util.Locale
  * a one-shot result callback. The manager keeps its own recognizer instance and must
  * be [release]d when the owning composable leaves the composition.
  */
-class SpeechInputManager(private val context: Context) {
+class SpeechInputManager(
+    private val context: Context,
+    private val languageStore: LanguageStore
+) {
 
     data class VoiceState(
         val isRecording: Boolean = false,
@@ -53,11 +58,11 @@ class SpeechInputManager(private val context: Context) {
             Manifest.permission.RECORD_AUDIO
         ) == PackageManager.PERMISSION_GRANTED
         if (!granted) {
-            _state.value = VoiceState(error = "Microphone permission required")
+            _state.value = VoiceState(error = languageStore.str("speech_mic_permission"))
             return
         }
         if (!isAvailable()) {
-            _state.value = VoiceState(error = "Speech recognition is not available on this device.")
+            _state.value = VoiceState(error = languageStore.str("speech_unavailable"))
             return
         }
 
@@ -114,13 +119,13 @@ class SpeechInputManager(private val context: Context) {
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag())
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.forLanguageTag("hi-IN").toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
         }
 
         runCatching { instance.startListening(intent) }
-            .onFailure { _state.value = VoiceState(error = it.message ?: "Could not start voice input.") }
+            .onFailure { _state.value = VoiceState(error = languageStore.str("speech_start_failed")) }
     }
 
     fun stop() {
@@ -136,15 +141,15 @@ class SpeechInputManager(private val context: Context) {
     }
 
     private fun errorMessage(code: Int): String = when (code) {
-        SpeechRecognizer.ERROR_AUDIO -> "Audio recording error."
-        SpeechRecognizer.ERROR_CLIENT -> "Voice input client error."
-        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Microphone permission required."
-        SpeechRecognizer.ERROR_NETWORK -> "Network error during voice input."
-        SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Voice input timed out."
-        SpeechRecognizer.ERROR_NO_MATCH -> "Didn't catch that. Try again."
-        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Voice input is busy. Try again."
-        SpeechRecognizer.ERROR_SERVER -> "Voice input server error."
-        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "No speech detected."
-        else -> "Voice input error ($code)."
+        SpeechRecognizer.ERROR_AUDIO -> languageStore.str("speech_audio_error")
+        SpeechRecognizer.ERROR_CLIENT -> languageStore.str("speech_generic_error")
+        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> languageStore.str("speech_mic_permission")
+        SpeechRecognizer.ERROR_NETWORK -> languageStore.str("speech_network_error")
+        SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> languageStore.str("speech_timeout")
+        SpeechRecognizer.ERROR_NO_MATCH -> languageStore.str("speech_no_match")
+        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> languageStore.str("speech_busy")
+        SpeechRecognizer.ERROR_SERVER -> languageStore.str("speech_service_error")
+        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> languageStore.str("speech_no_speech")
+        else -> languageStore.str("speech_generic_error")
     }
 }

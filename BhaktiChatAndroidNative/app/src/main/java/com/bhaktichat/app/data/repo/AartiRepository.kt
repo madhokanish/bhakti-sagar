@@ -30,16 +30,17 @@ class AartiRepository(private val context: Context) {
                     val title = item.optJSONObject("title")
                     val englishTitle = title.optStringOrNull("english")
                     val hindiTitle = title.optStringOrNull("hindi")
-                    val displayTitle = englishTitle ?: hindiTitle ?: "Aarti"
-                    val displayHindiTitle = hindiTitle ?: englishTitle ?: displayTitle
+                    val catalogTitle = englishTitle ?: hindiTitle ?: "आरती"
+                    val displayTitle = hindiTitle ?: "आरती"
+                    val displayHindiTitle = displayTitle
                     val isTop = item.optBoolean("isTop", false)
 
                     val lyricsObj = item.optJSONObject("lyrics")
                     val englishLyrics = lyricsObj.optStringArray("english")
                     val hindiLyrics = lyricsObj.optStringArray("hindi")
                     val selectedLyrics = when {
-                        englishLyrics.isNotEmpty() -> englishLyrics
                         hindiLyrics.isNotEmpty() -> hindiLyrics
+                        englishLyrics.isNotEmpty() -> emptyList()
                         else -> emptyList()
                     }
 
@@ -47,7 +48,7 @@ class AartiRepository(private val context: Context) {
                     val deity = resolveDeity(
                         category = item.optString("category"),
                         tags = rawTags,
-                        title = displayTitle
+                        title = catalogTitle
                     )
                     val tags = buildList {
                         rawTags
@@ -102,9 +103,11 @@ class AartiRepository(private val context: Context) {
                             ?: estimateDurationMinutes(selectedLyrics),
                         tags = tags,
                         youtubeVideoId = extractYouTubeVideoId(item.optStringOrNull("youtubeUrl")),
+                        audioUrl = item.optStringOrNull("audioUrl"),
                         popularityCount = item.optLong("popularityCount").takeIf { it > 0L },
                         isTop = isTop,
                         lyrics = selectedLyrics,
+                        imageAssetName = item.optStringOrNull("imageAsset"),
                     )
                 }
                 list

@@ -13,5 +13,17 @@ data class ChoghadiyaSlot(
         get() = label.substringBefore(" (")
 
     val displayLabel: String
-        get() = if (baseLabel == "Char") "Chal" else baseLabel
+        get() {
+            val hindiName = when (baseLabel) {
+                "Shubh" -> "शुभ"
+                "Labh" -> "लाभ"
+                "Amrit" -> "अमृत"
+                "Char" -> "चल"
+                "Rog" -> "रोग"
+                "Kaal" -> "काल"
+                "Udveg" -> "उद्वेग"
+                else -> "चौघड़िया"
+            }
+            return if (isNight) "$hindiName (रात्रि)" else hindiName
+        }
 }

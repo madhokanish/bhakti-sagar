@@ -46,8 +46,8 @@ class DailyReminderReceiver : BroadcastReceiver() {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("🕉️ Time for your daily reflection.")
-            .setContentText("Pause for a moment with BhaktiChat.")
+            .setContentTitle("🕉️ दैनिक चिंतन का समय")
+            .setContentText("BhaktiChat के साथ कुछ पल शांत होकर बिताएँ।")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .setContentIntent(contentPending)
@@ -68,10 +68,10 @@ class DailyReminderReceiver : BroadcastReceiver() {
                 if (manager.getNotificationChannel(CHANNEL_ID) == null) {
                     val channel = NotificationChannel(
                         CHANNEL_ID,
-                        "Daily reflection",
+                        "दैनिक चिंतन",
                         NotificationManager.IMPORTANCE_DEFAULT
                     ).apply {
-                        description = "Gentle daily reminders to reflect."
+                        description = "चिंतन के लिए स्नेहपूर्ण दैनिक स्मरण।"
                     }
                     manager.createNotificationChannel(channel)
                 }
@@ -91,8 +91,12 @@ object DailyReminderScheduler {
     private const val KEY_MINUTE = "reminder_minute"
     private const val REQUEST_ALARM = 1101
 
+    // Defaults to on, matching iOS's @AppStorage("bhakti_notifications_enabled") = true —
+    // the user still has to grant the runtime POST_NOTIFICATIONS permission on Android 13+
+    // (see NotificationsSection's launch effect), but the *setting* itself starts enabled
+    // rather than requiring an opt-in tap first.
     fun isEnabled(context: Context): Boolean =
-        prefs(context).getBoolean(KEY_ENABLED, false)
+        prefs(context).getBoolean(KEY_ENABLED, true)
 
     fun setEnabled(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_ENABLED, enabled).apply()

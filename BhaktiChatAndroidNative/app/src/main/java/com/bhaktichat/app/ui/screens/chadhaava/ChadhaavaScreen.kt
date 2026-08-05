@@ -240,6 +240,8 @@ private fun OfferState(
             Benefits(blockedBy = blockedBy)
             Spacer(Modifier.height(18.dp))
             PolicyBlock()
+            Spacer(Modifier.height(14.dp))
+            PolicyLinksRow(onOpenUrl = onOpenUrl)
             Spacer(Modifier.height(22.dp))
         }
 
@@ -1036,29 +1038,47 @@ private fun CtaFooter(
                 }
             }
 
+            // Refund/Terms links deliberately are NOT here. This footer is pinned over the
+            // scrolling offer, so every row it holds is a row permanently taken away from the
+            // content behind it. The links live at the end of the scroll instead (see
+            // PolicyLinksRow) — still one tap from the CTA, still present for the payment
+            // provider, but no longer costing fixed height on every frame.
             Text(
                 text = t("chadhaava_trust"),
                 fontSize = 11.sp,
                 color = ChadhaavaPalette.TextSecondary
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = t("chadhaava_link_refunds"),
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ChadhaavaPalette.DeepAccent,
-                    modifier = Modifier.clickable { onOpenUrl("https://bhaktichat.com/refunds") }
-                )
-                Text("·", fontSize = 10.5.sp, color = ChadhaavaPalette.TextMuted)
-                Text(
-                    text = t("chadhaava_link_terms"),
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ChadhaavaPalette.DeepAccent,
-                    modifier = Modifier.clickable { onOpenUrl("https://bhaktichat.com/terms") }
-                )
-            }
         }
+    }
+}
+
+/**
+ * Refund and Terms, rendered inline at the end of the scrollable offer.
+ *
+ * Kept rather than dropped: Razorpay expects a reachable refund policy, and these are the
+ * two links the /refunds page itself is written to satisfy.
+ */
+@Composable
+private fun PolicyLinksRow(onOpenUrl: (String) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = t("chadhaava_link_refunds"),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = ChadhaavaPalette.DeepAccent,
+            modifier = Modifier.clickable { onOpenUrl("https://bhaktichat.com/refunds") }
+        )
+        Text("  ·  ", fontSize = 11.sp, color = ChadhaavaPalette.TextMuted)
+        Text(
+            text = t("chadhaava_link_terms"),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = ChadhaavaPalette.DeepAccent,
+            modifier = Modifier.clickable { onOpenUrl("https://bhaktichat.com/terms") }
+        )
     }
 }
 

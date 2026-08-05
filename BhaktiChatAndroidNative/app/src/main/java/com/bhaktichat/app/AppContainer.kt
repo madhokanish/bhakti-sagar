@@ -46,7 +46,8 @@ import java.util.concurrent.TimeUnit
 class AppContainer(
     context: Context,
     val userId: String,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    val languageStore: LanguageStore
 ) {
     private val appContext = context.applicationContext
     private val cookieManager = CookieManager().apply {
@@ -122,9 +123,8 @@ class AppContainer(
     val bookmarkStore = BookmarkStore(appContext)
     val entitlementStore = EntitlementStore(appContext)
     val streakStore = StreakStore(appContext)
-    val languageStore = LanguageStore(appContext)
     val reviewPromptStore = ReviewPromptStore(appContext)
-    val subscriptionManager = SubscriptionManager(appContext, entitlementStore)
+    val subscriptionManager = SubscriptionManager(appContext, entitlementStore, languageStore)
 
     // Chadhaava (Razorpay UPI AutoPay) — the current subscription rail. [subscriptionManager]
     // above is the legacy Play Billing path, kept only so grandfathered subscribers from

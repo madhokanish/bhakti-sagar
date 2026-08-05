@@ -14,7 +14,11 @@ import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import com.bhaktichat.app.BuildConfig
+import com.bhaktichat.app.domain.AppLanguage
+import com.bhaktichat.app.ui.i18n.str
+import com.bhaktichat.app.ui.i18n.translate
 import com.bhaktichat.app.util.EntitlementStore
+import com.bhaktichat.app.util.LanguageStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -63,7 +67,8 @@ data class PricingInfo(
  */
 class SubscriptionManager(
     context: Context,
-    private val entitlementStore: EntitlementStore
+    private val entitlementStore: EntitlementStore,
+    private val languageStore: LanguageStore
 ) {
     private val appContext = context.applicationContext
 
@@ -154,11 +159,11 @@ class SubscriptionManager(
 
             _pricing.value = _pricing.value.copy(
                 price = paidPhase.formattedPrice,
-                period = billingPeriodLabel(paidPhase.billingPeriod),
+                period = billingPeriodLabel(paidPhase.billingPeriod, languageStore.language.value),
                 // The ₹250 anchor is an INR-only cosmetic reference; never show it beside a
                 // non-INR localized price (avoids a nonsensical "£1.99 ₹250" card).
                 anchorPrice = _pricing.value.anchorPrice?.takeIf { paidPhase.priceCurrencyCode == "INR" },
-                freeTrialLabel = trialPhase?.let { trialLabel(it.billingPeriod) }
+                freeTrialLabel = trialPhase?.let { trialLabel(it.billingPeriod, languageStore.language.value) }
             )
         }
     }
@@ -191,7 +196,7 @@ class SubscriptionManager(
             val launch = billingClient.launchBillingFlow(activity, flowParams)
             if (launch.responseCode != BillingClient.BillingResponseCode.OK) {
                 _purchaseInFlight.value = false
-                return PurchaseOutcome.Failed("Could not open the purchase screen. Please try again.")
+                return PurchaseOutcome.Failed(languageStore.str("billing_checkout_failed"))
             }
             return PurchaseOutcome.Pending
         }
@@ -209,7 +214,7 @@ class SubscriptionManager(
                 _purchaseInFlight.value = false
             }
         }
-        return PurchaseOutcome.Failed("Store is not ready yet. Please try again in a moment.")
+        return PurchaseOutcome.Failed(languageStore.str("billing_store_not_ready"))
     }
 
     /** Re-grants Pro for an active subscription (e.g. after reinstall / new device). */
@@ -268,26 +273,33 @@ class SubscriptionManager(
         const val MONTHLY_CHADHAWA_PRODUCT_ID: String = "com.bhaktichat.chadhawa.monthly"
 
         /** ISO-8601 billing period ("P1M") → a human label ("month"). */
-        private fun billingPeriodLabel(period: String): String = when (period) {
-            "P1W" -> "week"
-            "P1M" -> "month"
-            "P3M" -> "3 months"
-            "P6M" -> "6 months"
-            "P1Y" -> "year"
-            else -> "month"
-        }
+        private fun billingPeriodLabel(period: String, language: AppLanguage): String = translate(
+            when (period) {
+                "P1W" -> "period_week"
+                "P1M" -> "period_month"
+                "P3M" -> "period_3_months"
+                "P6M" -> "period_6_months"
+                "P1Y" -> "period_year"
+                else -> "period_month"
+            },
+            language
+        )
 
         /** ISO-8601 trial period ("P3D") → a trial label ("3 days"). */
-        private fun trialLabel(period: String): String {
-            val amount = period.filter { it.isDigit() }.toIntOrNull() ?: return "free trial"
-            val unit = when (period.lastOrNull()) {
-                'D' -> "day"
-                'W' -> "week"
-                'M' -> "month"
-                'Y' -> "year"
-                else -> "day"
-            }
-            return "$amount $unit${if (amount == 1) "" else "s"}"
+        private fun trialLabel(period: String, language: AppLanguage): String {
+            val amount = period.filter { it.isDigit() }.toIntOrNull()
+                ?: return translate("trial_free", language)
+            val unit = translate(
+                when (period.lastOrNull()) {
+                    'D' -> "unit_day"
+                    'W' -> "unit_week"
+                    'M' -> "unit_month"
+                    'Y' -> "unit_year"
+                    else -> "unit_day"
+                },
+                language
+            )
+            return "$amount $unit"
         }
     }
 }

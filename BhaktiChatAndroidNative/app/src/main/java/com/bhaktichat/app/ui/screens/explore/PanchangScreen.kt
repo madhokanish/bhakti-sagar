@@ -1,4 +1,5 @@
 package com.bhaktichat.app.ui.screens.explore
+import com.bhaktichat.app.ui.i18n.t
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,12 +40,12 @@ import com.bhaktichat.app.ui.components.shell.BhaktiBottomNavBarDefaults
 @Composable
 fun PanchangScreen(onBack: () -> Unit) {
     val rows = listOf(
-        "Tithi" to "Shukla Dwitiya",
-        "Nakshatra" to "Pushya",
-        "Vaar" to "Shanivaar (Saturday)",
-        "Yoga" to "Siddhi",
-        "Karana" to "Balava",
-        "Rahu Kaal" to "9:00 – 10:30 AM"
+        t("panchang_tithi") to t("panchang_tithi_value"),
+        t("panchang_nakshatra") to t("panchang_nakshatra_value"),
+        t("panchang_vaar") to t("panchang_vaar_value"),
+        t("panchang_yoga") to t("panchang_yoga_value"),
+        t("panchang_karan") to t("panchang_karan_value"),
+        t("panchang_rahu_kaal") to t("panchang_rahu_kaal_value")
     )
     Scaffold(
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
@@ -58,10 +59,10 @@ fun PanchangScreen(onBack: () -> Unit) {
                 .padding(bottom = BhaktiBottomNavBarDefaults.overlayClearance + 12.dp)
         ) {
             AppTopBar(
-                title = "Panchang",
+                title = t("panchang_title"),
                 leftContent = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back", tint = ExplorePalette.TextPrimary)
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, t("go_back"), tint = ExplorePalette.TextPrimary)
                     }
                 }
             )
@@ -69,11 +70,11 @@ fun PanchangScreen(onBack: () -> Unit) {
                 modifier = Modifier.padding(horizontal = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Text("Saturday, 5 July · Mumbai", fontSize = 14.sp, color = ExplorePalette.TextSecondary)
+                Text(t("panchang_date_location"), fontSize = 14.sp, color = ExplorePalette.TextSecondary)
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatTile(Icons.Filled.WbSunny, "Sunrise", "6:04 AM", listOf(Color(0xFFFCD34D), Color(0xFFD97706)), Modifier.weight(1f))
-                    StatTile(Icons.Filled.WbTwilight, "Sunset", "7:15 PM", listOf(Color(0xFFA5B4FC), Color(0xFF6366F1)), Modifier.weight(1f))
+                    StatTile(Icons.Filled.WbSunny, t("panchang_sunrise"), t("panchang_sunrise_value"), listOf(Color(0xFFFCD34D), Color(0xFFD97706)), Modifier.weight(1f))
+                    StatTile(Icons.Filled.WbTwilight, t("panchang_sunset"), t("panchang_sunset_value"), listOf(Color(0xFFA5B4FC), Color(0xFF6366F1)), Modifier.weight(1f))
                 }
 
                 Column(

@@ -16,16 +16,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.bhaktichat.app.R
 import com.bhaktichat.app.domain.Aarti
-import com.bhaktichat.app.domain.Deity
+import com.bhaktichat.app.ui.i18n.t
 
 @Composable
 fun AartiRow(
@@ -100,40 +101,44 @@ fun AartiRow(
 
 @Composable
 private fun AartiThumbnail(aarti: Aarti) {
-    val imageRes = when (aarti.deity) {
-        Deity.GANESH -> R.drawable.ic_ganesh_top_aarti
-        Deity.SHIV -> R.drawable.ic_shiv_top_aarti
-        Deity.LAKSHMI -> R.drawable.ic_lakshmi_top_aarti
-        else -> R.drawable.ic_default_aarti
-    }
+    val context = LocalContext.current
+    val imageRes = remember(aarti.imageAssetName, aarti.deity) { aartiImageRes(context, aarti) }
 
     Image(
         painter = painterResource(id = imageRes),
-        contentDescription = "${aarti.title} icon",
+        contentDescription = t("aarti_icon_content_description").format(aarti.title),
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
     )
 }
 
+@Composable
 private fun metadataLabel(aarti: Aarti): String {
+    val minSuffix = t("min_suffix")
+    val morningLabel = t("aarti_filter_morning")
+    val eveningLabel = t("aarti_filter_evening")
+    val playsKTemplate = t("aarti_plays_k")
+    val playsTemplate = t("aarti_plays")
+    val calmDailyRecitation = t("aarti_calm_daily_recitation")
+
     val labels = buildList {
-        aarti.durationMinutes?.let { add("$it min") }
+        aarti.durationMinutes?.let { add("$it $minSuffix") }
 
         when {
-            aarti.tags.any { it.equals("morning", ignoreCase = true) } -> add("Morning")
-            aarti.tags.any { it.equals("evening", ignoreCase = true) } -> add("Evening")
+            aarti.tags.any { it.equals("morning", ignoreCase = true) } -> add(morningLabel)
+            aarti.tags.any { it.equals("evening", ignoreCase = true) } -> add(eveningLabel)
         }
 
         aarti.popularityCount?.let { count ->
             add(
                 when {
-                    count >= 1000 -> "${count / 1000}k plays"
-                    else -> "$count plays"
+                    count >= 1000 -> playsKTemplate.format(count / 1000)
+                    else -> playsTemplate.format(count)
                 }
             )
         }
     }
 
-    return labels.ifEmpty { listOf("Calm daily recitation") }.joinToString(" • ")
+    return labels.ifEmpty { listOf(calmDailyRecitation) }.joinToString(" • ")
 }

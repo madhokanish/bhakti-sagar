@@ -47,19 +47,27 @@ object Analytics {
         PostHog.screen(screenTitle = name, properties = properties)
     }
 
-    /** Associates subsequent events with a known user id (e.g. after sign-in). */
-    fun identify(distinctId: String, userProperties: Map<String, Any>? = null) {
+    /** Ties subsequent events to a persistent person profile. Call once per successful auth. */
+    fun identify(userId: String, email: String?, name: String?) {
         if (!enabled) return
-        PostHog.identify(distinctId = distinctId, userProperties = userProperties)
-    }
-
-    /** Clears the current identity (e.g. on sign-out) so events go to a fresh anonymous id. */
-    fun reset() {
-        if (!enabled) return
-        PostHog.reset()
+        PostHog.identify(
+            distinctId = userId,
+            userProperties = buildMap {
+                email?.let { put("email", it) }
+                name?.let { put("name", it) }
+            }
+        )
     }
 
     // --- Semantic helpers (keep event names in one place) -----------------
+
+    /** [method] is "google" or "access" (email/username + password). */
+    fun authSucceeded(method: String) =
+        capture("auth_succeeded", mapOf("method" to method))
+
+    /** [reason] is a short machine code, e.g. "network_error", "no_credential", or the API's error code. */
+    fun authFailed(method: String, reason: String) =
+        capture("auth_failed", mapOf("method" to method, "reason" to reason))
 
     fun chatMessageSent(guideId: String?) =
         capture("chat_message_sent", buildMap { guideId?.let { put("guide_id", it) } })
@@ -88,6 +96,25 @@ object Analytics {
     /** [target] is "instagram", "whatsapp", or "system". */
     fun divineImageShared(target: String) =
         capture("divine_image_shared", mapOf("target" to target))
+
+    fun reelOpened() = capture("reel_opened")
+
+    fun reelViewed(reelId: String, feed: String) =
+        capture("reel_viewed", mapOf("reel_id" to reelId, "feed" to feed))
+
+    fun reelShared() = capture("reel_shared")
+
+    fun reelSetAsStatus() = capture("reel_set_as_status")
+
+    fun aartiPlayStarted(aartiId: String) =
+        capture("aarti_play_started", mapOf("aarti_id" to aartiId))
+
+    fun aartiPlayCompleted(aartiId: String, durationSeconds: Long) =
+        capture("aarti_play_completed", mapOf("aarti_id" to aartiId, "duration_seconds" to durationSeconds))
+
+    /** Fired when the user manually skips off a track (next/previous) before it finished. */
+    fun aartiSkipped(aartiId: String, positionSeconds: Long) =
+        capture("aarti_skipped", mapOf("aarti_id" to aartiId, "position_seconds" to positionSeconds))
 
     // --- Ads (stubs — call these from the AdMob callbacks when ads land) ---
     // [format] e.g. "banner"/"interstitial"/"rewarded"/"app_open";

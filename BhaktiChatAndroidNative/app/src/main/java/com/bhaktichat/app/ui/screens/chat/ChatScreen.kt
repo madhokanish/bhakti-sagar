@@ -142,7 +142,7 @@ fun ChatScreen(
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "Online guide",
+                                text = "गुरु उपलब्ध हैं",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -151,18 +151,18 @@ fun ChatScreen(
                 },
                 actions = {
                     IconButton(onClick = { menuExpanded = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = "More")
+                        Icon(Icons.Filled.MoreVert, contentDescription = "अधिक विकल्प")
                     }
                     DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                         DropdownMenuItem(
-                            text = { Text("Switch guide") },
+                            text = { Text("गुरु बदलें") },
                             onClick = {
                                 menuExpanded = false
                                 onSwitchGuide()
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("New chat") },
+                            text = { Text("नई बातचीत") },
                             onClick = {
                                 menuExpanded = false
                                 onNewChat()
@@ -176,7 +176,7 @@ fun ChatScreen(
         floatingActionButton = {
             if (uiState.messages.isNotEmpty()) {
                 SmallFloatingActionButton(onClick = onNewChat) {
-                    Icon(Icons.Filled.AddComment, contentDescription = "Start new chat")
+                    Icon(Icons.Filled.AddComment, contentDescription = "नई बातचीत शुरू करें")
                 }
             }
         },
@@ -213,7 +213,7 @@ fun ChatScreen(
                             .weight(1f)
                             .heightIn(min = 48.dp)
                             .focusRequester(focusRequester),
-                        placeholder = { Text("Share what is on your mind...") },
+                        placeholder = { Text("अपने मन की बात लिखें...") },
                         maxLines = 4,
                         singleLine = false,
                         shape = RoundedCornerShape(24.dp),
@@ -234,7 +234,7 @@ fun ChatScreen(
                             .padding(start = 8.dp)
                             .size(48.dp)
                         ) {
-                        Icon(Icons.Filled.Send, contentDescription = "Send")
+                        Icon(Icons.Filled.Send, contentDescription = "भेजें")
                     }
                 }
             }
@@ -365,14 +365,14 @@ private fun FollowUpList(onSelectPrompt: (String) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
-            text = "Follow up",
+            text = "यह भी पूछें",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         listOf(
-            "Explain with a Gita story",
-            "Give me a practical step",
-            "Short mantra for today"
+            "गीता की कथा से समझाइए",
+            "मुझे एक व्यावहारिक कदम बताइए",
+            "आज के लिए छोटा मंत्र बताइए"
         ).forEach { prompt ->
             Surface(
                 shape = RoundedCornerShape(14.dp),

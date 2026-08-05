@@ -37,14 +37,15 @@ object AddressingEngine {
         recentUserMessages: List<String> = emptyList()
     ): MessageContext {
         val normalized = userMessage.trim().lowercase(Locale.getDefault())
-        val token = resolveToken(guideId, isAuthenticated, firstName)
+        val detectedLanguage = resolveLanguage(userMessage, recentUserMessages)
+        val token = resolveToken(guideId, isAuthenticated, firstName, detectedLanguage)
 
         return MessageContext(
             guideId = guideId,
             isAuthenticated = isAuthenticated,
             firstName = firstName.trim(),
             userMessage = userMessage,
-            detectedLanguage = resolveLanguage(userMessage, recentUserMessages),
+            detectedLanguage = detectedLanguage,
             sentimentTag = detectSentiment(normalized),
             isGreeting = containsAny(normalized, greetingKeywords),
             isClosing = containsAny(normalized, closingKeywords),
@@ -60,7 +61,8 @@ object AddressingEngine {
         val baseToken = resolveToken(
             guideId = context.guideId,
             isAuthenticated = context.isAuthenticated,
-            firstName = context.firstName
+            firstName = context.firstName,
+            language = context.detectedLanguage
         ) ?: return null
 
         if (!shouldUseAddressing(context)) return null
@@ -104,20 +106,27 @@ object AddressingEngine {
     private fun resolveToken(
         guideId: String,
         isAuthenticated: Boolean,
-        firstName: String
+        firstName: String,
+        language: ConversationLanguage
     ): String? {
         val cleanedName = firstName.trim()
-        if (isAuthenticated && cleanedName.isNotBlank()) {
+        if (language != ConversationLanguage.HINDI && isAuthenticated && cleanedName.isNotBlank()) {
             return cleanedName.substringBefore(' ').trim()
         }
 
-        return when (guideId) {
-            "krishna" -> "priye"
-            "lakshmi" -> "vats"
-            "shani" -> "karmayogi"
-            "shiv" -> "karmayogi"
-            "hanuman" -> "karmayogi"
-            else -> null
+        return when (language) {
+            ConversationLanguage.HINDI -> when (guideId) {
+                "krishna" -> "प्रिय"
+                "lakshmi" -> "वत्स"
+                "shani", "shiv", "hanuman" -> "कर्मयोगी"
+                else -> null
+            }
+            ConversationLanguage.ENGLISH, ConversationLanguage.HINGLISH -> when (guideId) {
+                "krishna" -> "priye"
+                "lakshmi" -> "vats"
+                "shani", "shiv", "hanuman" -> "karmayogi"
+                else -> null
+            }
         }
     }
 
@@ -147,11 +156,9 @@ object AddressingEngine {
         val words = userMessage.lowercase().split(Regex("[^a-z]+")).filter { it.isNotBlank() }
         if (words.any { it in hinglishMarkers }) return ConversationLanguage.HINGLISH
 
-        // A substantive Latin-script sentence with no Hindi/Hinglish loanwords at all is
-        // confidently plain English — respect it so English-typing users get English.
-        // Anything shorter/ambiguous (greetings, one-word replies) is not a strong enough
-        // signal on its own; resolveLanguage() decides those from context.
-        if (words.size >= 4) return ConversationLanguage.ENGLISH
+        // Any Latin-only input is an explicit request to leave Devanagari for this turn.
+        // Roman Hindi markers retain a Hinglish reply; otherwise match with English.
+        if (words.isNotEmpty()) return ConversationLanguage.ENGLISH
 
         return null
     }
@@ -160,15 +167,14 @@ object AddressingEngine {
      * Resolves the conversation language for [userMessage]: a clear per-message signal
      * always wins; otherwise inherits whatever language the recent thread has been using
      * (so a short "thanks" mid-English-conversation doesn't flip back to Hinglish); with no
-     * signal anywhere (e.g. the very first message being a bare greeting), defaults to
-     * Hinglish — the app's default voice.
+     * signal anywhere (for example an emoji-only message), defaults to Devanagari Hindi.
      */
     fun resolveLanguage(userMessage: String, recentUserMessages: List<String>): ConversationLanguage {
         detectLanguage(userMessage)?.let { return it }
         recentUserMessages.asReversed().take(4).forEach { message ->
             detectLanguage(message)?.let { return it }
         }
-        return ConversationLanguage.HINGLISH
+        return ConversationLanguage.HINDI
     }
 
     private fun detectSentiment(normalizedMessage: String): SentimentTag = when {

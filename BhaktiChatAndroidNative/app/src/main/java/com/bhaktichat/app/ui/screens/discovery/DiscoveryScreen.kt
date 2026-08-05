@@ -944,7 +944,7 @@ private fun HomeGuideTile(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = guide.fallbackLetter,
+                        text = t(guide.fallbackLetterKey),
                         fontSize = 26.sp,
                         fontWeight = FontWeight.Bold,
                         color = StreakDeepAccent

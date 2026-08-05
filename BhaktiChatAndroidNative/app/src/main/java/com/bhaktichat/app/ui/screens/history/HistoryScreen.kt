@@ -216,7 +216,7 @@ fun HistoryRoute(
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
             ChatComposer(
-                guideName = selectedGuide?.title ?: "अपने गुरु",
+                guideName = selectedGuide?.let { t("guide_title_${it.id}") } ?: t("your_guide"),
                 text = composerText,
                 onTextChange = { composerText = it },
                 isRecording = voiceState.isRecording,
@@ -609,7 +609,7 @@ private fun StartNewChatRow(
                             )
                         } else {
                             Box(contentAlignment = Alignment.Center) {
-                                Text(text = guide.fallbackLetter, style = MaterialTheme.typography.titleMedium)
+                                Text(text = t(guide.fallbackLetterKey), style = MaterialTheme.typography.titleMedium)
                             }
                         }
                     }

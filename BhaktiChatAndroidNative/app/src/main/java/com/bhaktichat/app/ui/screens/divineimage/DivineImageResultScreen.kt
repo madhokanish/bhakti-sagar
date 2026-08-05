@@ -1,4 +1,6 @@
 package com.bhaktichat.app.ui.screens.divineimage
+import com.bhaktichat.app.ui.i18n.LocalAppLanguage
+import com.bhaktichat.app.ui.i18n.t
 
 import android.content.ContentValues
 import android.content.Context
@@ -111,19 +113,29 @@ fun DivineImageResultScreen(
         }
     }
 
+    // Resolved in composition; the collector below runs outside it.
+    val savedMessage = t("di_saved")
+    val saveFailedMessage = t("di_save_failed")
+    val shareCaption = t("di_share_caption")
+    val shareChooserTitle = t("di_share")
+    val noShareAppMessage = t("di_no_share_app")
+
     LaunchedEffect(uiEvents) {
         uiEvents.collect { event ->
             when (event) {
                 DivineImageResultUiEvent.NavigateHome -> onBackToHome()
                 is DivineImageResultUiEvent.SaveImage -> {
-                    saveImageToDevice(context, Uri.parse(event.uri))
-                    Toast.makeText(context, "सहेजा गया", Toast.LENGTH_SHORT).show()
+                    saveImageToDevice(context, Uri.parse(event.uri), saveFailedMessage)
+                    Toast.makeText(context, savedMessage, Toast.LENGTH_SHORT).show()
                 }
                 is DivineImageResultUiEvent.ShareImage -> {
                     shareImage(
                         context = context,
                         uri = Uri.parse(event.uri),
-                        targetPackage = event.targetPackage
+                        targetPackage = event.targetPackage,
+                        caption = shareCaption,
+                        chooserTitle = shareChooserTitle,
+                        noAppMessage = noShareAppMessage
                     )
                 }
             }
@@ -131,7 +143,7 @@ fun DivineImageResultScreen(
     }
 
     val status = creation?.status ?: CreationStatus.GENERATING
-    val topTitle = if (status == CreationStatus.GENERATING) "बन रहा है…" else "दिव्य छवि"
+    val topTitle = if (status == CreationStatus.GENERATING) t("di_generating_ellipsis") else t("di_result_title")
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -145,7 +157,7 @@ fun DivineImageResultScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "वापस जाएँ",
+                            contentDescription = t("go_back"),
                             tint = DivineImagePalette.TextPrimary
                         )
                     }
@@ -183,13 +195,13 @@ fun DivineImageResultScreen(
                     item("result_title") {
                         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text(
-                                text = divineChoiceDisplayText(creation.templateTitle).ifBlank { "आपका दिव्य दर्शन" },
+                                text = divineChoiceDisplayText(creation.templateTitle, LocalAppLanguage.current).ifBlank { t("di_your_darshan") },
                                 fontSize = 19.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = DivineImagePalette.TextPrimary
                             )
                             Text(
-                                text = "अभी बनाया गया",
+                                text = t("di_just_created"),
                                 fontSize = 12.5.sp,
                                 color = DivineImagePalette.TextSecondary
                             )
@@ -233,12 +245,12 @@ fun DivineImageResultScreen(
                         ) {
                             Spacer(modifier = Modifier.weight(1f))
                             TextIconAction(
-                                label = "फिर बनाएँ",
+                                label = t("di_regenerate"),
                                 icon = Icons.Filled.Refresh,
                                 onClick = onRegenerate
                             )
                             TextIconAction(
-                                label = "एक और बनाएँ",
+                                label = t("di_make_another"),
                                 icon = Icons.Filled.Add,
                                 onClick = onBackToHome
                             )
@@ -255,7 +267,7 @@ fun DivineImageResultScreen(
                 item("failed") {
                     val failureMessage = creation?.errorMessage
                         ?.takeIf { it.isNotBlank() }
-                        ?: "अभी यह छवि नहीं बन सकी। कृपया फिर प्रयास करें।"
+                        ?: t("di_err_generate_failed")
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = DivineImagePalette.Card,
@@ -277,13 +289,13 @@ fun DivineImageResultScreen(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 GradientActionButton(
-                                    label = "फिर प्रयास करें",
+                                    label = t("di_try_again"),
                                     icon = Icons.Filled.Refresh,
                                     modifier = Modifier.weight(1f),
                                     onClick = onRegenerate
                                 )
                                 OutlineActionButton(
-                                    label = "वापस जाएँ",
+                                    label = t("go_back"),
                                     icon = null,
                                     modifier = Modifier.weight(1f),
                                     onClick = onBackToHome
@@ -346,7 +358,7 @@ private fun GeneratingState(
                     trackColor = Color.White.copy(alpha = 0.25f)
                 )
                 Text(
-                    text = "आपका दिव्य दर्शन रचा जा रहा है",
+                    text = t("di_result_creating"),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -374,13 +386,13 @@ private fun GeneratingState(
                 modifier = Modifier.size(16.dp)
             )
             Text(
-                text = "इसमें सामान्यतः 60–90 सेकंड लगते हैं",
+                text = t("di_result_eta"),
                 fontSize = 13.sp,
                 color = DivineImagePalette.TextSecondary
             )
         }
         Text(
-            text = "छवि बनते समय ऐप खुला रखें।",
+            text = t("di_keep_open"),
             fontSize = 12.sp,
             color = DivineImagePalette.TextMuted
         )
@@ -442,7 +454,7 @@ private fun ResultImageCard(uriString: String?) {
     ) {
         UriPreviewImage(
             uriString = uriString,
-            contentDescription = "दिव्य छवि",
+            contentDescription = t("di_result_title"),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
             decodeMaxPx = 1200
@@ -488,7 +500,7 @@ private fun FeedbackRow(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "आपकी प्रतिक्रिया के लिए धन्यवाद 🙏",
+                    text = t("di_feedback_thanks"),
                     fontSize = 13.sp,
                     color = DivineImagePalette.TextSecondary
                 )
@@ -502,7 +514,7 @@ private fun FeedbackRow(
             OutlinedButton(onClick = { onFeedback("up") }, modifier = Modifier.weight(1f)) {
                 Icon(imageVector = Icons.Outlined.ThumbUp, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("बहुत सुंदर")
+                Text(t("di_beautiful"))
             }
             OutlinedButton(onClick = { onFeedback("down") }, modifier = Modifier.weight(1f)) {
                 Icon(imageVector = Icons.Outlined.ThumbDown, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -588,9 +600,12 @@ private fun TextIconAction(
     }
 }
 
+// Copy is passed in already resolved: these run outside composition, and the caller is a
+// composable that can read the current language.
 private fun saveImageToDevice(
     context: Context,
-    sourceUri: Uri
+    sourceUri: Uri,
+    saveFailedMessage: String
 ) {
     val resolver = context.contentResolver
     val fileName = "bhakti_divine_${System.currentTimeMillis()}.png"
@@ -605,7 +620,7 @@ private fun saveImageToDevice(
                     put(MediaStore.Images.Media.IS_PENDING, 1)
                 }
                 val outputUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-                    ?: error("छवि सहेजने का स्थान नहीं बन सका।")
+                    ?: error(saveFailedMessage)
                 resolver.openOutputStream(outputUri)?.use { output ->
                     inputStream.copyTo(output)
                 }
@@ -635,20 +650,20 @@ private fun saveImageToDevice(
     }
 }
 
-private const val SHARE_CAPTION =
-    "मैंने BhaktiChat से अपना दिव्य दर्शन बनाया 🙏🪔\nआप भी निःशुल्क बनाएँ: https://bhaktichat.com"
-
 private fun shareImage(
     context: Context,
     uri: Uri,
-    targetPackage: String? = null
+    targetPackage: String? = null,
+    caption: String,
+    chooserTitle: String,
+    noAppMessage: String
 ) {
     val sendIntent = Intent(Intent.ACTION_SEND).apply {
         type = "image/*"
         putExtra(Intent.EXTRA_STREAM, uri)
         // Attribution + install loop: a shared image should carry a caption and a link
         // back so viewers on WhatsApp/Instagram can find and install the app.
-        putExtra(Intent.EXTRA_TEXT, SHARE_CAPTION)
+        putExtra(Intent.EXTRA_TEXT, caption)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 
@@ -659,10 +674,10 @@ private fun shareImage(
             context.startActivity(sendIntent)
             return
         }
-        Toast.makeText(context, "संबंधित ऐप नहीं मिला। साझा करने के विकल्प खोले जा रहे हैं।", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, noAppMessage, Toast.LENGTH_SHORT).show()
     }
 
     context.startActivity(
-        Intent.createChooser(sendIntent, "दिव्य दर्शन साझा करें")
+        Intent.createChooser(sendIntent, chooserTitle)
     )
 }

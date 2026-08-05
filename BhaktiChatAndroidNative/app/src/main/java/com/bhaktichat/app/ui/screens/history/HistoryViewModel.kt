@@ -105,7 +105,7 @@ class HistoryViewModel(
                     val creationSubtitle = "दिव्य छवि से निर्मित"
                     HistoryCreationItem(
                         creationId = creation.id,
-                        title = divineChoiceDisplayText(creation.templateTitle),
+                        title = divineChoiceDisplayText(creation.templateTitle, languageStore.language.value),
                         subtitle = creationSubtitle,
                         timeLabel = formatTime(creation.createdAt),
                         previewUri = creation.outputImageUri,

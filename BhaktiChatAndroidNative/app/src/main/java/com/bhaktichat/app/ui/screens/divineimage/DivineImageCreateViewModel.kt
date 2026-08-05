@@ -1,4 +1,7 @@
 package com.bhaktichat.app.ui.screens.divineimage
+import com.bhaktichat.app.ui.i18n.translate
+import com.bhaktichat.app.util.LanguageStore
+import com.bhaktichat.app.ui.i18n.str
 
 import android.net.Uri
 import androidx.annotation.DrawableRes
@@ -80,7 +83,8 @@ class DivineImageCreateViewModel(
     templateRepository: DivineTemplateRepository,
     private val creationRepository: DivineCreationRepository,
     private val generator: DivineImageGenerator,
-    private val entitlementStore: EntitlementStore
+    private val entitlementStore: EntitlementStore,
+    private val languageStore: LanguageStore
 ) : ViewModel() {
     private val template = requireNotNull(templateRepository.getTemplate(templateId)) {
         "Unknown Divine Image template: $templateId"
@@ -271,7 +275,7 @@ class DivineImageCreateViewModel(
                 onFailure = { throwable ->
                     creation.copy(
                         status = CreationStatus.FAILED,
-                        errorMessage = "अभी यह छवि नहीं बन सकी। कृपया फिर प्रयास करें।"
+                        errorMessage = languageStore.str("di_err_generate_failed")
                     )
                 }
             )
@@ -289,18 +293,18 @@ class DivineImageCreateViewModel(
 
     private fun validationError(current: DivineImageCreateUiState): String? {
         if (current.selectedImageUri == null) {
-            return "कृपया पहले एक फोटो चुनें।"
+            return languageStore.str("di_err_pick_photo")
         }
         return when (mode) {
             DivineMode.PHOTO_WITH_GOD -> when {
-                current.selectedDeity.isNullOrBlank() -> "कृपया एक देवता चुनें।"
-                current.selectedScene.isNullOrBlank() -> "कृपया एक दृश्य चुनें।"
+                current.selectedDeity.isNullOrBlank() -> languageStore.str("di_err_pick_deity")
+                current.selectedScene.isNullOrBlank() -> languageStore.str("di_err_pick_scene")
                 else -> null
             }
 
             DivineMode.PHOTO_AT_TEMPLE -> when {
-                current.selectedTempleName().isBlank() -> "कृपया कोई मंदिर चुनें या उसका नाम लिखें।"
-                current.selectedTempleMoment.isNullOrBlank() -> "कृपया मंदिर का एक दृश्य चुनें।"
+                current.selectedTempleName().isBlank() -> languageStore.str("di_err_pick_temple")
+                current.selectedTempleMoment.isNullOrBlank() -> languageStore.str("di_err_pick_temple_scene")
                 else -> null
             }
         }
@@ -344,7 +348,8 @@ class DivineImageCreateViewModel(
         // display language, matching its behavior before this field became language-aware.
         return when (mode) {
             DivineMode.PHOTO_WITH_GOD -> divineChoiceDisplayText(
-                current.selectedScene ?: template.title(AppLanguage.HINDI)
+                current.selectedScene ?: template.title(AppLanguage.HINDI),
+                languageStore.language.value
             )
             DivineMode.PHOTO_AT_TEMPLE -> {
                 val temple = current.selectedTempleName()
@@ -352,7 +357,7 @@ class DivineImageCreateViewModel(
                 if (temple.isBlank() || moment.isBlank()) {
                     template.title(AppLanguage.HINDI)
                 } else {
-                    "${divineChoiceDisplayText(moment)} · ${divineChoiceDisplayText(temple)}"
+                    "${divineChoiceDisplayText(moment, languageStore.language.value)} · ${divineChoiceDisplayText(temple, languageStore.language.value)}"
                 }
             }
         }
@@ -367,35 +372,43 @@ class DivineImageCreateViewModel(
     }
 }
 
-internal fun divineChoiceDisplayText(value: String): String = when (value.trim()) {
-    "Lord Krishna" -> "श्री कृष्ण"
-    "Shiv Ji" -> "शिव जी"
-    "Hanuman Ji" -> "हनुमान जी"
-    "Lakshmi Ji" -> "लक्ष्मी जी"
-    "Ganesh Ji" -> "गणेश जी"
-    "Lord Krishna blessing you" -> "श्री कृष्ण आपको आशीर्वाद दे रहे हैं"
-    "Lord Krishna standing beside you in Vrindavan" -> "वृंदावन में श्री कृष्ण आपके साथ खड़े हैं"
-    "Lord Krishna teaching Gita" -> "श्री कृष्ण गीता का ज्ञान दे रहे हैं"
-    "Shiv Ji blessing you" -> "शिव जी आपको आशीर्वाद दे रहे हैं"
-    "Shiv Ji meditating beside you" -> "शिव जी आपके पास ध्यान कर रहे हैं"
-    "Hanuman Ji protecting you" -> "हनुमान जी आपकी रक्षा कर रहे हैं"
-    "Hanuman Ji blessing you" -> "हनुमान जी आपको आशीर्वाद दे रहे हैं"
-    "Lakshmi Ji blessing you" -> "लक्ष्मी जी आपको आशीर्वाद दे रही हैं"
-    "Lakshmi Ji showering prosperity" -> "लक्ष्मी जी समृद्धि का आशीर्वाद दे रही हैं"
-    "Kedarnath Temple" -> "केदारनाथ मंदिर"
-    "Akshardham Temple Delhi" -> "अक्षरधाम मंदिर, दिल्ली"
-    "Tirupati Balaji Temple" -> "तिरुपति बालाजी मंदिर"
-    "Rameshwaram Temple" -> "रामेश्वरम मंदिर"
-    "Kashi Vishwanath Temple" -> "काशी विश्वनाथ मंदिर"
-    "Golden Temple Amritsar" -> "स्वर्ण मंदिर, अमृतसर"
-    "Standing in front of the temple" -> "मंदिर के सामने खड़े हुए"
-    "Doing aarti" -> "आरती करते हुए"
-    "Offering prayers" -> "प्रार्थना अर्पित करते हुए"
-    "Walking in temple courtyard" -> "मंदिर के प्रांगण में चलते हुए"
+/**
+ * Maps the generator's canonical English choice strings to display copy.
+ *
+ * Takes the language explicitly because callers are a mix of composables and ViewModels —
+ * the values themselves stay English on the wire, since that is what the image generator
+ * expects to receive.
+ */
+internal fun divineChoiceDisplayText(value: String, language: AppLanguage): String = when (value.trim()) {
+    "Lord Krishna" -> translate("di_deity_krishna", language)
+    "Shiv Ji" -> translate("di_deity_shiv", language)
+    "Hanuman Ji" -> translate("di_deity_hanuman", language)
+    "Lakshmi Ji" -> translate("di_deity_lakshmi", language)
+    "Ganesh Ji" -> translate("di_deity_ganesh", language)
+    "Lord Krishna blessing you" -> translate("di_scene_krishna_2", language)
+    "Lord Krishna standing beside you in Vrindavan" -> translate("di_scene_krishna_1", language)
+    "Lord Krishna teaching Gita" -> translate("di_scene_krishna_3", language)
+    "Shiv Ji blessing you" -> translate("di_scene_shiv_2", language)
+    "Shiv Ji meditating beside you" -> translate("di_scene_shiv_1", language)
+    "Hanuman Ji protecting you" -> translate("di_scene_hanuman_1", language)
+    "Hanuman Ji blessing you" -> translate("di_scene_hanuman_2", language)
+    "Lakshmi Ji blessing you" -> translate("di_scene_lakshmi_1", language)
+    "Lakshmi Ji showering prosperity" -> translate("di_scene_lakshmi_2", language)
+    "Kedarnath Temple" -> translate("di_temple_kedarnath", language)
+    "Akshardham Temple Delhi" -> translate("di_temple_akshardham", language)
+    "Tirupati Balaji Temple" -> translate("di_temple_tirupati", language)
+    "Rameshwaram Temple" -> translate("di_temple_rameshwaram", language)
+    "Kashi Vishwanath Temple" -> translate("di_temple_kashi", language)
+    "Golden Temple Amritsar" -> translate("di_temple_golden", language)
+    "Standing in front of the temple" -> translate("di_tscene_front", language)
+    "Doing aarti" -> translate("di_tscene_aarti", language)
+    "Offering prayers" -> translate("di_tscene_prayer", language)
+    "Walking in temple courtyard" -> translate("di_tscene_courtyard", language)
     else -> value
 }
 
 class DivineImageCreateViewModelFactory(
+    private val languageStore: LanguageStore,
     private val mode: DivineMode,
     private val templateId: String,
     private val templateRepository: DivineTemplateRepository,
@@ -411,7 +424,8 @@ class DivineImageCreateViewModelFactory(
             templateRepository = templateRepository,
             creationRepository = creationRepository,
             generator = generator,
-            entitlementStore = entitlementStore
+            entitlementStore = entitlementStore,
+            languageStore = languageStore
         ) as T
     }
 }

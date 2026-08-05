@@ -716,7 +716,8 @@ fun BhaktiChatApp(
                         templateRepository = appContainer.divineTemplateRepository,
                         creationRepository = appContainer.divineCreationRepository,
                         generator = appContainer.divineImageGenerator,
-                        entitlementStore = entitlementStore
+                        entitlementStore = entitlementStore,
+                        languageStore = appContainer.languageStore
                     )
                 )
                 val uiState by vm.uiState.collectAsStateWithLifecycle()

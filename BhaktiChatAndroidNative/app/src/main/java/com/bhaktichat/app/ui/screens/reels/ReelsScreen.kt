@@ -1,4 +1,8 @@
 package com.bhaktichat.app.ui.screens.reels
+import com.bhaktichat.app.domain.displayTitle
+import com.bhaktichat.app.domain.displayCaption
+import com.bhaktichat.app.domain.displayAudioTitle
+import com.bhaktichat.app.ui.i18n.LocalAppLanguage
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -63,6 +67,7 @@ import androidx.media3.ui.PlayerView
 import com.bhaktichat.app.domain.Reel
 import com.bhaktichat.app.domain.ReelFeed
 import com.bhaktichat.app.ui.components.shell.BhaktiBottomNavBarDefaults
+import com.bhaktichat.app.util.Analytics
 import kotlinx.coroutines.launch
 
 /**
@@ -93,6 +98,7 @@ fun ReelsScreen(
                 val reel = uiState.reels[page]
                 ReelPage(
                     reel = reel,
+                    feed = uiState.feed,
                     isActive = pagerState.currentPage == page,
                     isMuted = isMuted,
                     isLiked = uiState.likedIds.contains(reel.id),
@@ -130,12 +136,12 @@ private fun EmptyState() {
             modifier = Modifier.size(34.dp)
         )
         Text(
-            text = "No reels yet",
+            text = com.bhaktichat.app.ui.i18n.t("reels_no_reels_yet"),
             color = Color.White,
             style = MaterialTheme.typography.titleMedium
         )
         Text(
-            text = "New devotional clips arrive here soon.",
+            text = com.bhaktichat.app.ui.i18n.t("reels_new_clips_soon"),
             color = Color.White.copy(alpha = 0.6f),
             style = MaterialTheme.typography.bodySmall
         )
@@ -154,7 +160,10 @@ private fun FeedSwitcher(
             .padding(horizontal = 14.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        listOf(ReelFeed.TOP to "Top", ReelFeed.AARTIS to "Aartis").forEach { (feed, label) ->
+        listOf(
+            ReelFeed.TOP to com.bhaktichat.app.ui.i18n.t("reels_feed_top"),
+            ReelFeed.AARTIS to com.bhaktichat.app.ui.i18n.t("reels_feed_aartis")
+        ).forEach { (feed, label) ->
             val isSelected = feed == selected
             Text(
                 text = label,
@@ -170,6 +179,7 @@ private fun FeedSwitcher(
 @Composable
 private fun ReelPage(
     reel: Reel,
+    feed: ReelFeed,
     isActive: Boolean,
     isMuted: Boolean,
     isLiked: Boolean,
@@ -202,10 +212,15 @@ private fun ReelPage(
     DisposableEffect(reel.id) {
         onDispose { exoPlayer.release() }
     }
-    LaunchedEffect(isActive) {
-        if (isActive) exoPlayer.play() else exoPlayer.pause()
+    LaunchedEffect(reel.id, isActive) {
+        if (isActive) {
+            exoPlayer.play()
+            Analytics.reelViewed(reel.id, feed.name)
+        } else {
+            exoPlayer.pause()
+        }
     }
-    LaunchedEffect(isMuted) {
+    LaunchedEffect(reel.id, isMuted) {
         exoPlayer.volume = if (isMuted) 0f else 1f
     }
 
@@ -302,7 +317,7 @@ private fun CaptionBlock(reel: Reel, isMuted: Boolean, modifier: Modifier = Modi
         }
         androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(top = 6.dp))
         Text(
-            text = reel.caption,
+            text = reel.displayCaption(LocalAppLanguage.current),
             color = Color.White,
             style = MaterialTheme.typography.bodyMedium,
             maxLines = 3,
@@ -317,7 +332,7 @@ private fun CaptionBlock(reel: Reel, isMuted: Boolean, modifier: Modifier = Modi
                 modifier = Modifier.size(14.dp)
             )
             Text(
-                text = reel.audioTitle,
+                text = reel.displayAudioTitle(LocalAppLanguage.current),
                 color = Color.White.copy(alpha = 0.85f),
                 style = MaterialTheme.typography.labelSmall,
                 maxLines = 1,
@@ -339,6 +354,8 @@ private fun ActionRail(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var isExporting by remember { mutableStateOf(false) }
+    val shareReelTitle = com.bhaktichat.app.ui.i18n.t("reels_share_reel")
+    val setAsStatusTitle = com.bhaktichat.app.ui.i18n.t("reels_set_as_status")
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -346,25 +363,26 @@ private fun ActionRail(
     ) {
         RailButton(
             icon = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-            label = reel.likeCountLabel,
+            label = reel.likeCountLabel(LocalAppLanguage.current),
             tint = if (isLiked) Color(0xFFFF5A5F) else Color.White,
             onClick = onLike
         )
         RailButton(
             icon = if (isSaved) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
-            label = "Save",
+            label = com.bhaktichat.app.ui.i18n.t("reels_save"),
             tint = Color.White,
             onClick = onSave
         )
         RailButton(
             icon = Icons.Filled.Share,
-            label = "Share",
+            label = com.bhaktichat.app.ui.i18n.t("reels_share"),
             tint = Color.White,
             onClick = {
                 if (!isExporting) {
                     isExporting = true
                     scope.launch {
-                        ReelStatusExporter.export(context, reel, chooserTitle = "Share reel")
+                        ReelStatusExporter.export(context, reel, chooserTitle = shareReelTitle)
+                        Analytics.reelShared()
                         isExporting = false
                     }
                 }
@@ -375,13 +393,14 @@ private fun ActionRail(
         if (reel.hasVideoTrack) {
             RailButton(
                 icon = Icons.Filled.AddCircle,
-                label = if (isExporting) "…" else "Status",
+                label = if (isExporting) "…" else com.bhaktichat.app.ui.i18n.t("reels_status"),
                 tint = Color.White,
                 onClick = {
                     if (!isExporting) {
                         isExporting = true
                         scope.launch {
-                            ReelStatusExporter.export(context, reel, chooserTitle = "Set as status")
+                            ReelStatusExporter.export(context, reel, chooserTitle = setAsStatusTitle)
+                            Analytics.reelSetAsStatus()
                             isExporting = false
                         }
                     }
@@ -390,7 +409,7 @@ private fun ActionRail(
         }
         RailButton(
             icon = Icons.Filled.AutoAwesome,
-            label = "Ask",
+            label = com.bhaktichat.app.ui.i18n.t("reels_ask"),
             tint = Color.White,
             accent = true,
             onClick = onAsk

@@ -1047,7 +1047,115 @@ private val table: Map<String, Entry> = mapOf(
     "choghadiya_no_cities_match" to Entry(
         "No cities match your search.", "आपकी खोज से कोई शहर नहीं मिला।", "No cities match your search."
     ),
-    "choghadiya_selected" to Entry("Selected", "चुना गया", "Selected")
+    "choghadiya_selected" to Entry("Selected", "चुना गया", "Selected"),
+
+    // --- Reels (static TOP feed, keyed by slug) ---
+    // Short invocations are transliterated rather than translated: a Hinglish reader
+    // expects "Om Namah Shivaya", not an English gloss of it. Long aarti lyrics are
+    // never touched — those live in assets/aartis.json and stay Devanagari always.
+    "reel_title_jai-shri-ram" to Entry("Jai Shri Ram", "जय श्री राम", "Jai Shri Ram"),
+    "reel_caption_jai-shri-ram" to Entry("Jai Shri Ram. Jab din asthir ho, unka naam aapko sthir rakhe.", "जय श्री राम। जब दिन अस्थिर हो, उनका नाम आपको स्थिर रखे।", "Jai Shri Ram. Jab din asthir ho, unka naam aapko sthir rakhe."),
+    "reel_audio_jai-shri-ram" to Entry("Jai Shri Ram", "जय श्री राम", "Jai Shri Ram"),
+    "reel_title_jo-shri-ram" to Entry("Shri Ram ka naam", "श्री राम का नाम", "Shri Ram ka naam"),
+    "reel_caption_jo-shri-ram" to Entry("Shri Ram ka naam jeevan ki kathinaaiyon se paar lagane ka vishwas deta hai.", "श्री राम का नाम जीवन की कठिनाइयों से पार लगाने का विश्वास देता है।", "Shri Ram ka naam jeevan ki kathinaaiyon se paar lagane ka vishwas deta hai."),
+    "reel_audio_jo-shri-ram" to Entry("Shri Ram ka Naam", "श्री राम का नाम", "Shri Ram ka Naam"),
+    "reel_title_hanuman-ji-animation" to Entry("Hanuman Ji", "हनुमान जी", "Hanuman Ji"),
+    "reel_caption_hanuman-ji-animation" to Entry("Saahas wah bhakti hai jo rukne se inkaar karti hai.", "साहस वह भक्ति है जो रुकने से इनकार करती है।", "Saahas wah bhakti hai jo rukne se inkaar karti hai."),
+    "reel_audio_hanuman-ji-animation" to Entry("Hanuman Chalisa", "हनुमान चालीसा", "Hanuman Chalisa"),
+    "reel_title_trust-him-toxic-bond" to Entry("Jab Mahadev bandhan todein", "जब महादेव बंधन तोड़ें", "Jab Mahadev bandhan todein"),
+    "reel_caption_trust-him-toxic-bond" to Entry("Jab Mahadev koi haanikarak bandhan todein, bharosa rakhiye ki usmein bhi aapka kalyaan hai.", "जब महादेव कोई हानिकारक बंधन तोड़ें, भरोसा रखिए कि उसमें भी आपका कल्याण है।", "Jab Mahadev koi haanikarak bandhan todein, bharosa rakhiye ki usmein bhi aapka kalyaan hai."),
+    "reel_audio_trust-him-toxic-bond" to Entry("Mahadev · Original audio", "महादेव · मूल ध्वनि", "Mahadev · Original audio"),
+    "reel_title_mahadev-ego-prayer" to Entry("Prarthana ansuni kyun reh gayi?", "प्रार्थना अनसुनी क्यों रह गई?", "Prarthana ansuni kyun reh gayi?"),
+    "reel_caption_mahadev-ego-prayer" to Entry("Aapne shanti maangi, par ahankaar thaame rakha. Mahadev aapke banaye khaali sthaan ki prateeksha karte hain.", "आपने शांति माँगी, पर अहंकार थामे रखा। महादेव आपके बनाए खाली स्थान की प्रतीक्षा करते हैं।", "Aapne shanti maangi, par ahankaar thaame rakha. Mahadev aapke banaye khaali sthaan ki prateeksha karte hain."),
+    "reel_audio_mahadev-ego-prayer" to Entry("Mahadev · Original audio", "महादेव · मूल ध्वनि", "Mahadev · Original audio"),
+    "reel_title_emptiness-he-is-waiting" to Entry("Jahan Mahadev prateeksha karte hain", "जहाँ महादेव प्रतीक्षा करते हैं", "Jahan Mahadev prateeksha karte hain"),
+    "reel_caption_emptiness-he-is-waiting" to Entry("Kabhi-kabhi jis khaalipan se aap bach rahe hote hain, wahin ve aapki prateeksha kar rahe hote hain.", "कभी-कभी जिस खालीपन से आप बच रहे होते हैं, वहीं वे आपकी प्रतीक्षा कर रहे होते हैं।", "Kabhi-kabhi jis khaalipan se aap bach rahe hote hain, wahin ve aapki prateeksha kar rahe hote hain."),
+    "reel_audio_emptiness-he-is-waiting" to Entry("Mahadev · Original audio", "महादेव · मूल ध्वनि", "Mahadev · Original audio"),
+    "reel_title_sukoon-kisi-apne-ke-saath" to Entry("Sukoon", "सुकून", "Sukoon"),
+    "reel_caption_sukoon-kisi-apne-ke-saath" to Entry("Kabhi-kabhi sukoon kisi jagah mein nahi, kisi apne ke saath milta hai.", "कभी-कभी सुकून किसी जगह में नहीं, किसी अपने के साथ मिलता है।", "Kabhi-kabhi sukoon kisi jagah mein nahi, kisi apne ke saath milta hai."),
+    "reel_audio_sukoon-kisi-apne-ke-saath" to Entry("Har Har Mahadev", "हर हर महादेव", "Har Har Mahadev"),
+    "reel_title_mahadev-darshan" to Entry("Mahadev darshan", "महादेव दर्शन", "Mahadev darshan"),
+    "reel_caption_mahadev-darshan" to Entry("Har Har Mahadev. Kuch pal ki sthirta aapke liye.", "हर हर महादेव। कुछ पल की स्थिरता आपके लिए।", "Har Har Mahadev. Kuch pal ki sthirta aapke liye."),
+    "reel_audio_mahadev-darshan" to Entry("Om Namah Shivaya", "ॐ नमः शिवाय", "Om Namah Shivaya"),
+    "reel_title_stare-five-seconds-krishna" to Entry("Kya aapne unhein dekha?", "क्या आपने उन्हें देखा?", "Kya aapne unhein dekha?"),
+    "reel_caption_stare-five-seconds-krishna" to Entry("Paanch kshan dekhiye, phir aankhein band kijiye. Kabhi-kabhi Krishna dikhai nahi dete, bheetar anubhav hote hain.", "पाँच क्षण देखिए, फिर आँखें बंद कीजिए। कभी-कभी कृष्ण दिखाई नहीं देते, भीतर अनुभव होते हैं।", "Paanch kshan dekhiye, phir aankhein band kijiye. Kabhi-kabhi Krishna dikhai nahi dete, bheetar anubhav hote hain."),
+    "reel_audio_stare-five-seconds-krishna" to Entry("Hare Krishna · Original audio", "हरे कृष्ण · मूल ध्वनि", "Hare Krishna · Original audio"),
+    "reel_title_mahadev-sabko-bhula" to Entry("Sabko bhulakar", "सबको भुलाकर", "Sabko bhulakar"),
+    "reel_caption_mahadev-sabko-bhula" to Entry("Sabko bhulakar, swayam mein doob jaana — Mahadev ki sthirta yahin se shuru hoti hai.", "सबको भुलाकर, स्वयं में डूब जाना — महादेव की स्थिरता यहीं से शुरू होती है।", "Sabko bhulakar, swayam mein doob jaana — Mahadev ki sthirta yahin se shuru hoti hai."),
+    "reel_audio_mahadev-sabko-bhula" to Entry("Mahadev · Original audio", "महादेव · मूल ध्वनि", "Mahadev · Original audio"),
+    "reel_title_yadi-tumne-varsho-tak-mehnat" to Entry("Varshon ki mehnat", "वर्षों की मेहनत", "Varshon ki mehnat"),
+    "reel_caption_yadi-tumne-varsho-tak-mehnat" to Entry("Yadi tumne varshon tak mehnat ki hai — Hanuman Ji yaad dilate hain ki wah kabhi vyarth nahi gayi.", "यदि तुमने वर्षों तक मेहनत की है — हनुमान जी याद दिलाते हैं कि वह कभी व्यर्थ नहीं गई।", "Yadi tumne varshon tak mehnat ki hai — Hanuman Ji yaad dilate hain ki wah kabhi vyarth nahi gayi."),
+    "reel_audio_yadi-tumne-varsho-tak-mehnat" to Entry("Hanuman Ji · Original audio", "हनुमान जी · मूल ध्वनि", "Hanuman Ji · Original audio"),
+    "reel_title_jo-sadaiv-uska-dhyan-rakhta-hai" to Entry("Mahadev sada saath hain", "महादेव सदा साथ हैं", "Mahadev sada saath hain"),
+    "reel_caption_jo-sadaiv-uska-dhyan-rakhta-hai" to Entry("Jo sadaiv Mahadev ka dhyaan karta hai, Mahadev bhi sada uski raksha karte hain.", "जो सदैव महादेव का ध्यान करता है, महादेव भी सदा उसकी रक्षा करते हैं।", "Jo sadaiv Mahadev ka dhyaan karta hai, Mahadev bhi sada uski raksha karte hain."),
+    "reel_audio_jo-sadaiv-uska-dhyan-rakhta-hai" to Entry("Om Namah Shivaya", "ॐ नमः शिवाय", "Om Namah Shivaya"),
+    "reel_title_krishna-moonlight-darshan" to Entry("Chandni mein Krishna", "चाँदनी में कृष्ण", "Chandni mein Krishna"),
+    "reel_caption_krishna-moonlight-darshan" to Entry("Krishna ke saath chandni ka ek shaant pal.", "कृष्ण के साथ चाँदनी का एक शांत पल।", "Krishna ke saath chandni ka ek shaant pal."),
+    "reel_audio_krishna-moonlight-darshan" to Entry("Hare Krishna · Original audio", "हरे कृष्ण · मूल ध्वनि", "Hare Krishna · Original audio"),
+    "reel_title_mahadev-nandi-sunset" to Entry("Mahadev aur Nandi", "महादेव और नंदी", "Mahadev aur Nandi"),
+    "reel_caption_mahadev-nandi-sunset" to Entry("Mahadev aur Nandi ke saannidhya ka ek shaant pal.", "महादेव और नंदी के सान्निध्य का एक शांत पल।", "Mahadev aur Nandi ke saannidhya ka ek shaant pal."),
+    "reel_audio_mahadev-nandi-sunset" to Entry("Om Namah Shivaya", "ॐ नमः शिवाय", "Om Namah Shivaya"),
+    "reel_title_ram-hanuman-sanyam-mein-jeete" to Entry("Sanyam ki shakti", "संयम की शक्ति", "Sanyam ki shakti"),
+    "reel_caption_ram-hanuman-sanyam-mein-jeete" to Entry("Shri Ram ne keval shakti se nahi, sanyam se bhi vijay paayi.", "श्री राम ने केवल शक्ति से नहीं, संयम से भी विजय पाई।", "Shri Ram ne keval shakti se nahi, sanyam se bhi vijay paayi."),
+    "reel_audio_ram-hanuman-sanyam-mein-jeete" to Entry("Ram · Original audio", "राम · मूल ध्वनि", "Ram · Original audio"),
+    "reel_title_bal-katha-vachak-ram" to Entry("Baal katha", "बाल कथा", "Baal katha"),
+    "reel_caption_bal-katha-vachak-ram" to Entry("Aastha umar nahi dekhti — baalak ki vaani mein Ram katha bhi mann ko chhoo jaati hai.", "आस्था उम्र नहीं देखती—बालक की वाणी में राम कथा भी मन को छू जाती है।", "Aastha umar nahi dekhti — baalak ki vaani mein Ram katha bhi mann ko chhoo jaati hai."),
+    "reel_audio_bal-katha-vachak-ram" to Entry("Ram Katha · Original audio", "राम कथा · मूल ध्वनि", "Ram Katha · Original audio"),
+    "reel_title_mahadev-updesh-waterfall" to Entry("Mahadev ki seekh", "महादेव की सीख", "Mahadev ki seekh"),
+    "reel_caption_mahadev-updesh-waterfall" to Entry("Jharne ke paas ve us prashn ka uttar dete hain jise poochhne se aap dar rahe the.", "झरने के पास वे उस प्रश्न का उत्तर देते हैं जिसे पूछने से आप डर रहे थे।", "Jharne ke paas ve us prashn ka uttar dete hain jise poochhne se aap dar rahe the."),
+    "reel_audio_mahadev-updesh-waterfall" to Entry("Mahadev · Original audio", "महादेव · मूल ध्वनि", "Mahadev · Original audio"),
+    "reel_title_hanuman-ji-tejas-portrait" to Entry("Hanuman Ji", "हनुमान जी", "Hanuman Ji"),
+    "reel_caption_hanuman-ji-tejas-portrait" to Entry("Aisi shakti, jise shabdon ki aavashyakta nahi.", "ऐसी शक्ति, जिसे शब्दों की आवश्यकता नहीं।", "Aisi shakti, jise shabdon ki aavashyakta nahi."),
+    "reel_audio_hanuman-ji-tejas-portrait" to Entry("Hanuman Chalisa", "हनुमान चालीसा", "Hanuman Chalisa"),
+    "reel_title_hanuman-ashirwad-modern-life" to Entry("Unka ashirwad, aapka din", "उनका आशीर्वाद, आपका दिन", "Unka ashirwad, aapka din"),
+    "reel_caption_hanuman-ashirwad-modern-life" to Entry("Aapke haath mein phone ho, phir bhi unka ashirwad aapke saath hai.", "आपके हाथ में फ़ोन हो, फिर भी उनका आशीर्वाद आपके साथ है।", "Aapke haath mein phone ho, phir bhi unka ashirwad aapke saath hai."),
+    "reel_audio_hanuman-ashirwad-modern-life" to Entry("Hanuman Ji · Original audio", "हनुमान जी · मूल ध्वनि", "Hanuman Ji · Original audio"),
+    "reel_title_suljhao-bhagwan-hanuman" to Entry("Meri uljhan suljhaiye", "मेरी उलझन सुलझाइए", "Meri uljhan suljhaiye"),
+    "reel_caption_suljhao-bhagwan-hanuman" to Entry("Kuch raaton mein mann bas yahi prarthana karta hai — He Bhagwan, meri uljhan suljha dijiye.", "कुछ रातों में मन बस यही प्रार्थना करता है—हे भगवान, मेरी उलझन सुलझा दीजिए।", "Kuch raaton mein mann bas yahi prarthana karta hai — He Bhagwan, meri uljhan suljha dijiye."),
+    "reel_audio_suljhao-bhagwan-hanuman" to Entry("Sitaram · Original audio", "सीताराम · मूल ध्वनि", "Sitaram · Original audio"),
+    "reel_title_krishna-meri-baat-sun-lena" to Entry("Krishna, meri baat sun lena", "कृष्ण, मेरी बात सुन लेना", "Krishna, meri baat sun lena"),
+    "reel_caption_krishna-meri-baat-sun-lena" to Entry("Jo baat kisi aur se nahi keh sakte, wah Krishna se keh dijiye.", "जो बात किसी और से नहीं कह सकते, वह कृष्ण से कह दीजिए।", "Jo baat kisi aur se nahi keh sakte, wah Krishna se keh dijiye."),
+    "reel_audio_krishna-meri-baat-sun-lena" to Entry("Krishna · Original audio", "कृष्ण · मूल ध्वनि", "Krishna · Original audio"),
+    "reel_title_shabari-ram-charo-dham" to Entry("Shabari ke ber", "शबरी के बेर", "Shabari ke ber"),
+    "reel_caption_shabari-ram-charo-dham" to Entry("Bhakti ka poorn hona aavashyak nahi — uska prem se arpit hona hi paryapt hai.", "भक्ति का पूर्ण होना आवश्यक नहीं—उसका प्रेम से अर्पित होना ही पर्याप्त है।", "Bhakti ka poorn hona aavashyak nahi — uska prem se arpit hona hi paryapt hai."),
+    "reel_audio_shabari-ram-charo-dham" to Entry("Ram · Original audio", "राम · मूल ध्वनि", "Ram · Original audio"),
+
+    // --- Profile / Settings ---
+    "language" to Entry("Language", "भाषा", "Language"),
+    "language_subtitle" to Entry(
+        "Choose the language for the app.",
+        "ऐप की भाषा चुनें।",
+        "Choose the language for the app."
+    ),
+    "profile_member" to Entry("BhaktiChat member", "BhaktiChat सदस्य", "BhaktiChat member"),
+    "profile_sign_out" to Entry("Sign out", "साइन आउट", "Sign out"),
+    "profile_delete_account" to Entry("Delete account", "अकाउंट हटाएँ", "Delete account"),
+    "profile_manage_membership" to Entry("Manage membership", "सदस्यता प्रबंधित करें", "Manage membership"),
+    "profile_delete_confirm_title" to Entry(
+        "Delete account permanently?",
+        "अकाउंट हमेशा के लिए हटाएँ?",
+        "Delete account permanently?"
+    ),
+    "profile_delete_confirm_body" to Entry(
+        "Your conversations, saved items and BhaktiChat account data will be permanently deleted. Your Google account will not be deleted.",
+        "आपकी बातचीत, सेव की गई जानकारी और BhaktiChat अकाउंट डेटा स्थायी रूप से हटा दिया जाएगा। आपका Google अकाउंट नहीं हटेगा।",
+        "Your conversations, saved items and BhaktiChat account data will be permanently deleted. Your Google account will not be deleted."
+    ),
+    "profile_delete_cancel_sub_first" to Entry(
+        "Cancel your active membership before deleting the account.",
+        "अकाउंट हटाने से पहले अपनी सक्रिय सदस्यता रद्द करें।",
+        "Cancel your active membership before deleting the account."
+    ),
+    "profile_delete_failed" to Entry(
+        "Account could not be deleted. Please try again.",
+        "अकाउंट अभी नहीं हट सका। कृपया फिर से प्रयास करें।",
+        "Account could not be deleted. Please try again."
+    ),
+    "profile_deleting" to Entry("Deleting…", "हटाया जा रहा है…", "Deleting…"),
+    "profile_delete_yes" to Entry("Yes, delete", "हाँ, हटाएँ", "Yes, delete"),
+    "profile_cancel" to Entry("Cancel", "रद्द करें", "Cancel"),
+    "reel_like_lakh" to Entry("Lakh", "लाख", "Lakh"),
+    "reel_like_thousand" to Entry("Hazaar", "हज़ार", "Thousand"),
 )
 
 /** Tone word for the current Choghadiya period — kept separate since it's composed with a
@@ -1055,17 +1163,42 @@ private val table: Map<String, Entry> = mapOf(
 private val toneWords: Map<String, Entry> = mapOf(
     "auspicious" to Entry("auspicious", "शुभ", "auspicious"),
     "neutral" to Entry("neutral", "सामान्य", "neutral"),
-    "caution" to Entry("caution", "सावधानी", "caution")
+    "caution" to Entry("caution", "सावधानी", "caution"),
+    "tone_neutral_fallback" to Entry("neutral", "सामान्य", "neutral")
 )
 
+private fun Entry.forLanguage(language: AppLanguage): String = when (language) {
+    AppLanguage.HINDI -> hindi
+    AppLanguage.HINGLISH -> hinglish
+    AppLanguage.ENGLISH -> english
+}
+
+/**
+ * Resolves a key outside composition — for repositories, ViewModels and anything else that
+ * can't call [t]. Read the language from `AppContainer.languageStore.language.value`.
+ *
+ * Falls back to Hinglish, then Hindi, then the key itself: a missing translation should
+ * degrade to *something* readable rather than rendering an error string as if it were copy.
+ */
+fun translate(key: String, language: AppLanguage): String {
+    val entry = table[key] ?: return key
+    return entry.forLanguage(language)
+        .ifBlank { entry.hinglish }
+        .ifBlank { entry.hindi }
+        .ifBlank { key }
+}
+
+fun translateTone(key: String, language: AppLanguage): String =
+    toneWords[key]?.forLanguage(language) ?: translate("tone_neutral_fallback", language)
+
+/**
+ * The in-composition translator. Reads [LocalAppLanguage], so every call site recomposes
+ * automatically when the user switches language — no restart, no manual invalidation.
+ */
 @Composable
 @ReadOnlyComposable
-fun t(key: String): String {
-    return table[key]?.hindi ?: "अनुवाद उपलब्ध नहीं"
-}
+fun t(key: String): String = translate(key, LocalAppLanguage.current)
 
 @Composable
 @ReadOnlyComposable
-fun tTone(key: String): String {
-    return toneWords[key]?.hindi ?: "सामान्य"
-}
+fun tTone(key: String): String = translateTone(key, LocalAppLanguage.current)

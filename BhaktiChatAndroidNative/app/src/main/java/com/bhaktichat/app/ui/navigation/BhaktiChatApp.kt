@@ -92,11 +92,28 @@ fun BhaktiChatApp(
 ) {
     val context = LocalContext.current
 
-    val language = com.bhaktichat.app.domain.AppLanguage.HINDI
+    // Server of record for the interface language. Collected as state so that changing it
+    // recomposes every t() call site in the tree at once — no restart, no re-navigation.
+    val language by appContainer.languageStore.language.collectAsStateWithLifecycle()
 
     androidx.compose.runtime.CompositionLocalProvider(
         com.bhaktichat.app.ui.i18n.LocalAppLanguage provides language
     ) {
+
+    // Asked once, on first launch after sign-in — including for existing users, who have
+    // been on Hindi by fiat until now and have never been offered the choice.
+    var languageChosen by rememberSaveable {
+        mutableStateOf(appContainer.languageStore.hasChosenLanguage)
+    }
+    if (!languageChosen) {
+        com.bhaktichat.app.ui.components.language.LanguagePickerSheet(
+            current = null,
+            onSelect = { picked ->
+                appContainer.languageStore.setLanguage(picked)
+                languageChosen = true
+            }
+        )
+    }
 
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()

@@ -451,6 +451,9 @@ object ChatTurnProcessor {
         currentState: ChatConversationState,
         remoteConversationId: String?,
         chatApiClient: ChatApiClient,
+        // Sign-in is mandatory now, so the guide can address the user by name. Blank falls
+        // back to AddressingEngine's devotional tokens (priye / vatsa / karmayogi).
+        userFirstName: String = "",
         onToken: (suspend (String) -> Unit)? = null
     ): Result<ChatTurnProcessorResult> {
         val previousAssistantMessage = messages
@@ -464,8 +467,8 @@ object ChatTurnProcessor {
 
         val messageContext = AddressingEngine.buildMessageContext(
             guideId = guide.id,
-            isAuthenticated = false,
-            firstName = "",
+            isAuthenticated = userFirstName.isNotBlank(),
+            firstName = userFirstName,
             userMessage = messageText,
             previousAssistantMessage = previousAssistantMessage,
             recentUserMessages = recentUserMessages

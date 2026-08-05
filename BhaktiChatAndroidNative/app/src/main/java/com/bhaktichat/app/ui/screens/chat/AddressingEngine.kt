@@ -110,7 +110,11 @@ object AddressingEngine {
         language: ConversationLanguage
     ): String? {
         val cleanedName = firstName.trim()
-        if (language != ConversationLanguage.HINDI && isAuthenticated && cleanedName.isNotBlank()) {
+        // The name is used in every language, Hindi included. This previously excluded
+        // Hindi in favour of the devotional tokens below, but sign-in is mandatory now and
+        // being addressed by name reads warmly in Devanagari too ("अनीश, आज मन क्या कह रहा
+        // है?"). The tokens remain the fallback when there is no name to use.
+        if (isAuthenticated && cleanedName.isNotBlank()) {
             return cleanedName.substringBefore(' ').trim()
         }
 

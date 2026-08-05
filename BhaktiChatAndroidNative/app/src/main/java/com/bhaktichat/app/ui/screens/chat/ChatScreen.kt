@@ -1,4 +1,5 @@
 package com.bhaktichat.app.ui.screens.chat
+import com.bhaktichat.app.ui.i18n.t
 import com.bhaktichat.app.ui.i18n.LocalAppLanguage
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -143,7 +144,7 @@ fun ChatScreen(
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "गुरु उपलब्ध हैं",
+                                text = t("chat_guru_available"),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -152,18 +153,18 @@ fun ChatScreen(
                 },
                 actions = {
                     IconButton(onClick = { menuExpanded = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = "अधिक विकल्प")
+                        Icon(Icons.Filled.MoreVert, contentDescription = t("chat_more_options"))
                     }
                     DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                         DropdownMenuItem(
-                            text = { Text("गुरु बदलें") },
+                            text = { Text(t("chat_change_guru")) },
                             onClick = {
                                 menuExpanded = false
                                 onSwitchGuide()
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("नई बातचीत") },
+                            text = { Text(t("chat_new")) },
                             onClick = {
                                 menuExpanded = false
                                 onNewChat()
@@ -177,7 +178,7 @@ fun ChatScreen(
         floatingActionButton = {
             if (uiState.messages.isNotEmpty()) {
                 SmallFloatingActionButton(onClick = onNewChat) {
-                    Icon(Icons.Filled.AddComment, contentDescription = "नई बातचीत शुरू करें")
+                    Icon(Icons.Filled.AddComment, contentDescription = t("chat_start_new"))
                 }
             }
         },
@@ -214,7 +215,7 @@ fun ChatScreen(
                             .weight(1f)
                             .heightIn(min = 48.dp)
                             .focusRequester(focusRequester),
-                        placeholder = { Text("अपने मन की बात लिखें...") },
+                        placeholder = { Text(t("chat_share_mind")) },
                         maxLines = 4,
                         singleLine = false,
                         shape = RoundedCornerShape(24.dp),
@@ -235,7 +236,7 @@ fun ChatScreen(
                             .padding(start = 8.dp)
                             .size(48.dp)
                         ) {
-                        Icon(Icons.Filled.Send, contentDescription = "भेजें")
+                        Icon(Icons.Filled.Send, contentDescription = t("chat_send"))
                     }
                 }
             }
@@ -366,14 +367,14 @@ private fun FollowUpList(onSelectPrompt: (String) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
-            text = "यह भी पूछें",
+            text = t("chat_ask_also"),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         listOf(
-            "गीता की कथा से समझाइए",
-            "मुझे एक व्यावहारिक कदम बताइए",
-            "आज के लिए छोटा मंत्र बताइए"
+            t("chat_chip_gita"),
+            t("chat_chip_step"),
+            t("chat_chip_mantra")
         ).forEach { prompt ->
             Surface(
                 shape = RoundedCornerShape(14.dp),

@@ -43,7 +43,8 @@ class ChatThreadViewModel(
     private val messagesRepository: MessagesRepository,
     private val chatApiClient: ChatApiClient,
     private val entitlementStore: EntitlementStore,
-    private val reviewPromptStore: ReviewPromptStore
+    private val reviewPromptStore: ReviewPromptStore,
+    private val userFirstName: String = ""
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ThreadUiState())
     val uiState: StateFlow<ThreadUiState> = _uiState.asStateFlow()
@@ -138,6 +139,7 @@ class ChatThreadViewModel(
                     currentState = conversationState,
                     remoteConversationId = remoteConversationId,
                     chatApiClient = chatApiClient,
+                    userFirstName = userFirstName,
                     // Stream tokens straight into the assistant bubble as they arrive so
                     // the reply feels live instead of appearing all at once.
                     onToken = { streamed ->
@@ -232,7 +234,8 @@ class ChatThreadViewModelFactory(
     private val messagesRepository: MessagesRepository,
     private val chatApiClient: ChatApiClient,
     private val entitlementStore: EntitlementStore,
-    private val reviewPromptStore: ReviewPromptStore
+    private val reviewPromptStore: ReviewPromptStore,
+    private val userFirstName: String = ""
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -243,7 +246,8 @@ class ChatThreadViewModelFactory(
             messagesRepository = messagesRepository,
             chatApiClient = chatApiClient,
             entitlementStore = entitlementStore,
-            reviewPromptStore = reviewPromptStore
+            reviewPromptStore = reviewPromptStore,
+            userFirstName = userFirstName
         ) as T
     }
 }

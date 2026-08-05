@@ -1,4 +1,7 @@
 package com.bhaktichat.app.ui.navigation
+import com.bhaktichat.app.domain.displayTitle
+import com.bhaktichat.app.domain.displayCaption
+import com.bhaktichat.app.ui.i18n.t
 
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -115,6 +118,11 @@ fun BhaktiChatApp(
         )
     }
 
+    // Resolved in composition — used below inside coroutines/lambdas.
+    val thinkingFallback = t("chat_thinking_fallback")
+    val reelAskPrefix = t("reel_ask_prefix")
+    val reelAskMeaning = t("reel_ask_meaning")
+
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val route = backStack?.destination?.route.orEmpty()
@@ -216,7 +224,7 @@ fun BhaktiChatApp(
                         threadId = thread.id,
                         guideId = guide.id,
                         role = ChatRole.ASSISTANT.wire,
-                        content = guide.openingScene(com.bhaktichat.app.domain.AppLanguage.HINDI),
+                        content = guide.openingScene(language),
                         createdAt = now,
                         status = MessageStatus.SENT.name
                     )
@@ -270,6 +278,7 @@ fun BhaktiChatApp(
                     currentState = ChatConversationState(),
                     remoteConversationId = null,
                     chatApiClient = appContainer.chatApiClient,
+                        userFirstName = currentUser.name.orEmpty(),
                     onToken = { streamed ->
                         appContainer.messagesRepository.replaceTypingWithResponse(typingId, streamed)
                     }
@@ -282,7 +291,7 @@ fun BhaktiChatApp(
                     return@launch
                 }
                 val response = sendResult.getOrNull()?.replyText
-                    ?: "मैं आपके प्रश्न पर विचार कर रहा हूँ। कृपया कुछ क्षण बाद फिर प्रयास करें।"
+                    ?: thinkingFallback
                 appContainer.messagesRepository.replaceTypingWithResponse(typingId, response)
                 val updatedAt = System.currentTimeMillis()
                 appContainer.threadsRepository.touchThread(thread.id, updatedAt)
@@ -321,7 +330,7 @@ fun BhaktiChatApp(
                     threadId = thread.id,
                     guideId = guide.id,
                     role = ChatRole.ASSISTANT.wire,
-                    content = guide.openingScene(com.bhaktichat.app.domain.AppLanguage.HINDI),
+                    content = guide.openingScene(language),
                     createdAt = now,
                     status = MessageStatus.SENT.name
                 )
@@ -436,7 +445,7 @@ fun BhaktiChatApp(
                     aartiRepository = appContainer.aartiRepository,
                     choghadiyaRepository = appContainer.choghadiyaRepository,
                     aartiPlayerState = aartiPlayerState,
-                    userName = "",
+                    userName = currentUser.name.orEmpty(),
                     streak = streak,
                     onOpenStreak = { showStreakDetails = true },
                     isPro = isPro
@@ -498,7 +507,8 @@ fun BhaktiChatApp(
                         messagesRepository = appContainer.messagesRepository,
                         chatApiClient = appContainer.chatApiClient,
                         entitlementStore = entitlementStore,
-                        reviewPromptStore = appContainer.reviewPromptStore
+                        reviewPromptStore = appContainer.reviewPromptStore,
+                        userFirstName = currentUser.name.orEmpty()
                     )
                 )
                 val uiState by vm.uiState.collectAsStateWithLifecycle()
@@ -589,8 +599,11 @@ fun BhaktiChatApp(
                         initialReelId = requestedReelId
                     ),
                     onAskAbout = { reel ->
-                        val prompt = "मैंने अभी एक रील देखी — \"${reel.title}\"। ${reel.caption}\n\n" +
-                            "इसका मेरे जीवन में क्या अर्थ है?"
+                        // displayTitle/displayCaption, not the raw fields: static reels
+                        // carry no literals any more and resolve from their slug.
+                        val prompt = reelAskPrefix +
+                            "\"${reel.displayTitle(language)}\". ${reel.displayCaption(language)}\n\n" +
+                            reelAskMeaning
                         launchThread(guideId = reel.deityId, initialPrompt = prompt, includeOpener = false)
                     }
                 )
@@ -907,20 +920,20 @@ fun BhaktiChatApp(
 private fun ReviewPromptDialog(onEnjoying: () -> Unit, onNotNow: () -> Unit) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onNotNow,
-        title = { androidx.compose.material3.Text("क्या आपको BhaktiChat पसंद आ रहा है? 🙏") },
+        title = { androidx.compose.material3.Text(t("review_title")) },
         text = {
             androidx.compose.material3.Text(
-                "यदि BhaktiChat आपके लिए सहायक रहा है, तो आपकी छोटी-सी रेटिंग अन्य साधकों को भी इसे खोजने में मदद करेगी।"
+                t("review_body")
             )
         },
         confirmButton = {
             androidx.compose.material3.TextButton(onClick = onEnjoying) {
-                androidx.compose.material3.Text("हाँ, बहुत पसंद है!")
+                androidx.compose.material3.Text(t("review_yes"))
             }
         },
         dismissButton = {
             androidx.compose.material3.TextButton(onClick = onNotNow) {
-                androidx.compose.material3.Text("अभी नहीं")
+                androidx.compose.material3.Text(t("common_not_now"))
             }
         }
     )
@@ -942,7 +955,7 @@ private fun StreakDetailDialog(
         },
         title = {
             androidx.compose.material3.Text(
-                text = "आपकी दर्शन श्रृंखला",
+                text = t("streak_title"),
                 style = androidx.compose.material3.MaterialTheme.typography.headlineSmall
             )
         },
@@ -968,12 +981,12 @@ private fun StreakDetailDialog(
                             .padding(16.dp),
                         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceAround
                     ) {
-                        StreakMetric(value = currentStreak, label = "अभी")
-                        StreakMetric(value = longestStreak, label = "सर्वश्रेष्ठ")
+                        StreakMetric(value = currentStreak, label = t("streak_now"))
+                        StreakMetric(value = longestStreak, label = t("streak_best"))
                     }
                 }
                 androidx.compose.material3.Text(
-                    text = "अपनी श्रृंखला बनाए रखने के लिए रोज़ दर्शन करें।",
+                    text = t("streak_sub"),
                     style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
                     color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -981,7 +994,7 @@ private fun StreakDetailDialog(
         },
         confirmButton = {
             androidx.compose.material3.TextButton(onClick = onDismiss) {
-                androidx.compose.material3.Text("ठीक है")
+                androidx.compose.material3.Text(t("common_ok"))
             }
         }
     )

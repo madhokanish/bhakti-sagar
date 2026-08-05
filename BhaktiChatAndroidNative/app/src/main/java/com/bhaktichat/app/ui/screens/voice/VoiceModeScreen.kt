@@ -1,4 +1,5 @@
 package com.bhaktichat.app.ui.screens.voice
+import com.bhaktichat.app.ui.i18n.t
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -57,6 +58,7 @@ fun VoiceModeScreen(
     viewModel: VoiceConversationViewModel,
     onBack: () -> Unit
 ) {
+    val micRequiredMessage = t("voice_mic_required")
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
@@ -66,7 +68,7 @@ fun VoiceModeScreen(
         if (granted) {
             viewModel.start()
         } else {
-            Toast.makeText(context, "आवाज़ से बातचीत के लिए माइक्रोफ़ोन की अनुमति आवश्यक है", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, micRequiredMessage, Toast.LENGTH_SHORT).show()
             onBack()
         }
     }
@@ -183,7 +185,7 @@ fun VoiceModeScreen(
                 (uiState.callState is VoiceCallState.Listening || uiState.callState is VoiceCallState.UserSpeaking)
             ) {
                 Text(
-                    text = "▶ परीक्षण आवाज़ चलाएँ",
+                    text = t("voice_test_play"),
                     fontSize = 13.sp,
                     color = VoiceModePalette.TextSecondary,
                     modifier = Modifier
@@ -212,7 +214,7 @@ fun VoiceModeScreen(
             ) {
                 Icon(
                     imageVector = Icons.Filled.CallEnd,
-                    contentDescription = "आवाज़ वाली बातचीत समाप्त करें",
+                    contentDescription = t("voice_end_call"),
                     tint = Color.White
                 )
             }
@@ -286,15 +288,16 @@ private fun GuidePortrait(imageRes: Int, callState: VoiceCallState) {
     }
 }
 
+@Composable
 private fun callStateLabel(state: VoiceCallState): String = when (state) {
-    is VoiceCallState.Idle -> "शुरू हो रहा है..."
-    is VoiceCallState.Connecting -> "जुड़ रहा है..."
-    is VoiceCallState.Listening -> "सुन रहे हैं"
-    is VoiceCallState.UserSpeaking -> "सुन रहे हैं..."
-    is VoiceCallState.Thinking -> "विचार कर रहे हैं..."
-    is VoiceCallState.GuideSpeaking -> "बोल रहे हैं"
-    is VoiceCallState.Error -> "कुछ गड़बड़ हुई"
-    is VoiceCallState.Ended -> "बातचीत समाप्त हुई"
+    is VoiceCallState.Idle -> t("voice_starting")
+    is VoiceCallState.Connecting -> t("voice_connecting")
+    is VoiceCallState.Listening -> t("voice_listening")
+    is VoiceCallState.UserSpeaking -> t("voice_listening_dots")
+    is VoiceCallState.Thinking -> t("voice_thinking")
+    is VoiceCallState.GuideSpeaking -> t("voice_speaking")
+    is VoiceCallState.Error -> t("voice_error")
+    is VoiceCallState.Ended -> t("voice_ended")
 }
 
 private object VoiceModePalette {

@@ -248,9 +248,9 @@ private fun OfferState(
             Spacer(Modifier.height(14.dp))
             PriceCard(compact = blockedBy != null)
             Spacer(Modifier.height(18.dp))
-            BillingTimeline()
-            Spacer(Modifier.height(18.dp))
             Benefits(blockedBy = blockedBy)
+            Spacer(Modifier.height(18.dp))
+            BillingTimeline()
             Spacer(Modifier.height(18.dp))
             PolicyBlock()
 
@@ -273,12 +273,10 @@ private fun OfferState(
 }
 
 /**
- * Looping, muted hero clip.
- *
- * Muted deliberately — this is decoration, and the app plays aarti audio elsewhere that
- * an autoplaying soundtrack would fight with. Playback follows the lifecycle so it stops
- * when the screen is backgrounded rather than burning battery behind a lock screen, and
- * the player is released on dispose.
+ * Looping hero clip of someone speaking to camera — the audio carries the pitch, so it
+ * plays with sound. Playback follows the lifecycle so it stops when the screen is
+ * backgrounded rather than burning battery behind a lock screen, and the player is
+ * released on dispose.
  */
 @Composable
 private fun HeroVideo(modifier: Modifier = Modifier) {
@@ -302,7 +300,7 @@ private fun HeroVideo(modifier: Modifier = Modifier) {
             val uri = RawResourceDataSource.buildRawResourceUri(R.raw.chadhaava_hero)
             setMediaItems(List(10) { MediaItem.fromUri(uri) })
             repeatMode = Player.REPEAT_MODE_ALL
-            volume = 0f
+            volume = 1f
             playWhenReady = true
             prepare()
         }

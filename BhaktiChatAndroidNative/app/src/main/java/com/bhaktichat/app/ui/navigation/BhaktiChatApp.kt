@@ -433,7 +433,10 @@ fun BhaktiChatApp(
                                     startId = aartiId,
                                     startPositionMillis = startPositionMillis
                                 )
-                                navController.navigate(NavDestinations.AARTIS)
+                                // Straight to the now-playing screen for this aarti, not the
+                                // list it lives in — the list is one more tap the user already
+                                // told us which track they want.
+                                appContainer.aartiPlayerController.expandFullScreen()
                             }
                         }
                     },

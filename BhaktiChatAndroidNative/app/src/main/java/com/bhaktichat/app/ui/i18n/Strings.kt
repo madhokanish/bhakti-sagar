@@ -113,14 +113,14 @@ private val table: Map<String, Entry> = mapOf(
         "What you get"
     ),
     "chadhaava_benefit_voice" to Entry(
-        "Bhagwan se aawaz mein baat",
-        "भगवान से आवाज़ में बात",
-        "Speak with the deities"
+        "Phone jaisi baatcheet",
+        "फ़ोन जैसी बातचीत",
+        "Talk like a phone call"
     ),
     "chadhaava_benefit_voice_sub" to Entry(
-        "Live voice mode — jaise phone par baat",
-        "लाइव वॉइस मोड — जैसे फ़ोन पर बात",
-        "Live voice mode — like a phone call"
+        "Bol kar poochein, turant awaaz mein jawab paayein",
+        "बोलकर पूछें, तुरंत आवाज़ में जवाब पाएँ",
+        "Speak your question, hear the answer right away"
     ),
     "chadhaava_benefit_chat" to Entry("Aseemit baatcheet", "असीमित बातचीत", "Unlimited conversations"),
     "chadhaava_benefit_chat_sub" to Entry(

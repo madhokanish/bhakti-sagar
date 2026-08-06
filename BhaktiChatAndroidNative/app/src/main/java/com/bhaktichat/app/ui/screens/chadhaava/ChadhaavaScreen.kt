@@ -1,5 +1,6 @@
 package com.bhaktichat.app.ui.screens.chadhaava
 import androidx.media3.ui.PlayerView
+import androidx.media3.datasource.RawResourceDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.common.Player
 import androidx.media3.common.MediaItem
@@ -157,15 +158,32 @@ fun ChadhaavaScreen(
             .fillMaxSize()
             .background(ChadhaavaPalette.PageBackground)
     ) {
-        when (val current = state) {
-            is ChadhaavaUiState.Loading -> LoadingState()
+        val current = state
 
-            is ChadhaavaUiState.Offer -> OfferState(
-                blockedBy = current.blockedBy,
-                onBack = onBack,
-                onSubscribe = viewModel::startCheckout,
-                onOpenUrl = onOpenUrl
+        // ONE OfferState call site, hoisted out of the when.
+        //
+        // Offer, Processing and Failed all show the offer — Processing and Failed dim it and
+        // put a sheet over the top. Previously each branch called OfferState itself, which
+        // gives Compose three separate identities for the same content: every transition
+        // between them disposed the AndroidView and released the ExoPlayer, then built both
+        // again. That is a black flash exactly when the user taps pay, and again if the
+        // payment fails. Keeping a single call site keeps the player alive across all three.
+        val showsOffer = current is ChadhaavaUiState.Offer ||
+            current is ChadhaavaUiState.Processing ||
+            current is ChadhaavaUiState.Failed
+        if (showsOffer) {
+            val offer = current as? ChadhaavaUiState.Offer
+            OfferState(
+                blockedBy = offer?.blockedBy,
+                onBack = if (offer != null) onBack else null,
+                onSubscribe = if (offer != null) viewModel::startCheckout else ({}),
+                onOpenUrl = if (offer != null) onOpenUrl else ({}),
+                dimmed = offer == null
             )
+        }
+
+        when (current) {
+            is ChadhaavaUiState.Loading -> LoadingState()
 
             is ChadhaavaUiState.Active -> ActiveState(
                 state = current,
@@ -173,34 +191,18 @@ fun ChadhaavaScreen(
                 onOpenUrl = onOpenUrl
             )
 
-            is ChadhaavaUiState.Processing -> {
-                // Keep the offer behind the sheet so the screen doesn't flash empty.
-                OfferState(
-                    blockedBy = null,
-                    onBack = null,
-                    onSubscribe = {},
-                    onOpenUrl = {},
-                    dimmed = true
-                )
-                ProcessingSheet(
-                    elapsedSeconds = current.elapsedSeconds,
-                    onCheckNow = viewModel::checkNow
-                )
-            }
+            is ChadhaavaUiState.Processing -> ProcessingSheet(
+                elapsedSeconds = current.elapsedSeconds,
+                onCheckNow = viewModel::checkNow
+            )
 
-            is ChadhaavaUiState.Failed -> {
-                OfferState(
-                    blockedBy = null,
-                    onBack = null,
-                    onSubscribe = {},
-                    onOpenUrl = {},
-                    dimmed = true
-                )
-                ErrorSheet(
-                    onRetry = viewModel::startCheckout,
-                    onDismiss = viewModel::dismissError
-                )
-            }
+            is ChadhaavaUiState.Failed -> ErrorSheet(
+                onRetry = viewModel::startCheckout,
+                onDismiss = viewModel::dismissError
+            )
+
+            // Already rendered above.
+            is ChadhaavaUiState.Offer -> Unit
         }
     }
 }
@@ -285,9 +287,20 @@ private fun HeroVideo(modifier: Modifier = Modifier) {
 
     val player = remember {
         ExoPlayer.Builder(context).build().apply {
-            setMediaItem(
-                MediaItem.fromUri("android.resource://${context.packageName}/${R.raw.chadhaava_hero}")
-            )
+            // Looping by repeating the item in the playlist rather than REPEAT_MODE_ALL over
+            // a single item.
+            //
+            // A single-item repeat loops by seeking back to zero, which flushes the decoder:
+            // for a moment there is no frame to draw and the surface goes blank. That is the
+            // flash at the loop seam. Consecutive playlist entries are a gapless transition
+            // instead — ExoPlayer buffers the next entry while the current one is still
+            // playing, so a decoded frame is always ready.
+            //
+            // Ten entries at 15s is 2.5 minutes before the playlist wraps; REPEAT_MODE_ALL
+            // then handles the wrap. They all reference the same file, so the extra entries
+            // cost nothing.
+            val uri = RawResourceDataSource.buildRawResourceUri(R.raw.chadhaava_hero)
+            setMediaItems(List(10) { MediaItem.fromUri(uri) })
             repeatMode = Player.REPEAT_MODE_ALL
             volume = 0f
             playWhenReady = true
@@ -322,6 +335,12 @@ private fun HeroVideo(modifier: Modifier = Modifier) {
             // Hold the last rendered frame instead of blanking to the shutter whenever the
             // player momentarily has nothing to draw — the other half of the loop-seam flicker.
             view.setKeepContentOnPlayerReset(true)
+            // The real cause of the frame-to-frame flicker: a TextureView is transparent by
+            // default, so every frame is alpha-blended against whatever is behind it instead
+            // of drawn solid. Whenever a decoded frame isn't ready in time for a vsync, the
+            // page background shows through for that instant — a flicker on ordinary
+            // playback, not just at the loop seam. Marking it opaque makes it draw solid.
+            (view.videoSurfaceView as? android.view.TextureView)?.isOpaque = true
             view
         }
     )

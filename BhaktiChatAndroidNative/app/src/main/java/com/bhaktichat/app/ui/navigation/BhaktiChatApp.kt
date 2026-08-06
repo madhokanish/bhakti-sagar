@@ -813,10 +813,16 @@ fun BhaktiChatApp(
                         generator = appContainer.divineImageGenerator,
                         feedbackClient = appContainer.divineFeedbackClient,
                         anonUserKey = AnonUserKey.get(context),
-                        languageStore = appContainer.languageStore
+                        languageStore = appContainer.languageStore,
+                        entitlementStore = entitlementStore
                     )
                 )
                 val uiState by vm.uiState.collectAsStateWithLifecycle()
+                LaunchedEffect(vm) {
+                    vm.paywallEvents.collect {
+                        navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_IMAGE_QUOTA))
+                    }
+                }
                 DivineImageResultScreen(
                     uiState = uiState,
                     uiEvents = vm.uiEvents,

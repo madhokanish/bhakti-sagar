@@ -1,4 +1,5 @@
 package com.bhaktichat.app.ui.screens.divineimage
+import com.bhaktichat.app.util.EntitlementStore
 
 import com.bhaktichat.app.util.LanguageStore
 
@@ -49,8 +50,13 @@ class DivineImageResultViewModel(
     private val generator: DivineImageGenerator,
     private val feedbackClient: DivineFeedbackClient,
     private val anonUserKey: String,
-    private val languageStore: LanguageStore
+    private val languageStore: LanguageStore,
+    private val entitlementStore: EntitlementStore
 ) : ViewModel() {
+    /** Emitted when a regeneration is refused for quota reasons. */
+    private val _paywallEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val paywallEvents: SharedFlow<Unit> = _paywallEvents.asSharedFlow()
+
     private val _uiState = MutableStateFlow(DivineImageResultUiState())
     val uiState: StateFlow<DivineImageResultUiState> = _uiState.asStateFlow()
 
@@ -91,6 +97,14 @@ class DivineImageResultViewModel(
 
     fun regenerate() {
         val creation = _uiState.value.creation ?: return
+        // Regenerating is a full generation and costs the same, so it has to respect the
+        // quota. Without this a free user could generate twice, then sit on the result
+        // screen tapping "phir banaiye" forever — unlimited images, and the counter never
+        // moved because this path did not record either.
+        if (!entitlementStore.canUseDivineImage) {
+            viewModelScope.launch { _paywallEvents.emit(Unit) }
+            return
+        }
         Analytics.divineImageRegenerated(mode = creation.mode.name)
         viewModelScope.launch {
             val template = templateRepository.getTemplate(creation.templateId)
@@ -133,6 +147,11 @@ class DivineImageResultViewModel(
                 }
             )
             creationRepository.upsertCreation(updatedCreation)
+            if (updatedCreation.status == CreationStatus.SUCCESS) {
+                // Only a successful regeneration burns quota — a failure must not cost the
+                // user an image, same rule as the create path.
+                entitlementStore.recordImageGenerated()
+            }
         }
     }
 
@@ -262,7 +281,8 @@ class DivineImageResultViewModelFactory(
     private val generator: DivineImageGenerator,
     private val feedbackClient: DivineFeedbackClient,
     private val anonUserKey: String,
-    private val languageStore: LanguageStore
+    private val languageStore: LanguageStore,
+    private val entitlementStore: EntitlementStore
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -273,7 +293,8 @@ class DivineImageResultViewModelFactory(
             generator = generator,
             feedbackClient = feedbackClient,
             anonUserKey = anonUserKey,
-            languageStore = languageStore
+            languageStore = languageStore,
+            entitlementStore = entitlementStore
         ) as T
     }
 }

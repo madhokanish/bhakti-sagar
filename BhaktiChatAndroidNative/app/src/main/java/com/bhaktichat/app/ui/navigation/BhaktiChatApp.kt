@@ -213,6 +213,7 @@ fun BhaktiChatApp(
         // is just navigation, and blocking that would strand the user on a paywall for
         // having tapped an avatar.
         if (initialPrompt != null && !entitlementStore.canUseChat) {
+            entitlementStore.reportQuotaReached("chat")
             navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_CHAT_QUOTA))
             return
         }

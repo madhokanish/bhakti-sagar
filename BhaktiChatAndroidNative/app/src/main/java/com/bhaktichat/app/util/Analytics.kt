@@ -41,6 +41,22 @@ object Analytics {
         PostHog.capture(event = event, properties = properties)
     }
 
+    /**
+     * Records an event and simultaneously updates the person's properties.
+     *
+     * Person properties are what make "how many users have sent 20+ messages" answerable —
+     * an event stream alone can only be counted, not segmented by a per-user total without
+     * an expensive aggregation.
+     */
+    fun captureWithUserProperties(
+        event: String,
+        properties: Map<String, Any>? = null,
+        userProperties: Map<String, Any>? = null
+    ) {
+        if (!enabled) return
+        PostHog.capture(event = event, properties = properties, userProperties = userProperties)
+    }
+
     /** Records a screen view. [name] should be a stable route/screen identifier. */
     fun screen(name: String, properties: Map<String, Any>? = null) {
         if (!enabled) return
@@ -89,6 +105,54 @@ object Analytics {
 
     fun divineImageRegenerated(mode: String) =
         capture("divine_image_regenerated", mapOf("mode" to mode))
+
+    // --- Free-tier usage --------------------------------------------------
+    //
+    // Each of these carries the user's running totals as BOTH event properties and person
+    // properties. The event properties let you chart usage over time; the person properties
+    // let you segment people by lifetime totals ("users with 20+ messages"), which is the
+    // question the quota actually raises.
+
+    /**
+     * A message or image was successfully consumed from the free tier.
+     * [remaining] is what's left, so a drop-off funnel can be built without recomputing it.
+     */
+    fun usageRecorded(
+        kind: String,
+        messagesUsed: Int,
+        imagesUsed: Int,
+        remaining: Int,
+        isPro: Boolean
+    ) = captureWithUserProperties(
+        event = "free_tier_usage",
+        properties = mapOf(
+            "kind" to kind,
+            "messages_used" to messagesUsed,
+            "images_used" to imagesUsed,
+            "remaining" to remaining,
+            "is_pro" to isPro
+        ),
+        userProperties = mapOf(
+            "messages_used" to messagesUsed,
+            "images_used" to imagesUsed,
+            "is_pro" to isPro
+        )
+    )
+
+    /**
+     * The user was refused and sent to चढ़ावा. [kind] is "chat" or "divine_image".
+     * This is the top of the conversion funnel — pair it with subscription_started.
+     */
+    fun quotaReached(kind: String, messagesUsed: Int, imagesUsed: Int) =
+        captureWithUserProperties(
+            event = "free_tier_quota_reached",
+            properties = mapOf(
+                "kind" to kind,
+                "messages_used" to messagesUsed,
+                "images_used" to imagesUsed
+            ),
+            userProperties = mapOf("hit_quota" to true, "last_quota_kind" to kind)
+        )
 
     fun divineImageSaved(mode: String) =
         capture("divine_image_saved", mapOf("mode" to mode))

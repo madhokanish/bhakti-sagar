@@ -105,6 +105,7 @@ class ChatThreadViewModel(
         // Free tier exhausted — send nothing and route the user to चढ़ावा. Checked before
         // any message is persisted so a blocked attempt leaves no half-written thread.
         if (!entitlementStore.canUseChat) {
+            entitlementStore.reportQuotaReached("chat")
             viewModelScope.launch { _paywallEvents.emit(Unit) }
             return
         }

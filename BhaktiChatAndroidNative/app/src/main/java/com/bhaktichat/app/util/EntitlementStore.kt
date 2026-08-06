@@ -103,6 +103,19 @@ class EntitlementStore(context: Context) {
     val canUseDivineImage: Boolean
         get() = !isOverImageLimit
 
+    /**
+     * Reports a refusal. Called by the gates rather than computed from events, so a user
+     * who is blocked repeatedly is counted each time — that repetition is itself the signal
+     * that someone wants the feature badly enough to keep trying.
+     */
+    fun reportQuotaReached(kind: String) {
+        Analytics.quotaReached(
+            kind = kind,
+            messagesUsed = _messagesUsed.value,
+            imagesUsed = _imagesUsed.value
+        )
+    }
+
     /** No paywall is ever shown, so dismissibility is moot (kept for API compatibility). */
     val paywallIsDismissible: Boolean
         get() = true
@@ -124,6 +137,13 @@ class EntitlementStore(context: Context) {
         val next = _messagesUsed.value + 1
         prefs.edit().putInt(KEY_MESSAGES_USED, next).apply()
         _messagesUsed.value = next
+        Analytics.usageRecorded(
+            kind = "chat",
+            messagesUsed = next,
+            imagesUsed = _imagesUsed.value,
+            remaining = (FREE_MESSAGE_QUOTA - next).coerceAtLeast(0),
+            isPro = false
+        )
         evaluate(PaywallTrigger.MESSAGE_QUOTA)
     }
 
@@ -133,6 +153,13 @@ class EntitlementStore(context: Context) {
         val next = _imagesUsed.value + 1
         prefs.edit().putInt(KEY_IMAGES_USED, next).apply()
         _imagesUsed.value = next
+        Analytics.usageRecorded(
+            kind = "divine_image",
+            messagesUsed = _messagesUsed.value,
+            imagesUsed = next,
+            remaining = (FREE_IMAGE_QUOTA - next).coerceAtLeast(0),
+            isPro = false
+        )
         evaluate(PaywallTrigger.IMAGE_QUOTA)
     }
 

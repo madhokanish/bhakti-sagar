@@ -102,6 +102,7 @@ class DivineImageResultViewModel(
         // screen tapping "phir banaiye" forever — unlimited images, and the counter never
         // moved because this path did not record either.
         if (!entitlementStore.canUseDivineImage) {
+            entitlementStore.reportQuotaReached("divine_image_regenerate")
             viewModelScope.launch { _paywallEvents.emit(Unit) }
             return
         }

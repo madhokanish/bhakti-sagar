@@ -246,6 +246,7 @@ class DivineImageCreateViewModel(
 
         // Free tier exhausted — refuse before spending a generation and route to चढ़ावा.
         if (!entitlementStore.canUseDivineImage) {
+            entitlementStore.reportQuotaReached("divine_image")
             viewModelScope.launch { _paywallEvents.emit(Unit) }
             return
         }

@@ -2,15 +2,20 @@
 <!--
   Hero video surface.
 
-  surface_type="texture_view" rather than the default SurfaceView: a SurfaceView punches a
-  hole through the window and paints black wherever the video does not cover, which showed
-  as bands above and below the clip.
+  surface_type="texture_view" rather than the default SurfaceView. A SurfaceView is composited
+  by SurfaceFlinger on its own hardware layer, which punches through the window: anywhere the
+  video does not cover is painted black, and it does not clip or blend with the Compose
+  hierarchy above it. TextureView composites normally into the view tree.
 
-  shutter_background_color is opaque, NOT transparent. The shutter is what PlayerView shows
-  whenever it has no frame to draw — before the first frame, and briefly at the loop seam.
-  A transparent shutter lets the page background show through for those moments, which is
-  what read as a flicker on every loop. An opaque colour close to the footage's own tone
-  makes those moments invisible instead.
+  shutter_background_color is opaque, not transparent. The shutter is what PlayerView draws
+  when it has no frame — before the first one, and momentarily at the loop seam. Transparent
+  let the page background show through at those moments; an opaque tone close to the footage
+  makes them invisible.
+
+  NOTE on verifying this: `adb screencap` cannot reliably capture a video surface. Sampling
+  frames this way reports black frames that are not on screen — with SurfaceView it returned
+  a black frame every third capture, exactly tracking the capture loop rather than anything
+  being drawn. Judge this on a real device by eye, not from screenshots.
 -->
 <androidx.media3.ui.PlayerView
     xmlns:android="http://schemas.android.com/apk/res/android"

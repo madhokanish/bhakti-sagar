@@ -204,7 +204,18 @@ fun BhaktiChatApp(
         includeOpener: Boolean,
         popUpRoute: String? = null
     ) {
-        // Ad-model: chat is free for everyone — no quota gate here.
+        // Second send path: the Home/BhaktiChat composer and the reel/situation shortcuts
+        // create a thread here and generate a reply directly, without going through
+        // ChatThreadViewModel.sendMessage(). It therefore needs its own gate — checking only
+        // the ViewModel let the quota be bypassed entirely from the tab composer.
+        //
+        // Only gated when a message is actually being sent. Opening a guide with no prompt
+        // is just navigation, and blocking that would strand the user on a paywall for
+        // having tapped an avatar.
+        if (initialPrompt != null && !entitlementStore.canUseChat) {
+            navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_CHAT_QUOTA))
+            return
+        }
         appScope.launch {
             val guide = appContainer.guidesRepository.getGuide(guideId) ?: return@launch
             Analytics.guideSelected(guideId = guide.id)

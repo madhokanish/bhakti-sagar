@@ -66,7 +66,6 @@ import com.bhaktichat.app.MainActivity
 import com.bhaktichat.app.R
 import com.bhaktichat.app.data.subscription.CheckoutRequestData
 import com.bhaktichat.app.data.subscription.PaymentOutcome
-import com.bhaktichat.app.data.subscription.launchOrderDiagnostic
 import com.bhaktichat.app.data.subscription.launchRazorpayCheckout
 import com.bhaktichat.app.data.subscription.preloadRazorpay
 import com.bhaktichat.app.ui.components.ads.findActivity
@@ -256,35 +255,7 @@ private fun OfferState(
             // DEBUG-ONLY. Opens Checkout against a one-time order instead of a
             // subscription so we can see whether UPI is missing for subscriptions
             // specifically, or for this app in general. Never present in release.
-            if (com.bhaktichat.app.BuildConfig.DEBUG) {
-                val diagnosticActivity = LocalContext.current.findActivity()
-                Spacer(Modifier.height(14.dp))
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable {
-                            val host = diagnosticActivity ?: return@clickable
-                            launchOrderDiagnostic(
-                                activity = host,
-                                keyId = com.bhaktichat.app.BuildConfig.RAZORPAY_KEY_ID,
-                                orderId = com.bhaktichat.app.BuildConfig.RAZORPAY_DIAGNOSTIC_ORDER_ID,
-                                prefillEmail = null
-                            )
-                        },
-                    color = Color(0xFF2A1C15),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        modifier = Modifier.padding(14.dp).fillMaxWidth(),
-                        text = "DEBUG: test UPI with a one-time order",
-                        color = Color.White,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
+
 
             Spacer(Modifier.height(14.dp))
             PolicyLinksRow(onOpenUrl = onOpenUrl)
@@ -348,6 +319,9 @@ private fun HeroVideo(modifier: Modifier = Modifier) {
             val view = android.view.LayoutInflater.from(ctx)
                 .inflate(R.layout.view_hero_video, null) as PlayerView
             view.player = player
+            // Hold the last rendered frame instead of blanking to the shutter whenever the
+            // player momentarily has nothing to draw — the other half of the loop-seam flicker.
+            view.setKeepContentOnPlayerReset(true)
             view
         }
     )

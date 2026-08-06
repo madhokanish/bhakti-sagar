@@ -116,7 +116,7 @@ class AddressingEngineTest {
     }
 
     @Test
-    fun plainRomanMessageDefaultsToHinglish() {
+    fun plainEnglishMessageGetsEnglishReplyLanguage() {
         val context = AddressingEngine.buildMessageContext(
             guideId = "krishna",
             isAuthenticated = false,
@@ -125,7 +125,46 @@ class AddressingEngineTest {
             previousAssistantMessage = null
         )
 
+        assertEquals(ConversationLanguage.ENGLISH, context.detectedLanguage)
+    }
+
+    @Test
+    fun romanHindiMessageGetsHinglishReplyLanguage() {
+        val context = AddressingEngine.buildMessageContext(
+            guideId = "krishna",
+            isAuthenticated = false,
+            firstName = "",
+            userMessage = "Mujhe aaj bahut chinta ho rahi hai",
+            previousAssistantMessage = null
+        )
+
         assertEquals(ConversationLanguage.HINGLISH, context.detectedLanguage)
+    }
+
+    @Test
+    fun ambiguousMessageDefaultsToHindiDevanagari() {
+        val context = AddressingEngine.buildMessageContext(
+            guideId = "krishna",
+            isAuthenticated = false,
+            firstName = "",
+            userMessage = "🙏",
+            previousAssistantMessage = null
+        )
+
+        assertEquals(ConversationLanguage.HINDI, context.detectedLanguage)
+    }
+
+    @Test
+    fun hindiGreetingUsesDevanagariAddressing() {
+        val context = AddressingEngine.buildMessageContext(
+            guideId = "krishna",
+            isAuthenticated = false,
+            firstName = "",
+            userMessage = "नमस्ते",
+            previousAssistantMessage = null
+        )
+
+        assertEquals("प्रिय", AddressingEngine.getAddressingToken(context))
     }
 
     @Test

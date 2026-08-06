@@ -72,7 +72,7 @@ class ChatPromptSupportTest {
             firstName = "Anish Madhok"
         )
 
-        assertTrue(payload.systemPrompt.contains("You are Bhakti Chat"))
+        assertTrue(payload.systemPrompt.contains("You are BhaktiChat"))
         assertTrue(payload.developerPrompt.contains("{{LANGUAGE_INSTRUCTION}}"))
         assertEquals("Mode=casual Strategy=answer_then_hook. Answer directly like a normal person. Keep 1 to 6 short lines with blank lines. No sermons. Optional one natural follow-up question.", payload.appVariables.modeInstruction)
         assertEquals("Anish", payload.appVariables.firstName)
@@ -99,7 +99,7 @@ class ChatPromptSupportTest {
         profileVerticalBias = 0f,
         description = "",
         teachings = emptyList(),
-        openingScene = "",
+        openingScenes = emptyMap(),
         suggestedPrompts = emptyList(),
         serverPromptKey = id
     )

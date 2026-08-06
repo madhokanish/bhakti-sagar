@@ -190,26 +190,7 @@ private fun SignInScreen(
             // DEBUG ONLY — pre-auth entry point for the UPI diagnostic. Checkout needs no
             // user session (it uses a fixed order), so exposing it here lets the payment
             // sheet be tested on an emulator without signing in. Never in release.
-            if (com.bhaktichat.app.BuildConfig.DEBUG) {
-                val diagActivity = LocalContext.current.findActivity()
-                TextButton(
-                    onClick = {
-                        val host = diagActivity ?: return@TextButton
-                        com.bhaktichat.app.data.subscription.launchOrderDiagnostic(
-                            activity = host,
-                            keyId = com.bhaktichat.app.BuildConfig.RAZORPAY_KEY_ID,
-                            orderId = com.bhaktichat.app.BuildConfig.RAZORPAY_DIAGNOSTIC_ORDER_ID,
-                            prefillEmail = null
-                        )
-                    }
-                ) {
-                    Text(
-                        text = "DEBUG: UPI checkout test",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
+
 
             if (isLoading) {
                 Spacer(Modifier.height(18.dp))

@@ -4,8 +4,13 @@
 
   surface_type="texture_view" rather than the default SurfaceView: a SurfaceView punches a
   hole through the window and paints black wherever the video does not cover, which showed
-  as bands above and below the clip. A TextureView composites normally, so the gradient and
-  page background sit over it cleanly.
+  as bands above and below the clip.
+
+  shutter_background_color is opaque, NOT transparent. The shutter is what PlayerView shows
+  whenever it has no frame to draw — before the first frame, and briefly at the loop seam.
+  A transparent shutter lets the page background show through for those moments, which is
+  what read as a flicker on every loop. An opaque colour close to the footage's own tone
+  makes those moments invisible instead.
 -->
 <androidx.media3.ui.PlayerView
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -13,8 +18,8 @@
     android:id="@+id/hero_player"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/transparent"
+    android:background="#F3E3CE"
     app:surface_type="texture_view"
     app:use_controller="false"
     app:resize_mode="zoom"
-    app:shutter_background_color="@android:color/transparent" />
+    app:shutter_background_color="#F3E3CE" />

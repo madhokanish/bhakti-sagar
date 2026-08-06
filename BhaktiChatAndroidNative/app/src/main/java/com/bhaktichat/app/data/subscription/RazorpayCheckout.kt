@@ -74,32 +74,6 @@ fun preloadRazorpay(context: Context) {
     Thread { runCatching { Checkout.preload(appContext) } }.apply { isDaemon = true }.start()
 }
 
-/**
- * DEBUG-ONLY diagnostic. Opens Checkout against a plain one-time order rather than a
- * subscription, with everything else identical.
- *
- * This exists to answer one question that no amount of server inspection can: the account,
- * the plan and the subscription all report `upi: true` and `upi_intent: true`, and mobile
- * web shows every UPI app on the same handset — yet the native SDK offers only card and
- * eMandate. If UPI appears here but not for the subscription, the gap is recurring-UPI
- * support in the native SDK (a Razorpay-side enablement), not our integration. If UPI is
- * missing here too, the problem is this app's setup and stays ours to fix.
- */
-fun launchOrderDiagnostic(activity: Activity, keyId: String, orderId: String, prefillEmail: String?) {
-    val checkout = Checkout()
-    checkout.setKeyID(keyId)
-    val options = JSONObject().apply {
-        put("name", "BhaktiChat")
-        put("description", "UPI diagnostic")
-        put("order_id", orderId)
-        put("amount", 500)
-        put("currency", "INR")
-        put("theme", JSONObject().put("color", "#EA580C"))
-        if (!prefillEmail.isNullOrBlank()) put("prefill", JSONObject().put("email", prefillEmail))
-    }
-    runCatching { checkout.open(activity, options) }
-        .onFailure { Log.e("RazorpayCheckout", "Diagnostic checkout failed to open", it) }
-}
 
 /**
  * Opens Razorpay's own hosted checkout page in a Chrome Custom Tab.

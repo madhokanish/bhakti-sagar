@@ -66,8 +66,8 @@ android {
         applicationId = "com.anish.bhaktichat"
         minSdk = 24
         targetSdk = 36
-        versionCode = 31
-        versionName = "2.7.0"
+        versionCode = 32
+        versionName = "2.8.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -203,6 +203,8 @@ dependencies {
 
     // Razorpay Checkout — UPI AutoPay mandate registration for चढ़ावा.
     implementation(libs.razorpay.checkout)
+    // Chrome Custom Tabs — hosts Razorpay's checkout page in-app.
+    implementation(libs.androidx.browser)
 
     implementation(libs.posthog.android)
 

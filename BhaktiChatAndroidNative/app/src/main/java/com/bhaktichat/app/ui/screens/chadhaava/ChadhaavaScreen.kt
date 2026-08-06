@@ -1,4 +1,13 @@
 package com.bhaktichat.app.ui.screens.chadhaava
+import androidx.media3.ui.PlayerView
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.common.Player
+import androidx.media3.common.MediaItem
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.Lifecycle
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.viewinterop.AndroidView
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
@@ -290,6 +299,60 @@ private fun OfferState(
     }
 }
 
+/**
+ * Looping, muted hero clip.
+ *
+ * Muted deliberately — this is decoration, and the app plays aarti audio elsewhere that
+ * an autoplaying soundtrack would fight with. Playback follows the lifecycle so it stops
+ * when the screen is backgrounded rather than burning battery behind a lock screen, and
+ * the player is released on dispose.
+ */
+@Composable
+private fun HeroVideo(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    val player = remember {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(
+                MediaItem.fromUri("android.resource://${context.packageName}/${R.raw.chadhaava_hero}")
+            )
+            repeatMode = Player.REPEAT_MODE_ALL
+            volume = 0f
+            playWhenReady = true
+            prepare()
+        }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> player.play()
+                Lifecycle.Event.ON_STOP -> player.pause()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            player.release()
+        }
+    }
+
+    AndroidView(
+        modifier = modifier,
+        factory = { ctx ->
+            // Inflated rather than constructed so surface_type="texture_view" can be set —
+            // it has no programmatic setter, and the default SurfaceView paints black
+            // outside the video.
+            val view = android.view.LayoutInflater.from(ctx)
+                .inflate(R.layout.view_hero_video, null) as PlayerView
+            view.player = player
+            view
+        }
+    )
+}
+
 @Composable
 private fun Hero() {
     Box(
@@ -301,74 +364,20 @@ private fun Hero() {
             // on wider screens only costs sky and floor.
             .height(190.dp)
     ) {
-        Image(
-            painter = painterResource(R.drawable.chadhaava_hero),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
-        // Resolves to the page background at the bottom so the image dissolves into the
-        // page rather than ending on a hard edge.
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0.0f to Color(0x662A1C15),
-                        0.32f to Color(0x002A1C15),
-                        0.76f to ChadhaavaPalette.PageBackground.copy(alpha = 0.60f),
-                        1.0f to ChadhaavaPalette.PageBackground
-                    )
-                )
-        )
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(7.dp)
-        ) {
-            BrandPill()
-            Text(
-                text = t("chadhaava_headline"),
-                fontSize = 23.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = ChadhaavaPalette.TextPrimary,
-                textAlign = TextAlign.Center,
-                lineHeight = 29.sp
-            )
-        }
+        // Video only — nothing overlaid.
+        //
+        // No still underneath: the TextureView composites every frame against whatever is
+        // behind it, so a static image there showed through as a flicker. The clip is a
+        // bundled resource, so there is no load failure to guard against.
+        //
+        // No headline either: the footage already carries "SiRF 5" and "OFFER", so an
+        // overlay duplicated its message and sat unreadably across the subject once the
+        // scrim behind it was removed. The offer is restated in full on the price card
+        // directly below.
+        HeroVideo(modifier = Modifier.fillMaxSize())
     }
 }
 
-@Composable
-private fun BrandPill() {
-    Surface(
-        shape = RoundedCornerShape(99.dp),
-        color = Color.White.copy(alpha = 0.94f),
-        border = BorderStroke(1.dp, Color(0x24784028))
-    ) {
-        Row(
-            modifier = Modifier.padding(start = 8.dp, end = 12.dp, top = 5.dp, bottom = 5.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_diya),
-                contentDescription = null,
-                tint = ChadhaavaPalette.DeepAccent,
-                modifier = Modifier.size(15.dp)
-            )
-            Text(
-                text = t("chadhaava_title"),
-                fontSize = 11.5.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = ChadhaavaPalette.DeepAccent
-            )
-        }
-    }
-}
 
 @Composable
 private fun BlockedHeader(onBack: (() -> Unit)?) {

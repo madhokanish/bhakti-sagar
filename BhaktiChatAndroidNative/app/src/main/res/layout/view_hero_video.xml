@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Hero video surface.
+
+  surface_type="texture_view" rather than the default SurfaceView: a SurfaceView punches a
+  hole through the window and paints black wherever the video does not cover, which showed
+  as bands above and below the clip. A TextureView composites normally, so the gradient and
+  page background sit over it cleanly.
+-->
+<androidx.media3.ui.PlayerView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/hero_player"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent"
+    app:surface_type="texture_view"
+    app:use_controller="false"
+    app:resize_mode="zoom"
+    app:shutter_background_color="@android:color/transparent" />

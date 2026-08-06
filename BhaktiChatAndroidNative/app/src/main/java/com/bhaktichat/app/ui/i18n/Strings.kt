@@ -42,9 +42,9 @@ private val table: Map<String, Entry> = mapOf(
     // --- चढ़ावा / subscription screen -------------------------------------------------
     "chadhaava_title" to Entry("Chadhava", "चढ़ावा", "Chadhava"),
     "chadhaava_headline" to Entry(
-        "Sirf ₹5 mein poora BhaktiChat kholiye",
-        "सिर्फ़ ₹5 में पूरा BhaktiChat खोलिए",
-        "Open all of BhaktiChat for just ₹5"
+        "Sirf ₹5 mein unlock kijiye saare features",
+        "सिर्फ़ ₹5 में अनलॉक कीजिए सारे फ़ीचर्स",
+        "Unlock all features for just ₹5"
     ),
     "chadhaava_price_amount" to Entry("₹5", "₹5", "₹5"),
     "chadhaava_price_now" to Entry("abhi", "अभी", "now"),

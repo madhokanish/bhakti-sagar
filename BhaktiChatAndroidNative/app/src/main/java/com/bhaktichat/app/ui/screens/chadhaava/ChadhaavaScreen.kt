@@ -54,6 +54,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -349,11 +351,9 @@ private fun Hero() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            // 190dp keeps the container close to the artwork's own ~2:1 ratio. The two
-            // figures sit at the far left and right edges, so a taller box would make Crop
-            // scale to fill the height and shave both of them off. Slight top/bottom crop
-            // on wider screens only costs sky and floor.
             .height(190.dp)
+            .clipToBounds(),
+        contentAlignment = Alignment.TopCenter
     ) {
         // Video only — nothing overlaid.
         //
@@ -365,7 +365,18 @@ private fun Hero() {
         // overlay duplicated its message and sat unreadably across the subject once the
         // scrim behind it was removed. The offer is restated in full on the price card
         // directly below.
-        HeroVideo(modifier = Modifier.fillMaxSize())
+        //
+        // Rendered at the clip's exact native ratio (1280x720) rather than filling the
+        // 190dp box directly. resize_mode="zoom" in view_hero_video.xml crops to fill —
+        // at this box's aspect ratio that cropped symmetrically off the top and bottom,
+        // slicing through the BhaktiChat mark sitting right at the top of frame. Full,
+        // uncropped height plus TopCenter alignment on the surrounding box means any crop
+        // now falls only at the bottom, where there's nothing worth keeping.
+        HeroVideo(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+        )
     }
 }
 

@@ -57,6 +57,7 @@ import com.bhaktichat.app.MainActivity
 import com.bhaktichat.app.R
 import com.bhaktichat.app.data.subscription.CheckoutRequestData
 import com.bhaktichat.app.data.subscription.PaymentOutcome
+import com.bhaktichat.app.data.subscription.launchOrderDiagnostic
 import com.bhaktichat.app.data.subscription.launchRazorpayCheckout
 import com.bhaktichat.app.data.subscription.preloadRazorpay
 import com.bhaktichat.app.ui.components.ads.findActivity
@@ -117,6 +118,10 @@ fun ChadhaavaScreen(
     LaunchedEffect(activity) {
         val host = activity ?: return@LaunchedEffect
         viewModel.checkoutRequests.collect { request ->
+            // Native SDK, deliberately. Razorpay's hosted page leads with "₹199 billed
+            // for this month" and only shows the ₹5 later — which inverts the whole offer,
+            // since the ₹5-refundable trial is what converts. The backend still returns
+            // hostedUrl if we ever need it as a fallback.
             launchRazorpayCheckout(
                 activity = host,
                 request = CheckoutRequestData(request.subscriptionId, request.keyId),
@@ -238,6 +243,40 @@ private fun OfferState(
             Benefits(blockedBy = blockedBy)
             Spacer(Modifier.height(18.dp))
             PolicyBlock()
+
+            // DEBUG-ONLY. Opens Checkout against a one-time order instead of a
+            // subscription so we can see whether UPI is missing for subscriptions
+            // specifically, or for this app in general. Never present in release.
+            if (com.bhaktichat.app.BuildConfig.DEBUG) {
+                val diagnosticActivity = LocalContext.current.findActivity()
+                Spacer(Modifier.height(14.dp))
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            val host = diagnosticActivity ?: return@clickable
+                            launchOrderDiagnostic(
+                                activity = host,
+                                keyId = com.bhaktichat.app.BuildConfig.RAZORPAY_KEY_ID,
+                                orderId = com.bhaktichat.app.BuildConfig.RAZORPAY_DIAGNOSTIC_ORDER_ID,
+                                prefillEmail = null
+                            )
+                        },
+                    color = Color(0xFF2A1C15),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        modifier = Modifier.padding(14.dp).fillMaxWidth(),
+                        text = "DEBUG: test UPI with a one-time order",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
             Spacer(Modifier.height(14.dp))
             PolicyLinksRow(onOpenUrl = onOpenUrl)
             Spacer(Modifier.height(22.dp))
@@ -364,6 +403,18 @@ private fun BlockedHeader(onBack: (() -> Unit)?) {
 private fun BlockedContextCard(blockedBy: BlockedFeature) {
     val thumb = when (blockedBy) {
         BlockedFeature.WALLPAPERS -> R.drawable.shivji
+        BlockedFeature.CHAT_QUOTA -> R.drawable.avatar_krishna
+        BlockedFeature.IMAGE_QUOTA -> R.drawable.card_krishna
+    }
+    val titleKey = when (blockedBy) {
+        BlockedFeature.WALLPAPERS -> "chadhaava_blocked_wallpaper_title"
+        BlockedFeature.CHAT_QUOTA -> "chadhaava_blocked_chat_title"
+        BlockedFeature.IMAGE_QUOTA -> "chadhaava_blocked_image_title"
+    }
+    val subKey = when (blockedBy) {
+        BlockedFeature.WALLPAPERS -> "chadhaava_blocked_wallpaper_sub"
+        BlockedFeature.CHAT_QUOTA -> "chadhaava_blocked_chat_sub"
+        BlockedFeature.IMAGE_QUOTA -> "chadhaava_blocked_image_sub"
     }
     Surface(
         modifier = Modifier
@@ -392,13 +443,13 @@ private fun BlockedContextCard(blockedBy: BlockedFeature) {
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = t("chadhaava_blocked_wallpaper_title"),
+                    text = t(titleKey),
                     fontSize = 14.5.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = ChadhaavaPalette.TextPrimary
                 )
                 Text(
-                    text = t("chadhaava_blocked_wallpaper_sub"),
+                    text = t(subKey),
                     fontSize = 12.sp,
                     color = ChadhaavaPalette.TextSecondary,
                     lineHeight = 17.sp
@@ -691,10 +742,18 @@ private fun Benefits(blockedBy: BlockedFeature?) {
         Benefit("chadhaava_benefit_wallpaper", "chadhaava_benefit_wallpaper_sub"),
         Benefit("chadhaava_benefit_adfree", "chadhaava_benefit_adfree_sub")
     )
-    val ordered = if (blockedBy == BlockedFeature.WALLPAPERS) {
-        val blocked = base.first { it.titleKey == "chadhaava_benefit_wallpaper" }
+    // Whatever they were blocked on leads the list, badged, so the offer answers the
+    // thing they just hit rather than making them hunt for it.
+    val blockedKey = when (blockedBy) {
+        BlockedFeature.WALLPAPERS -> "chadhaava_benefit_wallpaper"
+        BlockedFeature.CHAT_QUOTA -> "chadhaava_benefit_chat"
+        BlockedFeature.IMAGE_QUOTA -> "chadhaava_benefit_image"
+        null -> null
+    }
+    val ordered = if (blockedKey != null && base.any { it.titleKey == blockedKey }) {
+        val blocked = base.first { it.titleKey == blockedKey }
             .copy(badgeKey = "chadhaava_badge_here", badgeAmber = false)
-        listOf(blocked) + base.filterNot { it.titleKey == "chadhaava_benefit_wallpaper" }
+        listOf(blocked) + base.filterNot { it.titleKey == blockedKey }
     } else {
         base
     }
@@ -915,10 +974,11 @@ private fun CtaFooter(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = if (blockedBy == BlockedFeature.WALLPAPERS) {
-                                t("chadhaava_cta_blocked_wallpaper")
-                            } else {
-                                t("chadhaava_cta_line1")
+                            text = when (blockedBy) {
+                                BlockedFeature.WALLPAPERS -> t("chadhaava_cta_blocked_wallpaper")
+                                BlockedFeature.CHAT_QUOTA -> t("chadhaava_cta_blocked_chat")
+                                BlockedFeature.IMAGE_QUOTA -> t("chadhaava_cta_blocked_image")
+                                null -> t("chadhaava_cta_line1")
                             },
                             fontSize = 17.sp,
                             fontWeight = FontWeight.ExtraBold,

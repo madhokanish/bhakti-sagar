@@ -115,6 +115,12 @@ class DivineImageCreateViewModel(
         "Lakshmi Ji" to listOf(
             "Lakshmi Ji blessing you",
             "Lakshmi Ji showering prosperity"
+        ),
+        // Ganesh Ji is offered in deityOptions, so it needs scenes too — without an entry
+        // here the lookup fell through to orEmpty() and step 3 rendered with no choices.
+        "Ganesh Ji" to listOf(
+            "Ganesh Ji blessing you",
+            "Ganesh Ji removing obstacles"
         )
     )
 
@@ -134,13 +140,20 @@ class DivineImageCreateViewModel(
         "Walking in temple courtyard"
     )
 
-    private val initialSelectedDeity = template.deityTag
+    // Templates like "Photo with God" carry no deityTag, so nothing was selected on entry
+    // and step 3 rendered as a heading with nothing beneath it. Default to the first deity:
+    // the scene below already defaults the same way, so this just completes that intent.
+    private val initialSelectedDeity = template.deityTag ?: deityOptions.firstOrNull()?.title
     private val initialSceneOptions = initialSelectedDeity
         ?.let { sceneOptionsByDeity[it].orEmpty() }
         .orEmpty()
     private val initialSelectedScene = template.sceneName
         ?.takeIf { it in initialSceneOptions }
         ?: initialSceneOptions.firstOrNull()
+
+    /** Emitted when generation is refused for quota reasons. */
+    private val _paywallEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val paywallEvents: SharedFlow<Unit> = _paywallEvents.asSharedFlow()
 
     private val _uiState = MutableStateFlow(
         DivineImageCreateUiState(
@@ -231,7 +244,11 @@ class DivineImageCreateViewModel(
             return
         }
 
-        // Ad-based model: divine image is free for everyone — no quota gate.
+        // Free tier exhausted — refuse before spending a generation and route to चढ़ावा.
+        if (!entitlementStore.canUseDivineImage) {
+            viewModelScope.launch { _paywallEvents.emit(Unit) }
+            return
+        }
 
         val finalPrompt = buildPrompt(current)
         val creationTitle = buildCreationTitle(current)
@@ -394,6 +411,8 @@ internal fun divineChoiceDisplayText(value: String, language: AppLanguage): Stri
     "Hanuman Ji blessing you" -> translate("di_scene_hanuman_2", language)
     "Lakshmi Ji blessing you" -> translate("di_scene_lakshmi_1", language)
     "Lakshmi Ji showering prosperity" -> translate("di_scene_lakshmi_2", language)
+    "Ganesh Ji blessing you" -> translate("di_scene_ganesh_1", language)
+    "Ganesh Ji removing obstacles" -> translate("di_scene_ganesh_2", language)
     "Kedarnath Temple" -> translate("di_temple_kedarnath", language)
     "Akshardham Temple Delhi" -> translate("di_temple_akshardham", language)
     "Tirupati Balaji Temple" -> translate("di_temple_tirupati", language)

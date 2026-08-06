@@ -39,6 +39,7 @@ class SubscriptionApi(
         CreatedSubscription(
             subscriptionId = json.getString("subscriptionId"),
             keyId = json.getString("keyId"),
+            hostedUrl = json.optNullableString("hostedUrl"),
             trialEndMillis = json.optIsoMillis("trialEnd")
         )
     }

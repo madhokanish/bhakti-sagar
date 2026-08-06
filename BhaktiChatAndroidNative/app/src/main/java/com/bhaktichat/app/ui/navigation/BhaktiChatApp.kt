@@ -513,6 +513,11 @@ fun BhaktiChatApp(
                     )
                 )
                 val uiState by vm.uiState.collectAsStateWithLifecycle()
+                LaunchedEffect(vm) {
+                    vm.paywallEvents.collect {
+                        navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_CHAT_QUOTA))
+                    }
+                }
                 ChatThreadScreen(
                     uiState = uiState,
                     onBack = {
@@ -665,8 +670,14 @@ fun BhaktiChatApp(
             ) { backStackEntry ->
                 val blocked = backStackEntry.arguments
                     ?.getString(NavDestinations.CHADHAAVA_BLOCKED_ARG)
-                    ?.takeIf { it == BLOCKED_WALLPAPERS }
-                    ?.let { BlockedFeature.WALLPAPERS }
+                    ?.let { raw ->
+                        when (raw) {
+                            BLOCKED_WALLPAPERS -> BlockedFeature.WALLPAPERS
+                            BLOCKED_CHAT_QUOTA -> BlockedFeature.CHAT_QUOTA
+                            BLOCKED_IMAGE_QUOTA -> BlockedFeature.IMAGE_QUOTA
+                            else -> null
+                        }
+                    }
 
                 val vm: ChadhaavaViewModel = viewModel(
                     factory = ChadhaavaViewModelFactory(
@@ -735,6 +746,11 @@ fun BhaktiChatApp(
                     )
                 )
                 val uiState by vm.uiState.collectAsStateWithLifecycle()
+                LaunchedEffect(vm) {
+                    vm.paywallEvents.collect {
+                        navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_IMAGE_QUOTA))
+                    }
+                }
                 val localContext = LocalContext.current
                 DivineImageCreateScreen(
                     mode = mode,
@@ -1070,3 +1086,5 @@ private fun shouldShowBottomBar(route: String, imeVisible: Boolean): Boolean {
 
 /** Route argument value marking wallpapers as the feature that gated the user. */
 internal const val BLOCKED_WALLPAPERS = "wallpapers"
+internal const val BLOCKED_CHAT_QUOTA = "chat_quota"
+internal const val BLOCKED_IMAGE_QUOTA = "image_quota"

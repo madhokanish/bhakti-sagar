@@ -237,6 +237,33 @@ private val table: Map<String, Entry> = mapOf(
         "This wallpaper and 24 more — pay ₹5, get it back right away, download today"
     ),
 
+    "chadhaava_blocked_chat_title" to Entry(
+        "Aapke free messages poore ho gaye",
+        "आपके निःशुल्क संदेश पूरे हो गए",
+        "You have used your free messages"
+    ),
+    "chadhaava_blocked_chat_sub" to Entry(
+        "Chadhava ke saath guruon se unlimited baat kijiye — ₹5 dein, turant wapas paayein",
+        "चढ़ावा के साथ गुरुओं से असीमित बात कीजिए — ₹5 दें, तुरंत वापस पाएँ",
+        "Talk to the guides without limit — pay ₹5, get it back right away"
+    ),
+    "chadhaava_blocked_image_title" to Entry(
+        "Aapki free divine images poori ho gayin",
+        "आपकी निःशुल्क दिव्य छवियाँ पूरी हो गईं",
+        "You have used your free divine images"
+    ),
+    "chadhaava_blocked_image_sub" to Entry(
+        "Chadhava ke saath jitni chahein divine images banaiye — ₹5 dein, turant wapas paayein",
+        "चढ़ावा के साथ जितनी चाहें दिव्य छवियाँ बनाइए — ₹5 दें, तुरंत वापस पाएँ",
+        "Create as many divine images as you like — pay ₹5, get it back right away"
+    ),
+    "chadhaava_cta_blocked_chat" to Entry(
+        "Unlimited baat shuru kijiye", "असीमित बातचीत शुरू कीजिए", "Start unlimited chat"
+    ),
+    "chadhaava_cta_blocked_image" to Entry(
+        "Unlimited images shuru kijiye", "असीमित छवियाँ शुरू कीजिए", "Start unlimited images"
+    ),
+
     "chadhaava_processing_title" to Entry(
         "Apne UPI app mein manzoori dein",
         "अपने UPI ऐप में मंज़ूरी दें",
@@ -1477,6 +1504,15 @@ private val table: Map<String, Entry> = mapOf(
     "voice_not_heard" to Entry("Aapki awaaz sunai nahi de rahi — microphone shaant lag raha hai. ", "आपकी आवाज़ सुनाई नहीं दे रही है — माइक्रोफ़ोन शांत लग रहा है। ", "Aapki awaaz sunai nahi de rahi — microphone shaant lag raha hai. "),
     "voice_try_bluetooth" to Entry("Bluetooth hata kar ya baat phir shuru karke dekhiye.", "ब्लूटूथ हटाकर या बातचीत फिर शुरू करके देखें।", "Bluetooth hata kar ya baat phir shuru karke dekhiye."),
     "aarti_tap_lyrics" to Entry("Poore bol padhne ke liye tap kijiye.", "पूरे बोल पढ़ने के लिए टैप करें।", "Poore bol padhne ke liye tap kijiye."),
+
+    "di_scene_ganesh_1" to Entry(
+        "Ganesh Ji aapko aashirwad de rahe hain", "गणेश जी आपको आशीर्वाद दे रहे हैं",
+        "Ganesh Ji aapko aashirwad de rahe hain"
+    ),
+    "di_scene_ganesh_2" to Entry(
+        "Ganesh Ji vighn door kar rahe hain", "गणेश जी विघ्न दूर कर रहे हैं",
+        "Ganesh Ji vighn door kar rahe hain"
+    ),
 
     // --- Panchang ---
     "panchang_title" to Entry("Panchang", "पंचांग", "Panchang"),

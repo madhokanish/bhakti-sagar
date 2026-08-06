@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * surface the BhaktiChat Pro paywall.
  *
  * Mirrors the iOS [EntitlementStore]:
- *  - Hard limits are 100 chat messages or 5 divine images (free tier).
+ *  - Hard limits are 20 chat messages or 2 divine images (free tier).
  *  - Once a hard limit is crossed, the paywall is non-dismissible and gated features
  *    (chat send, divine image generation) refuse to run until the user subscribes.
  *  - A manual soft-dismiss respects a 24h cooldown so we don't pester the user.
@@ -24,6 +24,12 @@ import kotlinx.coroutines.flow.asStateFlow
 class EntitlementStore(context: Context) {
     private val prefs = context.applicationContext
         .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    // Must run before any counter below is read, otherwise those properties capture the
+    // pre-reset values and the migration silently does nothing for this session.
+    init {
+        migrateQuotaEpochIfNeeded()
+    }
 
     enum class PaywallTrigger {
         /** User tapped the PRO pill in a top bar. */
@@ -74,30 +80,28 @@ class EntitlementStore(context: Context) {
 
     // --- Derived gating ---------------------------------------------------
     //
-    // Ad-based model: there are no more free-tier limits. All of these are hard-wired
-    // to the "unlimited / free" answer so every feature is available to every user.
-    // The usage counters below still increment (harmless — useful for ad-frequency
-    // decisions later), but they no longer gate anything.
+    // Free tier: [FREE_MESSAGE_QUOTA] chat messages and [FREE_IMAGE_QUOTA] divine images.
+    // Crossing either sends the user to चढ़ावा. Subscribers bypass all of it — every gate
+    // below short-circuits on [isPro], so a Razorpay subscriber (or a grandfathered Play
+    // one) is never limited.
 
-    /** No chat limit under the ad model. */
+    /** Free chat messages are exhausted. Always false for subscribers. */
     val isOverChatLimit: Boolean
-        get() = false
+        get() = !_isPro.value && (serverChatLimitReached || _messagesUsed.value >= FREE_MESSAGE_QUOTA)
 
-    /** No divine-image limit under the ad model. */
+    /** Free divine images are exhausted. Always false for subscribers. */
     val isOverImageLimit: Boolean
-        get() = false
+        get() = !_isPro.value && _imagesUsed.value >= FREE_IMAGE_QUOTA
 
-    /** No hard limit under the ad model. */
+    /** Either quota is exhausted — used to decide whether the paywall is escapable. */
     val isOverHardLimit: Boolean
-        get() = false
+        get() = isOverChatLimit || isOverImageLimit
 
-    /** Chat is free for everyone. */
     val canUseChat: Boolean
-        get() = true
+        get() = !isOverChatLimit
 
-    /** Divine image is free for everyone. */
     val canUseDivineImage: Boolean
-        get() = true
+        get() = !isOverImageLimit
 
     /** No paywall is ever shown, so dismissibility is moot (kept for API compatibility). */
     val paywallIsDismissible: Boolean
@@ -156,13 +160,14 @@ class EntitlementStore(context: Context) {
     }
 
     /**
-     * No-op for the paywall. NOTE: the backend (`/api/bhaktigpt/chat`) still enforces its
-     * own server-side free message cap and can return `limitReached`. Truly unlimited chat
-     * requires lifting that limit on the backend — this client stub only ensures no paywall
-     * is shown when the server reports the cap.
+     * The backend reported its own free-message cap. Persisted so the gate survives a
+     * relaunch and backstops the local counter, which a reinstall would otherwise clear.
+     * Ignored for subscribers.
      */
     fun markChatLimitReached() {
-        // no-op
+        if (_isPro.value) return
+        serverChatLimitReached = true
+        prefs.edit().putBoolean(KEY_SERVER_CHAT_LIMIT, true).apply()
     }
 
     /**
@@ -255,19 +260,44 @@ class EntitlementStore(context: Context) {
 
     // --- Internal ---------------------------------------------------------
 
+    /**
+     * Zeroes usage counters when [QUOTA_EPOCH] moves. Runs before the counters are read, so
+     * the in-memory state starts from the reset values rather than the stale persisted ones.
+     */
+    private fun migrateQuotaEpochIfNeeded() {
+        if (prefs.getInt(KEY_QUOTA_EPOCH, 0) == QUOTA_EPOCH) return
+        prefs.edit()
+            .putInt(KEY_MESSAGES_USED, 0)
+            .putInt(KEY_IMAGES_USED, 0)
+            .putBoolean(KEY_SERVER_CHAT_LIMIT, false)
+            .putInt(KEY_QUOTA_EPOCH, QUOTA_EPOCH)
+            .commit()
+    }
+
     private fun evaluate(trigger: PaywallTrigger) {
         // Ad-based model: usage no longer triggers a paywall. Kept as a no-op so the
         // recordMessageSent()/recordImageGenerated() call sites stay unchanged.
     }
 
     companion object {
-        const val FREE_MESSAGE_QUOTA: Int = 100
-        const val FREE_IMAGE_QUOTA: Int = 5
+        const val FREE_MESSAGE_QUOTA: Int = 20
+        const val FREE_IMAGE_QUOTA: Int = 2
+
+        /**
+         * Bump to wipe everyone's usage counters once, on their next launch.
+         *
+         * The quotas are being reintroduced after a period of unlimited use, so existing
+         * users are carrying large counts — someone on 50 messages would otherwise open the
+         * update already locked out, having never seen a limit. Raising this gives everyone
+         * a clean 20/2 from the moment they upgrade.
+         */
+        private const val QUOTA_EPOCH: Int = 1
         private const val PAYWALL_COOLDOWN_MS: Long = 24L * 60L * 60L * 1000L
 
         private const val PREFS_NAME = "bhakti_entitlements"
         private const val KEY_PRO_ACTIVE = "bhakti_pro_active"
         private const val KEY_SERVER_PRO_ACTIVE = "bhakti_server_pro_active"
+        private const val KEY_QUOTA_EPOCH = "bhakti_quota_epoch"
         private const val KEY_MESSAGES_USED = "bhakti_free_messages_used"
         private const val KEY_IMAGES_USED = "bhakti_free_images_used"
         private const val KEY_DISMISSED_AT = "bhakti_paywall_dismissed_at"

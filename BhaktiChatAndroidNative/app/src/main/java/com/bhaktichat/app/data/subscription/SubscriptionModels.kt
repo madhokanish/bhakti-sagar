@@ -34,6 +34,12 @@ data class SubscriptionSummary(
 data class CreatedSubscription(
     val subscriptionId: String,
     val keyId: String,
+    /**
+     * Razorpay's hosted checkout page for this subscription. Preferred over the native SDK:
+     * the SDK does not offer UPI for subscription checkout on this account, while this page
+     * does. Null only if Razorpay omits it, in which case we fall back to the SDK.
+     */
+    val hostedUrl: String?,
     val trialEndMillis: Long?
 )
 

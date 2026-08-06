@@ -1,4 +1,7 @@
 package com.bhaktichat.app.ui.screens.chat
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 import com.bhaktichat.app.util.LanguageStore
 
@@ -51,6 +54,10 @@ class ChatThreadViewModel(
     private val userFirstName: String = "",
     private val languageStore: LanguageStore
 ) : ViewModel() {
+    /** Emitted when a send is refused for quota reasons; the screen navigates to चढ़ावा. */
+    private val _paywallEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val paywallEvents: SharedFlow<Unit> = _paywallEvents.asSharedFlow()
+
     private val _uiState = MutableStateFlow(ThreadUiState())
     val uiState: StateFlow<ThreadUiState> = _uiState.asStateFlow()
     private var conversationState = ChatConversationState()
@@ -95,7 +102,12 @@ class ChatThreadViewModel(
         val trimmed = text.trim()
         if (trimmed.isBlank() || _uiState.value.isSending) return
 
-        // Ad-based model: chat is free for everyone — no quota gate.
+        // Free tier exhausted — send nothing and route the user to चढ़ावा. Checked before
+        // any message is persisted so a blocked attempt leaves no half-written thread.
+        if (!entitlementStore.canUseChat) {
+            viewModelScope.launch { _paywallEvents.emit(Unit) }
+            return
+        }
 
         viewModelScope.launch {
             try {

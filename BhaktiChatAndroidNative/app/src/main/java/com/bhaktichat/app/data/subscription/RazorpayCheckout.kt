@@ -2,6 +2,9 @@ package com.bhaktichat.app.data.subscription
 
 import android.app.Activity
 import android.content.Context
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabColorSchemeParams
+import androidx.browser.customtabs.CustomTabsIntent
 import android.util.Log
 import com.razorpay.Checkout
 import org.json.JSONObject
@@ -70,3 +73,59 @@ fun preloadRazorpay(context: Context) {
     val appContext = context.applicationContext
     Thread { runCatching { Checkout.preload(appContext) } }.apply { isDaemon = true }.start()
 }
+
+/**
+ * DEBUG-ONLY diagnostic. Opens Checkout against a plain one-time order rather than a
+ * subscription, with everything else identical.
+ *
+ * This exists to answer one question that no amount of server inspection can: the account,
+ * the plan and the subscription all report `upi: true` and `upi_intent: true`, and mobile
+ * web shows every UPI app on the same handset — yet the native SDK offers only card and
+ * eMandate. If UPI appears here but not for the subscription, the gap is recurring-UPI
+ * support in the native SDK (a Razorpay-side enablement), not our integration. If UPI is
+ * missing here too, the problem is this app's setup and stays ours to fix.
+ */
+fun launchOrderDiagnostic(activity: Activity, keyId: String, orderId: String, prefillEmail: String?) {
+    val checkout = Checkout()
+    checkout.setKeyID(keyId)
+    val options = JSONObject().apply {
+        put("name", "BhaktiChat")
+        put("description", "UPI diagnostic")
+        put("order_id", orderId)
+        put("amount", 500)
+        put("currency", "INR")
+        put("theme", JSONObject().put("color", "#EA580C"))
+        if (!prefillEmail.isNullOrBlank()) put("prefill", JSONObject().put("email", prefillEmail))
+    }
+    runCatching { checkout.open(activity, options) }
+        .onFailure { Log.e("RazorpayCheckout", "Diagnostic checkout failed to open", it) }
+}
+
+/**
+ * Opens Razorpay's own hosted checkout page in a Chrome Custom Tab.
+ *
+ * Preferred over [launchRazorpayCheckout]: the native SDK does not offer UPI for
+ * subscription checkout on this account, while this page — the same one mobile web serves —
+ * offers the full UPI app list. A Custom Tab keeps the user inside the app (our colours, a
+ * close button, no app switch) rather than throwing them out to a browser.
+ *
+ * Returns false if no browser can handle it, so the caller can fall back to the SDK.
+ */
+fun launchHostedCheckout(activity: Activity, hostedUrl: String): Boolean = runCatching {
+    val tab = CustomTabsIntent.Builder()
+        .setShowTitle(true)
+        .setUrlBarHidingEnabled(false)
+        .setDefaultColorSchemeParams(
+            CustomTabColorSchemeParams.Builder()
+                .setToolbarColor(CHADHAAVA_ACCENT)
+                .build()
+        )
+        .build()
+    tab.launchUrl(activity, Uri.parse(hostedUrl))
+    true
+}.getOrElse {
+    Log.e("RazorpayCheckout", "Custom Tab failed; caller should fall back to the SDK", it)
+    false
+}
+
+private const val CHADHAAVA_ACCENT = 0xFFEA580C.toInt()

@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 /** Which gated feature sent the user here, so the screen can lead with it. */
-enum class BlockedFeature { WALLPAPERS }
+enum class BlockedFeature { WALLPAPERS, CHAT_QUOTA, IMAGE_QUOTA }
 
 sealed interface ChadhaavaUiState {
     data object Loading : ChadhaavaUiState
@@ -46,7 +46,7 @@ sealed interface ChadhaavaUiState {
 }
 
 /** Emitted when the screen should hand off to Razorpay Checkout. */
-data class CheckoutRequest(val subscriptionId: String, val keyId: String)
+data class CheckoutRequest(val subscriptionId: String, val keyId: String, val hostedUrl: String?)
 
 class ChadhaavaViewModel(
     private val repository: SubscriptionRepository,
@@ -89,7 +89,7 @@ class ChadhaavaViewModel(
                 val created: CreatedSubscription = repository.createSubscription()
                 _uiState.value = ChadhaavaUiState.Processing(elapsedSeconds = 0)
                 startPolling()
-                _checkoutRequests.emit(CheckoutRequest(created.subscriptionId, created.keyId))
+                _checkoutRequests.emit(CheckoutRequest(created.subscriptionId, created.keyId, created.hostedUrl))
             } catch (error: SubscriptionApiException) {
                 // 409 means a mandate already exists; the repository has already adopted the
                 // server's state, so just render it rather than showing an error.

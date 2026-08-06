@@ -2,9 +2,6 @@ package com.bhaktichat.app.data.subscription
 
 import android.app.Activity
 import android.content.Context
-import android.net.Uri
-import androidx.browser.customtabs.CustomTabColorSchemeParams
-import androidx.browser.customtabs.CustomTabsIntent
 import android.util.Log
 import com.razorpay.Checkout
 import org.json.JSONObject
@@ -73,33 +70,3 @@ fun preloadRazorpay(context: Context) {
     val appContext = context.applicationContext
     Thread { runCatching { Checkout.preload(appContext) } }.apply { isDaemon = true }.start()
 }
-
-
-/**
- * Opens Razorpay's own hosted checkout page in a Chrome Custom Tab.
- *
- * Preferred over [launchRazorpayCheckout]: the native SDK does not offer UPI for
- * subscription checkout on this account, while this page — the same one mobile web serves —
- * offers the full UPI app list. A Custom Tab keeps the user inside the app (our colours, a
- * close button, no app switch) rather than throwing them out to a browser.
- *
- * Returns false if no browser can handle it, so the caller can fall back to the SDK.
- */
-fun launchHostedCheckout(activity: Activity, hostedUrl: String): Boolean = runCatching {
-    val tab = CustomTabsIntent.Builder()
-        .setShowTitle(true)
-        .setUrlBarHidingEnabled(false)
-        .setDefaultColorSchemeParams(
-            CustomTabColorSchemeParams.Builder()
-                .setToolbarColor(CHADHAAVA_ACCENT)
-                .build()
-        )
-        .build()
-    tab.launchUrl(activity, Uri.parse(hostedUrl))
-    true
-}.getOrElse {
-    Log.e("RazorpayCheckout", "Custom Tab failed; caller should fall back to the SDK", it)
-    false
-}
-
-private const val CHADHAAVA_ACCENT = 0xFFEA580C.toInt()

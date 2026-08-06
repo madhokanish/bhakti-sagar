@@ -218,11 +218,6 @@ private val table: Map<String, Entry> = mapOf(
         "₹5 देकर वॉलपेपर खोलें",
         "Pay ₹5 to unlock wallpapers"
     ),
-    "chadhaava_trust" to Entry(
-        "UPI AutoPay • 3 din baad ₹199/mahina • kabhi bhi cancel karein",
-        "UPI ऑटो-पे • 3 दिन बाद ₹199/महीना • कभी भी कैंसल करें",
-        "UPI AutoPay • ₹199/month after 3 days • cancel anytime"
-    ),
     "chadhaava_link_refunds" to Entry("Refund neeti", "रिफंड नीति", "Refund policy"),
     "chadhaava_link_terms" to Entry("Sharten", "शर्तें", "Terms"),
 

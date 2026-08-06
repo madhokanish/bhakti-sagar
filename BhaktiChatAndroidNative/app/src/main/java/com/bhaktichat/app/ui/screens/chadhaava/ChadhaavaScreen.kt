@@ -1000,11 +1000,6 @@ private fun CtaFooter(
             // content behind it. The links live at the end of the scroll instead (see
             // PolicyLinksRow) — still one tap from the CTA, still present for the payment
             // provider, but no longer costing fixed height on every frame.
-            Text(
-                text = t("chadhaava_trust"),
-                fontSize = 11.sp,
-                color = ChadhaavaPalette.TextSecondary
-            )
         }
     }
 }

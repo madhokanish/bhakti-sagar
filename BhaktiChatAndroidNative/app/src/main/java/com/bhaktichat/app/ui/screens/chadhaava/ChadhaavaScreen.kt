@@ -67,10 +67,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bhaktichat.app.MainActivity
 import com.bhaktichat.app.R
-import com.bhaktichat.app.data.subscription.CheckoutRequestData
 import com.bhaktichat.app.data.subscription.PaymentOutcome
-import com.bhaktichat.app.data.subscription.launchRazorpayCheckout
-import com.bhaktichat.app.data.subscription.preloadRazorpay
+import com.bhaktichat.app.data.subscription.launchHostedCheckout
 import com.bhaktichat.app.ui.components.ads.findActivity
 import com.bhaktichat.app.ui.i18n.t
 
@@ -122,23 +120,33 @@ fun ChadhaavaScreen(
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
 
-    // Warm the SDK now that the user is looking at the paywall — off the app's startup path.
-    LaunchedEffect(Unit) { preloadRazorpay(context) }
-
-    // The ViewModel asks for checkout; the Activity owns the SDK and receives its result.
+    // The ViewModel mints a signed-in checkout URL; open it in a Custom Tab.
+    //
+    // Web checkout rather than the native SDK because that is the only path that offers UPI
+    // on this account — the SDK returns Cards and EMandate only for subscriptions, while the
+    // same account's web checkout offers UPI, UPI QR, Cards and EMandate (verified live,
+    // 10 Aug 2026; Razorpay ticket 20247903). A Custom Tab, not a WebView: UPI has to hand
+    // off to GPay/PhonePe and come back, which needs a real browser.
+    //
+    // There is no success callback to listen for here — the tab is a separate process. The
+    // Processing state polls the backend, and onResume forces a reconciling read, so
+    // entitlement still only ever comes from the server.
     LaunchedEffect(activity) {
         val host = activity ?: return@LaunchedEffect
-        viewModel.checkoutRequests.collect { request ->
-            // Native SDK, deliberately. Razorpay's hosted page leads with "₹199 billed
-            // for this month" and only shows the ₹5 later — which inverts the whole offer,
-            // since the ₹5-refundable trial is what converts. The backend still returns
-            // hostedUrl if we ever need it as a fallback.
-            launchRazorpayCheckout(
-                activity = host,
-                request = CheckoutRequestData(request.subscriptionId, request.keyId),
-                prefillEmail = userEmail
-            )
+        viewModel.webCheckoutRequests.collect { url ->
+            val opened = launchHostedCheckout(host, url)
+            if (!opened) viewModel.onCheckoutFailed(CODE_NO_BROWSER, "No browser available")
         }
+    }
+
+    // Coming back from the tab is the only signal we get that the user may have finished.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.onReturnedFromCheckout()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     LaunchedEffect(activity) {

@@ -28,6 +28,7 @@ model User {
   accounts               Account[]
   sessions               Session[]
   mobileSessions         MobileSession[]
+  webCheckoutHandoffs    WebCheckoutHandoff[]
   authEvents             AuthEvent[]
   profile                UserProfile?
   bhaktiGptConversations BhaktiGptConversation[]
@@ -73,6 +74,22 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Single-use, short-lived token for handing an already-authenticated mobile-app
+/// user off to a Custom Tab as a real signed-in web session -- the app can't set
+/// a cookie in Chrome's separate cookie jar, so this is passed in the URL instead
+/// and exchanged for a session cookie server-side by /api/checkout-handoff.
+model WebCheckoutHandoff {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }

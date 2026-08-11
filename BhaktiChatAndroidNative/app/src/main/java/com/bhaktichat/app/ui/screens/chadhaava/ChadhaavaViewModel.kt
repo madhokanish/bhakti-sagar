@@ -45,8 +45,22 @@ sealed interface ChadhaavaUiState {
     data object Failed : ChadhaavaUiState
 }
 
-/** Emitted when the screen should hand off to Razorpay Checkout. */
+/**
+ * Emitted when the screen should hand off to Razorpay's native Checkout SDK.
+ *
+ * Currently unused: checkout goes through the web flow instead, because the native SDK does
+ * not offer UPI for subscriptions on this account (Razorpay ticket 20247903). Kept, with
+ * [com.bhaktichat.app.data.subscription.launchRazorpayCheckout], so the native path can be
+ * restored in one place if Razorpay resolves it.
+ */
 data class CheckoutRequest(val subscriptionId: String, val keyId: String, val hostedUrl: String?)
+
+/**
+ * No browser on the device could open the checkout URL. Not a gateway code — chosen negative
+ * so it can never collide with one — and it routes to the ordinary failure screen, which is
+ * the right outcome: the user cannot pay, and our own copy explains it.
+ */
+const val CODE_NO_BROWSER = -1
 
 class ChadhaavaViewModel(
     private val repository: SubscriptionRepository,
@@ -57,11 +71,11 @@ class ChadhaavaViewModel(
     val uiState: StateFlow<ChadhaavaUiState> = _uiState.asStateFlow()
 
     /**
-     * Consumed by the host Activity, which owns the Razorpay SDK. Kept as an event rather
+     * URL the screen should open in a Custom Tab to run checkout. Kept as an event rather
      * than state so a configuration change can't re-launch checkout.
      */
-    private val _checkoutRequests = MutableSharedFlow<CheckoutRequest>(extraBufferCapacity = 1)
-    val checkoutRequests: SharedFlow<CheckoutRequest> = _checkoutRequests.asSharedFlow()
+    private val _webCheckoutRequests = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val webCheckoutRequests: SharedFlow<String> = _webCheckoutRequests.asSharedFlow()
 
     private var pollJob: Job? = null
 
@@ -81,25 +95,32 @@ class ChadhaavaViewModel(
         }
     }
 
-    /** Creates the subscription server-side and asks the host to open Razorpay Checkout. */
+    /**
+     * Asks the host to open web checkout in a Custom Tab.
+     *
+     * Deliberately does not create the subscription here — the web page does that itself,
+     * from a session the handoff URL establishes. Going through the web rather than the
+     * native SDK is what makes UPI available at all on this account; see
+     * [SubscriptionRepository.webCheckoutUrl].
+     */
     fun startCheckout() {
         if (_uiState.value is ChadhaavaUiState.Processing) return
         viewModelScope.launch {
             try {
-                val created: CreatedSubscription = repository.createSubscription()
+                val url = repository.webCheckoutUrl()
                 _uiState.value = ChadhaavaUiState.Processing(elapsedSeconds = 0)
                 startPolling()
-                _checkoutRequests.emit(CheckoutRequest(created.subscriptionId, created.keyId, created.hostedUrl))
+                _webCheckoutRequests.emit(url)
             } catch (error: SubscriptionApiException) {
                 // 409 means a mandate already exists; the repository has already adopted the
                 // server's state, so just render it rather than showing an error.
                 if (error.code == "ALREADY_SUBSCRIBED") render(repository.state.value)
                 else {
-                    Log.w(TAG, "Create subscription failed: ${error.code} ${error.message}")
+                    Log.w(TAG, "Web checkout link failed: ${error.code} ${error.message}")
                     _uiState.value = ChadhaavaUiState.Failed
                 }
             } catch (error: Exception) {
-                Log.w(TAG, "Create subscription failed", error)
+                Log.w(TAG, "Web checkout link failed", error)
                 _uiState.value = ChadhaavaUiState.Failed
             }
         }
@@ -129,6 +150,20 @@ class ChadhaavaViewModel(
      */
     fun checkNow() {
         viewModelScope.launch { repository.refresh(reconcileWithGateway = true) }
+    }
+
+    /**
+     * Back in the app from the checkout tab.
+     *
+     * Says nothing about whether payment succeeded — it fires just the same when the user
+     * backs out — so this only prompts an immediate reconciling read instead of waiting up
+     * to [POLL_INTERVAL_SECONDS] for the next tick. Entitlement still comes from the server.
+     * Deliberately does not cancel the poll: with UPI the user can approve the mandate in
+     * their UPI app well after returning here.
+     */
+    fun onReturnedFromCheckout() {
+        if (_uiState.value !is ChadhaavaUiState.Processing) return
+        checkNow()
     }
 
     fun dismissError() {

@@ -45,6 +45,21 @@ class SubscriptionApi(
     }
 
     /**
+     * Mints a single-use URL that opens web checkout already signed in as this user.
+     *
+     * Needed because the Custom Tab runs in the browser's own process and cookie jar —
+     * the app cannot sign the user in there directly, so the server issues a short-lived
+     * handoff token in the URL and exchanges it for a session cookie.
+     */
+    suspend fun webCheckoutLink(accessToken: String): String = request(
+        Request.Builder()
+            .url("$apiBase/web-checkout-link")
+            .post("{}".toRequestBody(jsonMedia))
+            .authorized(accessToken)
+            .build()
+    ) { json -> json.getString("url") }
+
+    /**
      * Reads current entitlement. [refresh] additionally reconciles against Razorpay
      * server-side — use it right after the user returns from approving a mandate in their
      * UPI app, when the webhook may not have landed yet.

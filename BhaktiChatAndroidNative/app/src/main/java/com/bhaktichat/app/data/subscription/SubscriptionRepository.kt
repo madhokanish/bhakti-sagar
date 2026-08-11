@@ -81,6 +81,20 @@ class SubscriptionRepository(
         }
     }
 
+    /**
+     * Mints a single-use URL that opens web checkout already signed in as this user.
+     *
+     * This is the path that actually offers UPI: Razorpay's native Android SDK returns only
+     * Cards and EMandate for subscription checkout on this account, while the same account's
+     * web checkout.js offers UPI, UPI QR, Cards and EMandate. Verified live on 10 Aug 2026;
+     * see Razorpay ticket 20247903 for the unresolved SDK-side issue.
+     */
+    suspend fun webCheckoutUrl(): String {
+        val token = authRepository.currentSession?.accessToken
+            ?: throw SubscriptionApiException("AUTH_REQUIRED", 401, languageStore.str("please_sign_in"))
+        return api.webCheckoutLink(token)
+    }
+
     /** Creates a subscription server-side, ready to hand to Razorpay Checkout. */
     suspend fun createSubscription(): CreatedSubscription {
         val token = authRepository.currentSession?.accessToken

@@ -8,7 +8,15 @@ export const dynamic = "force-dynamic";
 
 function resolveOrigin(request: Request) {
   const configured = process.env.NEXTAUTH_URL?.trim();
-  if (configured) return configured.replace(/\/$/, "");
+  if (configured) {
+    // NEXTAUTH_URL is set without a scheme in production ("bhaktichat.com"). auth.ts
+    // normalizes it on import, but this route never imports auth.ts, so it would hand the
+    // app a scheme-less URL — which Uri.parse treats as having no scheme at all, and the
+    // Custom Tab then refuses to open. Normalize here rather than relying on another
+    // module's import side effect having run first.
+    const absolute = /^https?:\/\//i.test(configured) ? configured : `https://${configured}`;
+    return absolute.replace(/\/+$/, "");
+  }
   return new URL(request.url).origin;
 }
 

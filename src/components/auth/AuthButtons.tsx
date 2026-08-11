@@ -9,6 +9,11 @@ type AuthButtonsProps = {
 
 export default function AuthButtons({ callbackUrl }: AuthButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<"google" | null>(null);
+  const [showUsernameForm, setShowUsernameForm] = useState(false);
+  const [login, setLogin] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleProviderSignIn(provider: "google") {
     if (loadingProvider) return;
@@ -17,6 +22,28 @@ export default function AuthButtons({ callbackUrl }: AuthButtonsProps) {
       await signIn(provider, { callbackUrl });
     } finally {
       setLoadingProvider(null);
+    }
+  }
+
+  async function handleUsernameSignIn(event: React.FormEvent) {
+    event.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      const response = await fetch("/api/auth/test-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ login, password })
+      });
+      const data = (await response.json()) as { ok?: boolean; error?: string };
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Sign-in failed.");
+      }
+      window.location.href = callbackUrl;
+    } catch (signInError) {
+      setError(signInError instanceof Error ? signInError.message : "Sign-in failed.");
+      setSubmitting(false);
     }
   }
 
@@ -50,6 +77,43 @@ export default function AuthButtons({ callbackUrl }: AuthButtonsProps) {
         </span>
         {loadingProvider === "google" ? "Connecting Google..." : "Continue with Google"}
       </button>
+
+      {showUsernameForm ? (
+        <form onSubmit={handleUsernameSignIn} className="space-y-2 rounded-2xl border border-sagar-amber/20 p-3">
+          <input
+            type="text"
+            autoComplete="username"
+            placeholder="Username"
+            value={login}
+            onChange={(event) => setLogin(event.target.value)}
+            className="w-full rounded-xl border border-sagar-amber/25 px-3 py-2 text-sm text-sagar-ink"
+          />
+          <input
+            type="password"
+            autoComplete="current-password"
+            placeholder="Password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="w-full rounded-xl border border-sagar-amber/25 px-3 py-2 text-sm text-sagar-ink"
+          />
+          {error ? <p className="text-xs text-sagar-rose">{error}</p> : null}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full rounded-full bg-sagar-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            {submitting ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowUsernameForm(true)}
+          className="w-full text-center text-xs text-sagar-ink/60 underline"
+        >
+          Enter username or password
+        </button>
+      )}
     </div>
   );
 }

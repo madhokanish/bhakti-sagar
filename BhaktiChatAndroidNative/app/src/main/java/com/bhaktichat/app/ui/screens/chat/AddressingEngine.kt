@@ -159,16 +159,23 @@ object AddressingEngine {
         val hasDevanagari = userMessage.any { Character.UnicodeBlock.of(it) == Character.UnicodeBlock.DEVANAGARI }
         if (hasDevanagari) return ConversationLanguage.HINDI
 
-        val words = userMessage.lowercase().split(Regex("[^a-z]+")).filter { it.isNotBlank() }
+        val words = userMessage.lowercase().split(Regex("[^a-z]+")).filter { it.length >= 2 }
 
-        // Latin input means Latin script back, and that means Hinglish.
+        // A Roman-Hindi marker is a signal on its own: "haan" or "theek" is unambiguous even
+        // alone.
+        if (words.any { it in hinglishMarkers }) return ConversationLanguage.HINGLISH
+
+        // Otherwise Latin input means Latin script back, and that means Hinglish.
         //
-        // This used to return ENGLISH for Latin text without a Roman-Hindi marker word, which
-        // meant "I feel stressed about work" was answered in textbook English even though the
-        // only Latin option the picker offers is labelled English but *is* Hinglish. Markers
-        // are no longer consulted: they were the difference between the two Latin answers, and
-        // there is now only one.
-        if (words.isNotEmpty()) return ConversationLanguage.HINGLISH
+        // This used to return ENGLISH for Latin text without a marker word, which meant "I feel
+        // stressed about work" was answered in textbook English even though the only Latin
+        // option the picker offers is labelled English but *is* Hinglish.
+        //
+        // Two words minimum: one Latin word is not a language signal. "ok", "hmm" and "thanks"
+        // get typed in Latin by Hindi users constantly, and treating them as a switch flipped a
+        // Hindi reader to Hinglish mid-conversation. Below that, callers fall through to the
+        // language the user chose.
+        if (words.size >= 2) return ConversationLanguage.HINGLISH
 
         return null
     }

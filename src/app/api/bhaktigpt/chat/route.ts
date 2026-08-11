@@ -326,7 +326,13 @@ function detectLanguageFromText(text: string | null | undefined): ChatLanguage |
   const trimmed = (text ?? "").trim();
   if (!trimmed) return null;
   if (DEVANAGARI_SCRIPT_PATTERN.test(trimmed)) return "hi";
-  if (LATIN_SCRIPT_PATTERN.test(trimmed)) return "hinglish";
+
+  // One Latin word is not a language signal. "ok", "hmm", "thanks" and "haan" get typed in
+  // Latin by Hindi users constantly, and treating them as a switch flipped a Hindi reader to
+  // Hinglish mid-conversation. Two or more Latin words is someone actually writing in Latin;
+  // anything less falls through to the language they chose.
+  const latinWords = trimmed.match(/[A-Za-z]{2,}/g) ?? [];
+  if (latinWords.length >= 2) return "hinglish";
   return null;
 }
 

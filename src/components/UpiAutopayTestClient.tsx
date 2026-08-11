@@ -160,7 +160,33 @@ export default function UpiAutopayTestClient({ email, lang }: Props) {
         </div>
       </section>
 
-      <section className="mt-6">
+      {/* Status sits directly above the button. After a dismissal "Payment cancelled" only
+          means something next to the control that retries it. */}
+      {error ? <p className="mt-4 text-center text-sm text-[#C2410C]">{error}</p> : null}
+      {result ? (
+        <p className="mt-4 text-center text-sm font-semibold text-[#2F6B4A]">{copy.verified}</p>
+      ) : null}
+
+      {/* Deliberately above the benefits. Checkout opens by itself, so by the time anyone is
+          reading this page they have already dismissed it — this button is the whole point of
+          the page at that moment, and below the benefits list it sat off-screen on a phone. */}
+      <div className={error || result ? "mt-3" : "mt-5"}>
+        <button
+          type="button"
+          onClick={() => void startSubscription()}
+          disabled={loading}
+          className="flex min-h-[56px] w-full flex-col items-center justify-center rounded-2xl bg-gradient-to-r from-[#FB923C] to-[#EA580C] px-6 text-white shadow-[0_10px_30px_-14px_rgba(234,88,12,0.9)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <span className="text-base font-extrabold">{loading ? copy.opening : copy.reopen}</span>
+          {!loading ? <span className="mt-0.5 text-xs opacity-95">{copy.ctaLine2}</span> : null}
+        </button>
+      </div>
+
+      <p className="mt-3 text-center text-sm text-[#8A6F5C]">
+        {copy.subscribingAs} <span className="font-semibold text-[#2A1C15]">{email}</span>
+      </p>
+
+      <section className="mt-7">
         <h2 className="text-lg font-bold text-[#2A1C15]">{copy.benefitsTitle}</h2>
         <ul className="mt-3 space-y-3">
           {copy.benefits.map((benefit) => (
@@ -179,30 +205,6 @@ export default function UpiAutopayTestClient({ email, lang }: Props) {
           ))}
         </ul>
       </section>
-
-      <p className="mt-6 text-center text-sm text-[#8A6F5C]">
-        {copy.subscribingAs} <span className="font-semibold text-[#2A1C15]">{email}</span>
-      </p>
-
-      {error ? <p className="mt-2 text-center text-sm text-[#C2410C]">{error}</p> : null}
-      {result ? (
-        <p className="mt-2 text-center text-sm font-semibold text-[#2F6B4A]">{copy.verified}</p>
-      ) : null}
-
-      {/* Checkout opens on its own, so this is the retry surface after a dismissal rather
-          than the primary path. Styled like the app's footer CTA all the same, because it is
-          the same action. */}
-      <div className="mt-5">
-        <button
-          type="button"
-          onClick={() => void startSubscription()}
-          disabled={loading}
-          className="flex min-h-[56px] w-full flex-col items-center justify-center rounded-2xl bg-gradient-to-r from-[#FB923C] to-[#EA580C] px-6 text-white shadow-[0_10px_30px_-14px_rgba(234,88,12,0.9)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <span className="text-base font-extrabold">{loading ? copy.opening : copy.reopen}</span>
-          {!loading ? <span className="mt-0.5 text-xs opacity-95">{copy.ctaLine2}</span> : null}
-        </button>
-      </div>
     </div>
   );
 }

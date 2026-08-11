@@ -318,7 +318,7 @@ class EntitlementStore(context: Context) {
          * update already locked out, having never seen a limit. Raising this gives everyone
          * a clean 20/2 from the moment they upgrade.
          */
-        private const val QUOTA_EPOCH: Int = 1
+        private const val QUOTA_EPOCH: Int = 2
         private const val PAYWALL_COOLDOWN_MS: Long = 24L * 60L * 60L * 1000L
 
         private const val PREFS_NAME = "bhakti_entitlements"

@@ -51,10 +51,12 @@ class SubscriptionApi(
      * the app cannot sign the user in there directly, so the server issues a short-lived
      * handoff token in the URL and exchanges it for a session cookie.
      */
-    suspend fun webCheckoutLink(accessToken: String): String = request(
+    suspend fun webCheckoutLink(accessToken: String, languageTag: String): String = request(
         Request.Builder()
             .url("$apiBase/web-checkout-link")
-            .post("{}".toRequestBody(jsonMedia))
+            .post(
+                JSONObject().put("lang", languageTag).toString().toRequestBody(jsonMedia)
+            )
             .authorized(accessToken)
             .build()
     ) { json -> json.getString("url") }

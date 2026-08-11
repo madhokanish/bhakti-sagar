@@ -92,7 +92,8 @@ class SubscriptionRepository(
     suspend fun webCheckoutUrl(): String {
         val token = authRepository.currentSession?.accessToken
             ?: throw SubscriptionApiException("AUTH_REQUIRED", 401, languageStore.str("please_sign_in"))
-        return api.webCheckoutLink(token)
+        // Send the language along so checkout reads in the one they were just looking at.
+        return api.webCheckoutLink(token, languageStore.language.value.wireValue)
     }
 
     /** Creates a subscription server-side, ready to hand to Razorpay Checkout. */

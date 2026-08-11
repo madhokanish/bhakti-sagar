@@ -155,15 +155,23 @@ class ChadhaavaViewModel(
     /**
      * Back in the app from the checkout tab.
      *
-     * Says nothing about whether payment succeeded — it fires just the same when the user
-     * backs out — so this only prompts an immediate reconciling read instead of waiting up
-     * to [POLL_INTERVAL_SECONDS] for the next tick. Entitlement still comes from the server.
-     * Deliberately does not cancel the poll: with UPI the user can approve the mandate in
-     * their UPI app well after returning here.
+     * The tab gives no cancel signal — this fires identically whether the user paid or
+     * backed out — so it asks the server rather than guessing. If the mandate is already
+     * confirmed, show it. If not, drop back to the offer instead of leaving them staring at
+     * a spinner they can no longer influence.
+     *
+     * Deliberately does not cancel the poll. With UPI the mandate is often approved in the
+     * UPI app after the user is already back here, so polling continues in the background
+     * and promotes them to Active whenever it lands.
      */
     fun onReturnedFromCheckout() {
         if (_uiState.value !is ChadhaavaUiState.Processing) return
-        checkNow()
+        viewModelScope.launch {
+            repository.refresh(reconcileWithGateway = true)
+            val summary = repository.state.value
+            if (summary.isPro) render(summary)
+            else _uiState.value = ChadhaavaUiState.Offer(blockedBy)
+        }
     }
 
     fun dismissError() {
@@ -189,9 +197,12 @@ class ChadhaavaViewModel(
             while (isActive && elapsed < POLL_TIMEOUT_SECONDS) {
                 delay(TimeUnit.SECONDS.toMillis(POLL_INTERVAL_SECONDS.toLong()))
                 elapsed += POLL_INTERVAL_SECONDS
+                // Only drives the visible timer while the wait screen is up. It deliberately
+                // keeps polling once the user is back on the offer, so a mandate approved
+                // late still promotes them without them doing anything.
                 (_uiState.value as? ChadhaavaUiState.Processing)?.let {
                     _uiState.value = ChadhaavaUiState.Processing(elapsed)
-                } ?: return@launch
+                }
 
                 repository.refresh(reconcileWithGateway = true)
                 if (repository.state.value.isPro) {
@@ -199,8 +210,11 @@ class ChadhaavaViewModel(
                     return@launch
                 }
             }
+            // Timed out without ever seeing a payment. That is not evidence one failed —
+            // most often the user simply backed out — so return to the offer rather than
+            // accusing them of a failed payment we never observed.
             if (_uiState.value is ChadhaavaUiState.Processing) {
-                _uiState.value = ChadhaavaUiState.Failed
+                _uiState.value = ChadhaavaUiState.Offer(blockedBy)
             }
         }
     }

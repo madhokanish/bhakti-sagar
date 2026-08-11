@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
@@ -27,8 +27,12 @@ export default function UpiAutopayTestClient({ email }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<{ status: string } | null>(null);
+  // Most arrivals here come straight from tapping "pay" in the app, so checkout opens by
+  // itself (see the effect below). This guards against it firing twice -- on a re-render, or
+  // after the user has dismissed it and is looking at the retry button.
+  const autoOpenedRef = useRef(false);
 
-  async function startSubscription() {
+  const startSubscription = useCallback(async function startSubscription() {
     if (loading) return;
     if (!scriptReady || !window.Razorpay) {
       setError("Payment script hasn't loaded yet — try again in a moment.");
@@ -94,13 +98,27 @@ export default function UpiAutopayTestClient({ email }: Props) {
       setError(startError instanceof Error ? startError.message : "Unable to start subscription.");
       setLoading(false);
     }
-  }
+  }, [email, loading, scriptReady]);
+
+  // Open checkout as soon as we can, rather than making the user tap again.
+  //
+  // People reach this page by tapping "pay" in the app; the page itself is a handoff, not a
+  // destination, and an extra tap here is a pure drop-off point. Razorpay renders as an
+  // in-page overlay rather than a popup, so opening it without a click is not blocked.
+  //
+  // If they dismiss it, autoOpenedRef keeps it dismissed and the page below acts as the
+  // retry surface -- reopening automatically would trap them.
+  useEffect(() => {
+    if (!scriptReady || autoOpenedRef.current) return;
+    autoOpenedRef.current = true;
+    void startSubscription();
+  }, [scriptReady, startSubscription]);
 
   return (
     <section className="mx-auto max-w-2xl rounded-3xl border border-sagar-amber/20 bg-white p-6 shadow-sagar-soft md:p-8">
       <Script
         src="https://checkout.razorpay.com/v1/checkout.js"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
         onLoad={() => setScriptReady(true)}
       />
 
@@ -126,11 +144,11 @@ export default function UpiAutopayTestClient({ email }: Props) {
       <div className="mt-5">
         <button
           type="button"
-          onClick={startSubscription}
+          onClick={() => void startSubscription()}
           disabled={loading}
           className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-sagar-saffron px-6 py-2 text-sm font-semibold text-white transition hover:bg-sagar-ember disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Processing..." : "Start trial with UPI AutoPay"}
+          {loading ? "Opening payment..." : "Pay ₹5 with UPI AutoPay"}
         </button>
       </div>
     </section>

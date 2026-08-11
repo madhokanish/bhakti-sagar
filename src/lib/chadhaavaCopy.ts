@@ -35,26 +35,26 @@ type Copy = {
 
 export const CHADHAAVA_COPY: Record<CheckoutLang, Copy> = {
   en: {
-    priceNow: "abhi",
-    priceSub: "3 din tak BhaktiChat ke saare features bilkul free",
-    refundTitle: "₹5 kuch hi minute mein wapas",
-    refundSub: "₹5 usi UPI account mein wapas aa jayenge",
-    planPrice: "3 din baad ₹199/mahina",
-    cancelAnytime: "Kabhi bhi cancel karein",
-    benefitsTitle: "Aapko kya milega",
+    priceNow: "now",
+    priceSub: "All BhaktiChat features free for 3 days",
+    refundTitle: "₹5 back within minutes",
+    refundSub: "₹5 comes back to the same UPI account",
+    planPrice: "₹199/month after 3 days",
+    cancelAnytime: "Cancel anytime",
+    benefitsTitle: "What you get",
     benefits: [
-      { title: "Phone jaisi baatcheet", sub: "Bol kar poochein, turant awaaz mein jawab paayein" },
-      { title: "Aseemit baatcheet", sub: "Krishna, Lakshmi, Shani aur sabhi guruon ke saath" },
-      { title: "Divya tasveerein", sub: "Bhagwan ke saath apni photo banayein" },
-      { title: "Wallpaper aur status", sub: "Roz naye wallpaper aur status" },
-      { title: "Bina ads ka experience", sub: "Koi rukawat nahi" }
+      { title: "Talk like a phone call", sub: "Speak your question, hear the answer right away" },
+      { title: "Unlimited conversations", sub: "With Krishna, Lakshmi, Shani and every guide" },
+      { title: "Divine images", sub: "Create your photo with the deities" },
+      { title: "Wallpapers and status", sub: "New wallpapers and status every day" },
+      { title: "Ad-free experience", sub: "No interruptions" }
     ],
-    ctaLine1: "₹5 mein Chadhawa shuru karein",
-    ctaLine2: "₹5 turant wapas • 3 din BhaktiChat free",
+    ctaLine1: "Start Chadhava for ₹5",
+    ctaLine2: "₹5 back right away • 3 days of BhaktiChat free",
     subscribingAs: "Subscribing as",
-    opening: "Payment khul raha hai…",
-    reopen: "₹5 mein Chadhawa shuru karein",
-    verified: "Chadhava sweekar hua — app par wapas jaayein"
+    opening: "Opening payment…",
+    reopen: "Start Chadhava for ₹5",
+    verified: "Chadhava accepted, head back to the app"
   },
   hi: {
     priceNow: "अभी",
@@ -76,6 +76,6 @@ export const CHADHAAVA_COPY: Record<CheckoutLang, Copy> = {
     subscribingAs: "सब्सक्राइब कर रहे हैं",
     opening: "पेमेंट खुल रहा है…",
     reopen: "₹5 में चढ़ावा शुरू करें",
-    verified: "चढ़ावा स्वीकार हुआ — ऐप पर वापस जाएँ"
+    verified: "चढ़ावा स्वीकार हुआ, ऐप पर वापस जाएँ"
   }
 };

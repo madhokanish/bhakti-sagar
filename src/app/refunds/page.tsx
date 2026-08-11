@@ -36,12 +36,12 @@ export default function RefundsPage() {
           {
             title: "2. रद्दीकरण",
             body:
-              "आप अपनी सदस्यता कभी भी रद्द कर सकते हैं — अपने अकाउंट की बिलिंग सेटिंग से, या UPI AutoPay मैंडेट के लिए सीधे अपने UPI ऐप से मैंडेट रद्द करके। अगली बिलिंग तारीख से पहले रद्द करने पर आपसे आगे कोई शुल्क नहीं लिया जाएगा। रद्द करने के बाद भी आपकी सदस्यता तब तक सक्रिय रहती है जब तक चालू भुगतान अवधि समाप्त नहीं हो जाती।"
+              "आप अपनी सदस्यता कभी भी रद्द कर सकते हैं, अपने अकाउंट की बिलिंग सेटिंग से, या UPI AutoPay मैंडेट के लिए सीधे अपने UPI ऐप से मैंडेट रद्द करके। अगली बिलिंग तारीख से पहले रद्द करने पर आपसे आगे कोई शुल्क नहीं लिया जाएगा। रद्द करने के बाद भी आपकी सदस्यता तब तक सक्रिय रहती है जब तक चालू भुगतान अवधि समाप्त नहीं हो जाती।"
           },
           {
             title: "3. रिफंड",
             body:
-              "मैंडेट सत्यापन वाला ₹5 का शुल्क अपने आप पूरी तरह वापस कर दिया जाता है — इसके लिए कोई अनुरोध करने की आवश्यकता नहीं है। मासिक ₹199 शुल्क सामान्यतः गैर-वापसी योग्य (non-refundable) है, जिसमें आंशिक रूप से उपयोग किया गया बिलिंग पीरियड शामिल है — रद्द करने पर उस अवधि के बचे हुए दिनों का आंशिक रिफंड नहीं दिया जाता। यदि आपको गलत या डुप्लीकेट (duplicate) शुल्क दिखाई देता है, तो कृपया हमसे संपर्क करें; सत्यापन के बाद ऐसे शुल्क को पूरी तरह रिफंड किया जाएगा।"
+              "मैंडेट सत्यापन वाला ₹5 का शुल्क अपने आप पूरी तरह वापस कर दिया जाता है, इसके लिए कोई अनुरोध करने की आवश्यकता नहीं है। मासिक ₹199 शुल्क सामान्यतः गैर-वापसी योग्य (non-refundable) है, जिसमें आंशिक रूप से उपयोग किया गया बिलिंग पीरियड शामिल है, रद्द करने पर उस अवधि के बचे हुए दिनों का आंशिक रिफंड नहीं दिया जाता। यदि आपको गलत या डुप्लीकेट (duplicate) शुल्क दिखाई देता है, तो कृपया हमसे संपर्क करें; सत्यापन के बाद ऐसे शुल्क को पूरी तरह रिफंड किया जाएगा।"
           },
           {
             title: "4. भुगतान विफलता",
@@ -72,12 +72,12 @@ export default function RefundsPage() {
           {
             title: "2. Cancellation",
             body:
-              "You can cancel your subscription at any time — from your account's billing settings, or, for UPI AutoPay subscriptions, directly by canceling the mandate in your UPI app. If you cancel before your next billing date, you will not be charged again. Your membership stays active until the end of the period you already paid for."
+              "You can cancel your subscription at any time, from your account's billing settings, or, for UPI AutoPay subscriptions, directly by canceling the mandate in your UPI app. If you cancel before your next billing date, you will not be charged again. Your membership stays active until the end of the period you already paid for."
           },
           {
             title: "3. Refunds",
             body:
-              "The ₹5 mandate authentication charge is refunded in full automatically — you do not need to request it. The monthly ₹199 charge is generally non-refundable, including for the unused portion of a billing period after cancellation — we do not prorate or refund partial periods. If you notice an incorrect or duplicate charge, please contact us; once verified, such charges will be refunded in full."
+              "The ₹5 mandate authentication charge is refunded in full automatically, you do not need to request it. The monthly ₹199 charge is generally non-refundable, including for the unused portion of a billing period after cancellation, we do not prorate or refund partial periods. If you notice an incorrect or duplicate charge, please contact us; once verified, such charges will be refunded in full."
           },
           {
             title: "4. Failed payments",

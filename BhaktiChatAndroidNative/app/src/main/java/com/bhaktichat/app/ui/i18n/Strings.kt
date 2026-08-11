@@ -42,122 +42,122 @@ private val table: Map<String, Entry> = mapOf(
     // --- चढ़ावा / subscription screen -------------------------------------------------
     "chadhaava_title" to Entry("Chadhava", "चढ़ावा", "Chadhava"),
     "chadhaava_headline" to Entry(
-        "Sirf ₹5 mein unlock kijiye saare features",
+        "Unlock all features for just ₹5",
         "सिर्फ़ ₹5 में अनलॉक कीजिए सारे फ़ीचर्स",
         "Unlock all features for just ₹5"
     ),
     "chadhaava_price_amount" to Entry("₹5", "₹5", "₹5"),
-    "chadhaava_price_now" to Entry("abhi", "अभी", "now"),
+    "chadhaava_price_now" to Entry("now", "अभी", "now"),
     "chadhaava_price_sub" to Entry(
-        "3 din tak BhaktiChat ke saare features bilkul free",
+        "All BhaktiChat features free for 3 days",
         "3 दिन तक BhaktiChat के सारे फ़ीचर बिलकुल फ़्री",
         "All BhaktiChat features free for 3 days"
     ),
     "chadhaava_refund_title" to Entry(
-        "₹5 kuch hi minute mein wapas",
+        "₹5 back within minutes",
         "₹5 कुछ ही मिनट में वापस",
         "₹5 back within minutes"
     ),
     "chadhaava_refund_sub" to Entry(
-        "₹5 usi UPI account mein wapas aa jayenge",
+        "₹5 comes back to the same UPI account",
         "₹5 उसी UPI अकाउंट में वापस आ जाएँगे",
         "₹5 comes back to the same UPI account"
     ),
-    "chadhaava_plan_price" to Entry("3 din baad ₹199/mahina", "3 दिन बाद ₹199/महीना", "₹199/month after 3 days"),
-    "chadhaava_plan_starts" to Entry("Kabhi bhi cancel karein", "कभी भी कैंसल करें", "Cancel anytime"),
+    "chadhaava_plan_price" to Entry("₹199/month after 3 days", "3 दिन बाद ₹199/महीना", "₹199/month after 3 days"),
+    "chadhaava_plan_starts" to Entry("Cancel anytime", "कभी भी कैंसल करें", "Cancel anytime"),
 
     "chadhaava_timeline_title" to Entry(
-        "Aage kya hoga — saaf-saaf",
-        "आगे क्या होगा — साफ़-साफ़",
-        "What happens next — clearly"
+        "What happens next, clearly",
+        "आगे क्या होगा, साफ़-साफ़",
+        "What happens next, clearly"
     ),
     "chadhaava_step1_title" to Entry(
-        "Aaj — ₹5 dein, turant wapas paayein",
-        "आज — ₹5 दें, तुरंत वापस पाएँ",
-        "Today — pay ₹5, get it back right away"
+        "Today: pay ₹5, get it back right away",
+        "आज: ₹5 दें, तुरंत वापस पाएँ",
+        "Today: pay ₹5, get it back right away"
     ),
     "chadhaava_step1_sub" to Entry(
-        "Poora app usi pal khul jata hai",
+        "The full app opens that moment",
         "पूरा ऐप उसी पल खुल जाता है",
         "The full app opens that moment"
     ),
     "chadhaava_step2_title" to Entry(
-        "Din 2 — aapko yaad dilaya jayega",
-        "दिन 2 — आपको याद दिलाया जाएगा",
-        "Day 2 — you'll be reminded"
+        "Day 2: you'll be reminded",
+        "दिन 2: आपको याद दिलाया जाएगा",
+        "Day 2: you'll be reminded"
     ),
     // Deliberately describes only what actually happens: the pre-debit notification comes
     // from the user's bank/UPI app over the AutoPay rails, and we send an email. The app
     // has no push or SMS channel, so the copy must not promise either.
     "chadhaava_step2_sub" to Entry(
-        "Kataut se pehle aapke bank/UPI app se soochna milegi, aur hum email bhi bhejenge",
+        "Your bank/UPI app notifies you before the debit, and we'll email you too",
         "कटौती से पहले आपके बैंक/UPI ऐप से सूचना मिलेगी, और हम ईमेल भी भेजेंगे",
         "Your bank/UPI app notifies you before the debit, and we'll email you too"
     ),
     "chadhaava_step3_title" to Entry(
-        "Din 3 — ₹199/mahina shuru",
-        "दिन 3 — ₹199/महीना शुरू",
-        "Day 3 — ₹199/month begins"
+        "Day 3: ₹199/month begins",
+        "दिन 3: ₹199/महीना शुरू",
+        "Day 3: ₹199/month begins"
     ),
     "chadhaava_step3_sub" to Entry(
-        "Pasand na aaye to usse pehle cancel — ek paisa nahi lagega",
-        "पसंद न आए तो उससे पहले कैंसल — एक पैसा नहीं लगेगा",
-        "Cancel before then if it's not for you — you pay nothing"
+        "Cancel before then if it's not for you, you pay nothing",
+        "पसंद न आए तो उससे पहले कैंसल, एक पैसा नहीं लगेगा",
+        "Cancel before then if it's not for you, you pay nothing"
     ),
 
     // --- Temple offering card ---
 
     "chadhaava_benefits_title" to Entry(
-        "Aapko kya milega",
+        "What you get",
         "आपको क्या मिलेगा",
         "What you get"
     ),
     "chadhaava_benefit_voice" to Entry(
-        "Phone jaisi baatcheet",
+        "Talk like a phone call",
         "फ़ोन जैसी बातचीत",
         "Talk like a phone call"
     ),
     "chadhaava_benefit_voice_sub" to Entry(
-        "Bol kar poochein, turant awaaz mein jawab paayein",
+        "Speak your question, hear the answer right away",
         "बोलकर पूछें, तुरंत आवाज़ में जवाब पाएँ",
         "Speak your question, hear the answer right away"
     ),
-    "chadhaava_benefit_chat" to Entry("Aseemit baatcheet", "असीमित बातचीत", "Unlimited conversations"),
+    "chadhaava_benefit_chat" to Entry("Unlimited conversations", "असीमित बातचीत", "Unlimited conversations"),
     "chadhaava_benefit_chat_sub" to Entry(
-        "Krishna, Lakshmi, Shani aur sabhi guruon ke saath",
+        "With Krishna, Lakshmi, Shani and every guide",
         "कृष्ण, लक्ष्मी, शनि और सभी गुरुओं के साथ",
         "With Krishna, Lakshmi, Shani and every guide"
     ),
-    "chadhaava_benefit_image" to Entry("Divya tasveerein", "दिव्य तस्वीरें", "Divine images"),
+    "chadhaava_benefit_image" to Entry("Divine images", "दिव्य तस्वीरें", "Divine images"),
     "chadhaava_benefit_image_sub" to Entry(
-        "Bhagwan ke saath apni photo banayein",
+        "Create your photo with the deities",
         "भगवान के साथ अपनी फ़ोटो बनाएँ",
         "Create your photo with the deities"
     ),
     "chadhaava_benefit_wallpaper" to Entry(
-        "Wallpaper aur status",
+        "Wallpapers and status",
         "वॉलपेपर और स्टेटस",
         "Wallpapers and status"
     ),
     "chadhaava_benefit_wallpaper_sub" to Entry(
-        "25 wallpaper — download aur share karein",
-        "25 वॉलपेपर — डाउनलोड और शेयर करें",
-        "25 wallpapers — download and share"
+        "25 wallpapers, download and share",
+        "25 वॉलपेपर, डाउनलोड और शेयर करें",
+        "25 wallpapers, download and share"
     ),
     "chadhaava_benefit_adfree" to Entry(
-        "Bina ads ka experience",
+        "Ad-free experience",
         "विज्ञापन-मुक्त अनुभव",
         "Ad-free experience"
     ),
     "chadhaava_benefit_adfree_sub" to Entry(
-        "Koi banner nahi, koi rukawat nahi",
+        "No banners, no interruptions",
         "कोई बैनर नहीं, कोई रुकावट नहीं",
         "No banners, no interruptions"
     ),
-    "chadhaava_badge_popular" to Entry("Sabse lokpriya", "सबसे लोकप्रिय", "Most popular"),
-    "chadhaava_badge_here" to Entry("Aap yahin ruke the", "आप यहीं रुके थे", "You stopped here"),
-    "chadhaava_expander_more" to Entry("Aur bhi bahut kuch", "और भी बहुत कुछ", "And much more"),
-    "chadhaava_expander_less" to Entry("Kam dikhayein", "कम दिखाएँ", "Show less"),
+    "chadhaava_badge_popular" to Entry("Most popular", "सबसे लोकप्रिय", "Most popular"),
+    "chadhaava_badge_here" to Entry("You stopped here", "आप यहीं रुके थे", "You stopped here"),
+    "chadhaava_expander_more" to Entry("And much more", "और भी बहुत कुछ", "And much more"),
+    "chadhaava_expander_less" to Entry("Show less", "कम दिखाएँ", "Show less"),
     "chadhaava_expander_sub" to Entry(
         "Reels · Aarti, bhajan, mantra · Choghadiya",
         "रील्स · आरती, भजन, मंत्र · चौघड़िया",
@@ -165,177 +165,177 @@ private val table: Map<String, Entry> = mapOf(
     ),
     "chadhaava_secondary_reels" to Entry("Reels", "रील्स", "Reels"),
     "chadhaava_secondary_aarti" to Entry(
-        "Sabhi aarti, bhajan aur mantra",
+        "All aartis, bhajans and mantras",
         "सभी आरती, भजन और मंत्र",
         "All aartis, bhajans and mantras"
     ),
     "chadhaava_secondary_panchang" to Entry(
-        "Choghadiya aur panchang",
+        "Choghadiya and panchang",
         "चौघड़िया और पंचांग",
         "Choghadiya and panchang"
     ),
 
     "chadhaava_policy_title" to Entry(
-        "₹5 ka niyam — poori safai se",
-        "₹5 का नियम — पूरी सफ़ाई से",
-        "The ₹5 rule — in plain words"
+        "The ₹5 rule, in plain words",
+        "₹5 का नियम, पूरी सफ़ाई से",
+        "The ₹5 rule, in plain words"
     ),
-    "chadhaava_policy_q1" to Entry("₹5 kyun liye jaate hain?", "₹5 क्यों लिए जाते हैं?", "Why is ₹5 charged?"),
+    "chadhaava_policy_q1" to Entry("Why is ₹5 charged?", "₹5 क्यों लिए जाते हैं?", "Why is ₹5 charged?"),
     "chadhaava_policy_a1" to Entry(
-        "Aapka bank UPI auto-pay chaalu karne ke liye ek real payment maangta hai. ₹5 sabse chhoti amount hai jisse yeh ho jata hai — yeh hamari fees nahi hai.",
-        "आपका बैंक UPI ऑटो-पे चालू करने के लिए एक असली भुगतान माँगता है। ₹5 सबसे छोटी रकम है जिससे यह हो जाता है — यह हमारा शुल्क नहीं है।",
-        "Your bank requires one real payment to enable UPI auto-pay. ₹5 is the smallest amount that does it — it is not our fee."
+        "Your bank requires one real payment to enable UPI auto-pay. ₹5 is the smallest amount that does it. It is not our fee.",
+        "आपका बैंक UPI ऑटो-पे चालू करने के लिए एक असली भुगतान माँगता है। ₹5 सबसे छोटी रकम है जिससे यह हो जाता है। यह हमारा शुल्क नहीं है।",
+        "Your bank requires one real payment to enable UPI auto-pay. ₹5 is the smallest amount that does it. It is not our fee."
     ),
-    "chadhaava_policy_q2" to Entry("Wapas kab aayenge?", "वापस कब आएँगे?", "When do I get it back?"),
+    "chadhaava_policy_q2" to Entry("When do I get it back?", "वापस कब आएँगे?", "When do I get it back?"),
     "chadhaava_policy_a2" to Entry(
-        "Turant — manzoori milne ke kuch minute mein usi UPI khaate mein. Bank ki taraf se deri ho to 24 ghante tak lag sakte hain.",
-        "तुरंत — मंज़ूरी मिलने के कुछ मिनट में उसी UPI खाते में। बैंक की तरफ़ से देरी हो तो 24 घंटे तक लग सकते हैं।",
-        "Right away — within minutes of approval, to the same UPI account. Bank delays can take up to 24 hours."
+        "Right away, within minutes of approval, to the same UPI account. Bank delays can take up to 24 hours.",
+        "तुरंत, मंज़ूरी मिलने के कुछ मिनट में उसी UPI खाते में। बैंक की तरफ़ से देरी हो तो 24 घंटे तक लग सकते हैं।",
+        "Right away, within minutes of approval, to the same UPI account. Bank delays can take up to 24 hours."
     ),
     "chadhaava_policy_q3" to Entry(
-        "Cancel karna kitna aasan hai?",
+        "How easy is cancelling?",
         "कैंसल करना कितना आसान है?",
         "How easy is cancelling?"
     ),
     "chadhaava_policy_a3" to Entry(
-        "Isi screen par do tap. 3 din ke andar cancel kiya to ₹199 kabhi nahi katega.",
+        "Two taps on this screen. Cancel within 3 days and ₹199 is never charged.",
         "इसी स्क्रीन पर दो टैप। 3 दिन के अंदर कैंसल किया तो ₹199 कभी नहीं कटेगा।",
         "Two taps on this screen. Cancel within 3 days and ₹199 is never charged."
     ),
 
     "chadhaava_cta_line1" to Entry(
-        "₹5 mein Chadhawa shuru karein",
+        "Start Chadhava for ₹5",
         "₹5 में चढ़ावा शुरू करें",
         "Start Chadhawa for ₹5"
     ),
     "chadhaava_cta_line2" to Entry(
-        "₹5 turant wapas • 3 din BhaktiChat free",
+        "₹5 back right away • 3 days of BhaktiChat free",
         "₹5 तुरंत वापस • 3 दिन BhaktiChat फ़्री",
         "₹5 back right away • 3 days of BhaktiChat free"
     ),
     "chadhaava_cta_blocked_wallpaper" to Entry(
-        "₹5 dekar wallpaper kholein",
+        "Pay ₹5 to unlock wallpapers",
         "₹5 देकर वॉलपेपर खोलें",
         "Pay ₹5 to unlock wallpapers"
     ),
-    "chadhaava_link_refunds" to Entry("Refund neeti", "रिफंड नीति", "Refund policy"),
-    "chadhaava_link_terms" to Entry("Sharten", "शर्तें", "Terms"),
+    "chadhaava_link_refunds" to Entry("Refund policy", "रिफंड नीति", "Refund policy"),
+    "chadhaava_link_terms" to Entry("Terms", "शर्तें", "Terms"),
 
     "chadhaava_blocked_wallpaper_title" to Entry(
-        "Yeh wallpaper chadhava mein shaamil hai",
+        "This wallpaper is part of Chadhava",
         "यह वॉलपेपर चढ़ावा में शामिल है",
         "This wallpaper is part of Chadhava"
     ),
     "chadhaava_blocked_wallpaper_sub" to Entry(
-        "Yeh wallpaper aur 24 anya — ₹5 dein, turant wapas paayein, aaj hi download karein",
-        "यह वॉलपेपर और 24 अन्य — ₹5 दें, तुरंत वापस पाएँ, आज ही डाउनलोड करें",
-        "This wallpaper and 24 more — pay ₹5, get it back right away, download today"
+        "This wallpaper and 24 more, pay ₹5, get it back right away, download today",
+        "यह वॉलपेपर और 24 अन्य, ₹5 दें, तुरंत वापस पाएँ, आज ही डाउनलोड करें",
+        "This wallpaper and 24 more, pay ₹5, get it back right away, download today"
     ),
 
     "chadhaava_blocked_chat_title" to Entry(
-        "Aapke free messages poore ho gaye",
+        "You have used your free messages",
         "आपके निःशुल्क संदेश पूरे हो गए",
         "You have used your free messages"
     ),
     "chadhaava_blocked_chat_sub" to Entry(
-        "Chadhava ke saath guruon se unlimited baat kijiye — ₹5 dein, turant wapas paayein",
-        "चढ़ावा के साथ गुरुओं से असीमित बात कीजिए — ₹5 दें, तुरंत वापस पाएँ",
-        "Talk to the guides without limit — pay ₹5, get it back right away"
+        "Talk to the guides without limit, pay ₹5, get it back right away",
+        "चढ़ावा के साथ गुरुओं से असीमित बात कीजिए, ₹5 दें, तुरंत वापस पाएँ",
+        "Talk to the guides without limit, pay ₹5, get it back right away"
     ),
     "chadhaava_blocked_image_title" to Entry(
-        "Aapki free divine images poori ho gayin",
+        "You have used your free divine images",
         "आपकी निःशुल्क दिव्य छवियाँ पूरी हो गईं",
         "You have used your free divine images"
     ),
     "chadhaava_blocked_image_sub" to Entry(
-        "Chadhava ke saath jitni chahein divine images banaiye — ₹5 dein, turant wapas paayein",
-        "चढ़ावा के साथ जितनी चाहें दिव्य छवियाँ बनाइए — ₹5 दें, तुरंत वापस पाएँ",
-        "Create as many divine images as you like — pay ₹5, get it back right away"
+        "Create as many divine images as you like, pay ₹5, get it back right away",
+        "चढ़ावा के साथ जितनी चाहें दिव्य छवियाँ बनाइए, ₹5 दें, तुरंत वापस पाएँ",
+        "Create as many divine images as you like, pay ₹5, get it back right away"
     ),
     "chadhaava_cta_blocked_chat" to Entry(
-        "Unlimited baat shuru kijiye", "असीमित बातचीत शुरू कीजिए", "Start unlimited chat"
+        "Start unlimited chat", "असीमित बातचीत शुरू कीजिए", "Start unlimited chat"
     ),
     "chadhaava_cta_blocked_image" to Entry(
-        "Unlimited images shuru kijiye", "असीमित छवियाँ शुरू कीजिए", "Start unlimited images"
+        "Start unlimited images", "असीमित छवियाँ शुरू कीजिए", "Start unlimited images"
     ),
 
     "chadhaava_processing_title" to Entry(
-        "Apne UPI app mein manzoori dein",
+        "Approve in your UPI app",
         "अपने UPI ऐप में मंज़ूरी दें",
         "Approve in your UPI app"
     ),
     "chadhaava_processing_body" to Entry(
-        "Apne UPI app mein ₹5 ke auto-pay ko manzoori dein — isme ek minute tak lag sakta hai.",
-        "अपने UPI ऐप में ₹5 के ऑटो-पे को मंज़ूरी दें — इसमें एक मिनट तक लग सकता है।",
-        "Approve the ₹5 auto-pay in your UPI app — this can take up to a minute."
+        "Approve the ₹5 auto-pay in your UPI app, this can take up to a minute.",
+        "अपने UPI ऐप में ₹5 के ऑटो-पे को मंज़ूरी दें, इसमें एक मिनट तक लग सकता है।",
+        "Approve the ₹5 auto-pay in your UPI app, this can take up to a minute."
     ),
-    "chadhaava_processing_step1" to Entry("UPI app khula", "UPI ऐप खुला", "UPI app opened"),
+    "chadhaava_processing_step1" to Entry("UPI app opened", "UPI ऐप खुला", "UPI app opened"),
     "chadhaava_processing_step2" to Entry(
-        "Auto-pay manzoori ka intezaar",
+        "Waiting for auto-pay approval",
         "ऑटो-पे मंज़ूरी का इंतज़ार",
         "Waiting for auto-pay approval"
     ),
     "chadhaava_processing_step3" to Entry(
-        "₹5 wapas bheje jayenge · chadhava chaalu",
+        "₹5 refunded · Chadhava active",
         "₹5 वापस भेजे जाएँगे · चढ़ावा चालू",
         "₹5 refunded · Chadhava active"
     ),
     "chadhaava_processing_check" to Entry(
-        "Maine manzoori de di — jaanchein",
-        "मैंने मंज़ूरी दे दी — जाँचें",
-        "I've approved — check now"
+        "I've approved, check now",
+        "मैंने मंज़ूरी दे दी, जाँचें",
+        "I've approved, check now"
     ),
     "chadhaava_processing_dont_close" to Entry(
-        "Is page ko band na karein",
+        "Don't close this page",
         "इस पेज को बंद न करें",
         "Don't close this page"
     ),
 
     "chadhaava_error_title" to Entry(
-        "Chadhava poora nahi hua",
+        "Chadhava didn't go through",
         "चढ़ावा पूरा नहीं हुआ",
         "The offering didn't go through"
     ),
     "chadhaava_error_body" to Entry(
-        "Aapka ₹5 ka payment complete nahi hua — aur aapke account se kuch nahi kata. Ek baar phir try karein.",
-        "आपका ₹5 का भुगतान पूरा नहीं हुआ — और आपके खाते से कुछ नहीं कटा। एक बार फिर कोशिश करें।",
-        "Your ₹5 payment didn't complete — and nothing was deducted from your account. Please try once more."
+        "Your ₹5 payment didn't complete, and nothing was deducted from your account. Please try once more.",
+        "आपका ₹5 का भुगतान पूरा नहीं हुआ, और आपके खाते से कुछ नहीं कटा। एक बार फिर कोशिश करें।",
+        "Your ₹5 payment didn't complete, and nothing was deducted from your account. Please try once more."
     ),
-    "chadhaava_error_retry" to Entry("Phir se koshish karein", "फिर से कोशिश करें", "Try again"),
-    "chadhaava_error_later" to Entry("Abhi nahi", "अभी नहीं", "Not now"),
+    "chadhaava_error_retry" to Entry("Try again", "फिर से कोशिश करें", "Try again"),
+    "chadhaava_error_later" to Entry("Not now", "अभी नहीं", "Not now"),
 
-    "chadhaava_trial_active" to Entry("Trial chaalu hai", "ट्रायल चालू है", "Trial is active"),
-    "chadhaava_trial_remaining" to Entry("baaki", "बाकी", "left"),
-    "chadhaava_days" to Entry("din", "दिन", "days"),
+    "chadhaava_trial_active" to Entry("Trial is active", "ट्रायल चालू है", "Trial is active"),
+    "chadhaava_trial_remaining" to Entry("left", "बाकी", "left"),
+    "chadhaava_days" to Entry("days", "दिन", "days"),
     "chadhaava_active_title" to Entry(
-        "Aapka chadhava sweekar hai",
+        "Your Chadhava is accepted",
         "आपका चढ़ावा स्वीकार है",
         "Your offering is accepted"
     ),
     "chadhaava_active_badge" to Entry("Membership active", "सदस्यता सक्रिय", "Membership active"),
     "chadhaava_unlocked_title" to Entry(
-        "Ab aapke liye khula hai",
+        "Now open for you",
         "अब आपके लिए खुला है",
         "Now open for you"
     ),
-    "chadhaava_cancel" to Entry("Membership cancel karein", "सदस्यता कैंसल करें", "Cancel membership"),
-    "chadhaava_cancel_trial" to Entry("Trial cancel karein", "ट्रायल कैंसल करें", "Cancel trial"),
+    "chadhaava_cancel" to Entry("Cancel membership", "सदस्यता कैंसल करें", "Cancel membership"),
+    "chadhaava_cancel_trial" to Entry("Cancel trial", "ट्रायल कैंसल करें", "Cancel trial"),
     "chadhaava_cancelled_title" to Entry(
-        "Membership cancel ho gayi",
+        "Membership cancelled",
         "सदस्यता कैंसल हो गई",
         "Membership cancelled"
     ),
     "chadhaava_cancelled_sub" to Entry(
-        "Aage koi kataut nahi hogi. Aapki purani baatcheet surakshit rahegi.",
+        "There will be no further charges. Your past conversations stay safe.",
         "आगे कोई कटौती नहीं होगी। आपकी पुरानी बातचीत सुरक्षित रहेगी।",
         "There will be no further charges. Your past conversations stay safe."
     ),
     "chadhaava_resubscribe" to Entry(
-        "Membership phir se shuru karein",
+        "Restart membership",
         "सदस्यता फिर से शुरू करें",
         "Restart membership"
     ),
-    "chadhaava_loading" to Entry("Ek pal…", "एक पल…", "One moment…"),
+    "chadhaava_loading" to Entry("One moment…", "एक पल…", "One moment…"),
 
     // Home screen
     "home_title" to Entry("Home", "होम", "Home"),
@@ -348,9 +348,9 @@ private val table: Map<String, Entry> = mapOf(
     "home_divine_image_eyebrow" to Entry("DIVINE IMAGE", "दिव्य छवि", "DIVINE IMAGE"),
     "home_divine_image_title" to Entry("Create your darshan", "अपना दिव्य दर्शन बनाएँ", "Create your darshan"),
     "home_divine_image_subtitle" to Entry(
-        "Your photo, beside your deity — ready in about a minute.",
-        "आपकी फोटो, आपके आराध्य के साथ—लगभग एक मिनट में तैयार।",
-        "Your photo, beside your deity — ready in about a minute."
+        "Your photo, beside your deity, ready in about a minute.",
+        "आपकी फोटो, आपके आराध्य के साथ, लगभग एक मिनट में तैयार।",
+        "Your photo, beside your deity, ready in about a minute."
     ),
     "home_upload_a_photo" to Entry("Upload a photo", "अपनी फोटो जोड़ें", "Upload a photo"),
     "home_choghadiya_now" to Entry("CHOGHADIYA NOW", "अभी का चौघड़िया", "CHOGHADIYA NOW"),
@@ -564,7 +564,7 @@ private val table: Map<String, Entry> = mapOf(
     "explore_aartis_title" to Entry("Aartis", "आरतियाँ", "Aartis"),
     "explore_aartis_subtitle" to Entry(
         "Devotional songs with lyrics & audio",
-        "भक्ति गीत—बोल और ऑडियो के साथ",
+        "भक्ति गीत, बोल और ऑडियो के साथ",
         "Devotional songs with lyrics & audio"
     ),
     "explore_choghadiya_title" to Entry("Choghadiya", "चौघड़िया", "Choghadiya"),
@@ -588,7 +588,7 @@ private val table: Map<String, Entry> = mapOf(
     "explore_wallpapers_title" to Entry("Wallpapers", "वॉलपेपर", "Wallpapers"),
     "explore_wallpapers_subtitle" to Entry(
         "Deity wallpapers to save & share",
-        "भगवान के वॉलपेपर—सहेजें और शेयर करें",
+        "भगवान के वॉलपेपर, सहेजें और शेयर करें",
         "Deity wallpapers to save & share"
     ),
     "explore_rashifal_title" to Entry("Rashifal", "राशिफल", "Rashifal"),
@@ -686,7 +686,7 @@ private val table: Map<String, Entry> = mapOf(
     "wallpapers_title" to Entry("Wallpapers", "वॉलपेपर", "Wallpapers"),
     "wallpapers_subtitle" to Entry(
         "Deity wallpapers to save, share, or set as your status",
-        "भगवान के सुंदर वॉलपेपर—सहेजें, शेयर करें या स्टेटस लगाएँ",
+        "भगवान के सुंदर वॉलपेपर, सहेजें, शेयर करें या स्टेटस लगाएँ",
         "Deity wallpapers to save, share, or set as your status"
     ),
     "save" to Entry("Save", "सहेजें", "Save"),
@@ -1051,10 +1051,10 @@ private val table: Map<String, Entry> = mapOf(
     "reel_caption_stare-five-seconds-krishna" to Entry("Paanch second dekhiye, phir aankhein band kijiye. Kabhi-kabhi Krishna dikhte nahi, andar feel hote hain.", "पाँच क्षण देखिए, फिर आँखें बंद कीजिए। कभी-कभी कृष्ण दिखाई नहीं देते, भीतर अनुभव होते हैं।", "Paanch second dekhiye, phir aankhein band kijiye. Kabhi-kabhi Krishna dikhte nahi, andar feel hote hain."),
     "reel_audio_stare-five-seconds-krishna" to Entry("Hare Krishna · Original audio", "हरे कृष्ण · मूल ध्वनि", "Hare Krishna · Original audio"),
     "reel_title_mahadev-sabko-bhula" to Entry("Sabko bhulakar", "सबको भुलाकर", "Sabko bhulakar"),
-    "reel_caption_mahadev-sabko-bhula" to Entry("Sabko bhulakar, khud mein doob jaana — Mahadev ka sukoon yahin se shuru hota hai.", "सबको भुलाकर, स्वयं में डूब जाना — महादेव की स्थिरता यहीं से शुरू होती है।", "Sabko bhulakar, khud mein doob jaana — Mahadev ka sukoon yahin se shuru hota hai."),
+    "reel_caption_mahadev-sabko-bhula" to Entry("Sabko bhulakar, khud mein doob jaana, Mahadev ka sukoon yahin se shuru hota hai.", "सबको भुलाकर, स्वयं में डूब जाना, महादेव की स्थिरता यहीं से शुरू होती है।", "Sabko bhulakar, khud mein doob jaana, Mahadev ka sukoon yahin se shuru hota hai."),
     "reel_audio_mahadev-sabko-bhula" to Entry("Mahadev · Original audio", "महादेव · मूल ध्वनि", "Mahadev · Original audio"),
     "reel_title_yadi-tumne-varsho-tak-mehnat" to Entry("Varshon ki mehnat", "वर्षों की मेहनत", "Varshon ki mehnat"),
-    "reel_caption_yadi-tumne-varsho-tak-mehnat" to Entry("Agar aapne saalon mehnat ki hai — Hanuman Ji yaad dilate hain ki wah kabhi waste nahi gayi.", "यदि तुमने वर्षों तक मेहनत की है — हनुमान जी याद दिलाते हैं कि वह कभी व्यर्थ नहीं गई।", "Agar aapne saalon mehnat ki hai — Hanuman Ji yaad dilate hain ki wah kabhi waste nahi gayi."),
+    "reel_caption_yadi-tumne-varsho-tak-mehnat" to Entry("Agar aapne saalon mehnat ki hai, Hanuman Ji yaad dilate hain ki wah kabhi waste nahi gayi.", "यदि तुमने वर्षों तक मेहनत की है, हनुमान जी याद दिलाते हैं कि वह कभी व्यर्थ नहीं गई।", "Agar aapne saalon mehnat ki hai, Hanuman Ji yaad dilate hain ki wah kabhi waste nahi gayi."),
     "reel_audio_yadi-tumne-varsho-tak-mehnat" to Entry("Hanuman Ji · Original audio", "हनुमान जी · मूल ध्वनि", "Hanuman Ji · Original audio"),
     "reel_title_jo-sadaiv-uska-dhyan-rakhta-hai" to Entry("Mahadev sada saath hain", "महादेव सदा साथ हैं", "Mahadev sada saath hain"),
     "reel_caption_jo-sadaiv-uska-dhyan-rakhta-hai" to Entry("Jo hamesha Mahadev ka dhyaan karta hai, Mahadev bhi hamesha uski raksha karte hain.", "जो सदैव महादेव का ध्यान करता है, महादेव भी सदा उसकी रक्षा करते हैं।", "Jo hamesha Mahadev ka dhyaan karta hai, Mahadev bhi hamesha uski raksha karte hain."),
@@ -1069,7 +1069,7 @@ private val table: Map<String, Entry> = mapOf(
     "reel_caption_ram-hanuman-sanyam-mein-jeete" to Entry("Shri Ram ne sirf taakat se nahi, sabr se bhi jeet haasil ki.", "श्री राम ने केवल शक्ति से नहीं, संयम से भी विजय पाई।", "Shri Ram ne sirf taakat se nahi, sabr se bhi jeet haasil ki."),
     "reel_audio_ram-hanuman-sanyam-mein-jeete" to Entry("Ram · Original audio", "राम · मूल ध्वनि", "Ram · Original audio"),
     "reel_title_bal-katha-vachak-ram" to Entry("Baal katha", "बाल कथा", "Baal katha"),
-    "reel_caption_bal-katha-vachak-ram" to Entry("Faith umar nahi dekhti — ek bachche ki awaaz mein Ram katha bhi dil ko chhoo jaati hai.", "आस्था उम्र नहीं देखती—बालक की वाणी में राम कथा भी मन को छू जाती है।", "Faith umar nahi dekhti — ek bachche ki awaaz mein Ram katha bhi dil ko chhoo jaati hai."),
+    "reel_caption_bal-katha-vachak-ram" to Entry("Faith umar nahi dekhti, ek bachche ki awaaz mein Ram katha bhi dil ko chhoo jaati hai.", "आस्था उम्र नहीं देखती, बालक की वाणी में राम कथा भी मन को छू जाती है।", "Faith umar nahi dekhti, ek bachche ki awaaz mein Ram katha bhi dil ko chhoo jaati hai."),
     "reel_audio_bal-katha-vachak-ram" to Entry("Ram Katha · Original audio", "राम कथा · मूल ध्वनि", "Ram Katha · Original audio"),
     "reel_title_mahadev-updesh-waterfall" to Entry("Mahadev ki seekh", "महादेव की सीख", "Mahadev ki seekh"),
     "reel_caption_mahadev-updesh-waterfall" to Entry("Jharne ke paas ve us sawaal ka jawaab dete hain jo poochhne se aap dar rahe the.", "झरने के पास वे उस प्रश्न का उत्तर देते हैं जिसे पूछने से आप डर रहे थे।", "Jharne ke paas ve us sawaal ka jawaab dete hain jo poochhne se aap dar rahe the."),
@@ -1081,13 +1081,13 @@ private val table: Map<String, Entry> = mapOf(
     "reel_caption_hanuman-ashirwad-modern-life" to Entry("Aapke haath mein phone ho, phir bhi unka aashirwad aapke saath hai.", "आपके हाथ में फ़ोन हो, फिर भी उनका आशीर्वाद आपके साथ है।", "Aapke haath mein phone ho, phir bhi unka aashirwad aapke saath hai."),
     "reel_audio_hanuman-ashirwad-modern-life" to Entry("Hanuman Ji · Original audio", "हनुमान जी · मूल ध्वनि", "Hanuman Ji · Original audio"),
     "reel_title_suljhao-bhagwan-hanuman" to Entry("Meri uljhan suljhaiye", "मेरी उलझन सुलझाइए", "Meri uljhan suljhaiye"),
-    "reel_caption_suljhao-bhagwan-hanuman" to Entry("Kuch raaton mein dil bas yahi maangta hai — He Bhagwan, meri uljhan suljha dijiye.", "कुछ रातों में मन बस यही प्रार्थना करता है—हे भगवान, मेरी उलझन सुलझा दीजिए।", "Kuch raaton mein dil bas yahi maangta hai — He Bhagwan, meri uljhan suljha dijiye."),
+    "reel_caption_suljhao-bhagwan-hanuman" to Entry("Kuch raaton mein dil bas yahi maangta hai, He Bhagwan, meri uljhan suljha dijiye.", "कुछ रातों में मन बस यही प्रार्थना करता है, हे भगवान, मेरी उलझन सुलझा दीजिए।", "Kuch raaton mein dil bas yahi maangta hai, He Bhagwan, meri uljhan suljha dijiye."),
     "reel_audio_suljhao-bhagwan-hanuman" to Entry("Sitaram · Original audio", "सीताराम · मूल ध्वनि", "Sitaram · Original audio"),
     "reel_title_krishna-meri-baat-sun-lena" to Entry("Krishna, meri baat sun lena", "कृष्ण, मेरी बात सुन लेना", "Krishna, meri baat sun lena"),
     "reel_caption_krishna-meri-baat-sun-lena" to Entry("Jo baat kisi aur se nahi keh sakte, wah Krishna se keh dijiye.", "जो बात किसी और से नहीं कह सकते, वह कृष्ण से कह दीजिए।", "Jo baat kisi aur se nahi keh sakte, wah Krishna se keh dijiye."),
     "reel_audio_krishna-meri-baat-sun-lena" to Entry("Krishna · Original audio", "कृष्ण · मूल ध्वनि", "Krishna · Original audio"),
     "reel_title_shabari-ram-charo-dham" to Entry("Shabari ke ber", "शबरी के बेर", "Shabari ke ber"),
-    "reel_caption_shabari-ram-charo-dham" to Entry("Bhakti perfect ho, yeh zaroori nahi — bas prem se di gayi ho, wahi kaafi hai.", "भक्ति का पूर्ण होना आवश्यक नहीं—उसका प्रेम से अर्पित होना ही पर्याप्त है।", "Bhakti perfect ho, yeh zaroori nahi — bas prem se di gayi ho, wahi kaafi hai."),
+    "reel_caption_shabari-ram-charo-dham" to Entry("Bhakti perfect ho, yeh zaroori nahi, bas prem se di gayi ho, wahi kaafi hai.", "भक्ति का पूर्ण होना आवश्यक नहीं, उसका प्रेम से अर्पित होना ही पर्याप्त है।", "Bhakti perfect ho, yeh zaroori nahi, bas prem se di gayi ho, wahi kaafi hai."),
     "reel_audio_shabari-ram-charo-dham" to Entry("Ram · Original audio", "राम · मूल ध्वनि", "Ram · Original audio"),
 
 
@@ -1277,9 +1277,9 @@ private val table: Map<String, Entry> = mapOf(
     "guide_prompt_hanuman_2" to Entry("Aaj taakat ke liye Hanuman Ji se inspired ek kadam bataiye.", "आज शक्ति के लिए हनुमान जी से प्रेरित एक कदम बताइए।", "Aaj taakat ke liye Hanuman Ji se inspired ek kadam bataiye."),
     "guide_prompt_hanuman_3" to Entry("Ghabraye bina dar ka saamna karne mein meri madad kijiye.", "घबराए बिना डर का सामना करने में मेरी मदद कीजिए।", "Ghabraye bina dar ka saamna karne mein meri madad kijiye."),
     // --- Divine Image ---
-    "di_err_pick_photo" to Entry("Pehle ek photo chuniye.", "कृपया पहले एक फोटो चुनें।", "Pehle ek photo chuniye."),
-    "di_err_pick_deity" to Entry("Ek deity chuniye.", "कृपया एक देवता चुनें।", "Ek deity chuniye."),
-    "di_err_pick_scene" to Entry("Ek scene chuniye.", "कृपया एक दृश्य चुनें।", "Ek scene chuniye."),
+    "di_err_pick_photo" to Entry("Pick a photo first.", "कृपया पहले एक फोटो चुनें।", "Pehle ek photo chuniye."),
+    "di_err_pick_deity" to Entry("Pick a deity.", "कृपया एक देवता चुनें।", "Ek deity chuniye."),
+    "di_err_pick_scene" to Entry("Pick a scene.", "कृपया एक दृश्य चुनें।", "Ek scene chuniye."),
     "di_err_pick_temple_scene" to Entry("Mandir ka ek scene chuniye.", "कृपया मंदिर का एक दृश्य चुनें।", "Mandir ka ek scene chuniye."),
     "di_err_pick_temple" to Entry("Koi mandir chuniye ya uska naam likhiye.", "कृपया कोई मंदिर चुनें या उसका नाम लिखें।", "Koi mandir chuniye ya uska naam likhiye."),
     "di_err_generate_failed" to Entry("Abhi yeh image nahi ban saki. Phir try kijiye.", "अभी यह छवि नहीं बन सकी। कृपया फिर प्रयास करें।", "Abhi yeh image nahi ban saki. Phir try kijiye."),
@@ -1418,7 +1418,7 @@ private val table: Map<String, Entry> = mapOf(
     "chat_thinking_fallback" to Entry("Main aapke sawaal par soch raha hoon. Kuch der baad phir try kijiye.", "मैं आपके प्रश्न पर विचार कर रहा हूँ। कृपया कुछ क्षण बाद फिर प्रयास करें।", "Main aapke sawaal par soch raha hoon. Kuch der baad phir try kijiye."),
 
     "reel_ask_prefix" to Entry(
-        "Maine abhi ek reel dekhi — ", "मैंने अभी एक रील देखी — ", "Maine abhi ek reel dekhi — "
+        "Maine abhi ek reel dekhi: ", "मैंने अभी एक रील देखी: ", "Maine abhi ek reel dekhi: "
     ),
 
     // --- Choghadiya ---
@@ -1496,7 +1496,7 @@ private val table: Map<String, Entry> = mapOf(
     "voice_mic_unavailable" to Entry("Microphone available nahi hai. Baat phir shuru kijiye.", "माइक्रोफ़ोन उपलब्ध नहीं है। कृपया बातचीत फिर शुरू करें।", "Microphone available nahi hai. Baat phir shuru kijiye."),
     "sub_service_error" to Entry("Membership service mein dikkat (%1\$s).", "सदस्यता सेवा में समस्या (\${response.code})।", "Membership service mein dikkat (%1\$s)."),
     "please_sign_in" to Entry("Pehle sign in kijiye.", "कृपया पहले साइन इन करें।", "Pehle sign in kijiye."),
-    "voice_not_heard" to Entry("Aapki awaaz sunai nahi de rahi — microphone shaant lag raha hai. ", "आपकी आवाज़ सुनाई नहीं दे रही है — माइक्रोफ़ोन शांत लग रहा है। ", "Aapki awaaz sunai nahi de rahi — microphone shaant lag raha hai. "),
+    "voice_not_heard" to Entry("Aapki awaaz sunai nahi de rahi, microphone shaant lag raha hai. ", "आपकी आवाज़ सुनाई नहीं दे रही है, माइक्रोफ़ोन शांत लग रहा है। ", "Aapki awaaz sunai nahi de rahi, microphone shaant lag raha hai. "),
     "voice_try_bluetooth" to Entry("Bluetooth hata kar ya baat phir shuru karke dekhiye.", "ब्लूटूथ हटाकर या बातचीत फिर शुरू करके देखें।", "Bluetooth hata kar ya baat phir shuru karke dekhiye."),
     "aarti_tap_lyrics" to Entry("Poore bol padhne ke liye tap kijiye.", "पूरे बोल पढ़ने के लिए टैप करें।", "Poore bol padhne ke liye tap kijiye."),
 

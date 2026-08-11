@@ -18,7 +18,7 @@ function isAdmin(email: string | null | undefined) {
 }
 
 function formatDate(value: Date | null) {
-  if (!value) return "—";
+  if (!value) return ", ";
   return new Intl.DateTimeFormat("en-IN", {
     day: "numeric",
     month: "short",
@@ -77,9 +77,9 @@ export default async function SubscribersAdminPage() {
           <tbody>
             {users.map((user) => (
               <tr key={user.id} className="border-b border-sagar-amber/10 last:border-0">
-                <td className="px-4 py-3 font-medium text-sagar-ink">{user.email ?? "—"}</td>
+                <td className="px-4 py-3 font-medium text-sagar-ink">{user.email ?? ", "}</td>
                 <td className="px-4 py-3 text-sagar-ink/75">
-                  {user.razorpaySubscriptionId ? "Razorpay" : user.stripeCustomerId ? "Stripe" : "—"}
+                  {user.razorpaySubscriptionId ? "Razorpay" : user.stripeCustomerId ? "Stripe" : ", "}
                 </td>
                 <td className="px-4 py-3 text-sagar-ink/75">{user.subscriptionStatus}</td>
                 <td className="px-4 py-3">

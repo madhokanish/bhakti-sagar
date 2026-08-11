@@ -39,7 +39,7 @@ export default function UpiAutopayTestClient({ email, lang }: Props) {
   const startSubscription = useCallback(async function startSubscription() {
     if (loading) return;
     if (!scriptReady || !window.Razorpay) {
-      setError("Payment script hasn't loaded yet — try again in a moment.");
+      setError("Payment script hasn't loaded yet, try again in a moment.");
       return;
     }
 

@@ -392,6 +392,28 @@ function normalizeLineBreaks(text: string) {
     .trim();
 }
 
+/**
+ * Strips em and en dashes out of a finished reply.
+ *
+ * NO_EM_DASH_RULE already asks the model not to produce them, but a style instruction is a
+ * request, not a guarantee: models reach for em dashes constantly and slip regardless of the
+ * prompt. Dashes are the single strongest "written by an AI" tell in the guides' voice, so
+ * this enforces it after the fact rather than trusting the model to comply.
+ *
+ * A dash between spaces becomes a comma, which is the job it was doing. Anything else (a
+ * dash glued to a word, as in "guru—shishya") becomes a plain space so words never fuse.
+ * Hyphens are deliberately untouched: "auto-pay" and "saaf-saaf" are correct.
+ */
+function stripLongDashes(text: string) {
+  return text
+    .replace(/\s+[—–]\s+/g, ", ")
+    .replace(/[—–]/g, " ")
+    .replace(/\s+,/g, ",")
+    .replace(/,\s*,/g, ",")
+    .replace(/,(\s*[.!?।])/g, "$1")
+    .replace(/[ \t]{2,}/g, " ");
+}
+
 function getOpeningLine(text: string | null) {
   if (!text) return "";
   const normalized = normalizeLineBreaks(text);
@@ -1111,7 +1133,7 @@ function shapeReplyByMode(params: {
     }
   }
 
-  text = normalizeLineBreaks(deduped.slice(0, maxBlocks).join("\n\n"));
+  text = stripLongDashes(normalizeLineBreaks(deduped.slice(0, maxBlocks).join("\n\n")));
   text = formatIntoBeats(text);
 
   if (countBlankLineBreaks(text) < 2) {

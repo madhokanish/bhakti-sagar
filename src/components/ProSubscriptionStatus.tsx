@@ -62,7 +62,7 @@ export default function ProSubscriptionStatus({ status, currentPeriodEnd }: Prop
       {cancelled ? (
         <p className="mt-3 text-sm text-sagar-ink/80">
           {cancelled.immediately ? (
-            "Subscription cancelled — no charges will be made."
+            "Subscription cancelled, no charges will be made."
           ) : (
             <>
               Subscription cancelled — you keep Pro access until{" "}

@@ -307,8 +307,8 @@ class EntitlementStore(context: Context) {
     }
 
     companion object {
-        const val FREE_MESSAGE_QUOTA: Int = 20
-        const val FREE_IMAGE_QUOTA: Int = 2
+        const val FREE_MESSAGE_QUOTA: Int = 100
+        const val FREE_IMAGE_QUOTA: Int = 3
 
         /**
          * Bump to wipe everyone's usage counters once, on their next launch.

@@ -158,6 +158,7 @@ class ChatThreadViewModel(
                     remoteConversationId = remoteConversationId,
                     chatApiClient = chatApiClient,
                     userFirstName = userFirstName,
+                    appLanguage = languageStore.language.value,
                     // Stream tokens straight into the assistant bubble as they arrive so
                     // the reply feels live instead of appearing all at once.
                     onToken = { streamed ->

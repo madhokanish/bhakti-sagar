@@ -1,5 +1,6 @@
 package com.bhaktichat.app.ui.screens.chat
 
+import com.bhaktichat.app.domain.AppLanguage
 import com.bhaktichat.app.ui.i18n.translate
 
 import com.bhaktichat.app.data.local.MessageEntity
@@ -456,6 +457,10 @@ object ChatTurnProcessor {
         // Sign-in is mandatory now, so the guide can address the user by name. Blank falls
         // back to AddressingEngine's devotional tokens (priye / vatsa / karmayogi).
         userFirstName: String = "",
+        // The language the user actually picked. It is the fallback when a message carries no
+        // script signal of its own, so "ok" or an emoji no longer forces Devanagari on someone
+        // who chose English.
+        appLanguage: AppLanguage = AppLanguage.HINDI,
         onToken: (suspend (String) -> Unit)? = null
     ): Result<ChatTurnProcessorResult> {
         val previousAssistantMessage = messages
@@ -473,7 +478,8 @@ object ChatTurnProcessor {
             firstName = userFirstName,
             userMessage = messageText,
             previousAssistantMessage = previousAssistantMessage,
-            recentUserMessages = recentUserMessages
+            recentUserMessages = recentUserMessages,
+            appLanguage = appLanguage
         )
         val mode = ChatTurnRouter.resolveMode(messageContext)
         val promptPayload = ChatPromptAssembler.build(

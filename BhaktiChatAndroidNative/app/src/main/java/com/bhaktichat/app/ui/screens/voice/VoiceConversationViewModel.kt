@@ -115,7 +115,10 @@ class VoiceConversationViewModel(
         }
 
         viewModelScope.launch {
-            voiceSessionApi.startSession(guide.serverPromptKey)
+            voiceSessionApi.startSession(
+                guideId = guide.serverPromptKey,
+                lang = if (language == AppLanguage.HINDI) "hi" else "en"
+            )
                 .onSuccess { session ->
                     realtimeClient.connect(session.ephemeralKey, session.model, guide.openingScene(language))
                 }

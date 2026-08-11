@@ -57,6 +57,7 @@ function withIdentityCookie(
 
 type VoiceSessionRequestBody = {
   guideId?: string;
+  lang?: string;
   requestId?: string;
 };
 
@@ -104,6 +105,14 @@ export async function POST(request: Request) {
     }
 
     const persona = getVoicePersona(body.guideId);
+
+    // The app tells us which language it is showing. Nothing was sent before, so the model
+    // simply chose, and it chose Devanagari Hindi for everyone regardless of their setting.
+    const voiceLang = body.lang === "hi" ? "hi" : "en";
+    const languageInstruction =
+      voiceLang === "hi"
+        ? "Speak only in natural Hindi. Transcripts must use Devanagari script."
+        : "Speak only in natural Hinglish, that is Hindi spoken with everyday English words mixed in, the way people actually talk in Indian cities. Write transcripts in Latin script only. Never reply in Devanagari, and never reply in formal textbook English.";
     const model = process.env.OPENAI_REALTIME_MODEL?.trim() || "gpt-realtime";
 
     const openAiResponse = await fetch(OPENAI_CLIENT_SECRETS_ENDPOINT, {
@@ -116,11 +125,16 @@ export async function POST(request: Request) {
         session: {
           type: "realtime",
           model,
-          instructions: persona.instructions,
+          instructions: `${persona.instructions}\n\n${languageInstruction}`,
           audio: {
             input: {
-              turn_detection: { type: "server_vad" },
-              transcription: { model: "whisper-1" }
+              // Defaults ended a turn at the first short pause, which cut people off
+              // mid-thought. 900ms is noticeably more patient without feeling laggy.
+              turn_detection: { type: "server_vad", silence_duration_ms: 900 },
+              // Without a language hint Whisper re-detects every utterance and flips script
+              // mid-conversation, which is what produced the garbled transliteration. Hinglish
+              // is transcribed as Hindi audio, then the instruction above keeps it in Latin.
+              transcription: { model: "whisper-1", language: "hi" }
             },
             output: {
               voice: persona.voicePresetId,

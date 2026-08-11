@@ -291,6 +291,7 @@ fun BhaktiChatApp(
                     remoteConversationId = null,
                     chatApiClient = appContainer.chatApiClient,
                         userFirstName = currentUser.name.orEmpty(),
+                    appLanguage = appContainer.languageStore.language.value,
                     onToken = { streamed ->
                         appContainer.messagesRepository.replaceTypingWithResponse(typingId, streamed)
                     }

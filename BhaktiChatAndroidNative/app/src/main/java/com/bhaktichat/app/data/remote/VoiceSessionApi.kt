@@ -25,10 +25,15 @@ class VoiceSessionApi(
     private val sessionEndpoint = baseUrl.trimEnd('/') + "/api/bhaktigpt/voice/session"
     private val turnCompleteEndpoint = baseUrl.trimEnd('/') + "/api/bhaktigpt/voice/turn-complete"
 
-    suspend fun startSession(guideId: String): Result<VoiceSession> = withContext(Dispatchers.IO) {
+    /**
+     * @param lang "hi" or "en", the language the app is showing. The session was previously
+     * started without it, so the model picked for itself and always spoke Devanagari Hindi.
+     */
+    suspend fun startSession(guideId: String, lang: String): Result<VoiceSession> = withContext(Dispatchers.IO) {
         runCatching {
             val payload = JSONObject().apply {
                 put("guideId", guideId)
+                put("lang", lang)
                 put("requestId", UUID.randomUUID().toString())
             }
             val request = Request.Builder()

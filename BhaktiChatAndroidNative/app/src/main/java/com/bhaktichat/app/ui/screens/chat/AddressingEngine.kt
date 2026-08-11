@@ -1,6 +1,7 @@
 package com.bhaktichat.app.ui.screens.chat
 
 import com.bhaktichat.app.data.local.MessageEntity
+import com.bhaktichat.app.domain.AppLanguage
 import com.bhaktichat.app.domain.ChatRole
 import java.util.Locale
 
@@ -34,10 +35,11 @@ object AddressingEngine {
         firstName: String,
         userMessage: String,
         previousAssistantMessage: MessageEntity?,
-        recentUserMessages: List<String> = emptyList()
+        recentUserMessages: List<String> = emptyList(),
+        appLanguage: AppLanguage = AppLanguage.HINDI
     ): MessageContext {
         val normalized = userMessage.trim().lowercase(Locale.getDefault())
-        val detectedLanguage = resolveLanguage(userMessage, recentUserMessages)
+        val detectedLanguage = resolveLanguage(userMessage, recentUserMessages, appLanguage)
         val token = resolveToken(guideId, isAuthenticated, firstName, detectedLanguage)
 
         return MessageContext(
@@ -158,27 +160,44 @@ object AddressingEngine {
         if (hasDevanagari) return ConversationLanguage.HINDI
 
         val words = userMessage.lowercase().split(Regex("[^a-z]+")).filter { it.isNotBlank() }
-        if (words.any { it in hinglishMarkers }) return ConversationLanguage.HINGLISH
 
-        // Any Latin-only input is an explicit request to leave Devanagari for this turn.
-        // Roman Hindi markers retain a Hinglish reply; otherwise match with English.
-        if (words.isNotEmpty()) return ConversationLanguage.ENGLISH
+        // Latin input means Latin script back, and that means Hinglish.
+        //
+        // This used to return ENGLISH for Latin text without a Roman-Hindi marker word, which
+        // meant "I feel stressed about work" was answered in textbook English even though the
+        // only Latin option the picker offers is labelled English but *is* Hinglish. Markers
+        // are no longer consulted: they were the difference between the two Latin answers, and
+        // there is now only one.
+        if (words.isNotEmpty()) return ConversationLanguage.HINGLISH
 
         return null
     }
 
     /**
-     * Resolves the conversation language for [userMessage]: a clear per-message signal
-     * always wins; otherwise inherits whatever language the recent thread has been using
-     * (so a short "thanks" mid-English-conversation doesn't flip back to Hinglish); with no
-     * signal anywhere (for example an emoji-only message), defaults to Devanagari Hindi.
+     * Resolves the conversation language for [userMessage].
+     *
+     * A clear signal in the message wins, so the guide follows the user's script the moment
+     * they switch: Devanagari gets Hindi back, Latin gets Hinglish back. Failing that it
+     * inherits the recent thread, so a bare "ok" mid-conversation does not flip languages.
+     *
+     * With no signal anywhere it falls back to [appLanguage], the language the user actually
+     * chose. That fallback used to be a hard-coded Hindi, which is why an English-selecting
+     * user who sent "ok" or an emoji got a Devanagari reply, and why changing the language
+     * setting appeared to do nothing at all: the setting was never consulted.
      */
-    fun resolveLanguage(userMessage: String, recentUserMessages: List<String>): ConversationLanguage {
+    fun resolveLanguage(
+        userMessage: String,
+        recentUserMessages: List<String>,
+        appLanguage: AppLanguage = AppLanguage.HINDI
+    ): ConversationLanguage {
         detectLanguage(userMessage)?.let { return it }
         recentUserMessages.asReversed().take(4).forEach { message ->
             detectLanguage(message)?.let { return it }
         }
-        return ConversationLanguage.HINDI
+        return when (appLanguage) {
+            AppLanguage.HINDI -> ConversationLanguage.HINDI
+            AppLanguage.HINGLISH, AppLanguage.ENGLISH -> ConversationLanguage.HINGLISH
+        }
     }
 
     private fun detectSentiment(normalizedMessage: String): SentimentTag = when {

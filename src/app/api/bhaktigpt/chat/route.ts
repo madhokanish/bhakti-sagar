@@ -313,47 +313,70 @@ const HINGLISH_MARKER_PATTERN =
  * (2+ Latin words, no Hindi markers) → English; everything else (single words, greetings,
  * romanized Hindi, ambiguous) → Hinglish, our primary language.
  */
-function detectLanguageFromText(text: string | null | undefined): ChatLanguage {
+/**
+ * Script signal carried by the message itself, or null when there is none to read
+ * (an emoji, "ok", an empty string).
+ *
+ * Latin resolves to Hinglish, never to English. It used to return "en" for two or more
+ * Latin words without a Roman-Hindi marker, which meant "I feel stressed about work" came
+ * back in textbook English even though the only Latin option the app offers is labelled
+ * English but is actually Hinglish.
+ */
+function detectLanguageFromText(text: string | null | undefined): ChatLanguage | null {
   const trimmed = (text ?? "").trim();
-  if (!trimmed) return "hinglish";
+  if (!trimmed) return null;
   if (DEVANAGARI_SCRIPT_PATTERN.test(trimmed)) return "hi";
-  if (HINGLISH_MARKER_PATTERN.test(trimmed)) return "hinglish";
-  const latinWords = trimmed
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((w) => /[a-z]/.test(w));
-  if (latinWords.length >= 2) return "en";
-  return "hinglish";
+  if (LATIN_SCRIPT_PATTERN.test(trimmed)) return "hinglish";
+  return null;
 }
 
 /**
- * Reply language = the user's language, defaulting to Hinglish. We mirror the message, so
- * we only reply in English when the user actually writes in English.
+ * Reply language: mirror the user's script when the message shows one, otherwise fall back
+ * to the language they actually chose in the app.
+ *
+ * preferredValue used to be discarded outright, on the grounds that it was a build-time
+ * default rather than a user choice. That is no longer true: the app now resolves it from
+ * the language picker and sends it per turn. Ignoring it was why changing the language
+ * setting had no effect on the guide, and why a message with no script signal always came
+ * back in Devanagari.
  */
 function resolveChatLanguage(
   preferredValue: string | null | undefined,
   headerLanguage: string | null | undefined,
   userMessage?: string | null
 ): ChatLanguage {
-  // The client's chatLang is a build default ("en"), NOT a user choice, so it must not
-  // override our Hinglish-first rule. Reply language mirrors the user's message; with no
-  // message yet (opening greeting) we default to Hinglish.
-  void preferredValue;
-  if (userMessage != null && userMessage.trim().length > 0) {
-    return detectLanguageFromText(userMessage);
-  }
+  const fromMessage = detectLanguageFromText(userMessage);
+  if (fromMessage) return fromMessage;
+
+  const preferred = (preferredValue ?? "").toLowerCase();
+  if (preferred === "hi" || preferred === "hinglish") return preferred;
+  // "en" from an older build means the Latin option, which is Hinglish here.
+  if (preferred === "en") return "hinglish";
+
   if (headerLanguage === "hi") return "hi";
   return "hinglish";
 }
 
+/**
+ * True when a reply is in the wrong script badly enough to be worth regenerating.
+ *
+ * Latin-script modes are strict: any Devanagari is wrong. Hindi is deliberately not, because
+ * it used to flag a single Latin character, and words like BhaktiChat, UPI and AI legitimately
+ * appear in an otherwise perfect Hindi reply. Every one of those forced a full rewrite, which
+ * cost a round trip and, when the rewrite tripped the same rule, surfaced the "could not
+ * prepare an answer in Hindi" fallback on a reply that was fine.
+ *
+ * A couple of Latin words is a proper noun. More than that is a reply that actually drifted
+ * out of Hindi, which is what this is meant to catch.
+ */
+const HINDI_MODE_LATIN_WORD_ALLOWANCE = 2;
+
 function hasLanguageModeViolation(text: string, chatLanguage: ChatLanguage) {
-  if (chatLanguage === "en") {
+  if (chatLanguage === "en" || chatLanguage === "hinglish") {
     return DEVANAGARI_SCRIPT_PATTERN.test(text);
   }
-  if (chatLanguage === "hinglish") {
-    return DEVANAGARI_SCRIPT_PATTERN.test(text);
-  }
-  return LATIN_SCRIPT_PATTERN.test(text);
+  const latinWords = text.match(/[A-Za-z]{2,}/g) ?? [];
+  return latinWords.length > HINDI_MODE_LATIN_WORD_ALLOWANCE;
 }
 
 function hasPattern(text: string, pattern: RegExp) {

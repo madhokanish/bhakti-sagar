@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { hasSubscriptionEntitlement } from "@/lib/subscription";
 import UpiAutopayTestClient from "@/components/UpiAutopayTestClient";
 import ProSubscriptionStatus from "@/components/ProSubscriptionStatus";
+import { resolveCheckoutLang } from "@/lib/chadhaavaCopy";
 
 export const metadata: Metadata = {
   title: "Subscribe | BhaktiChat",
@@ -13,7 +14,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false }
 };
 
-export default async function UpiAutopayTestPage() {
+export default async function UpiAutopayTestPage({
+  searchParams
+}: {
+  searchParams: { lang?: string };
+}) {
   const session = await auth();
   if (!session?.user?.id || !session.user.email) {
     redirect("/?auth=1&callbackUrl=/subscribe/upi-test");
@@ -21,28 +26,20 @@ export default async function UpiAutopayTestPage() {
 
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   const isPro = hasSubscriptionEntitlement(user?.subscriptionStatus);
+  const lang = resolveCheckoutLang(searchParams?.lang);
 
+  // No page header above the offer, deliberately. In the app this is a tab the user is
+  // already inside, so a "Subscribe with UPI AutoPay" title here would announce a new
+  // destination and push the ₹5 below the fold on a phone.
   return (
-    <div className="container py-8 md:py-12">
-      <section className="mb-6 rounded-[2rem] border border-sagar-amber/20 bg-gradient-to-br from-white via-sagar-cream/60 to-sagar-sand/65 p-6 shadow-sagar-soft md:p-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sagar-rose">
-          Membership
-        </p>
-        <h1 className="mt-2 text-4xl font-serif text-sagar-ink md:text-5xl">
-          Subscribe with UPI AutoPay
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm text-sagar-ink/74 md:text-base">
-          Support your daily devotion and unlock the full BhaktiChat experience.
-        </p>
-      </section>
-
+    <div className="container py-6 md:py-10">
       {isPro ? (
         <ProSubscriptionStatus
           status={user!.subscriptionStatus}
           currentPeriodEnd={user!.currentPeriodEnd ? user!.currentPeriodEnd.toISOString() : null}
         />
       ) : (
-        <UpiAutopayTestClient email={session.user.email} />
+        <UpiAutopayTestClient email={session.user.email} lang={lang} />
       )}
     </div>
   );

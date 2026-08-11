@@ -79,6 +79,10 @@ export async function POST(request: Request) {
       // Returned rather than compiled into the app so a Razorpay key rotation doesn't
       // require shipping a new build to the Play Store.
       keyId,
+      // Razorpay's own hosted checkout page for this subscription. The native Android SDK
+      // does not offer UPI for subscription checkout on this account (support ticket open),
+      // while this page does — so Android opens it in a Custom Tab instead of the SDK.
+      hostedUrl: (subscription as { short_url?: string }).short_url ?? null,
       trialEnd: new Date(startAt * 1000).toISOString()
     });
   } catch (error) {

@@ -21,8 +21,20 @@ export async function POST(request: Request) {
     return mobileAuthErrorResponse(error);
   }
 
+  // The app tells us which language it is showing so checkout can match it. Anything other
+  // than an explicit "hi" falls back to the app's HINGLISH, which is its default.
+  let lang = "en";
+  try {
+    const body = (await request.json()) as { lang?: unknown };
+    if (body?.lang === "hi") lang = "hi";
+  } catch {
+    // No body is fine — the app sends "{}" when it has nothing to say.
+  }
+
   const { token, expiresAt } = await createHandoffToken(userId);
-  const url = `${resolveOrigin(request)}/api/checkout-handoff?token=${encodeURIComponent(token)}`;
+  const url =
+    `${resolveOrigin(request)}/api/checkout-handoff` +
+    `?token=${encodeURIComponent(token)}&lang=${lang}`;
 
   return NextResponse.json({ url, expiresAt: expiresAt.toISOString() });
 }

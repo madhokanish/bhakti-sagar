@@ -10,6 +10,8 @@ const SESSION_COOKIE_NAME = isProduction ? "__Secure-authjs.session-token" : "au
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
   const origin = request.nextUrl.origin;
+  // Carried through the redirect so checkout opens in the language the app was showing.
+  const lang = request.nextUrl.searchParams.get("lang") === "hi" ? "hi" : "en";
 
   if (!token) {
     return NextResponse.redirect(new URL("/subscribe?handoff=invalid", origin));
@@ -23,7 +25,7 @@ export async function GET(request: NextRequest) {
 
   // Land on the checkout page already signed in. Redirect rather than render so the
   // single-use token leaves the address bar immediately.
-  const response = NextResponse.redirect(new URL("/subscribe/upi-test", origin));
+  const response = NextResponse.redirect(new URL(`/subscribe/upi-test?lang=${lang}`, origin));
   response.cookies.set(SESSION_COOKIE_NAME, consumed.sessionToken, {
     httpOnly: true,
     sameSite: "lax",

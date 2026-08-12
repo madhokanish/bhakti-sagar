@@ -91,10 +91,31 @@ object AddressingEngine {
         return context.isNewTopic && !context.usedAddressingInPreviousAssistantMessage
     }
 
+    /**
+     * Whether the address prefix still needs adding to a reply.
+     *
+     * This used to test only [String.startsWith], which produced "Google, Namaste, Google!
+     * Kaise ho?": the model had already greeted the user by name, but in second position, so
+     * the start-anchored check missed it and the prefix went on anyway. The model is free to
+     * place the name wherever the sentence wants it, so look for it anywhere in the opening
+     * sentence instead of assuming it leads.
+     *
+     * Matched on word boundaries so a name that happens to be a substring of another word
+     * ("Ram" inside "Rampal") does not count as already addressed.
+     */
     fun shouldPrependPrefix(prefix: String, firstChunk: String): Boolean {
-        val normalizedPrefix = prefix.trim().removeSuffix(",").lowercase(Locale.getDefault())
-        val normalizedChunk = firstChunk.trimStart().lowercase(Locale.getDefault())
-        return !normalizedChunk.startsWith(normalizedPrefix)
+        val token = prefix.trim().removeSuffix(",").trim()
+        if (token.isBlank()) return false
+
+        // Only the opening sentence counts. The same name appearing much later in a long
+        // reply is a different sentence doing its own thing, not a greeting.
+        val opening = firstChunk.trimStart().take(120)
+        val alreadyAddressed = Regex(
+            "(?<![\\p{L}])${Regex.escape(token)}(?![\\p{L}])",
+            RegexOption.IGNORE_CASE
+        ).containsMatchIn(opening)
+
+        return !alreadyAddressed
     }
 
     fun didUseAddressing(message: String, token: String): Boolean {

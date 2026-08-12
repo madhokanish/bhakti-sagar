@@ -576,7 +576,11 @@ fun BhaktiChatApp(
                             voiceSessionApi = appContainer.voiceSessionApi,
                             voiceWebSocketClient = appContainer.voiceWebSocketClient,
                             audioFocusManager = VoiceAudioFocusManager(LocalContext.current),
-                            language = com.bhaktichat.app.domain.AppLanguage.HINDI
+                            // The chosen language, not a hard-coded Hindi. This literal is why
+                            // voice mode was always Devanagari no matter what the user picked:
+                            // the guide's name and the opening scene both read from it, so the
+                            // call opened in Hindi while the rest of the screen was English.
+                            language = language
                         )
                     )
                     VoiceModeScreen(

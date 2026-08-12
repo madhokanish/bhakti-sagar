@@ -215,13 +215,23 @@ object AddressingEngine {
      */
     fun resolveLanguage(
         userMessage: String,
-        recentUserMessages: List<String>,
+        @Suppress("UNUSED_PARAMETER") recentUserMessages: List<String>,
         appLanguage: AppLanguage = AppLanguage.HINDI
     ): ConversationLanguage {
         detectLanguage(userMessage)?.let { return it }
-        recentUserMessages.asReversed().take(4).forEach { message ->
-            detectLanguage(message)?.let { return it }
-        }
+
+        // The chosen language, not the thread's history.
+        //
+        // Inheriting from the last four messages used to sit here, and it silently outranked
+        // the setting: switching the app to Hindi mid-conversation changed nothing, because
+        // the thread was still full of Latin and every ambiguous message inherited Hinglish
+        // from it. Verified on device — the interface was fully Devanagari while the guide
+        // kept answering "Achha hai, Google!".
+        //
+        // Changing the language setting is a deliberate act, so it outranks whatever the
+        // conversation happened to be doing before. Flip-flopping is still contained by
+        // detectLanguage above: a real Latin sentence keeps its Hinglish answer, and only
+        // genuinely ambiguous messages ("ok", an emoji) fall through to the setting.
         return when (appLanguage) {
             AppLanguage.HINDI -> ConversationLanguage.HINDI
             AppLanguage.HINGLISH, AppLanguage.ENGLISH -> ConversationLanguage.HINGLISH

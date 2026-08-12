@@ -551,9 +551,19 @@ object ChatTurnProcessor {
                 formattedReply
             }
 
+            // A Hindi reply is allowed to contain a few Latin words.
+            //
+            // This used to reject the reply if it held a single Latin letter, which threw away
+            // perfectly good Hindi: the user's own name is Latin, and the guide addresses them
+            // by it, so "अनीश, मुझे समझ आता है।" was discarded and replaced with the apology
+            // below. Names, BhaktiChat, UPI and ₹ amounts all legitimately stay in Latin.
+            //
+            // Three or more Latin words is the model actually answering in the wrong script,
+            // which is what this guard is for.
+            val latinWordCount = Regex("[A-Za-z]{2,}").findAll(finalizedReply).count()
             val scriptSafeReply = if (
                 messageContext.detectedLanguage == ConversationLanguage.HINDI &&
-                finalizedReply.any { it in 'A'..'Z' || it in 'a'..'z' }
+                latinWordCount >= 3
             ) {
                 "क्षमा करें, उत्तर हिंदी लिपि में तैयार नहीं हो सका। कृपया एक बार फिर पूछें।"
             } else {

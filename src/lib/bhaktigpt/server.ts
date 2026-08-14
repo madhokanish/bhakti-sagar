@@ -311,11 +311,37 @@ export function detectCrisisIntent(input: string) {
   return CRISIS_PATTERNS.some((pattern) => pattern.test(input));
 }
 
-export function crisisSupportResponse() {
+// Crisis response is a fixed, safety-critical template (never model-generated). Every version
+// MUST keep all four safety elements: (1) acknowledge the pain, (2) an explicit refusal to help
+// cause harm to the user or anyone else, (3) urge immediate emergency services + a trusted person,
+// (4) a grounding breath. Only the tone/language is warmed up here — no framework labels, and it
+// now matches the user's language so the message actually lands.
+export function crisisSupportResponse(locale?: string | null) {
+  const lang = (locale ?? "").toLowerCase();
+
+  if (lang === "hi") {
+    return [
+      "एक पल रुको, मैं तुम्हारे साथ हूँ। अभी जो तुम महसूस कर रहे हो वो बहुत भारी है, और तुम्हारी सुरक्षा सबसे ज़रूरी है।",
+      "मैं इस दर्द को समझता हूँ, पर मैं किसी को भी — तुम्हें या किसी और को — नुकसान पहुँचाने में मदद नहीं कर सकता। मैं चाहता हूँ कि तुम अभी किसी इंसान तक पहुँचो जो सच में मदद कर सके।",
+      "अगर तुम ख़तरे में हो तो अभी अपने local emergency number पर कॉल करो, या किसी भरोसे वाले इंसान को तुरंत बुलाओ और उनके साथ रहो।",
+      "और अभी, मेरे साथ एक काम करो: एक हाथ अपने सीने पर रखो और धीरे-धीरे दस साँस लो। तुम अकेले नहीं हो।"
+    ].join("\n\n");
+  }
+
+  if (lang === "en") {
+    return [
+      "Stay with me for a moment. What you're feeling right now is really heavy, and your safety matters most.",
+      "I understand the pain, but I can't help with anything that would hurt you or someone else. I truly want you to reach a real person who can help, right now.",
+      "If you're in immediate danger, please call your local emergency number now, or reach out to someone you trust and stay with them.",
+      "And right now, do this with me: place one hand on your chest and take ten slow breaths. You are not alone."
+    ].join("\n\n");
+  }
+
+  // Hinglish — the app's primary language, and the default.
   return [
-    "Reflection: I hear that this feels urgent and heavy right now, and I want your immediate safety to come first.",
-    "Principle: I cannot support harm, and I want you to reach real human support immediately.",
-    "Action: If you are in immediate danger, call local emergency services now. If you can, contact a trusted person and stay with them while you seek help.",
-    "Mantra/Practice: Place one hand on your chest, breathe slowly for 10 breaths, and repeat: 'I choose safety right now.'"
-  ].join("\n");
+    "Ek pal ruko, main tumhare saath hoon. Abhi jo tum mehsoos kar rahe ho wo bahut bhaari hai, aur tumhari safety sabse zaroori hai.",
+    "Main is dard ko samajhta hoon, par main kisi ko bhi — tumhe ya kisi aur ko — nuksan pahunchane mein madad nahi kar sakta. Main chahta hoon ki tum abhi kisi insaan tak pahuncho jo sach mein madad kar sake.",
+    "Agar tum khatre mein ho toh abhi apne local emergency number par call karo, ya kisi bharose wale insaan ko turant bulao aur unke saath raho.",
+    "Aur abhi, mere saath ek kaam karo: ek haath apne seene par rakho aur dheere dheere das saans lo. Tum akele nahi ho."
+  ].join("\n\n");
 }

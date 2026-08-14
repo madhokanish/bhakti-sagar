@@ -530,6 +530,86 @@ function getGuidePersonaLockInstruction(guideId: BhaktiGuideId) {
   return "Persona lock: no matter what the user asks, remain unmistakably Krishna. For practical life, money, stress, work, family, or confusion, answer with warmth, clarity, devotional presence, gentle playfulness when natural, and dharma-centered wisdom. Never sound like a generic therapist, life coach, or generic assistant.";
 }
 
+// One in-voice example per guide. The persona-lock instruction tells the model to sound like
+// the guide, but an abstract rule is easy to ignore — the model reliably drifts into generic
+// coach-speak and then only a canned anchor line gets prepended. A concrete exemplar gives the
+// model (and the rewrite pass) an actual target to imitate: first person, the guide's own
+// vocabulary and worldview, one grounded step, one short question — persona sustained through
+// the WHOLE reply, not just the opening line.
+const GUIDE_VOICE_EXEMPLARS: Record<BhaktiGuideId, { user: string; reply: string }> = {
+  krishna: {
+    user: "Do naukri offers hain, decide nahi kar pa raha.",
+    reply:
+      "Dekho, faisla uljhan mein nahi, thehrav mein banta hai. Gita kehti hai, karm tumhare haath mein hai, phal nahi. Aaj 10 minute shaant baith kar dono raaste apne dharma ki roshni mein dekho, kaunsa tumhe darr se nahi, kartavya se pukaarta hai. Batao, kaunse raaste par mann halka ho jaata hai?"
+  },
+  shiv: {
+    user: "Mann bahut ashaant hai, kuch samajh nahi aa raha.",
+    reply:
+      "Rukho. Pehle ek gehri saans lo, jaise koi parvat ki chuppi tumhare andar utar rahi ho. Ashaanti ko dabao mat, use behne do. Abhi teen saans lo aur har saans ke saath mann mein 'Om Namah Shivaya' sun'no. Batao, is pal andar sabse zyada shor kis baat ka hai?"
+  },
+  hanuman: {
+    user: "Agla kadam lene mein dar lag raha hai.",
+    reply:
+      "Dar ko maano, par usse chhoti apni himmat mat samjho. Sachhi shakti seva aur shraddha se jagti hai, dhamki se nahi. Ram-naam mann mein lo, aur aaj wahi ek chhota kaam karo jisse tum bhaag rahe ho, bas pehla kadam. Batao, wo ek kaam kaunsa hai jo tum aaj vinamrata se utha sakte ho?"
+  },
+  shani: {
+    user: "Itni mehnat ke baad bhi atka hua mehsoos karta hoon.",
+    reply:
+      "Suno. Main jaldi ke khilaf hoon. Karm ka phal apna samay leta hai, aur wahi samay tumhe majboot banata hai. Shortcut mat dhoondo, warna wahi galti phir dohraoge. Is hafte sirf ek niyam chuno aur use roz nibhao, chahe mann kare ya na kare, chahe koi dekhe ya na dekhe. Yahi anushasan tumhara imtihaan hai. Batao, wo ek niyam kya hai jise tum bina naaga nibhaoge?"
+  },
+  lakshmi: {
+    user: "Paise ki tension hamesha bani rehti hai.",
+    reply:
+      "Saans lo. Samriddhi bhay se nahi, santulan se aati hai. Paise ko sharm ya darr se mat dekho, shuddh niyat se dekho. Aaj sirf itna karo, apne kharchon ko bina judgement ke ek jagah likho, aur ek cheez ke liye kritagyata kaho jo tumhare paas pehle se hai. Batao, aaj kis ek baat ke liye tum shukrguzaar ho?"
+  }
+};
+
+function getGuideVoiceExemplar(guideId: BhaktiGuideId) {
+  const ex = GUIDE_VOICE_EXEMPLARS[guideId];
+  return (
+    "Voice example — illustrates the required persona voice, worldview, and reply structure. " +
+    "Do not copy it verbatim and do not reuse its opening line. Always follow the language instruction above " +
+    "(translate this voice into the user's language). Carry this level of persona presence through the WHOLE " +
+    "reply, not only the first sentence.\n\n" +
+    `User: ${ex.user}\nIn-voice reply: ${ex.reply}`
+  );
+}
+
+// Medical / legal / financial-investing topics. The STYLE_CONTRACT already forbids specific
+// advice here, but the model reliably sets the boundary while forgetting to point the user to a
+// real professional. When a message matches, we inject a hard directive requiring that referral.
+// "invest" alone is intentionally excluded — it false-fires on "invest in yourself / your growth".
+// We require a financial object instead. Bare "money" is also excluded so legitimate money-anxiety
+// reflection (an in-scope topic for Lakshmi) does not get a financial-advisor referral.
+const PROFESSIONAL_REFERRAL_PATTERN = new RegExp(
+  [
+    // investing / markets
+    "\\bstocks?\\b", "share market", "stock market", "mutual fund", "\\bequity\\b",
+    "\\bcrypto\\b", "bitcoin", "\\btrading\\b", "\\bnivesh\\b", "\\bportfolio\\b",
+    "kaun sa stock", "which stock",
+    "invest\\w*\\s+(?:in\\s+)?(?:my\\s+|your\\s+|our\\s+|the\\s+)?(?:stock|share|market|mutual|fund|crypto|money|savings|paisa|gold|property)",
+    // legal
+    "lawsuit", "legal notice", "legal advice", "court case", "\\bsue\\b", "\\blawyer\\b",
+    "\\bvakil\\b", "police complaint", "\\bfir\\b",
+    // medical
+    "\\bmedical\\b", "\\bdoctor\\b", "symptom", "diagnos", "\\bmedicine\\b", "prescription",
+    "\\bdawa\\b", "\\bdisease\\b", "bimari", "chest pain", "\\bfever\\b"
+  ].join("|"),
+  "i"
+);
+
+function getProfessionalReferralDirective(userMessage: string): string | null {
+  if (!PROFESSIONAL_REFERRAL_PATTERN.test(userMessage)) return null;
+  return (
+    "Scope boundary: the user is asking about a medical, legal, or financial-investing matter. " +
+    "Do NOT give specific advice and do not name particular stocks, medicines, or legal steps. " +
+    "In this reply you MUST both (a) gently set that boundary and (b) explicitly suggest consulting the " +
+    "relevant qualified professional (a doctor for health, a lawyer for legal, a SEBI-registered financial " +
+    "advisor for investing), in the guide's own warm everyday voice. Then offer devotional support or one " +
+    "grounded, non-advice step."
+  );
+}
+
 function getGuideModeFlavor(guideId: BhaktiGuideId, mode: DirectorMode) {
   if (guideId === "lakshmi") {
     if (mode === "playful") return "Keep Lakshmi Ji warm, radiant, dignified, and gently encouraging. Let even light conversation carry grace and steadiness.";
@@ -562,7 +642,7 @@ function getGuideModeFlavor(guideId: BhaktiGuideId, mode: DirectorMode) {
 }
 
 const PRACTICAL_TOPIC_PATTERN =
-  /money|paisa|paise|debt|loan|salary|income|kharch|expense|budget|aamdani|job|career|work|office|boss|business|stress|tension|fear|dar|anxiety|family|ghar|relationship|discipline|motivation|decision|confusion|naukri|karz|udhaar|ghar ka kharcha|kamai/i;
+  /money|paisa|paise|debt|loan|salary|income|kharch|expense|budget|aamdani|job|career|work|office|boss|business|stress|tension|fear|dar|anxiety|family|ghar|relationship|discipline|motivation|decision|confusion|naukri|karz|udhaar|ghar ka kharcha|kamai|overthink|overthinking|delay|procrastinat|habit|doubt|guilt|regret|sad|lonely|anger|angry|gussa|sleep|neend|breakup|exam|study|purpose|meaning|patience|dhairya/i;
 
 const GUIDE_PERSONA_MARKERS: Record<BhaktiGuideId, string[]> = {
   krishna: [
@@ -631,9 +711,18 @@ function isPracticalTopicMessage(text: string) {
   return PRACTICAL_TOPIC_PATTERN.test(text);
 }
 
-function hasGuidePersonaMarkers(guideId: BhaktiGuideId, text: string) {
+function countGuidePersonaMarkers(guideId: BhaktiGuideId, text: string) {
   const normalized = text.toLowerCase();
-  return GUIDE_PERSONA_MARKERS[guideId].some((marker) => normalized.includes(marker));
+  return GUIDE_PERSONA_MARKERS[guideId].filter((marker) => normalized.includes(marker)).length;
+}
+
+// `min` distinct markers must be present to count as "in persona". Default 1 keeps the old
+// behaviour (used by the final anchor-prepend fallback: only prepend when there are ZERO markers).
+// The drift detector passes min=2, because a single sprinkled word like "karma" — or the canned
+// anchor line the pipeline itself adds — used to satisfy this check and mask an otherwise generic
+// reply from the rewrite guard.
+function hasGuidePersonaMarkers(guideId: BhaktiGuideId, text: string, min = 1) {
+  return countGuidePersonaMarkers(guideId, text) >= min;
 }
 
 function buildGuidePersonaAnchorLine(guideId: BhaktiGuideId, locale: ChatLanguage) {
@@ -2190,6 +2279,7 @@ async function createOpenAiStream(params: {
   modeInstruction: string;
   stateAnchor?: string | null;
   additionalDeveloperInstruction?: string | null;
+  referralDirective?: string | null;
   userFirstName?: string | null;
   locale?: ChatLanguage;
 }) {
@@ -2238,6 +2328,18 @@ async function createOpenAiStream(params: {
       role: "developer" as const,
       content: getGuidePersonaLockInstruction(params.guideId)
     },
+    {
+      role: "developer" as const,
+      content: getGuideVoiceExemplar(params.guideId)
+    },
+    ...(params.referralDirective
+      ? [
+          {
+            role: "developer" as const,
+            content: params.referralDirective
+          }
+        ]
+      : []),
     ...(params.additionalDeveloperInstruction
       ? [
           {
@@ -2288,6 +2390,7 @@ async function createOpenAiText(params: {
   userFirstName?: string | null;
   messages: Array<{ role: "system" | "developer" | "user" | "assistant"; content: string }>;
   additionalDeveloperInstruction?: string | null;
+  referralDirective?: string | null;
 }) {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
@@ -2344,6 +2447,18 @@ async function createOpenAiText(params: {
           role: "developer" as const,
           content: getGuidePersonaLockInstruction(params.guideId)
         },
+        {
+          role: "developer" as const,
+          content: getGuideVoiceExemplar(params.guideId)
+        },
+        ...(params.referralDirective
+          ? [
+              {
+                role: "developer" as const,
+                content: params.referralDirective
+              }
+            ]
+          : []),
         ...(params.additionalDeveloperInstruction
           ? [
               {
@@ -2543,6 +2658,7 @@ async function completeTruncatedReply(params: {
     stateAnchor: params.stateAnchor,
     locale: params.locale,
     userFirstName: params.userFirstName,
+    referralDirective: getProfessionalReferralDirective(params.userMessage),
     additionalDeveloperInstruction: [
       "The earlier draft reply was cut off mid-thought.",
       "Continue only from the unfinished ending.",
@@ -2969,7 +3085,7 @@ export async function POST(request: Request) {
 
         try {
           if (isCrisis) {
-            assistantText = crisisSupportResponse();
+            assistantText = crisisSupportResponse(requestLocale);
             ttftMs = Date.now() - startedAt;
           } else if (cached) {
             cacheHit = true;
@@ -2983,6 +3099,7 @@ export async function POST(request: Request) {
               model: selectedModel,
               modeInstruction,
               stateAnchor,
+              referralDirective: getProfessionalReferralDirective(userMessage),
               userFirstName,
               locale: requestLocale
             });
@@ -3039,10 +3156,15 @@ export async function POST(request: Request) {
               hasPattern(assistantText, KRISHNA_THIRD_PERSON_PATTERN) ||
               hasPattern(assistantText, SHARED_ROMANCE_TOUCH_PATTERN);
             const languageModeViolation = hasLanguageModeViolation(assistantText, requestLocale);
+            // Persona flattens deep in a conversation even when the follow-up topic is soft
+            // ("how do I stop overthinking?"). Past turn 2, enforce persona regardless of topic
+            // so the guide's voice survives the whole conversation, not just the opening reply.
+            const priorAssistantTurns = modelHistory.filter((m) => m.role === "assistant").length;
+            const isDeepConversation = priorAssistantTurns >= 2;
             const personaDriftViolation =
               director.mode !== "story" &&
-              isPracticalTopicMessage(userMessage) &&
-              !hasGuidePersonaMarkers(guideId, assistantText);
+              (isPracticalTopicMessage(userMessage) || isDeepConversation) &&
+              !hasGuidePersonaMarkers(guideId, assistantText, 2);
 
             const shouldForceRewrite =
               repeatedFirstLine ||
@@ -3098,6 +3220,7 @@ export async function POST(request: Request) {
                   stateAnchor,
                   locale: requestLocale,
                   userFirstName,
+                  referralDirective: getProfessionalReferralDirective(userMessage),
                   additionalDeveloperInstruction: rewriteDirectives.join(" "),
                   messages: [
                     {

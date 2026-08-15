@@ -6,22 +6,45 @@ import com.bhaktichat.app.ui.i18n.t
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.bhaktichat.app.R
+import kotlinx.coroutines.delay
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -149,6 +172,10 @@ fun BhaktiChatApp(
     val streak by appContainer.streakStore.currentStreak.collectAsStateWithLifecycle()
     val longestStreak by appContainer.streakStore.longestStreak.collectAsStateWithLifecycle()
     var showStreakDetails by rememberSaveable { mutableStateOf(false) }
+    // Membership promo interstitial: shown once per launch to non-subscribers, a few seconds
+    // after they've settled in. Dismissable (X or tap-outside); the CTA opens चढ़ावा.
+    var membershipPromoShown by rememberSaveable { mutableStateOf(false) }
+    var showMembershipPromo by rememberSaveable { mutableStateOf(false) }
     var requestedReelId by rememberSaveable { mutableStateOf<String?>(null) }
     val shouldShowReviewPrompt by appContainer.reviewPromptStore.shouldShowPrompt.collectAsStateWithLifecycle()
     val appScope = rememberCoroutineScope()
@@ -171,6 +198,18 @@ fun BhaktiChatApp(
     // the PostHog SDK's Activity-level capture can't see Compose routes).
     LaunchedEffect(route) {
         if (route.isNotBlank()) Analytics.screen(route)
+    }
+
+    // Fire the membership promo once per launch, for non-subscribers only, after a short
+    // settle-in delay and once the language picker is out of the way.
+    LaunchedEffect(isPro, languageChosen) {
+        if (isPro || membershipPromoShown || !languageChosen) return@LaunchedEffect
+        delay(5000)
+        if (!isPro && !membershipPromoShown) {
+            showMembershipPromo = true
+            membershipPromoShown = true
+            Analytics.screen("membership_promo")
+        }
     }
 
     fun navigateToTopLevel(destination: String) {
@@ -953,7 +992,120 @@ fun BhaktiChatApp(
             onDismiss = { appContainer.aartiPlayerController.collapseFullScreen() }
         )
     }
+
+    // Topmost child of the root Box, so it floats over the whole app.
+    if (showMembershipPromo && !isPro) {
+        MembershipInterstitial(
+            onClose = { showMembershipPromo = false },
+            onGetMembership = {
+                showMembershipPromo = false
+                Analytics.screen("membership_promo_cta")
+                navigateToTopLevel(NavDestinations.CHADHAAVA_BASE)
+            }
+        )
     }
+    }
+    }
+}
+
+/**
+ * A dismissable ("crossable") full-screen promo for BhaktiChat Pro. The X or a tap outside the
+ * card closes it; the CTA routes to the चढ़ावा subscription screen. Deliberately soft-sell —
+ * one appearance per launch, non-subscribers only (gated at the call site).
+ */
+@Composable
+private fun MembershipInterstitial(
+    onClose: () -> Unit,
+    onGetMembership: () -> Unit
+) {
+    val scrimInteraction = remember { MutableInteractionSource() }
+    val cardInteraction = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xCC120A06))
+            .clickable(interactionSource = scrimInteraction, indication = null) { onClose() },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 28.dp)
+                .clip(RoundedCornerShape(26.dp))
+                .background(Color(0xFFFFFDFB))
+                // Consume taps on the card so they don't fall through to the dismiss scrim.
+                .clickable(interactionSource = cardInteraction, indication = null) { }
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(190.dp)
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.chadhaava_hero),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0x40000000), Color.Transparent, Color(0x40EA580C))
+                            )
+                        )
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                        .size(30.dp)
+                        .clip(RoundedCornerShape(15.dp))
+                        .background(Color(0x99000000))
+                        .clickable { onClose() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("✕", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = t("promo_title"),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF2A1C15)
+                )
+                Text(
+                    text = t("promo_subtitle"),
+                    fontSize = 14.sp,
+                    color = Color(0xFF8A6F5C)
+                )
+                Spacer(Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            Brush.horizontalGradient(listOf(Color(0xFFFB923C), Color(0xFFEA580C)))
+                        )
+                        .clickable { onGetMembership() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = t("promo_cta"),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+        }
     }
 }
 

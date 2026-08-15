@@ -377,6 +377,17 @@ private val table: Map<String, Entry> = mapOf(
     ),
     "chadhaava_cancel_retry" to Entry("Dobara koshish karein", "फिर से प्रयास करें", "Try again"),
     "chadhaava_dialog_ok" to Entry("Theek hai", "ठीक है", "OK"),
+    // Membership promo interstitial (dismissable; CTA opens the चढ़ावा screen).
+    "promo_title" to Entry(
+        "BhaktiChat Pro paayein", "BhaktiChat Pro पाएं", "Unlock BhaktiChat Pro"
+    ),
+    "promo_subtitle" to Entry(
+        "Unlimited baat, divine images, wallpapers aur ad-free experience.",
+        "अनलिमिटेड बातचीत, दिव्य तस्वीरें, वॉलपेपर और विज्ञापन-मुक्त अनुभव।",
+        "Unlimited talks, divine images, wallpapers, and an ad-free experience."
+    ),
+    "promo_cta" to Entry("Membership lein", "सदस्यता लें", "Get membership"),
+    "promo_close" to Entry("Band karein", "बंद करें", "Close"),
     "chadhaava_resubscribe" to Entry(
         "Restart membership",
         "सदस्यता फिर से शुरू करें",

@@ -4,10 +4,10 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.bhaktichat.app.data.autopay.UpiAutopayApiException
-import com.bhaktichat.app.data.autopay.UpiAutopayAuthorization
-import com.bhaktichat.app.data.autopay.UpiAutopayRepository
-import com.bhaktichat.app.data.autopay.UpiAutopaySummary
+import com.bhaktichat.app.data.subscription.CreatedSubscription
+import com.bhaktichat.app.data.subscription.SubscriptionApiException
+import com.bhaktichat.app.data.subscription.SubscriptionRepository
+import com.bhaktichat.app.data.subscription.SubscriptionSummary
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -33,7 +33,7 @@ sealed interface ChadhaavaUiState {
     data class Processing(val elapsedSeconds: Int) : ChadhaavaUiState
 
     data class Active(
-        val summary: UpiAutopaySummary,
+        val summary: SubscriptionSummary,
         val isTrial: Boolean,
         val daysRemaining: Int?
     ) : ChadhaavaUiState
@@ -45,20 +45,37 @@ sealed interface ChadhaavaUiState {
     data object Failed : ChadhaavaUiState
 }
 
-/** Emitted after the server has created a Razorpay UPI AutoPay authorization. */
-data class UpiAuthorizationRequest(val intentUrl: String)
+/**
+ * Emitted when the screen should hand off to Razorpay's native Checkout SDK.
+ *
+ * Currently unused: checkout goes through the web flow instead, because the native SDK does
+ * not offer UPI for subscriptions on this account (Razorpay ticket 20247903). Kept, with
+ * [com.bhaktichat.app.data.subscription.launchRazorpayCheckout], so the native path can be
+ * restored in one place if Razorpay resolves it.
+ */
+data class CheckoutRequest(val subscriptionId: String, val keyId: String, val hostedUrl: String?)
+
+/**
+ * No browser on the device could open the checkout URL. Not a gateway code — chosen negative
+ * so it can never collide with one — and it routes to the ordinary failure screen, which is
+ * the right outcome: the user cannot pay, and our own copy explains it.
+ */
+const val CODE_NO_BROWSER = -1
 
 class ChadhaavaViewModel(
-    private val repository: UpiAutopayRepository,
+    private val repository: SubscriptionRepository,
     private val blockedBy: BlockedFeature? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ChadhaavaUiState>(ChadhaavaUiState.Loading)
     val uiState: StateFlow<ChadhaavaUiState> = _uiState.asStateFlow()
 
-    /** Kept as an event so a configuration change cannot re-open the customer's UPI app. */
-    private val _authorizationRequests = MutableSharedFlow<UpiAuthorizationRequest>(extraBufferCapacity = 1)
-    val authorizationRequests: SharedFlow<UpiAuthorizationRequest> = _authorizationRequests.asSharedFlow()
+    /**
+     * URL the screen should open in a Custom Tab to run checkout. Kept as an event rather
+     * than state so a configuration change can't re-launch checkout.
+     */
+    private val _webCheckoutRequests = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val webCheckoutRequests: SharedFlow<String> = _webCheckoutRequests.asSharedFlow()
 
     private var pollJob: Job? = null
 
@@ -78,32 +95,53 @@ class ChadhaavaViewModel(
         }
     }
 
-    /** Creates a fresh direct UPI AutoPay authorization and asks Android to open its URI. */
-    fun startAuthorization(contact: String) {
+    /**
+     * Asks the host to open web checkout in a Custom Tab.
+     *
+     * Deliberately does not create the subscription here — the web page does that itself,
+     * from a session the handoff URL establishes. Going through the web rather than the
+     * native SDK is what makes UPI available at all on this account; see
+     * [SubscriptionRepository.webCheckoutUrl].
+     */
+    fun startCheckout() {
         if (_uiState.value is ChadhaavaUiState.Processing) return
         viewModelScope.launch {
             try {
-                val created: UpiAutopayAuthorization = repository.authorize(contact)
+                val url = repository.webCheckoutUrl()
                 _uiState.value = ChadhaavaUiState.Processing(elapsedSeconds = 0)
                 startPolling()
-                _authorizationRequests.emit(UpiAuthorizationRequest(created.intentUrl))
-            } catch (error: UpiAutopayApiException) {
+                _webCheckoutRequests.emit(url)
+            } catch (error: SubscriptionApiException) {
+                // 409 means a mandate already exists; the repository has already adopted the
+                // server's state, so just render it rather than showing an error.
                 if (error.code == "ALREADY_SUBSCRIBED") render(repository.state.value)
                 else {
-                    Log.w(TAG, "Create UPI AutoPay authorization failed: ${error.code} ${error.message}")
+                    Log.w(TAG, "Web checkout link failed: ${error.code} ${error.message}")
                     _uiState.value = ChadhaavaUiState.Failed
                 }
             } catch (error: Exception) {
-                Log.w(TAG, "Create UPI AutoPay authorization failed", error)
+                Log.w(TAG, "Web checkout link failed", error)
                 _uiState.value = ChadhaavaUiState.Failed
             }
         }
     }
 
-    /** Android could not find an installed app that handles the UPI mandate URI. */
-    fun onUpiAppUnavailable() {
+    /**
+     * Checkout reported a failure.
+     *
+     * The gateway's [description] is a raw JSON blob meant for developers — it is logged,
+     * never shown. Users only ever see our own copy, which leads with "nothing was
+     * deducted". A user backing out of the payment sheet is not an error, so that returns
+     * quietly to the offer instead of raising an alarming screen.
+     */
+    fun onCheckoutFailed(code: Int, description: String?) {
         pollJob?.cancel()
-        _uiState.value = ChadhaavaUiState.Failed
+        Log.w(TAG, "Checkout failed (code=$code): $description")
+        _uiState.value = if (code == CODE_PAYMENT_CANCELLED) {
+            ChadhaavaUiState.Offer(blockedBy)
+        } else {
+            ChadhaavaUiState.Failed
+        }
     }
 
     /**
@@ -111,10 +149,28 @@ class ChadhaavaViewModel(
      * for the next poll tick.
      */
     fun checkNow() {
+        viewModelScope.launch { repository.refresh(reconcileWithGateway = true) }
+    }
+
+    /**
+     * Back in the app from the checkout tab.
+     *
+     * The tab gives no cancel signal — this fires identically whether the user paid or
+     * backed out — so it asks the server rather than guessing. If the mandate is already
+     * confirmed, show it. If not, drop back to the offer instead of leaving them staring at
+     * a spinner they can no longer influence.
+     *
+     * Deliberately does not cancel the poll. With UPI the mandate is often approved in the
+     * UPI app after the user is already back here, so polling continues in the background
+     * and promotes them to Active whenever it lands.
+     */
+    fun onReturnedFromCheckout() {
+        if (_uiState.value !is ChadhaavaUiState.Processing) return
         viewModelScope.launch {
             repository.refresh(reconcileWithGateway = true)
             val summary = repository.state.value
             if (summary.isPro) render(summary)
+            else _uiState.value = ChadhaavaUiState.Offer(blockedBy)
         }
     }
 
@@ -163,7 +219,7 @@ class ChadhaavaViewModel(
         }
     }
 
-    private fun render(summary: UpiAutopaySummary) {
+    private fun render(summary: SubscriptionSummary) {
         _uiState.value = if (summary.isPro) {
             val isTrial = summary.status == "trialing"
             ChadhaavaUiState.Active(
@@ -189,13 +245,15 @@ class ChadhaavaViewModel(
 
     private companion object {
         const val TAG = "Chadhaava"
+        /** com.razorpay.Checkout.PAYMENT_CANCELED — user dismissed the payment sheet. */
+        const val CODE_PAYMENT_CANCELLED = 0
         const val POLL_INTERVAL_SECONDS = 3
         const val POLL_TIMEOUT_SECONDS = 180
     }
 }
 
 class ChadhaavaViewModelFactory(
-    private val repository: UpiAutopayRepository,
+    private val repository: SubscriptionRepository,
     private val blockedBy: BlockedFeature? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")

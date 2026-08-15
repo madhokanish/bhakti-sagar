@@ -9,6 +9,7 @@ navigationCompose = "2.8.4"
 lifecycleViewmodelCompose = "2.8.7"
 room = "2.8.4"
 billing = "9.1.0"
+razorpay = "1.6.40"
 okhttp = "4.12.0"
 moshi = "1.15.1"
 coroutines = "1.9.0"
@@ -39,6 +40,8 @@ androidx-room-runtime = { group = "androidx.room", name = "room-runtime", versio
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billing" }
+razorpay-checkout = { group = "com.razorpay", name = "checkout", version.ref = "razorpay" }
+androidx-browser = { group = "androidx.browser", name = "browser", version = "1.8.0" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshi" }
 coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }

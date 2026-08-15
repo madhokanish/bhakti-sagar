@@ -12,9 +12,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.bhaktichat.app.data.subscription.PaymentOutcome
 import com.bhaktichat.app.ui.auth.BhaktiChatAuthRoot
 import com.bhaktichat.app.ui.theme.BhaktiChatTheme
 import com.bhaktichat.app.util.ThemePreferences
+import com.razorpay.PaymentData
+import com.razorpay.PaymentResultWithDataListener
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 /**
  * Allows any composable to update the current theme mode. The MainActivity owns the
@@ -25,7 +31,26 @@ val LocalThemeController = staticCompositionLocalOf<(String) -> Unit> {
     { /* no-op outside MainActivity */ }
 }
 
-class MainActivity : ComponentActivity() {
+/**
+ * Razorpay delivers checkout results to the hosting Activity, not to whatever composable
+ * started the flow, so [MainActivity] implements the listener and republishes outcomes as
+ * events for the चढ़ावा screen to collect.
+ *
+ * These are UI signals only — entitlement is never granted from them. The screen confirms
+ * with the backend (which in turn reconciles with Razorpay) before anything unlocks.
+ */
+class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
+
+    private val _paymentOutcomes = MutableSharedFlow<PaymentOutcome>(extraBufferCapacity = 4)
+    val paymentOutcomes: SharedFlow<PaymentOutcome> = _paymentOutcomes.asSharedFlow()
+
+    override fun onPaymentSuccess(razorpayPaymentId: String?, paymentData: PaymentData?) {
+        _paymentOutcomes.tryEmit(PaymentOutcome.Success(razorpayPaymentId))
+    }
+
+    override fun onPaymentError(code: Int, description: String?, paymentData: PaymentData?) {
+        _paymentOutcomes.tryEmit(PaymentOutcome.Failed(code, description))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

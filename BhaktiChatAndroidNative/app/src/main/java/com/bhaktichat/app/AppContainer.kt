@@ -3,7 +3,7 @@ package com.bhaktichat.app
 import android.content.Context
 import androidx.room.Room
 import com.bhaktichat.app.data.auth.AuthRepository
-import com.bhaktichat.app.data.autopay.UpiAutopayRepository
+import com.bhaktichat.app.data.subscription.SubscriptionRepository
 import com.bhaktichat.app.data.billing.SubscriptionManager
 import com.bhaktichat.app.data.local.AppDatabase
 import com.bhaktichat.app.data.local.MIGRATION_3_4
@@ -126,12 +126,15 @@ class AppContainer(
     val reviewPromptStore = ReviewPromptStore(appContext)
     val subscriptionManager = SubscriptionManager(appContext, entitlementStore, languageStore)
 
-    // Chadhaava uses Razorpay's direct UPI AutoPay API. It returns a UPI mandate deep link,
-    // which Android opens in the customer's chosen UPI app rather than in Razorpay Checkout.
-    val upiAutopayRepository = UpiAutopayRepository(
+    // Chadhaava (Razorpay UPI AutoPay) — the current subscription rail. [subscriptionManager]
+    // above is the legacy Play Billing path, kept only so grandfathered subscribers from
+    // before the ad-model pivot are still recognised; the two write to separate flags in
+    // [EntitlementStore] so neither can revoke the other.
+    val subscriptionRepository = SubscriptionRepository(
         baseUrl = BuildConfig.API_BASE_URL,
         authRepository = authRepository,
-        entitlementStore = entitlementStore
+        entitlementStore = entitlementStore,
+        languageStore = languageStore
     )
     val guidesRepository: GuidesRepository = DefaultGuidesRepository()
     val threadsRepository: ThreadsRepository = RoomThreadsRepository(db.threadDao())

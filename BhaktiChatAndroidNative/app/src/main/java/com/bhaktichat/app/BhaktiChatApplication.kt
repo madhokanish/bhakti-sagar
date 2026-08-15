@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import android.os.LocaleList
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.bhaktichat.app.data.auth.AuthRepository
+import com.bhaktichat.app.data.subscription.preloadRazorpay
 import com.bhaktichat.app.domain.AppLanguage
 import com.bhaktichat.app.util.Analytics
 import com.bhaktichat.app.util.LanguageStore
@@ -64,6 +65,12 @@ class BhaktiChatApplication : Application() {
             host = BuildConfig.POSTHOG_HOST,
             debug = BuildConfig.DEBUG
         )
+        // Razorpay preload fetches checkout preferences and enumerates installed UPI apps.
+        // Started here (on a background thread — doing it on the main thread previously
+        // caused a startup ANR) so it has the whole session to finish rather than the few
+        // seconds between opening चढ़ावा and tapping pay.
+        preloadRazorpay(this)
+
         authRepository = AuthRepository(
             context = this,
             baseUrl = BuildConfig.API_BASE_URL,

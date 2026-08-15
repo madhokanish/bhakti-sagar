@@ -213,6 +213,11 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
 
+    // Razorpay Checkout — UPI AutoPay mandate registration for चढ़ावा.
+    implementation(libs.razorpay.checkout)
+    // Chrome Custom Tabs — hosts Razorpay's checkout page in-app (web-redirect flow).
+    implementation(libs.androidx.browser)
+
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)

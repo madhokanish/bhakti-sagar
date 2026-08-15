@@ -8,6 +8,74 @@ import { prisma } from "@/lib/prisma";
 const GOOGLE_JWKS = createRemoteJWKSet(
   new URL("https://www.googleapis.com/oauth2/v3/certs")
 );
+
+// Firebase mints the ID token after it has verified the OTP, and that token is a plain JWT
+// signed by Google. Verifying it here needs nothing but the public keys and the project id,
+// so the Firebase Admin SDK is deliberately not a dependency.
+const FIREBASE_JWKS = createRemoteJWKSet(
+  new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
+);
+
+function firebaseProjectId(): string {
+  const projectId = process.env.FIREBASE_PROJECT_ID?.trim();
+  if (!projectId) {
+    throw new MobileAuthError(
+      "PHONE_NOT_CONFIGURED",
+      "Phone sign-in is not available right now.",
+      503
+    );
+  }
+  return projectId;
+}
+
+/**
+ * Signs a user in from a Firebase phone-auth ID token.
+ *
+ * Phone accounts are deliberately separate from Google accounts: there is no linking, so
+ * somebody who uses both ends up with two. That keeps this path free of any merge rules,
+ * and means a phone user never has an email at all, which is why nothing downstream may
+ * insist on one.
+ */
+export async function exchangePhoneIdToken(input: { idToken: string }) {
+  if (!input.idToken) {
+    throw new MobileAuthError("INVALID_REQUEST", "Missing sign-in response.", 400);
+  }
+
+  const projectId = firebaseProjectId();
+
+  let payload;
+  try {
+    const verified = await jwtVerify(input.idToken, FIREBASE_JWKS, {
+      audience: projectId,
+      issuer: `https://securetoken.google.com/${projectId}`
+    });
+    payload = verified.payload;
+  } catch {
+    throw new MobileAuthError("INVALID_PHONE_TOKEN", "Phone sign-in could not be verified.");
+  }
+
+  const phone = typeof payload.phone_number === "string" ? payload.phone_number.trim() : "";
+  if (!phone) {
+    // Firebase issues ID tokens for every provider it supports. Without a phone_number claim
+    // this token came from something else, and must not be treated as a verified number.
+    throw new MobileAuthError("INVALID_PHONE_TOKEN", "This sign-in did not include a verified number.");
+  }
+  if (!payload.sub) {
+    throw new MobileAuthError("INVALID_PHONE_TOKEN", "Phone account identifier is missing.");
+  }
+
+  const existing = await prisma.user.findUnique({ where: { phone } });
+  const user = existing
+    ? await prisma.user.update({
+        where: { id: existing.id },
+        data: { phoneVerified: new Date() }
+      })
+    : await prisma.user.create({
+        data: { phone, phoneVerified: new Date() }
+      });
+
+  return issueMobileSession(user);
+}
 const CHALLENGE_TTL_MS = 10 * 60 * 1000;
 const SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 const SESSION_TOUCH_INTERVAL_MS = 15 * 60 * 1000;

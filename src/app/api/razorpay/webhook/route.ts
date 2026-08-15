@@ -5,6 +5,11 @@ import {
   mapRazorpaySubscriptionStatus,
   updateSubscriptionByRazorpaySubscriptionId
 } from "@/lib/razorpaySubscription";
+import {
+  latestUpiAutopayMandate,
+  recordCapturedUpiAutopayCharge,
+  reconcileUpiAutopayMandate
+} from "@/lib/razorpayUpiAutopaySubscription";
 
 export const runtime = "nodejs";
 
@@ -30,6 +35,7 @@ type RazorpayWebhookPayload = {
   event: string;
   payload?: {
     subscription?: { entity?: RazorpaySubscriptionEntity };
+    payment?: { entity?: { id: string; status?: string; method?: string; customer_id?: string } };
   };
 };
 
@@ -80,6 +86,21 @@ export async function POST(request: Request) {
           trialEnd: subscription.start_at ? new Date(subscription.start_at * 1000) : null,
           currentPeriodEnd: subscription.current_end ? new Date(subscription.current_end * 1000) : null
         });
+      }
+    }
+
+    // Direct UPI AutoPay uses payment events, not the older Subscription entity. We still
+    // fetch Razorpay server-side before promoting an authorization, so a webhook body alone
+    // can never unlock membership.
+    if (["payment.authorized", "payment.captured"].includes(event.event)) {
+      const payment = event.payload?.payment?.entity;
+      if (payment?.id && payment.method === "upi") {
+        const mandate = await prisma.razorpayAutopayMandate.findUnique({
+          where: { razorpayPaymentId: payment.id },
+          include: { user: true }
+        });
+        if (mandate) await reconcileUpiAutopayMandate(mandate.user, mandate);
+        if (event.event === "payment.captured") await recordCapturedUpiAutopayCharge(payment.id);
       }
     }
 

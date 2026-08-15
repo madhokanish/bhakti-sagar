@@ -10,6 +10,11 @@ datasource db {
 model User {
   id                     String                  @id @default(cuid())
   email                  String?                 @unique
+  // E.164, e.g. "+919876543210". Set for accounts created by phone OTP, null for Google
+  // accounts. Phone and Google sign-ins are deliberately separate accounts: there is no
+  // linking, so a person using both ends up with two, which is the accepted trade.
+  phone                  String?                 @unique
+  phoneVerified          DateTime?
   name                   String?
   image                  String?
   emailVerified          DateTime?
@@ -29,10 +34,61 @@ model User {
   sessions               Session[]
   mobileSessions         MobileSession[]
   webCheckoutHandoffs    WebCheckoutHandoff[]
+  razorpayAutopayMandates RazorpayAutopayMandate[]
   authEvents             AuthEvent[]
   profile                UserProfile?
   bhaktiGptConversations BhaktiGptConversation[]
   bhaktiGptUsage         BhaktiGptUsage?
+}
+
+/// A UPI AutoPay mandate created through Razorpay's direct recurring-payments API.
+/// This is intentionally independent from the older Razorpay Subscription checkout rail:
+/// the direct API returns a `upi://mandate` link that Android opens in the customer's own
+/// UPI app.
+model RazorpayAutopayMandate {
+  id                   String                  @id @default(cuid())
+  userId               String
+  razorpayCustomerId   String
+  customerContact      String
+  razorpayOrderId      String                  @unique
+  razorpayPaymentId    String                  @unique
+  razorpayTokenId      String?                 @unique
+  status               String                  @default("pending")
+  authorizationAmount  Int
+  billingAmount        Int
+  currency             String                  @default("INR")
+  frequency            String                  @default("monthly")
+  nextBillingAt        DateTime?
+  expiresAt            DateTime
+  approvedAt           DateTime?
+  cancellationRequestedAt DateTime?
+  lastCheckedAt        DateTime?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  user                 User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  charges              RazorpayAutopayCharge[]
+
+  @@index([userId, status])
+  @@index([status, nextBillingAt])
+}
+
+/// Each post-mandate debit is stored independently, making cron retries idempotent and
+/// ensuring a payment id can never be associated with two billing periods.
+model RazorpayAutopayCharge {
+  id                 String                  @id @default(cuid())
+  mandateId          String
+  razorpayOrderId    String                  @unique
+  razorpayPaymentId  String?                 @unique
+  amount             Int
+  status             String                  @default("created")
+  scheduledFor       DateTime
+  completedAt        DateTime?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  mandate            RazorpayAutopayMandate @relation(fields: [mandateId], references: [id], onDelete: Cascade)
+
+  @@unique([mandateId, scheduledFor])
+  @@index([status, scheduledFor])
 }
 
 model WebhookEvent {

@@ -18,12 +18,11 @@ export async function POST(request: Request) {
   let userId: string;
   try {
     const session = await requireMobileSession(request);
-    if (!session.user.email) {
-      return NextResponse.json(
-        { error: "Your account needs an email address before subscribing." },
-        { status: 400 }
-      );
-    }
+    // Deliberately does not require an email. Phone-OTP accounts have a verified number and
+    // no email at all, and rejecting them here would have let phone sign-in fix the sign-up
+    // drop-off while quietly blocking those same users from ever paying. Razorpay collects
+    // whatever contact detail it needs on its own checkout form; everything below keys off
+    // userId, not email.
     userId = session.user.id;
   } catch (error) {
     return mobileAuthErrorResponse(error);
@@ -65,7 +64,10 @@ export async function POST(request: Request) {
       total_count: TOTAL_BILLING_CYCLES,
       customer_notify: 1,
       start_at: startAt,
-      notes: { userId, email: user.email ?? "" }
+      // Whichever contact detail the account actually has. Google accounts carry an email,
+      // phone-OTP accounts carry a number, and notes is what makes a Razorpay subscription
+      // traceable back to a user during support.
+      notes: { userId, email: user.email ?? "", phone: user.phone ?? "" }
     });
 
     await updateUserSubscriptionRazorpayById({

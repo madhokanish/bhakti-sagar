@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1033897432843",
+    "project_id": "bhakti-chat",
+    "storage_bucket": "bhakti-chat.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1033897432843:android:0def241b015ce81948340e",
+        "android_client_info": {
+          "package_name": "com.anish.bhaktichat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMMrBmHfYz-C4woFCOPwYRLme2iqHkvyw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

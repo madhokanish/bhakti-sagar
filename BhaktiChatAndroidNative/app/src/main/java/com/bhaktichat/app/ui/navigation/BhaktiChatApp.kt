@@ -701,7 +701,7 @@ fun BhaktiChatApp(
 
                 val vm: ChadhaavaViewModel = viewModel(
                     factory = ChadhaavaViewModelFactory(
-                        repository = appContainer.subscriptionRepository,
+                        repository = appContainer.upiAutopayRepository,
                         blockedBy = blocked
                     )
                 )

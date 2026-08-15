@@ -38,6 +38,9 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -62,13 +65,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bhaktichat.app.MainActivity
 import com.bhaktichat.app.R
-import com.bhaktichat.app.data.subscription.PaymentOutcome
-import com.bhaktichat.app.data.subscription.launchHostedCheckout
+import com.bhaktichat.app.data.autopay.launchUpiAutopayIntent
 import com.bhaktichat.app.ui.components.ads.findActivity
 import com.bhaktichat.app.ui.i18n.t
 
@@ -119,48 +122,27 @@ fun ChadhaavaScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
+    var showContactDialog by rememberSaveable { mutableStateOf(false) }
 
-    // The ViewModel mints a signed-in checkout URL; open it in a Custom Tab.
-    //
-    // Web checkout rather than the native SDK because that is the only path that offers UPI
-    // on this account — the SDK returns Cards and EMandate only for subscriptions, while the
-    // same account's web checkout offers UPI, UPI QR, Cards and EMandate (verified live,
-    // 10 Aug 2026; Razorpay ticket 20247903). A Custom Tab, not a WebView: UPI has to hand
-    // off to GPay/PhonePe and come back, which needs a real browser.
-    //
-    // There is no success callback to listen for here — the tab is a separate process. The
-    // Processing state polls the backend, and onResume forces a reconciling read, so
-    // entitlement still only ever comes from the server.
+    // The direct Razorpay API returns a UPI mandate URI. Android's chooser opens one of the
+    // customer's installed UPI apps; Razorpay Checkout is not involved in this path.
     LaunchedEffect(activity) {
         val host = activity ?: return@LaunchedEffect
-        viewModel.webCheckoutRequests.collect { url ->
-            val opened = launchHostedCheckout(host, url)
-            if (!opened) viewModel.onCheckoutFailed(CODE_NO_BROWSER, "No browser available")
+        viewModel.authorizationRequests.collect { request ->
+            val opened = launchUpiAutopayIntent(host, request.intentUrl)
+            if (!opened) {
+                viewModel.onUpiAppUnavailable()
+            }
         }
     }
 
-    // Coming back from the tab is the only signal we get that the user may have finished.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) viewModel.onReturnedFromCheckout()
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.checkNow()
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-
-    LaunchedEffect(activity) {
-        val host = activity as? MainActivity ?: return@LaunchedEffect
-        host.paymentOutcomes.collect { outcome ->
-            when (outcome) {
-                is PaymentOutcome.Success -> {
-                    // Deliberately not treated as entitlement: ask the backend (which
-                    // reconciles with Razorpay) rather than trusting the client signal.
-                    viewModel.checkNow()
-                }
-                is PaymentOutcome.Failed -> viewModel.onCheckoutFailed(outcome.code, outcome.description)
-            }
-        }
     }
 
     Box(
@@ -186,7 +168,7 @@ fun ChadhaavaScreen(
             OfferState(
                 blockedBy = offer?.blockedBy,
                 onBack = if (offer != null) onBack else null,
-                onSubscribe = if (offer != null) viewModel::startCheckout else ({}),
+                onSubscribe = if (offer != null) { { showContactDialog = true } } else ({}),
                 onOpenUrl = if (offer != null) onOpenUrl else ({}),
                 dimmed = offer == null
             )
@@ -207,7 +189,7 @@ fun ChadhaavaScreen(
             )
 
             is ChadhaavaUiState.Failed -> ErrorSheet(
-                onRetry = viewModel::startCheckout,
+                onRetry = { showContactDialog = true },
                 onDismiss = viewModel::dismissError
             )
 
@@ -215,6 +197,48 @@ fun ChadhaavaScreen(
             is ChadhaavaUiState.Offer -> Unit
         }
     }
+
+    if (showContactDialog) {
+        UpiContactDialog(
+            onDismiss = { showContactDialog = false },
+            onContinue = { contact ->
+                showContactDialog = false
+                viewModel.startAuthorization(contact)
+            }
+        )
+    }
+}
+
+@Composable
+private fun UpiContactDialog(onDismiss: () -> Unit, onContinue: (String) -> Unit) {
+    var contact by rememberSaveable { mutableStateOf("") }
+    val valid = contact.filter(Char::isDigit).length == 10
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Set up UPI AutoPay", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "Enter the Indian mobile number linked to your UPI app. You will then choose GPay, PhonePe, BHIM or another installed UPI app.",
+                    color = ChadhaavaPalette.TextSecondary,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp
+                )
+                OutlinedTextField(
+                    value = contact,
+                    onValueChange = { contact = it.filter(Char::isDigit).take(10) },
+                    label = { Text("UPI mobile number") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    isError = contact.isNotBlank() && !valid
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onContinue(contact) }, enabled = valid) { Text("Continue") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Not now") } }
+    )
 }
 
 @Composable

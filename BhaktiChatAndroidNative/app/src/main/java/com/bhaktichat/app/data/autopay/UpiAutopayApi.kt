@@ -1,4 +1,4 @@
-package com.bhaktichat.app.data.subscription
+package com.bhaktichat.app.data.autopay
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -12,12 +12,8 @@ import java.util.Locale
 import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 
-/**
- * Bearer-authenticated client for the Chadhaava subscription endpoints. Deliberately mirrors
- * [com.bhaktichat.app.data.auth.MobileAuthApi] — same OkHttp + org.json shape, same error
- * envelope ({ error, code }) — so there's one networking idiom in the app.
- */
-class SubscriptionApi(
+/** Network client for the direct Razorpay UPI AutoPay API hosted by BhaktiChat's server. */
+class UpiAutopayApi(
     baseUrl: String,
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
@@ -25,62 +21,38 @@ class SubscriptionApi(
         .writeTimeout(20, TimeUnit.SECONDS)
         .build()
 ) {
-    private val apiBase = baseUrl.trimEnd('/') + "/api/mobile/subscription"
+    private val apiBase = baseUrl.trimEnd('/') + "/api/mobile/upi-autopay"
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
 
-    /** Creates a Razorpay subscription and returns what Checkout needs to open. */
-    suspend fun create(accessToken: String): CreatedSubscription = request(
+    suspend fun authorize(accessToken: String, contact: String): UpiAutopayAuthorization = request(
         Request.Builder()
-            .url("$apiBase/create")
-            .post("{}".toRequestBody(jsonMedia))
+            .url("$apiBase/authorize")
+            .post(JSONObject().put("contact", contact).toString().toRequestBody(jsonMedia))
             .authorized(accessToken)
             .build()
     ) { json ->
-        CreatedSubscription(
-            subscriptionId = json.getString("subscriptionId"),
-            keyId = json.getString("keyId"),
-            hostedUrl = json.optNullableString("hostedUrl"),
-            trialEndMillis = json.optIsoMillis("trialEnd")
+        UpiAutopayAuthorization(
+            mandateId = json.getString("mandateId"),
+            intentUrl = json.getString("upiIntentUrl")
         )
     }
 
-    /**
-     * Mints a single-use URL that opens web checkout already signed in as this user.
-     *
-     * Needed because the Custom Tab runs in the browser's own process and cookie jar —
-     * the app cannot sign the user in there directly, so the server issues a short-lived
-     * handoff token in the URL and exchanges it for a session cookie.
-     */
-    suspend fun webCheckoutLink(accessToken: String, languageTag: String): String = request(
+    suspend fun status(accessToken: String, refresh: Boolean = false): UpiAutopaySummary = request(
         Request.Builder()
-            .url("$apiBase/web-checkout-link")
-            .post(
-                JSONObject().put("lang", languageTag).toString().toRequestBody(jsonMedia)
-            )
+            .url(if (refresh) "$apiBase/status?refresh=1" else "$apiBase/status")
+            .get()
             .authorized(accessToken)
             .build()
-    ) { json -> json.getString("url") }
+    ) { json -> parseSummary(json.getJSONObject("subscription")) }
 
-    /**
-     * Reads current entitlement. [refresh] additionally reconciles against Razorpay
-     * server-side — use it right after the user returns from approving a mandate in their
-     * UPI app, when the webhook may not have landed yet.
-     */
-    suspend fun status(accessToken: String, refresh: Boolean = false): SubscriptionSummary {
-        val url = if (refresh) "$apiBase/status?refresh=1" else "$apiBase/status"
-        return request(
-            Request.Builder().url(url).get().authorized(accessToken).build()
-        ) { json -> parseSummary(json.getJSONObject("subscription")) }
-    }
-
-    suspend fun cancel(accessToken: String): CancelOutcome = request(
+    suspend fun cancel(accessToken: String): UpiAutopayCancelOutcome = request(
         Request.Builder()
             .url("$apiBase/cancel")
             .post("{}".toRequestBody(jsonMedia))
             .authorized(accessToken)
             .build()
     ) { json ->
-        CancelOutcome(
+        UpiAutopayCancelOutcome(
             cancelledImmediately = json.optBoolean("cancelledImmediately", true),
             accessUntilMillis = json.optIsoMillis("accessUntil")
         )
@@ -96,11 +68,10 @@ class SubscriptionApi(
                 val raw = response.body?.string().orEmpty()
                 val json = runCatching { JSONObject(raw) }.getOrElse { JSONObject() }
                 if (!response.isSuccessful) {
-                    throw SubscriptionApiException(
+                    throw UpiAutopayApiException(
                         code = json.optString("code").ifBlank { "HTTP_${response.code}" },
                         status = response.code,
-                        message = json.optString("error")
-                            .ifBlank { "Membership service error (${response.code})." },
+                        message = json.optString("error").ifBlank { "UPI AutoPay is unavailable right now." },
                         subscription = json.optJSONObject("subscription")?.let(::parseSummary)
                     )
                 }
@@ -108,10 +79,10 @@ class SubscriptionApi(
             }
         }
 
-    private fun parseSummary(json: JSONObject): SubscriptionSummary = SubscriptionSummary(
+    private fun parseSummary(json: JSONObject) = UpiAutopaySummary(
         isPro = json.optBoolean("isPro", false),
         status = json.optString("status").ifBlank { "inactive" },
-        subscriptionId = json.optNullableString("subscriptionId"),
+        mandateId = json.optNullableString("subscriptionId"),
         trialEndMillis = json.optIsoMillis("trialEnd"),
         currentPeriodEndMillis = json.optIsoMillis("currentPeriodEnd")
     )
@@ -119,7 +90,6 @@ class SubscriptionApi(
     private fun JSONObject.optNullableString(key: String): String? =
         if (isNull(key)) null else optString(key).takeIf { it.isNotBlank() }
 
-    /** Parses an ISO-8601 timestamp, tolerating a missing/null field or an unexpected format. */
     private fun JSONObject.optIsoMillis(key: String): Long? {
         val value = optNullableString(key) ?: return null
         val formats = listOf("yyyy-MM-dd'T'HH:mm:ss.SSSX", "yyyy-MM-dd'T'HH:mm:ssX")

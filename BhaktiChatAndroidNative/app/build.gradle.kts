@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
 }
 
 // Release signing is read from keystore.properties (git-ignored) so credentials never
@@ -201,17 +202,17 @@ dependencies {
 
     implementation(libs.billing.ktx)
 
-    // Razorpay Checkout — UPI AutoPay mandate registration for चढ़ावा.
-    implementation(libs.razorpay.checkout)
-    // Chrome Custom Tabs — hosts Razorpay's checkout page in-app.
-    implementation(libs.androidx.browser)
-
     implementation(libs.posthog.android)
 
     implementation(libs.play.services.ads)
     implementation(libs.user.messaging.platform)
     implementation(libs.play.review.ktx)
     implementation(libs.androidx.lifecycle.process)
+    // Firebase Auth for phone OTP. Firebase sends the SMS and checks the code, which
+    // sidesteps India's DLT sender registration entirely.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)

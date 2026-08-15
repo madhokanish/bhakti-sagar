@@ -134,6 +134,37 @@ class AuthRepository(
         }
     }
 
+    /**
+     * Finishes phone sign-in once Firebase has verified the code and produced [firebaseIdToken].
+     * Stores the session exactly like [signInWithGoogle] does.
+     *
+     * Unlike the Google path this does not flip [_state] to SigningIn on entry, and it returns
+     * the error message instead of publishing SignedOut on failure. The OTP screen owns its own
+     * verifying spinner and inline error, and driving those off the shared state would tear it
+     * down and lose the entered code. On success we publish Authenticated and the root swaps to
+     * the app; on failure the caller keeps showing the OTP screen with the returned message.
+     *
+     * @return null on success, otherwise a localised, user-facing error message.
+     */
+    suspend fun signInWithPhone(firebaseIdToken: String): String? {
+        return try {
+            val session = api.exchangePhone(firebaseIdToken)
+            sessionStore.save(session)
+            _state.value = AuthState.Authenticated(session)
+            Analytics.authSucceeded("phone")
+            null
+        } catch (error: AuthApiException) {
+            Analytics.authFailed("phone", error.code)
+            error.toHindiMessage()
+        } catch (_: IOException) {
+            Analytics.authFailed("phone", "network_error")
+            languageStore.str("auth_check_connection")
+        } catch (_: Exception) {
+            Analytics.authFailed("phone", "unknown_error")
+            languageStore.str("auth_phone_failed")
+        }
+    }
+
     suspend fun signOut() {
         val token = currentSession?.accessToken
         if (token != null) runCatching { api.logout(token) }

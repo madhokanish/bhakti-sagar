@@ -1,5 +1,6 @@
 package com.bhaktichat.app.ui.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,12 +33,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bhaktichat.app.R
 import kotlinx.coroutines.delay
 
 /**
@@ -83,7 +86,10 @@ fun PhoneNumberScreen(
     subtitle: String,
     continueLabel: String,
     googleLabel: String,
-    disclaimer: String
+    // Optional, discreet reviewer/testing path (email or username). Kept off by default so
+    // real users only see phone + Google; the host supplies it to preserve the access flow.
+    accessLabel: String = "",
+    onUseAccess: (() -> Unit)? = null
 ) {
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
@@ -97,12 +103,30 @@ fun PhoneNumberScreen(
             .fillMaxSize()
             .background(PhoneAuthPalette.Page)
             .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(title, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = PhoneAuthPalette.TextPrimary)
-        Spacer(Modifier.height(8.dp))
-        Text(subtitle, fontSize = 14.sp, color = PhoneAuthPalette.TextSecondary)
-        Spacer(Modifier.height(28.dp))
+        Image(
+            painter = painterResource(R.drawable.bhaktichat_logo),
+            contentDescription = "BhaktiChat",
+            modifier = Modifier.size(96.dp)
+        )
+        Spacer(Modifier.height(12.dp))
+        Text("BhaktiChat", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = PhoneAuthPalette.TextPrimary)
+        Spacer(Modifier.height(40.dp))
+
+        // English leads because we have not asked for a language yet; the Hindi line under it
+        // is a hint, not a translation. Both stay fixed regardless of the stored language.
+        Text(
+            title,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = PhoneAuthPalette.TextPrimary,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(subtitle, fontSize = 15.sp, color = PhoneAuthPalette.TextSecondary, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(24.dp))
 
         Row(
             modifier = Modifier
@@ -166,28 +190,53 @@ fun PhoneNumberScreen(
             onClick = onContinue
         )
 
-        Spacer(Modifier.height(18.dp))
-        Text(
-            googleLabel,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(enabled = !isSending) { onUseGoogle() }
-                .padding(vertical = 10.dp),
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = PhoneAuthPalette.TextSecondary,
-            textAlign = TextAlign.Center
+        // Google sits right here on the main screen, not behind another tap. The logo carries
+        // the meaning, so the label stays short.
+        Spacer(Modifier.height(14.dp))
+        GoogleButton(
+            label = googleLabel,
+            enabled = !isSending,
+            onClick = onUseGoogle
         )
 
-        Spacer(Modifier.height(14.dp))
-        Text(
-            disclaimer,
-            fontSize = 11.sp,
-            lineHeight = 16.sp,
-            color = PhoneAuthPalette.TextMuted,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
+        if (onUseAccess != null) {
+            Spacer(Modifier.height(18.dp))
+            Text(
+                accessLabel,
+                modifier = Modifier
+                    .clickable(enabled = !isSending) { onUseAccess() }
+                    .padding(vertical = 6.dp),
+                fontSize = 12.sp,
+                color = PhoneAuthPalette.TextMuted,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun GoogleButton(
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .background(Color.White, RoundedCornerShape(14.dp))
+            .border(1.dp, PhoneAuthPalette.FieldBorder, RoundedCornerShape(14.dp))
+            .clickable(enabled = enabled) { onClick() },
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Image(
+            painter = painterResource(R.drawable.ic_google_g),
+            contentDescription = null,
+            modifier = Modifier.size(20.dp)
         )
+        Spacer(Modifier.width(10.dp))
+        Text(label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PhoneAuthPalette.TextPrimary)
     }
 }
 

@@ -74,19 +74,42 @@ fun BhaktiChatAuthRoot() {
         )
         is AuthState.SignedOut -> {
             LaunchedEffect(Unit) { Analytics.screen("sign_in") }
-            SignInScreen(
-                isLoading = false,
-                loadingMessage = null,
-                errorMessage = current.message,
-                onGoogle = {
-                    if (activity != null) {
+            var showAccessDialog by rememberSaveable { mutableStateOf(false) }
+            if (activity != null) {
+                // Phone is now the primary sign-in; Google is a text link inside the phone
+                // screen, and the email/username reviewer path is the discreet access link.
+                PhoneAuthFlow(
+                    activity = activity,
+                    repository = repository,
+                    languageStore = application.languageStore,
+                    onUseGoogle = {
                         actionScope.launch { repository.signInWithGoogle(activity, explicitButton = true) }
+                    },
+                    onUseAccess = { showAccessDialog = true },
+                    hostMessage = current.message
+                )
+            } else {
+                // Sign-in always runs inside MainActivity, so this is only a defensive
+                // fallback: the original Google-first screen, still fully functional.
+                SignInScreen(
+                    isLoading = false,
+                    loadingMessage = null,
+                    errorMessage = current.message,
+                    onGoogle = {},
+                    onAccess = { login, password ->
+                        actionScope.launch { repository.signInWithAccess(login, password) }
                     }
-                },
-                onAccess = { login, password ->
-                    actionScope.launch { repository.signInWithAccess(login, password) }
-                }
-            )
+                )
+            }
+            if (showAccessDialog) {
+                AccessSignInDialog(
+                    onDismiss = { showAccessDialog = false },
+                    onSubmit = { login, password ->
+                        showAccessDialog = false
+                        actionScope.launch { repository.signInWithAccess(login, password) }
+                    }
+                )
+            }
         }
         is AuthState.Authenticated -> {
             val container = remember(current.session.user.id) {

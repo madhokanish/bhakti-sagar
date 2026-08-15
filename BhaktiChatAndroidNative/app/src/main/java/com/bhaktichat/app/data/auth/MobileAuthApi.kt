@@ -40,6 +40,14 @@ class MobileAuthApi(
         JSONObject().put("login", login).put("password", password)
     ) { parseSession(it) }
 
+    // Firebase has already verified the code by the time we get here, so the phone route
+    // takes just the resulting ID token — no challenge/nonce like Google (the token carries
+    // its own audience and expiry). Response shape is identical to the other exchanges.
+    suspend fun exchangePhone(idToken: String): MobileSession = post(
+        "$apiBase/auth/phone",
+        JSONObject().put("idToken", idToken)
+    ) { parseSession(it) }
+
     suspend fun validate(accessToken: String): MobileSession = request(
         Request.Builder()
             .url("$apiBase/me")

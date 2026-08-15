@@ -1144,6 +1144,56 @@ private val table: Map<String, Entry> = mapOf(
         "Google sign-in is not available right now."
     ),
 
+    // --- Phone sign-in (non-composable: resolved via LanguageStore.str) ---
+    // These run before the user picks a language, so they are deliberately NOT localised:
+    // English leads and the columns are identical, except the subtitle, which is a fixed
+    // Hindi hint under the English title. str() returns the same value whatever the language.
+    "phone_title" to Entry(
+        "Enter your phone number", "Enter your phone number", "Enter your phone number"
+    ),
+    "phone_subtitle" to Entry(
+        "अपना फ़ोन नंबर डालिए", "अपना फ़ोन नंबर डालिए", "अपना फ़ोन नंबर डालिए"
+    ),
+    "phone_continue" to Entry("Next", "Next", "Next"),
+    "phone_use_google" to Entry(
+        "Continue with Google", "Continue with Google", "Continue with Google"
+    ),
+    "phone_otp_title" to Entry("Enter the code", "Enter the code", "Enter the code"),
+    "phone_sent_to" to Entry("Sent to", "Sent to", "Sent to"),
+    "phone_change_number" to Entry("Change", "Change", "Change"),
+    "phone_resend" to Entry("Resend code", "Resend code", "Resend code"),
+    "phone_resend_in" to Entry("Resend in %ds", "Resend in %ds", "Resend in %ds"),
+    "phone_error_invalid_number" to Entry(
+        "Enter a valid 10-digit mobile number.",
+        "Enter a valid 10-digit mobile number.",
+        "Enter a valid 10-digit mobile number."
+    ),
+    "phone_error_send_failed" to Entry(
+        "Couldn't send the code. Please try again.",
+        "Couldn't send the code. Please try again.",
+        "Couldn't send the code. Please try again."
+    ),
+    "phone_error_too_many" to Entry(
+        "Too many attempts. Please try again later.",
+        "Too many attempts. Please try again later.",
+        "Too many attempts. Please try again later."
+    ),
+    "phone_error_invalid_code" to Entry(
+        "That code isn't right. Please check and try again.",
+        "That code isn't right. Please check and try again.",
+        "That code isn't right. Please check and try again."
+    ),
+    "phone_access_link" to Entry(
+        "Sign in with email or username",
+        "Sign in with email or username",
+        "Sign in with email or username"
+    ),
+    "auth_phone_failed" to Entry(
+        "Phone sign-in pura nahi ho saka. Kripya dobara koshish kariye.",
+        "फ़ोन साइन-इन पूरा नहीं हो सका। कृपया फिर से प्रयास करें।",
+        "Phone sign-in could not be completed. Please try again."
+    ),
+
     // --- Billing (non-composable) ---
     "billing_checkout_failed" to Entry(
         "The purchase page could not open. Please try again.",

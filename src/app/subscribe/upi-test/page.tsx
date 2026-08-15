@@ -20,7 +20,10 @@ export default async function UpiAutopayTestPage({
   searchParams: { lang?: string };
 }) {
   const session = await auth();
-  if (!session?.user?.id || !session.user.email) {
+  // Only an identity is required — never an email. Phone-OTP accounts have no email, and
+  // they reach this page already authenticated by the single-use handoff token, so demanding
+  // an email here would bounce them into a Google sign-in they deliberately avoided.
+  if (!session?.user?.id) {
     redirect("/?auth=1&callbackUrl=/subscribe/upi-test");
   }
 
@@ -39,7 +42,11 @@ export default async function UpiAutopayTestPage({
           currentPeriodEnd={user!.currentPeriodEnd ? user!.currentPeriodEnd.toISOString() : null}
         />
       ) : (
-        <UpiAutopayTestClient email={session.user.email} lang={lang} />
+        <UpiAutopayTestClient
+          email={user?.email ?? null}
+          phone={user?.phone ?? null}
+          lang={lang}
+        />
       )}
     </div>
   );

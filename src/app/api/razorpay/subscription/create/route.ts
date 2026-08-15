@@ -11,11 +11,13 @@ export const runtime = "nodejs";
 
 export async function POST() {
   const session = await auth();
-  if (!session?.user?.id || !session.user.email) {
+  // Identity is enough; email is optional. Phone-OTP accounts have no email but are fully
+  // valid subscribers, and Razorpay does not require one to create a subscription.
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Please sign in to subscribe." }, { status: 401 });
   }
   const userId = session.user.id;
-  const email = session.user.email;
+  const email = session.user.email ?? null;
 
   const planId = process.env.RAZORPAY_PLAN_ID_MONTHLY?.trim();
   if (!planId) {
@@ -34,7 +36,7 @@ export async function POST() {
       total_count: TOTAL_BILLING_CYCLES,
       customer_notify: 1,
       start_at: startAt,
-      notes: { userId, email }
+      notes: { userId, ...(email ? { email } : {}) }
     });
 
     await updateUserSubscriptionRazorpayById({

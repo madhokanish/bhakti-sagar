@@ -20,12 +20,15 @@ type RazorpayCheckoutSuccess = {
 };
 
 type Props = {
-  email: string;
+  // Phone-OTP accounts have neither; at least one of email/phone is set, and it is used only
+  // to prefill Razorpay and to show who is being subscribed. Razorpay needs no email.
+  email: string | null;
+  phone: string | null;
   /** Carried over from the app so this page speaks the language they were just reading. */
   lang: CheckoutLang;
 };
 
-export default function UpiAutopayTestClient({ email, lang }: Props) {
+export default function UpiAutopayTestClient({ email, phone, lang }: Props) {
   const copy = CHADHAAVA_COPY[lang];
   const [scriptReady, setScriptReady] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -62,7 +65,12 @@ export default function UpiAutopayTestClient({ email, lang }: Props) {
         subscription_id: createData.subscriptionId,
         name: "BhaktiChat",
         description: "Monthly membership (test)",
-        prefill: { email },
+        // Prefill whatever the account has. A phone user's number goes straight into the UPI
+        // contact field so they don't retype it; email is included only when present.
+        prefill: {
+          ...(email ? { email } : {}),
+          ...(phone ? { contact: phone } : {})
+        },
         theme: { color: "#c2410c" },
         handler: async (response: unknown) => {
           const payload = response as RazorpayCheckoutSuccess;
@@ -102,7 +110,7 @@ export default function UpiAutopayTestClient({ email, lang }: Props) {
       setError(startError instanceof Error ? startError.message : "Unable to start subscription.");
       setLoading(false);
     }
-  }, [email, loading, scriptReady]);
+  }, [email, phone, loading, scriptReady]);
 
   // Open checkout as soon as we can, rather than making the user tap again.
   //
@@ -182,9 +190,11 @@ export default function UpiAutopayTestClient({ email, lang }: Props) {
         </button>
       </div>
 
-      <p className="mt-3 text-center text-sm text-[#8A6F5C]">
-        {copy.subscribingAs} <span className="font-semibold text-[#2A1C15]">{email}</span>
-      </p>
+      {email || phone ? (
+        <p className="mt-3 text-center text-sm text-[#8A6F5C]">
+          {copy.subscribingAs} <span className="font-semibold text-[#2A1C15]">{email ?? phone}</span>
+        </p>
+      ) : null}
 
       <section className="mt-7">
         <h2 className="text-lg font-bold text-[#2A1C15]">{copy.benefitsTitle}</h2>

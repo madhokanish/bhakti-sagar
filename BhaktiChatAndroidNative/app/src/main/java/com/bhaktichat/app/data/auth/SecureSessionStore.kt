@@ -23,6 +23,7 @@ class SecureSessionStore(context: Context) {
                 put("id", session.user.id)
                 put("email", session.user.email)
                 put("name", session.user.name)
+                put("phone", session.user.phone)
                 put("image", session.user.image)
                 put("isReviewer", session.user.isReviewer)
             })
@@ -50,6 +51,7 @@ class SecureSessionStore(context: Context) {
                 id = userJson.getString("id"),
                 email = userJson.optNullableString("email"),
                 name = userJson.optNullableString("name"),
+                phone = userJson.optNullableString("phone"),
                 image = userJson.optNullableString("image"),
                 isReviewer = userJson.optBoolean("isReviewer", false)
             )

@@ -125,6 +125,7 @@ class MobileAuthApi(
         id = json.getString("id"),
         email = json.optNullableString("email"),
         name = json.optNullableString("name"),
+        phone = json.optNullableString("phone"),
         image = json.optNullableString("image"),
         isReviewer = json.optBoolean("isReviewer", false)
     )

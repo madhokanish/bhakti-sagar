@@ -198,6 +198,14 @@ class ChatThreadViewModel(
                 entitlementStore.recordMessageSent()
                 reviewPromptStore.recordMessageSent()
                 Analytics.chatMessageSent(guideId = guide.id)
+                // Full turn text, so conversations are readable in PostHog for product review
+                // and model improvement. (Sensitive content — see Analytics.guideChatTurn.)
+                Analytics.guideChatTurn(
+                    guideId = guide.id,
+                    userInput = trimmed,
+                    guideResponse = response,
+                    language = languageStore.language.value.wireValue
+                )
             }
 
             _uiState.update {

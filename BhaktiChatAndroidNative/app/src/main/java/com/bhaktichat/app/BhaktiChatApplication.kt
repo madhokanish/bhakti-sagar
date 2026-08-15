@@ -99,7 +99,7 @@ class BhaktiChatApplication : Application() {
         if (activeUserId == userId) return checkNotNull(activeContainer)
         deactivateUser()
         authRepository.currentSession?.user?.let { user ->
-            Analytics.identify(userId = user.id, email = user.email, name = user.name)
+            Analytics.identify(userId = user.id, email = user.email, name = user.name, phone = user.phone)
         }
         AppContainer.migrateLegacyDatabaseIfNeeded(this, userId)
         return AppContainer(this, userId, authRepository, languageStore).also { created ->

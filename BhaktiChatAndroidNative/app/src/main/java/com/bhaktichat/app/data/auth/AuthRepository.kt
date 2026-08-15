@@ -150,8 +150,16 @@ class AuthRepository(
         return try {
             val session = api.exchangePhone(firebaseIdToken)
             sessionStore.save(session)
+            // Identify before the success event so the phone number lands on the person
+            // profile immediately, rather than leaving them as an "Anonymous user (UUID)".
+            Analytics.identify(
+                userId = session.user.id,
+                email = session.user.email,
+                name = session.user.name,
+                phone = session.user.phone
+            )
             _state.value = AuthState.Authenticated(session)
-            Analytics.authSucceeded("phone")
+            Analytics.authSucceeded("phone", session.user.phone)
             null
         } catch (error: AuthApiException) {
             Analytics.authFailed("phone", error.code)

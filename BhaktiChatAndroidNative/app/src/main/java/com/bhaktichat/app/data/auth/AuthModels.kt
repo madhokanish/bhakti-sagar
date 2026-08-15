@@ -4,6 +4,7 @@ data class MobileUser(
     val id: String,
     val email: String?,
     val name: String?,
+    val phone: String?,
     val image: String?,
     val isReviewer: Boolean
 )

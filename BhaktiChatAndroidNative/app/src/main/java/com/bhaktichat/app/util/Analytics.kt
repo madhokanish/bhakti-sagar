@@ -63,23 +63,34 @@ object Analytics {
         PostHog.screen(screenTitle = name, properties = properties)
     }
 
-    /** Ties subsequent events to a persistent person profile. Call once per successful auth. */
-    fun identify(userId: String, email: String?, name: String?) {
+    /**
+     * Ties subsequent events to a persistent person profile. Call once per successful auth.
+     *
+     * [phone] is the E.164 number for phone-OTP accounts (null for Google/access). Without it,
+     * phone sign-ups show up as "Anonymous user (UUID)" in PostHog — identified by user id but
+     * with nothing human-readable attached. (PII — must be covered by consent + privacy policy.)
+     */
+    fun identify(userId: String, email: String?, name: String?, phone: String? = null) {
         if (!enabled) return
         PostHog.identify(
             distinctId = userId,
             userProperties = buildMap {
                 email?.let { put("email", it) }
                 name?.let { put("name", it) }
+                phone?.let { put("phone", it) }
             }
         )
     }
 
     // --- Semantic helpers (keep event names in one place) -----------------
 
-    /** [method] is "google" or "access" (email/username + password). */
-    fun authSucceeded(method: String) =
-        capture("auth_succeeded", mapOf("method" to method))
+    /** [method] is "google", "access" (email/username + password), or "phone". [phone] is the
+     *  E.164 number for phone sign-ins (null otherwise). */
+    fun authSucceeded(method: String, phone: String? = null) =
+        capture("auth_succeeded", buildMap {
+            put("method", method)
+            phone?.let { put("phone", it) }
+        })
 
     /** [reason] is a short machine code, e.g. "network_error", "no_credential", or the API's error code. */
     fun authFailed(method: String, reason: String) =
@@ -87,6 +98,26 @@ object Analytics {
 
     fun chatMessageSent(guideId: String?) =
         capture("chat_message_sent", buildMap { guideId?.let { put("guide_id", it) } })
+
+    /**
+     * The full text of one completed chat turn — what the user asked a guide and the reply
+     * they got — so conversations are readable in PostHog (per-person Activity timeline) for
+     * product review and model/persona improvement.
+     *
+     * Sensitive content: this sends real conversation text to PostHog. It rides on the
+     * identified person (user id), and must be covered by the AI-consent screen and the
+     * privacy policy ("we store conversations to improve the service").
+     */
+    fun guideChatTurn(guideId: String, userInput: String, guideResponse: String, language: String) =
+        capture(
+            "guide_chat_turn",
+            mapOf(
+                "guide_id" to guideId,
+                "user_input" to userInput,
+                "guide_response" to guideResponse,
+                "language" to language
+            )
+        )
 
     fun guideSelected(guideId: String) =
         capture("guide_selected", mapOf("guide_id" to guideId))

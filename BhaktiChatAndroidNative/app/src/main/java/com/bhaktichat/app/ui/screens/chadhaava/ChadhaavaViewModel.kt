@@ -46,6 +46,19 @@ sealed interface ChadhaavaUiState {
 }
 
 /**
+ * Cancellation runs alongside [ChadhaavaUiState] rather than inside it. Cancelling at cycle
+ * end leaves the user entitled (isPro stays true), so the main state stays Active — without a
+ * separate signal the screen would look unchanged and the user would tap Cancel again. This
+ * gives the UI an explicit in-flight / done / error to show and confirm.
+ */
+sealed interface ChadhaavaCancelState {
+    data object Idle : ChadhaavaCancelState
+    data object InProgress : ChadhaavaCancelState
+    data class Done(val cancelledImmediately: Boolean, val accessUntilMillis: Long?) : ChadhaavaCancelState
+    data object Error : ChadhaavaCancelState
+}
+
+/**
  * Emitted when the screen should hand off to Razorpay's native Checkout SDK.
  *
  * Currently unused: checkout goes through the web flow instead, because the native SDK does
@@ -76,6 +89,9 @@ class ChadhaavaViewModel(
      */
     private val _webCheckoutRequests = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val webCheckoutRequests: SharedFlow<String> = _webCheckoutRequests.asSharedFlow()
+
+    private val _cancelState = MutableStateFlow<ChadhaavaCancelState>(ChadhaavaCancelState.Idle)
+    val cancelState: StateFlow<ChadhaavaCancelState> = _cancelState.asStateFlow()
 
     private var pollJob: Job? = null
 
@@ -178,10 +194,32 @@ class ChadhaavaViewModel(
         _uiState.value = ChadhaavaUiState.Offer(blockedBy)
     }
 
+    /**
+     * Cancels the membership and reports what happened. The old version fired this and
+     * discarded the result, so the screen showed nothing — and because a cycle-end cancel
+     * leaves isPro true, the Active screen looked identical, so people tapped it again. Now
+     * the outcome (scheduled vs immediate) and any failure are surfaced explicitly.
+     */
     fun cancelSubscription() {
+        if (_cancelState.value is ChadhaavaCancelState.InProgress) return
+        _cancelState.value = ChadhaavaCancelState.InProgress
         viewModelScope.launch {
             runCatching { repository.cancel() }
+                .onSuccess { outcome ->
+                    _cancelState.value = ChadhaavaCancelState.Done(
+                        cancelledImmediately = outcome.cancelledImmediately,
+                        accessUntilMillis = outcome.accessUntilMillis
+                    )
+                }
+                .onFailure { error ->
+                    Log.w(TAG, "Cancel failed", error)
+                    _cancelState.value = ChadhaavaCancelState.Error
+                }
         }
+    }
+
+    fun resetCancel() {
+        _cancelState.value = ChadhaavaCancelState.Idle
     }
 
     /**

@@ -330,6 +330,53 @@ private val table: Map<String, Entry> = mapOf(
         "आगे कोई कटौती नहीं होगी। आपकी पुरानी बातचीत सुरक्षित रहेगी।",
         "There will be no further charges. Your past conversations stay safe."
     ),
+    // Cancellation is a deliberate two-step confirmation now — the old one-tap cancel gave no
+    // feedback, so people tapped it repeatedly, unsure it worked.
+    "chadhaava_cancel_c1_title" to Entry(
+        "Membership cancel karein?", "सदस्यता कैंसल करें?", "Cancel your membership?"
+    ),
+    "chadhaava_cancel_c1_body" to Entry(
+        "Current period khatam hone tak Pro aapke paas rahega, uske baad renew nahi hoga.",
+        "मौजूदा अवधि समाप्त होने तक Pro आपके पास रहेगा, उसके बाद यह रिन्यू नहीं होगा।",
+        "You'll keep Pro until your current period ends, then it won't renew."
+    ),
+    "chadhaava_cancel_keep" to Entry(
+        "Membership rakhein", "सदस्यता रखें", "Keep membership"
+    ),
+    "chadhaava_cancel_continue" to Entry("Aage badhein", "आगे बढ़ें", "Continue"),
+    "chadhaava_cancel_c2_title" to Entry(
+        "Kya aap poori tarah sure hain?", "क्या आप पूरी तरह निश्चित हैं?", "Are you absolutely sure?"
+    ),
+    "chadhaava_cancel_c2_body" to Entry(
+        "Yeh final hai — aapki membership renew nahi hogi aur aap free limits par wapas aa jayenge.",
+        "यह अंतिम है — आपकी सदस्यता रिन्यू नहीं होगी और आप फिर से मुफ़्त सीमाओं पर आ जाएंगे।",
+        "This is final — your membership won't renew and you'll go back to the free limits."
+    ),
+    "chadhaava_cancel_confirm" to Entry("Haan, cancel karein", "हाँ, कैंसल करें", "Yes, cancel"),
+    "chadhaava_cancelling" to Entry("Cancel ho raha hai…", "कैंसल हो रहा है…", "Cancelling…"),
+    "chadhaava_cancel_scheduled_title" to Entry(
+        "Cancellation scheduled", "कैंसिलेशन शेड्यूल हो गया", "Cancellation scheduled"
+    ),
+    "chadhaava_cancel_scheduled_body" to Entry(
+        "%s tak Pro aapke paas rahega, uske baad renew nahi hoga. Aage koi charge nahi.",
+        "%s तक Pro आपके पास रहेगा, उसके बाद रिन्यू नहीं होगा। आगे कोई शुल्क नहीं।",
+        "You'll keep Pro until %s, then it won't renew. No further charges."
+    ),
+    "chadhaava_cancel_scheduled_body_nodate" to Entry(
+        "Aapki membership renew nahi hogi. Aage koi charge nahi.",
+        "आपकी सदस्यता रिन्यू नहीं होगी। आगे कोई शुल्क नहीं।",
+        "Your membership won't renew. No further charges."
+    ),
+    "chadhaava_cancel_error_title" to Entry(
+        "Cancel nahi ho paya", "कैंसल नहीं हो सका", "Couldn't cancel"
+    ),
+    "chadhaava_cancel_error_body" to Entry(
+        "Kuch galat ho gaya. Kripya dobara koshish karein.",
+        "कुछ गड़बड़ हो गई। कृपया फिर से प्रयास करें।",
+        "Something went wrong. Please try again."
+    ),
+    "chadhaava_cancel_retry" to Entry("Dobara koshish karein", "फिर से प्रयास करें", "Try again"),
+    "chadhaava_dialog_ok" to Entry("Theek hai", "ठीक है", "OK"),
     "chadhaava_resubscribe" to Entry(
         "Restart membership",
         "सदस्यता फिर से शुरू करें",

@@ -37,12 +37,14 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -117,6 +119,10 @@ fun ChadhaavaScreen(
     userEmail: String? = null
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val cancelState by viewModel.cancelState.collectAsStateWithLifecycle()
+    // 0 = no dialog, 1 = first confirmation, 2 = final confirmation. Deliberately two taps to
+    // cancel, each defaulting to keeping the membership.
+    var cancelConfirmStep by rememberSaveable { mutableStateOf(0) }
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
 
@@ -197,7 +203,7 @@ fun ChadhaavaScreen(
 
             is ChadhaavaUiState.Active -> ActiveState(
                 state = current,
-                onCancel = viewModel::cancelSubscription,
+                onCancel = { cancelConfirmStep = 1 },
                 onOpenUrl = onOpenUrl
             )
 
@@ -215,7 +221,93 @@ fun ChadhaavaScreen(
             is ChadhaavaUiState.Offer -> Unit
         }
     }
+
+    // --- Cancellation: a deliberate two-step confirm, then in-flight / result / error. ---
+    // These overlay whatever state is showing, so the outcome is visible even when a
+    // cycle-end cancel leaves the Active screen unchanged underneath.
+    when (cancelConfirmStep) {
+        1 -> AlertDialog(
+            onDismissRequest = { cancelConfirmStep = 0 },
+            title = { Text(t("chadhaava_cancel_c1_title")) },
+            text = { Text(t("chadhaava_cancel_c1_body")) },
+            confirmButton = {
+                TextButton(onClick = { cancelConfirmStep = 2 }) { Text(t("chadhaava_cancel_continue")) }
+            },
+            dismissButton = {
+                TextButton(onClick = { cancelConfirmStep = 0 }) { Text(t("chadhaava_cancel_keep")) }
+            }
+        )
+        2 -> AlertDialog(
+            onDismissRequest = { cancelConfirmStep = 0 },
+            title = { Text(t("chadhaava_cancel_c2_title")) },
+            text = { Text(t("chadhaava_cancel_c2_body")) },
+            confirmButton = {
+                TextButton(onClick = {
+                    cancelConfirmStep = 0
+                    viewModel.cancelSubscription()
+                }) { Text(t("chadhaava_cancel_confirm")) }
+            },
+            dismissButton = {
+                TextButton(onClick = { cancelConfirmStep = 0 }) { Text(t("chadhaava_cancel_keep")) }
+            }
+        )
+    }
+
+    when (val cs = cancelState) {
+        is ChadhaavaCancelState.InProgress -> AlertDialog(
+            onDismissRequest = {},
+            title = { Text(t("chadhaava_cancelling")) },
+            text = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(
+                        color = ChadhaavaPalette.Accent,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            },
+            confirmButton = {}
+        )
+        is ChadhaavaCancelState.Done -> {
+            val title = if (cs.cancelledImmediately) {
+                t("chadhaava_cancelled_title")
+            } else {
+                t("chadhaava_cancel_scheduled_title")
+            }
+            val body = when {
+                cs.cancelledImmediately -> t("chadhaava_cancelled_sub")
+                cs.accessUntilMillis != null ->
+                    t("chadhaava_cancel_scheduled_body").format(formatCancelDate(cs.accessUntilMillis))
+                else -> t("chadhaava_cancel_scheduled_body_nodate")
+            }
+            AlertDialog(
+                onDismissRequest = { viewModel.resetCancel() },
+                title = { Text(title) },
+                text = { Text(body) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.resetCancel() }) { Text(t("chadhaava_dialog_ok")) }
+                }
+            )
+        }
+        is ChadhaavaCancelState.Error -> AlertDialog(
+            onDismissRequest = { viewModel.resetCancel() },
+            title = { Text(t("chadhaava_cancel_error_title")) },
+            text = { Text(t("chadhaava_cancel_error_body")) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.cancelSubscription() }) {
+                    Text(t("chadhaava_cancel_retry"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.resetCancel() }) { Text(t("chadhaava_dialog_ok")) }
+            }
+        )
+        ChadhaavaCancelState.Idle -> Unit
+    }
 }
+
+private fun formatCancelDate(millis: Long): String =
+    java.text.SimpleDateFormat("d MMM yyyy", java.util.Locale.getDefault())
+        .format(java.util.Date(millis))
 
 @Composable
 private fun LoadingState() {

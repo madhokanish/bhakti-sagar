@@ -1171,22 +1171,40 @@ private fun ActiveState(
             )
         }
 
-        Surface(
+        // Image-backed hero. The devotional artwork behind a warm scrim makes the active
+        // state feel like a reward rather than a plain status line; the badge and headline sit
+        // over the darker foot of the scrim so they stay readable against the image.
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(22.dp),
-            color = Color.Transparent
+                .padding(horizontal = 16.dp)
+                .height(200.dp)
+                .clip(RoundedCornerShape(22.dp))
         ) {
-            Column(
+            Image(
+                painter = painterResource(R.drawable.chadhaava_hero),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            Box(
                 modifier = Modifier
+                    .fillMaxSize()
                     .background(
-                        Brush.linearGradient(
-                            listOf(ChadhaavaPalette.GradStart, ChadhaavaPalette.Accent)
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Transparent,
+                                ChadhaavaPalette.Accent.copy(alpha = 0.15f),
+                                ChadhaavaPalette.DeepAccent.copy(alpha = 0.92f)
+                            )
                         )
                     )
-                    .padding(horizontal = 18.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(13.dp)
+            )
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1233,7 +1251,7 @@ private fun ActiveState(
                 } else {
                     Text(
                         text = t("chadhaava_active_title"),
-                        fontSize = 20.sp,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White
                     )

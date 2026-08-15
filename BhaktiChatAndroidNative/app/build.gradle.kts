@@ -67,7 +67,7 @@ android {
         applicationId = "com.anish.bhaktichat"
         minSdk = 24
         targetSdk = 36
-        versionCode = 41
+        versionCode = 42
         versionName = "2.10.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

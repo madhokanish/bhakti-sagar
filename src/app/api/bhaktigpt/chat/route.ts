@@ -216,6 +216,14 @@ function isDetailRequested(message: string) {
 const KRISHNA_THIRD_PERSON_PATTERN =
   /\b(krishna|lord krishna)\s+(would|will|can|could|says?|said|advises?|recommends?|thinks)\b/gi;
 const KRISHNA_AS_AI_PATTERN = /\bas an ai\b/gi;
+// A stronger model (gpt-4.1) commits to persona so hard it claims to LITERALLY be the deity
+// ("Main Shani hoon", "main samriddhi ki devi hoon", autobiographical Krishna lore) or to
+// guarantee outcomes ("phal pakka milega") — both forbidden by STYLE_CONTRACT. These catch it so
+// the rewrite pass can force "speak as an AI guide INSPIRED BY the deity, no guarantees".
+const DEITY_SELF_CLAIM_PATTERN =
+  /\bmain\s+(shri\s+|bhagwan\s+)?(krishna|shiv|shiva|shivji|hanuman|shani|lakshmi|laxmi|mahadev)\s+(hoon|hun)\b|\bmain\b[^.?!\n]{0,40}\b(devi|devta|devata|bhagwan|avatar)\s+(hoon|hun)\b|\bi\s+am\s+(lord\s+|shri\s+|goddess\s+of\s+|the\s+god\s+of\s+|a\s+)?(krishna|shiva|shiv|hanuman|shani|lakshmi|goddess|deity)\b|makhan\s+chura|bansuri\s+baja|kailash\s+par\s+baith|मैं[^।?!\n]{0,40}(देवी|देवता|भगवान|अवतार)\s*हूँ|माखन\s*चुरा|बांसुरी\s*बजा|कैलाश\s*पर\s*बैठ/i;
+const OUTCOME_GUARANTEE_PATTERN =
+  /\b(phal|safalta|success|result|kaamyaabi|jeet|promotion)\b[^.?!\n]{0,20}\b(pakka|zaroor|guaranteed?|nishchit)\b|\b(pakka|zaroor)\s+(milega|milegi|hoga|hogi|dega|degi|deta hoon|dungi|dunga)\b/i;
 const SHARED_ROMANCE_TOUCH_PATTERN =
   /\b(cheek|chin|hair|hug|kiss|bed|bedroom|nuzzle|cuddle|caress|embrace|my darling|my love|mine|jealous|possessive)\b/gi;
 const SHARED_FRAMEWORK_PATTERN =
@@ -3165,6 +3173,10 @@ export async function POST(request: Request) {
               director.mode !== "story" &&
               (isPracticalTopicMessage(userMessage) || isDeepConversation) &&
               !hasGuidePersonaMarkers(guideId, assistantText, 2);
+            // Literal-deity claim or guaranteed-outcome — forbidden regardless of guide/mode.
+            const deityClaimViolation =
+              hasPattern(assistantText, DEITY_SELF_CLAIM_PATTERN) ||
+              hasPattern(assistantText, OUTCOME_GUARANTEE_PATTERN);
 
             const shouldForceRewrite =
               repeatedFirstLine ||
@@ -3174,7 +3186,8 @@ export async function POST(request: Request) {
               violatesFramework ||
               hasSafetyViolation ||
               languageModeViolation ||
-              personaDriftViolation;
+              personaDriftViolation ||
+              deityClaimViolation;
 
             if (shouldForceRewrite && !regenerationUsed) {
               try {
@@ -3210,6 +3223,11 @@ export async function POST(request: Request) {
                 if (personaDriftViolation) {
                   rewriteDirectives.push(
                     "The draft sounds too generic for the selected guide. Rewrite it so the guide's worldview and signature vocabulary are unmistakable before any practical advice."
+                  );
+                }
+                if (deityClaimViolation) {
+                  rewriteDirectives.push(
+                    "The draft crosses a hard line: it claims to literally be the deity or narrates divine autobiography, or promises a guaranteed outcome. Rewrite so you speak in the guide's voice as an AI guide INSPIRED BY the deity — never claim to be the deity, no 'main <deity>/devi/devta hoon', no divine life-story, and never guarantee results."
                   );
                 }
 

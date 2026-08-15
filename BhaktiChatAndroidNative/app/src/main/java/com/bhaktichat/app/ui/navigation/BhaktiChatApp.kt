@@ -106,6 +106,7 @@ import com.bhaktichat.app.util.Analytics
 import com.bhaktichat.app.util.AnonUserKey
 import com.bhaktichat.app.util.EntitlementStore
 import com.bhaktichat.app.util.AdsConsentManager
+import com.bhaktichat.app.util.MembershipPromoStore
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -172,9 +173,11 @@ fun BhaktiChatApp(
     val streak by appContainer.streakStore.currentStreak.collectAsStateWithLifecycle()
     val longestStreak by appContainer.streakStore.longestStreak.collectAsStateWithLifecycle()
     var showStreakDetails by rememberSaveable { mutableStateOf(false) }
-    // Membership promo interstitial: shown once per launch to non-subscribers, a few seconds
-    // after they've settled in. Dismissable (X or tap-outside); the CTA opens चढ़ावा.
-    var membershipPromoShown by rememberSaveable { mutableStateOf(false) }
+    // Membership promo interstitial: shown to non-subscribers a few seconds after they've
+    // settled in, then held off for a few days by MembershipPromoStore (persisted, so it does
+    // not fire on every launch). Dismissable (X or tap-outside); the CTA opens चढ़ावा.
+    val membershipPromoStore = remember(context) { MembershipPromoStore(context) }
+    var membershipPromoEvaluated by rememberSaveable { mutableStateOf(false) }
     var showMembershipPromo by rememberSaveable { mutableStateOf(false) }
     var requestedReelId by rememberSaveable { mutableStateOf<String?>(null) }
     val shouldShowReviewPrompt by appContainer.reviewPromptStore.shouldShowPrompt.collectAsStateWithLifecycle()
@@ -200,14 +203,20 @@ fun BhaktiChatApp(
         if (route.isNotBlank()) Analytics.screen(route)
     }
 
-    // Fire the membership promo once per launch, for non-subscribers only, after a short
-    // settle-in delay and once the language picker is out of the way.
+    // Fire the membership promo for non-subscribers after a short settle-in delay, once the
+    // language picker is out of the way — but only if the persisted cooldown has elapsed, so
+    // it isn't shown on every launch. Evaluated at most once per composition session.
     LaunchedEffect(isPro, languageChosen) {
-        if (isPro || membershipPromoShown || !languageChosen) return@LaunchedEffect
+        if (isPro || !languageChosen || membershipPromoEvaluated) return@LaunchedEffect
+        if (!membershipPromoStore.shouldShow()) {
+            membershipPromoEvaluated = true
+            return@LaunchedEffect
+        }
         delay(5000)
-        if (!isPro && !membershipPromoShown) {
+        membershipPromoEvaluated = true
+        if (!isPro) {
             showMembershipPromo = true
-            membershipPromoShown = true
+            membershipPromoStore.markShown()
             Analytics.screen("membership_promo")
         }
     }
@@ -1074,9 +1083,23 @@ private fun MembershipInterstitial(
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                // Lead with the free-trial badge — the offer, not the product name, is the hook.
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFFFEF3C7))
+                        .padding(horizontal = 12.dp, vertical = 5.dp)
+                ) {
+                    Text(
+                        text = t("promo_badge"),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFFB45309)
+                    )
+                }
                 Text(
                     text = t("promo_title"),
-                    fontSize = 22.sp,
+                    fontSize = 27.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF2A1C15)
                 )

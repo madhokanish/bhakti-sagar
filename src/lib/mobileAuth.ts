@@ -96,6 +96,7 @@ export type MobileUser = {
   id: string;
   email: string | null;
   name: string | null;
+  phone: string | null;
   image: string | null;
   isReviewer: boolean;
 };
@@ -158,11 +159,14 @@ function googleClientId() {
   return value;
 }
 
-function toMobileUser(user: Pick<User, "id" | "email" | "name" | "image" | "isReviewer">): MobileUser {
+function toMobileUser(
+  user: Pick<User, "id" | "email" | "name" | "phone" | "image" | "isReviewer">
+): MobileUser {
   return {
     id: user.id,
     email: user.email,
     name: user.name,
+    phone: user.phone,
     image: user.image,
     isReviewer: user.isReviewer
   };

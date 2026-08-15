@@ -103,6 +103,12 @@ fun PhoneAuthFlow(
     }
 
     fun sendCode(isResend: Boolean) {
+        // Hard re-entry guard: the button's disabled state only updates on the next
+        // recomposition, so a fast double-tap (common while Play Integrity spins for a
+        // second or two with no feedback) could otherwise fire verifyPhoneNumber twice and
+        // send two SMS. isSending is set synchronously below, so a same-frame second tap
+        // sees it already true and bails here.
+        if (isSending) return
         if (phone.length != 10) {
             error = languageStore.str("phone_error_invalid_number")
             return

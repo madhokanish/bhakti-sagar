@@ -843,18 +843,28 @@ private object GuideReplyFormatter {
             .replace(Regex("\n{3,}"), "\n\n")
             .trim()
 
-        if (normalized.contains("\n\n") || normalized.length <= 170) {
+        if (normalized.length <= 170 && !normalized.contains("\n\n")) {
             cache[text] = normalized
             return normalized
         }
 
-        val sentenceBroken = normalized
-            .replace(Regex("([.!?।])\\s+"), "$1\n\n")
-            .trim()
+        // Group into a couple of balanced bubbles instead of preserving every break the
+        // model chose verbatim. Models routinely put each short sentence on its own line —
+        // if a model-inserted "\n\n" between every sentence were honored as-is, a compliant
+        // 2 to 4 sentence reply would render as 3 to 4 stacked bubbles, which reads as far
+        // longer than the same words in one or two bubbles would. So this regroups
+        // model-native paragraph breaks the same way it regroups sentences it splits itself
+        // — by a target length, not by whatever break the model happened to use.
+        val parts = if (normalized.contains("\n\n")) {
+            normalized.split("\n\n").map { it.trim() }.filter { it.isNotEmpty() }
+        } else {
+            normalized.split(Regex("(?<=[.!?।])\\s+")).map { it.trim() }.filter { it.isNotEmpty() }
+        }
 
-        if (sentenceBroken.contains("\n\n")) {
-            cache[text] = sentenceBroken
-            return sentenceBroken
+        if (parts.size >= 2) {
+            val result = makeParagraphs(parts, targetLength = 140, separator = " ")
+            cache[text] = result
+            return result
         }
 
         val clauses = normalized.split(",")

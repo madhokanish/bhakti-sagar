@@ -551,24 +551,17 @@ object ChatTurnProcessor {
                 formattedReply
             }
 
-            // A Hindi reply is allowed to contain a few Latin words.
+            // Never throw the answer away over its script.
             //
-            // This used to reject the reply if it held a single Latin letter, which threw away
-            // perfectly good Hindi: the user's own name is Latin, and the guide addresses them
-            // by it, so "अनीश, मुझे समझ आता है।" was discarded and replaced with the apology
-            // below. Names, BhaktiChat, UPI and ₹ amounts all legitimately stay in Latin.
-            //
-            // Three or more Latin words is the model actually answering in the wrong script,
-            // which is what this guard is for.
-            val latinWordCount = Regex("[A-Za-z]{2,}").findAll(finalizedReply).count()
-            val scriptSafeReply = if (
-                messageContext.detectedLanguage == ConversationLanguage.HINDI &&
-                latinWordCount >= 3
-            ) {
-                "क्षमा करें, उत्तर हिंदी लिपि में तैयार नहीं हो सका। कृपया एक बार फिर पूछें।"
-            } else {
-                finalizedReply
-            }
+            // We used to replace a Hindi reader's reply with an apology
+            // ("क्षमा करें, उत्तर हिंदी लिपि में तैयार नहीं हो सका…") whenever the model slipped
+            // into Roman/Latin (3+ Latin words). Real conversations showed this was the single
+            // most common failure — the user asked something in Devanagari and got a dead-end,
+            // no answer at all. Roman Hindi is still perfectly readable to a Hindi reader, so
+            // keep the reply rather than discarding it. Devanagari is still requested upstream
+            // (see languageInstruction), so most replies come back in-script anyway; this only
+            // changes the rare miss from "nothing" to "a readable answer".
+            val scriptSafeReply = finalizedReply
 
             ChatTurnProcessorResult(
                 replyText = scriptSafeReply,

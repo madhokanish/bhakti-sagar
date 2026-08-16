@@ -171,12 +171,42 @@ object AddressingEngine {
         "dharma"
     )
 
+    // Instruction verbs that mark a message as *asking* for a language, versus just mentioning
+    // one. "aap Hindi mein message karo" switches; "maine Hindi movie dekhi" does not.
+    private val languageRequestVerbs = setOf(
+        "message", "reply", "respond", "answer", "bol", "bolo", "boliye", "likh", "likho",
+        "bata", "batao", "bataye", "karo", "kariye", "kariy", "bhej", "bhejo", "type",
+        "jawab", "jawaab", "samjha", "switch", "talk"
+    )
+
+    /**
+     * An explicit in-message request to use a language wins over the message's own script:
+     * someone typing in Latin who asks "Hindi mein baat karo" should get Devanagari back. A
+     * bare mention is not enough — the message must also carry an instruction verb — so casual
+     * references ("I like Hindi songs") don't flip the conversation.
+     */
+    private fun explicitLanguageRequest(userMessage: String): ConversationLanguage? {
+        val m = userMessage.lowercase()
+        val hasVerb = languageRequestVerbs.any { m.contains(it) }
+        if (!hasVerb && !userMessage.contains("हिंदी") && !userMessage.contains("अंग्रे")) return null
+        fun asks(vararg langWords: String) = hasVerb && langWords.any { m.contains(it) }
+        return when {
+            userMessage.contains("हिंदी") || asks("hindi") -> ConversationLanguage.HINDI
+            asks("hinglish", "roman") -> ConversationLanguage.HINGLISH
+            userMessage.contains("अंग्रे") || asks("english", "angrezi", "angreji") -> ConversationLanguage.ENGLISH
+            else -> null
+        }
+    }
+
     /**
      * Returns a clear language signal for [userMessage], or null when the message is too
      * short/ambiguous to tell (e.g. "hi", "thanks", "ok") — callers should fall back to
      * [resolveLanguage]'s thread-aware default in that case.
      */
     private fun detectLanguage(userMessage: String): ConversationLanguage? {
+        // An explicit request ("reply in Hindi") outranks the script the message is typed in.
+        explicitLanguageRequest(userMessage)?.let { return it }
+
         val hasDevanagari = userMessage.any { Character.UnicodeBlock.of(it) == Character.UnicodeBlock.DEVANAGARI }
         if (hasDevanagari) return ConversationLanguage.HINDI
 

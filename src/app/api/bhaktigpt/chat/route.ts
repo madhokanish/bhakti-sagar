@@ -224,6 +224,12 @@ const DEITY_SELF_CLAIM_PATTERN =
   /\bmain\s+(shri\s+|bhagwan\s+)?(krishna|shiv|shiva|shivji|hanuman|shani|lakshmi|laxmi|mahadev)\s+(hoon|hun)\b|\bmain\b[^.?!\n]{0,40}\b(devi|devta|devata|bhagwan|avatar)\s+(hoon|hun)\b|\bi\s+am\s+(lord\s+|shri\s+|goddess\s+of\s+|the\s+god\s+of\s+|a\s+)?(krishna|shiva|shiv|hanuman|shani|lakshmi|goddess|deity)\b|makhan\s+chura|bansuri\s+baja|kailash\s+par\s+baith|मैं[^।?!\n]{0,40}(देवी|देवता|भगवान|अवतार)\s*हूँ|माखन\s*चुरा|बांसुरी\s*बजा|कैलाश\s*पर\s*बैठ/i;
 const OUTCOME_GUARANTEE_PATTERN =
   /\b(phal|safalta|success|result|kaamyaabi|jeet|promotion)\b[^.?!\n]{0,20}\b(pakka|zaroor|guaranteed?|nishchit)\b|\b(pakka|zaroor)\s+(milega|milegi|hoga|hogi|dega|degi|deta hoon|dungi|dunga)\b/i;
+// Despair / self-harm signals in Devanagari, romanized Hindi, and English. A real user wrote
+// "संसार छोडकर जाना चाहता हूं क्या करू" and got a generic "have you tried meditating?" back.
+// When this matches, the turn drops all teaching structure and switches to presence plus a
+// real-world support nudge (see buildModeDirective's welfare branch).
+const WELFARE_CONCERN_PATTERN =
+  /संसार\s*छोड|दुनिया\s*छोड|मरना\s*चाह|जीना\s*नहीं\s*चाह|जीने\s*का\s*मन\s*नहीं|आत्महत्या|खुदकुशी|जान\s*दे\s*दू|अपने\s*आप\s*को\s*खत्म|\bsansar\s*chhod|\bduniya\s*chhod|\bmarna\s*chaht|\bmar\s*jaun|\bjeena\s*nahi\s*chaht|\bjeene\s*ka\s*mann\s*nahi|\bkhudkushi|\baatmhatya|\bjaan\s*de\s*du|\bzindagi\s*khatam\s*kar|\bsuicide\b|\bkill\s*myself\b|\bend\s*(my\s*life|it\s*all)\b|\bwant\s*to\s*die\b|\bno\s*reason\s*to\s*live\b|\bleave\s*this\s*world\b|\bdon'?t\s*want\s*to\s*live\b/i;
 const SHARED_ROMANCE_TOUCH_PATTERN =
   /\b(cheek|chin|hair|hug|kiss|bed|bedroom|nuzzle|cuddle|caress|embrace|my darling|my love|mine|jealous|possessive)\b/gi;
 const SHARED_FRAMEWORK_PATTERN =
@@ -282,8 +288,16 @@ const DIRECTOR_STORY_CONTINUATION_PATTERN =
 const DIRECTOR_STORY_EXIT_PATTERN = /\b(stop|enough|back to normal|new topic|change topic)\b/i;
 const DIRECTOR_TEACHINGS_PATTERN =
   /\b(gita|dharma|karma yoga|bhakti yoga|jnana|shloka|verse|incarnation|incarnations|avatars?|upanishad|teaching)\b/i;
+// Distress and "I have a problem" signals, in English, romanized Hindi, and Devanagari.
+//
+// This used to be English-only, which meant a Hindi or Hinglish user describing a real problem
+// ("gaadi me paise dubta ja raha hai", "me jisko pyar karti hu o muje sadi kere gi?") never
+// reached wisdom mode at all. They fell through to casual mode, whose directive is "answer in
+// 1 to 4 short lines with one natural follow-up question" — which is exactly the shallow,
+// soothing, question-ending reply real conversation logs were full of. For an audience that
+// writes mostly in Hindi and Hinglish, wisdom mode was effectively dead code.
 const DIRECTOR_WISDOM_PATTERN =
-  /\b(anxious|anxiety|stress|stressed|fear|scared|confused|decision|stuck|depressed|worried|panic|angry|guilt|regret|sad|overwhelmed)\b/i;
+  /\b(anxious|anxiety|stress|stressed|fear|scared|confused|decision|stuck|depressed|worried|panic|angry|guilt|regret|sad|overwhelmed)\b|\b(pareshan|pareshani|chinta|chintit|dukh|dukhi|dard|takleef|taklif|tension|ghabra|ghabrahat|dar|darr|gussa|akela|akelapan|uljhan|museebat|musibat|dikkat|nuksan|karz|karza|kharcha|jhagda|jhagra|talaq|bimar|bimari|nirash|thak\s*gaya|shaadi|sadi|rishta|rishte|pyaar|piyar|pyar|madad)\b|\b(kya\s*kar(?:u|un|oon|na)|samajh\s*nahi|himmat\s*nahi|jee?na\s*nahi)\b|परेशान|चिंता|चिंतित|दुख|दुःख|दर्द|तकलीफ|घबरा|गुस्सा|अकेला|उलझन|मुसीबत|दिक्कत|नुकसान|कर्ज|खर्च|झगड़ा|तलाक|बीमार|निराश|हिम्मत\s*नहीं|समझ\s*नहीं|क्या\s*कर|मदद|शादी|रिश्ता|रिश्ते|प्यार|डर\b/i;
 const DIRECTOR_PLAYFUL_PATTERN =
   /\b(funny|joke|roast|tease|playful|prank|meme|mischief|vrindavan|butter|makhan|flute|bansuri)\b/i;
 const STORY_MENTOR_PIVOT_PATTERN =
@@ -1069,7 +1083,15 @@ function runDirector(params: {
     mode = "story";
   } else if (DIRECTOR_TEACHINGS_PATTERN.test(lowered)) {
     mode = "teachings";
-  } else if (DIRECTOR_WISDOM_PATTERN.test(lowered)) {
+  } else if (
+    DIRECTOR_WISDOM_PATTERN.test(lowered) ||
+    // Mode continuity: once someone is working through a real problem, a follow-up that
+    // happens to carry no keyword of its own ("gaadi me paise dubta ja raha hai", "ghar me
+    // sukh shanti nahi") must not drop the conversation back to casual small talk. Real
+    // logs showed exactly that: turn one was treated seriously, the rest were not. A genuine
+    // pivot to a story, a teaching, or a joke is still checked before and after this.
+    DIRECTOR_WISDOM_PATTERN.test(getRecentUserMessages(params.history, 3).join(" ").toLowerCase())
+  ) {
     mode = "wisdom";
   } else if (DIRECTOR_PLAYFUL_PATTERN.test(lowered)) {
     mode = "playful";
@@ -1118,11 +1140,35 @@ function runDirector(params: {
   };
 }
 
+/**
+ * How many turns a personal problem gets to stay in "understand first" before the guide must
+ * commit to an honest read. Real logs showed users rephrasing the same question up to seven
+ * times because the guide kept reflecting and never landed, so the ceiling is deliberately low.
+ */
+const DISCOVERY_TURN_LIMIT = 2;
+
 function buildModeDirective(params: {
   guideId: BhaktiGuideId;
   mode: DirectorMode;
   strategy: DirectorStrategy;
+  /** Assistant replies already sent in this conversation. Drives discovery vs land. */
+  exchangeCount?: number;
+  /** User message shows despair or self-harm signals. Overrides every other rhythm. */
+  welfareConcern?: boolean;
 }) {
+  // Welfare outranks every mode. No teaching template, no scripture lesson, no micro-action.
+  if (params.welfareConcern) {
+    return (
+      "Mode=welfare Strategy=presence_then_support. The user has expressed hopelessness or a wish " +
+      "to not be here. Drop every teaching structure, block rhythm, scripture lesson, and " +
+      "micro-action. Speak plainly and warmly as one presence to another. Tell them this matters " +
+      "and they are not alone in it. Ask gently how they are right now and whether someone is " +
+      "with them. Encourage them to reach a person they trust, or a helpline: Tele-MANAS 14416 or " +
+      "KIRAN 1800-599-0019 in India. Keep it short, human, and unhurried. Do not moralise, do not " +
+      "suggest meditation as the answer, and do not promise anything."
+    );
+  }
+
   if (params.mode === "story") {
     const guideFlavor =
       params.guideId === "krishna"
@@ -1146,7 +1192,16 @@ function buildModeDirective(params: {
   }
 
   if (params.mode === "wisdom") {
-    return `Mode=wisdom Strategy=advice_then_checkin. Acknowledge emotion, then give one guide-colored framing line that only this guide would naturally say before offering one concise piece of guidance or one small action. Keep short lines with blank lines. Leave room for the user to respond before giving the rest. Optional one check-in question. ${getGuideModeFlavor(params.guideId, params.mode)}`;
+    // Early in a personal problem, understand it. Later, commit to a read. The old single
+    // "advice_then_checkin" strategy produced the same soothing template every turn, so users
+    // rephrased and switched guides instead of getting an answer.
+    const isDiscovery = (params.exchangeCount ?? 0) < DISCOVERY_TURN_LIMIT;
+
+    if (isDiscovery) {
+      return `Mode=wisdom Strategy=understand_then_hold. This is a personal problem and you do not yet know its specifics. Open with one short line of real acknowledgment or one guide-colored framing line that only this guide would say, then ask one or two concrete questions about their actual situation. Ask about facts you genuinely need: how long, who else is involved, what they already tried, what the numbers are. Do not ask vague inward questions like "what does your heart say". Do not deliver the full teaching yet and do not give a generic action. Keep it short, 2 to 3 blocks with blank lines. If their message already contains enough detail to answer properly, skip the questions and give your honest read instead. ${getGuideModeFlavor(params.guideId, params.mode)}`;
+    }
+
+    return `Mode=wisdom Strategy=synthesize_then_land. THIS TURN OVERRIDES any other instruction telling you to prefer one thought at a time, to leave room for the user, to hold back the rest, or to end with a gentle question. Those apply while you are still understanding the problem. They do not apply now. You now have enough from this user. Stop asking and give your honest read. Begin by naming back, in your own words, the specific things this user has already told you across the conversation, including anything that contradicts itself. Do not open with a general line about the nature of love, peace, money, or fear. Name back the specific things they told you so they know you listened, then say plainly what you see in their situation, grounded in this guide's worldview and scripture. If the truth is hard, say it kindly and directly rather than softening it into vagueness. Describe the situation as it stands now and what they should do about it, never what the future will do, and never guarantee a result. Close with one concrete next step they can take today. You may use up to about 150 words here. Do not re-ask anything they have already answered. ${getGuideModeFlavor(params.guideId, params.mode)}`;
   }
 
   return `Mode=teachings Strategy=explain_then_offer_next. Explain one core idea clearly and concisely, optional short reference, then pause with one optional next topic or light question. Keep short lines with blank lines. Do not turn one reply into a full lecture unless the user asks for depth. ${getGuideModeFlavor(params.guideId, params.mode)}`;
@@ -3041,14 +3096,41 @@ export async function POST(request: Request) {
             injectionRate: 0.3
           })
         : null;
+    // Drives the discovery-then-land arc: how many replies this guide has already given here,
+    // and whether this particular message needs the welfare path instead of any teaching rhythm.
+    const priorExchangeCount = getAssistantMessages(history).length;
+    const welfareConcern = WELFARE_CONCERN_PATTERN.test(userMessage);
     let modeInstruction = buildModeDirective({
       guideId,
       mode: director.mode,
-      strategy: director.strategy
+      strategy: director.strategy,
+      exchangeCount: priorExchangeCount,
+      welfareConcern
     });
     if (krishnaSelectedQuirk) {
       modeInstruction = `${modeInstruction} Optional Krishna flavor line if natural: "${krishnaSelectedQuirk}".`;
     }
+    // Landing directive, injected LAST in the prompt stack (closest to the user's message).
+    //
+    // The mode instruction sits near the top, and below it come the persona guard, the persona
+    // lock, and a voice exemplar that explicitly demonstrates "required reply structure". A
+    // small model copies the most recent structural example it sees, so a landing instruction
+    // placed early loses to the exemplar every time. Verified against real transcripts: the
+    // arc fired correctly and the reply still came back as the same soothing reflection.
+    const isLandingTurn =
+      director.mode === "wisdom" &&
+      !welfareConcern &&
+      priorExchangeCount >= DISCOVERY_TURN_LIMIT;
+    const landingDirective = isLandingTurn
+      ? "THIS TURN IS A LANDING TURN, and this instruction outranks the voice example above. " +
+        "The voice example shows tone, not the structure to use here. Do not open with a general " +
+        "statement about love, peace, money, fear, or life. Open by naming back the specific things " +
+        "this user has told you earlier in this conversation, including anything they said that " +
+        "contradicts something else they said. Then say plainly what you honestly see in their " +
+        "situation and what you would tell them to do about it, even if it is hard to hear. Do not " +
+        "ask whether they have spoken to the person, and do not ask anything they have already " +
+        "answered. At most one short question at the very end, or none at all."
+      : null;
     const stateAnchor = buildStateAnchor({
       mode: director.mode,
       state: stateForPrompt
@@ -3108,6 +3190,7 @@ export async function POST(request: Request) {
               modeInstruction,
               stateAnchor,
               referralDirective: getProfessionalReferralDirective(userMessage),
+              additionalDeveloperInstruction: landingDirective,
               userFirstName,
               locale: requestLocale
             });
@@ -3195,7 +3278,9 @@ export async function POST(request: Request) {
                   buildModeDirective({
                     guideId,
                     mode: director.mode,
-                    strategy: director.strategy
+                    strategy: director.strategy,
+                    exchangeCount: priorExchangeCount,
+                    welfareConcern
                   }),
                   "Rewrite respectfully, no romance, no physical touch, keep spacing with blank lines.",
                   "No numbered steps unless the user explicitly asked for steps."

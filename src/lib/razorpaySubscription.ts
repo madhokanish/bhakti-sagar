@@ -2,6 +2,11 @@ import "server-only";
 
 import type { User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import {
+  setSubscriptionStatusWhere,
+  setUserSubscriptionStatus,
+  type SubscriptionStatusSource
+} from "@/lib/subscriptionStatus";
 import { getRazorpayClient } from "@/lib/razorpay";
 import { hasSubscriptionEntitlement } from "@/lib/subscription";
 
@@ -35,12 +40,14 @@ export async function updateUserSubscriptionRazorpayById(input: {
   subscriptionStatus?: string | null;
   trialEnd?: Date | null;
   currentPeriodEnd?: Date | null;
+  source?: SubscriptionStatusSource;
 }) {
-  return prisma.user.update({
-    where: { id: input.userId },
+  return setUserSubscriptionStatus({
+    userId: input.userId,
+    status: input.subscriptionStatus ?? undefined,
+    source: input.source ?? "razorpay-create",
     data: {
       razorpaySubscriptionId: input.razorpaySubscriptionId,
-      subscriptionStatus: input.subscriptionStatus ?? undefined,
       trialEnd: input.trialEnd ?? undefined,
       currentPeriodEnd: input.currentPeriodEnd ?? undefined,
       currency: "INR"
@@ -59,11 +66,13 @@ export async function updateSubscriptionByRazorpaySubscriptionId(input: {
   subscriptionStatus: string;
   trialEnd?: Date | null;
   currentPeriodEnd?: Date | null;
+  source?: SubscriptionStatusSource;
 }) {
-  return prisma.user.updateMany({
+  return setSubscriptionStatusWhere({
     where: { razorpaySubscriptionId: input.razorpaySubscriptionId },
+    status: input.subscriptionStatus,
+    source: input.source ?? "razorpay-webhook",
     data: {
-      subscriptionStatus: input.subscriptionStatus,
       trialEnd: input.trialEnd ?? null,
       currentPeriodEnd: input.currentPeriodEnd ?? null
     }
@@ -103,10 +112,11 @@ export async function reconcileSubscriptionFromRazorpay(user: User): Promise<Use
   try {
     const razorpay = getRazorpayClient();
     const subscription = await razorpay.subscriptions.fetch(user.razorpaySubscriptionId);
-    return await prisma.user.update({
-      where: { id: user.id },
+    return await setUserSubscriptionStatus({
+      userId: user.id,
+      status: mapRazorpaySubscriptionStatus(subscription.status),
+      source: "razorpay-reconcile",
       data: {
-        subscriptionStatus: mapRazorpaySubscriptionStatus(subscription.status),
         trialEnd: subscription.start_at ? new Date(subscription.start_at * 1000) : null,
         currentPeriodEnd: subscription.current_end ? new Date(subscription.current_end * 1000) : null
       }
@@ -153,7 +163,8 @@ export async function cancelSubscriptionForUser(user: User): Promise<CancelResul
         razorpaySubscriptionId: subscription.id,
         subscriptionStatus: mapRazorpaySubscriptionStatus(subscription.status),
         trialEnd: subscription.start_at ? new Date(subscription.start_at * 1000) : null,
-        currentPeriodEnd: subscription.current_end ? new Date(subscription.current_end * 1000) : null
+        currentPeriodEnd: subscription.current_end ? new Date(subscription.current_end * 1000) : null,
+        source: "razorpay-cancel"
       });
     }
 
@@ -178,7 +189,8 @@ export async function cancelSubscriptionForUser(user: User): Promise<CancelResul
         razorpaySubscriptionId: user.razorpaySubscriptionId,
         subscriptionStatus: "cancelled",
         trialEnd: null,
-        currentPeriodEnd: null
+        currentPeriodEnd: null,
+        source: "razorpay-cancel"
       });
       return { cancelledImmediately: true, accessUntil: null };
     }

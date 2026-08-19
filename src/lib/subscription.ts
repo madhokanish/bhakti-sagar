@@ -4,6 +4,11 @@ import type { User } from "@prisma/client";
 import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import {
+  setSubscriptionStatusWhere,
+  upsertUserSubscriptionStatus,
+  type SubscriptionStatusSource
+} from "@/lib/subscriptionStatus";
+import {
   SUBSCRIPTION_SESSION_COOKIE,
   buildSessionPayload,
   verifySignedSessionToken,
@@ -40,6 +45,22 @@ export type SupportedCurrency = keyof typeof PRICE_BY_CURRENCY;
 export function hasSubscriptionEntitlement(status: string | null | undefined) {
   if (!status) return false;
   return ENTITLED_STATUSES.has(status);
+}
+
+/**
+ * True when the stored status still claims entitlement but the paid period has already
+ * elapsed. That combination means a provider event was never received (missed webhook,
+ * downtime), so the row is stale rather than genuinely active. Read-only: this reports the
+ * discrepancy, it does not revoke access.
+ */
+export function isEntitlementStale(
+  user: { subscriptionStatus: string | null; trialEnd: Date | null; currentPeriodEnd: Date | null },
+  now: Date = new Date()
+) {
+  if (!hasSubscriptionEntitlement(user.subscriptionStatus)) return false;
+  const end = user.currentPeriodEnd ?? user.trialEnd;
+  if (!end) return false;
+  return end < now;
 }
 
 export function resolveCurrencyFromCountry(country: string | null | undefined): SupportedCurrency {
@@ -85,19 +106,19 @@ export async function upsertUserSubscription(input: {
   currency?: string | null;
   trialEnd?: Date | null;
   currentPeriodEnd?: Date | null;
+  source?: SubscriptionStatusSource;
 }) {
-  const email = input.email.trim().toLowerCase();
-  return prisma.user.upsert({
-    where: { email },
+  return upsertUserSubscriptionStatus({
+    email: input.email,
+    status: input.subscriptionStatus,
+    source: input.source ?? "stripe-webhook",
     update: {
       stripeCustomerId: input.stripeCustomerId ?? undefined,
-      subscriptionStatus: input.subscriptionStatus ?? undefined,
       currency: input.currency ?? undefined,
       trialEnd: input.trialEnd ?? undefined,
       currentPeriodEnd: input.currentPeriodEnd ?? undefined
     },
     create: {
-      email,
       stripeCustomerId: input.stripeCustomerId ?? null,
       subscriptionStatus: input.subscriptionStatus ?? "inactive",
       currency: input.currency ?? "GBP",
@@ -112,11 +133,13 @@ export async function updateSubscriptionByCustomerId(input: {
   subscriptionStatus: string;
   trialEnd?: Date | null;
   currentPeriodEnd?: Date | null;
+  source?: SubscriptionStatusSource;
 }) {
-  return prisma.user.updateMany({
+  return setSubscriptionStatusWhere({
     where: { stripeCustomerId: input.stripeCustomerId },
+    status: input.subscriptionStatus,
+    source: input.source ?? "stripe-webhook",
     data: {
-      subscriptionStatus: input.subscriptionStatus,
       trialEnd: input.trialEnd ?? null,
       currentPeriodEnd: input.currentPeriodEnd ?? null
     }

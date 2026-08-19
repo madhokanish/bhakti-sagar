@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { setUserSubscriptionStatus } from "@/lib/subscriptionStatus";
 import {
   createRecurringUpiDebit,
   createScheduledDebitOrder
@@ -74,13 +75,19 @@ export async function GET(request: Request) {
 
       if (payment.status === "captured") {
         const nextPeriodEnd = followingBillingDate(scheduledFor);
-        await prisma.$transaction([
-          prisma.razorpayAutopayMandate.update({ where: { id: mandate.id }, data: { nextBillingAt: nextPeriodEnd } }),
-          prisma.user.update({
-            where: { id: mandate.userId },
-            data: { subscriptionStatus: "active", currency: "INR", trialEnd: null, currentPeriodEnd: nextPeriodEnd }
-          })
-        ]);
+        await prisma.$transaction(async (tx) => {
+          await tx.razorpayAutopayMandate.update({
+            where: { id: mandate.id },
+            data: { nextBillingAt: nextPeriodEnd }
+          });
+          await setUserSubscriptionStatus({
+            userId: mandate.userId,
+            status: "active",
+            source: "upi-autopay-charge",
+            data: { currency: "INR", trialEnd: null, currentPeriodEnd: nextPeriodEnd },
+            client: tx
+          });
+        });
       }
       charged += 1;
     } catch (error) {

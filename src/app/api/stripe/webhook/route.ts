@@ -7,6 +7,7 @@ import {
   upsertUserSubscription,
   getUserByStripeCustomerId
 } from "@/lib/subscription";
+import { setUserSubscriptionStatus } from "@/lib/subscriptionStatus";
 
 export const runtime = "nodejs";
 
@@ -75,7 +76,8 @@ export async function POST(request: Request) {
               stripeCustomerId:
                 typeof session.customer === "string" ? session.customer : session.customer?.id ?? null,
               subscriptionStatus: session.mode === "subscription" ? "active" : undefined,
-              currency: session.currency?.toUpperCase() || undefined
+              currency: session.currency?.toUpperCase() || undefined,
+              source: "stripe-checkout"
             });
         }
         break;
@@ -119,9 +121,10 @@ export async function POST(request: Request) {
         if (customerId) {
           const existingUser = await getUserByStripeCustomerId(customerId);
           if (existingUser) {
-            await prisma.user.update({
-              where: { id: existingUser.id },
-              data: { subscriptionStatus: "past_due" }
+            await setUserSubscriptionStatus({
+              userId: existingUser.id,
+              status: "past_due",
+              source: "stripe-webhook"
             });
           }
         }

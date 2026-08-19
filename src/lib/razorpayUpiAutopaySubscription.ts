@@ -3,6 +3,7 @@ import "server-only";
 import type { RazorpayAutopayMandate, User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hasSubscriptionEntitlement } from "@/lib/subscription";
+import { setUserSubscriptionStatus } from "@/lib/subscriptionStatus";
 import {
   fetchRazorpayPayment,
   findConfirmedUpiToken,
@@ -37,9 +38,11 @@ async function expireElapsedAccess(user: User) {
   if (!hasSubscriptionEntitlement(user.subscriptionStatus)) return user;
   const end = user.currentPeriodEnd ?? user.trialEnd;
   if (!end || end > new Date()) return user;
-  return prisma.user.update({
-    where: { id: user.id },
-    data: { subscriptionStatus: "past_due", currentPeriodEnd: end }
+  return setUserSubscriptionStatus({
+    userId: user.id,
+    status: "past_due",
+    source: "upi-autopay-expire",
+    data: { currentPeriodEnd: end }
   });
 }
 
@@ -62,8 +65,8 @@ export async function reconcileUpiAutopayMandate(user: User, mandate: RazorpayAu
         const config = getUpiAutopayConfig();
         const trialEnd = new Date();
         trialEnd.setUTCDate(trialEnd.getUTCDate() + config.trialDays);
-        await prisma.$transaction([
-          prisma.razorpayAutopayMandate.update({
+        await prisma.$transaction(async (tx) => {
+          await tx.razorpayAutopayMandate.update({
             where: { id: mandate.id },
             data: {
               razorpayTokenId: token.id,
@@ -72,17 +75,15 @@ export async function reconcileUpiAutopayMandate(user: User, mandate: RazorpayAu
               nextBillingAt: trialEnd,
               lastCheckedAt: new Date()
             }
-          }),
-          prisma.user.update({
-            where: { id: user.id },
-            data: {
-              subscriptionStatus: "trialing",
-              currency: "INR",
-              trialEnd,
-              currentPeriodEnd: trialEnd
-            }
-          })
-        ]);
+          });
+          await setUserSubscriptionStatus({
+            userId: user.id,
+            status: "trialing",
+            source: "upi-autopay-authorize",
+            data: { currency: "INR", trialEnd, currentPeriodEnd: trialEnd },
+            client: tx
+          });
+        });
         return prisma.user.findUniqueOrThrow({ where: { id: user.id } });
       }
 
@@ -125,23 +126,21 @@ export async function recordCapturedUpiAutopayCharge(paymentId: string) {
   if (!charge || charge.status === "captured") return;
 
   const nextPeriodEnd = followingBillingDate(charge.scheduledFor);
-  await prisma.$transaction([
-    prisma.razorpayAutopayCharge.update({
+  await prisma.$transaction(async (tx) => {
+    await tx.razorpayAutopayCharge.update({
       where: { id: charge.id },
       data: { status: "captured", completedAt: new Date() }
-    }),
-    prisma.razorpayAutopayMandate.update({
+    });
+    await tx.razorpayAutopayMandate.update({
       where: { id: charge.mandateId },
       data: { status: "active", nextBillingAt: nextPeriodEnd }
-    }),
-    prisma.user.update({
-      where: { id: charge.mandate.userId },
-      data: {
-        subscriptionStatus: "active",
-        currency: "INR",
-        trialEnd: null,
-        currentPeriodEnd: nextPeriodEnd
-      }
-    })
-  ]);
+    });
+    await setUserSubscriptionStatus({
+      userId: charge.mandate.userId,
+      status: "active",
+      source: "upi-autopay-charge",
+      data: { currency: "INR", trialEnd: null, currentPeriodEnd: nextPeriodEnd },
+      client: tx
+    });
+  });
 }

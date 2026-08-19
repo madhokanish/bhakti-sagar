@@ -39,6 +39,7 @@ model User {
   profile                UserProfile?
   bhaktiGptConversations BhaktiGptConversation[]
   bhaktiGptUsage         BhaktiGptUsage?
+  subscriptionStatusChanges SubscriptionStatusChange[]
 }
 
 /// A UPI AutoPay mandate created through Razorpay's direct recurring-payments API.
@@ -89,6 +90,25 @@ model RazorpayAutopayCharge {
 
   @@unique([mandateId, scheduledFor])
   @@index([status, scheduledFor])
+}
+
+/// Append-only log of every membership status transition. The User row only ever holds the
+/// current status, so without this there is no way to see that someone was pro and later
+/// lapsed. Written by `setUserSubscriptionStatus` in src/lib/subscriptionStatus.ts, which is
+/// the single chokepoint every status write funnels through.
+model SubscriptionStatusChange {
+  id         String   @id @default(cuid())
+  userId     String
+  fromStatus String
+  toStatus   String
+  /// Which code path made the change, e.g. "stripe-webhook", "razorpay-webhook",
+  /// "upi-autopay-cancel". Lets a suspicious transition be traced back to its origin.
+  source     String
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
 }
 
 model WebhookEvent {

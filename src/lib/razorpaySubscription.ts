@@ -50,7 +50,9 @@ export async function updateUserSubscriptionRazorpayById(input: {
       razorpaySubscriptionId: input.razorpaySubscriptionId,
       trialEnd: input.trialEnd ?? undefined,
       currentPeriodEnd: input.currentPeriodEnd ?? undefined,
-      currency: "INR"
+      currency: "INR",
+      // Starting a new subscription supersedes any earlier pending cancellation.
+      cancellationRequestedAt: null
     }
   });
 }
@@ -86,18 +88,35 @@ export type SubscriptionSummary = {
   subscriptionId: string | null;
   trialEnd: string | null;
   currentPeriodEnd: string | null;
+  /** When the member asked to cancel, if they are still inside the period they paid for. */
+  cancellationRequestedAt: string | null;
+  /**
+   * False for a member who has cancelled but still has paid time left. Clients should show
+   * "ends on <currentPeriodEnd>" rather than a renewal date when this is false.
+   */
+  willRenew: boolean;
 };
 
 /** Single shape for entitlement, shared by /api/mobile/me and the mobile status route. */
 export function buildSubscriptionSummary(
-  user: Pick<User, "subscriptionStatus" | "razorpaySubscriptionId" | "trialEnd" | "currentPeriodEnd">
+  user: Pick<
+    User,
+    | "subscriptionStatus"
+    | "razorpaySubscriptionId"
+    | "trialEnd"
+    | "currentPeriodEnd"
+    | "cancellationRequestedAt"
+  >
 ): SubscriptionSummary {
+  const isPro = hasSubscriptionEntitlement(user.subscriptionStatus);
   return {
-    isPro: hasSubscriptionEntitlement(user.subscriptionStatus),
+    isPro,
     status: user.subscriptionStatus,
     subscriptionId: user.razorpaySubscriptionId,
     trialEnd: user.trialEnd?.toISOString() ?? null,
-    currentPeriodEnd: user.currentPeriodEnd?.toISOString() ?? null
+    currentPeriodEnd: user.currentPeriodEnd?.toISOString() ?? null,
+    cancellationRequestedAt: user.cancellationRequestedAt?.toISOString() ?? null,
+    willRenew: isPro && !user.cancellationRequestedAt
   };
 }
 
@@ -165,6 +184,15 @@ export async function cancelSubscriptionForUser(user: User): Promise<CancelResul
         trialEnd: subscription.start_at ? new Date(subscription.start_at * 1000) : null,
         currentPeriodEnd: subscription.current_end ? new Date(subscription.current_end * 1000) : null,
         source: "razorpay-cancel"
+      });
+    } else {
+      // Deferred cancellation. Status legitimately stays "active" until Razorpay ends the
+      // cycle, so the status write above would be wrong here — but writing nothing at all
+      // (the previous behaviour) left a cancelled membership looking identical to a
+      // renewing one. Record the request itself instead.
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { cancellationRequestedAt: new Date() }
       });
     }
 

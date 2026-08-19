@@ -19,7 +19,8 @@ export async function GET(request: Request) {
         subscriptionStatus: true,
         razorpaySubscriptionId: true,
         trialEnd: true,
-        currentPeriodEnd: true
+        currentPeriodEnd: true,
+        cancellationRequestedAt: true
       }
     });
 

@@ -36,7 +36,12 @@ export async function POST(request: Request) {
         userId,
         status: keepAccess ? "active" : "cancelled",
         source: "upi-autopay-cancel",
-        data: keepAccess ? {} : { trialEnd: null, currentPeriodEnd: null },
+        // Same deferred case as the Razorpay subscription rail: when access continues to the
+        // end of the paid period the status stays "active", so the request itself is the only
+        // thing that marks this membership as ending.
+        data: keepAccess
+          ? { cancellationRequestedAt: now }
+          : { trialEnd: null, currentPeriodEnd: null, cancellationRequestedAt: now },
         client: tx
       });
     });

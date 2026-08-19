@@ -80,6 +80,7 @@ export default async function SubscribersAdminPage() {
       stripeCustomerId: true,
       trialEnd: true,
       currentPeriodEnd: true,
+      cancellationRequestedAt: true,
       updatedAt: true,
       razorpayAutopayMandates: {
         select: { status: true, cancellationRequestedAt: true },
@@ -101,6 +102,11 @@ export default async function SubscribersAdminPage() {
   ).length;
 
   const entitledCount = users.filter((user) => hasSubscriptionEntitlement(user.subscriptionStatus)).length;
+  // Cancelled but still inside the paid period — churn that has already happened but has not
+  // yet shown up in the status column.
+  const cancellingCount = users.filter(
+    (user) => hasSubscriptionEntitlement(user.subscriptionStatus) && user.cancellationRequestedAt
+  ).length;
   const staleCount = users.filter((user) => isEntitlementStale(user, now)).length;
 
   function railFor(user: (typeof users)[number]) {
@@ -120,10 +126,11 @@ export default async function SubscribersAdminPage() {
         doubt.
       </p>
 
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
         {[
           { label: "Tracked", value: users.length },
           { label: "Entitled now", value: entitledCount },
+          { label: "Cancelling", value: cancellingCount },
           { label: "Churned (30d)", value: churnedLast30 },
           { label: "Stale", value: staleCount }
         ].map((stat) => (
@@ -166,9 +173,23 @@ export default async function SubscribersAdminPage() {
 
               return (
                 <tr key={user.id} className="border-b border-sagar-amber/10 last:border-0">
-                  <td className="px-4 py-3 font-medium text-sagar-ink">{user.email ?? user.phone ?? "—"}</td>
+                  <td className="px-4 py-3 font-medium text-sagar-ink">
+                    {/* Phone-OTP accounts carry no email (phone and Google sign-ins are never
+                        linked), so phone is the only identifier those members will ever have. */}
+                    {user.email ?? user.phone ?? "—"}
+                  </td>
                   <td className="px-4 py-3 text-sagar-ink/75">{railFor(user)}</td>
-                  <td className="px-4 py-3 text-sagar-ink/75">{user.subscriptionStatus}</td>
+                  <td className="px-4 py-3 text-sagar-ink/75">
+                    {user.subscriptionStatus}
+                    {entitled && user.cancellationRequestedAt ? (
+                      <span
+                        className="mt-1 block text-xs font-semibold uppercase tracking-wide text-sagar-rose"
+                        title={`Cancellation requested ${formatDate(user.cancellationRequestedAt)}. Access runs to the end of the paid period.`}
+                      >
+                        Cancelling — ends {formatDate(user.currentPeriodEnd)}
+                      </span>
+                    ) : null}
+                  </td>
                   <td className="px-4 py-3">
                     {entitled ? (
                       <span className="rounded-full bg-sagar-saffron px-2 py-0.5 text-xs font-bold uppercase text-white">

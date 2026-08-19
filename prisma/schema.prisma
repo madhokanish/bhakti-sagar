@@ -25,6 +25,11 @@ model User {
   currency               String                  @default("GBP")
   trialEnd               DateTime?
   currentPeriodEnd       DateTime?
+  /// Set when the member asks to cancel but keeps access to the end of the period they
+  /// already paid for. Until that period elapses their status stays "active", so without
+  /// this marker a cancelled membership is indistinguishable from a renewing one — both
+  /// here and in the app. Cleared when a new subscription starts.
+  cancellationRequestedAt DateTime?
   reminder3DaySentAt     DateTime?
   reminder1DaySentAt     DateTime?
   createdAt              DateTime                @default(now())

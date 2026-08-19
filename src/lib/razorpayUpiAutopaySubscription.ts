@@ -16,15 +16,25 @@ export type UpiAutopaySummary = {
   subscriptionId: string | null;
   trialEnd: string | null;
   currentPeriodEnd: string | null;
+  /** When the member asked to cancel, if they are still inside the period they paid for. */
+  cancellationRequestedAt: string | null;
+  /** False for a member who has cancelled but still has paid time left. */
+  willRenew: boolean;
 };
 
-export function buildUpiAutopaySummary(user: Pick<User, "subscriptionStatus" | "trialEnd" | "currentPeriodEnd">, mandate?: Pick<RazorpayAutopayMandate, "id"> | null): UpiAutopaySummary {
+export function buildUpiAutopaySummary(
+  user: Pick<User, "subscriptionStatus" | "trialEnd" | "currentPeriodEnd" | "cancellationRequestedAt">,
+  mandate?: Pick<RazorpayAutopayMandate, "id"> | null
+): UpiAutopaySummary {
+  const isPro = hasSubscriptionEntitlement(user.subscriptionStatus);
   return {
-    isPro: hasSubscriptionEntitlement(user.subscriptionStatus),
+    isPro,
     status: user.subscriptionStatus,
     subscriptionId: mandate?.id ?? null,
     trialEnd: user.trialEnd?.toISOString() ?? null,
-    currentPeriodEnd: user.currentPeriodEnd?.toISOString() ?? null
+    currentPeriodEnd: user.currentPeriodEnd?.toISOString() ?? null,
+    cancellationRequestedAt: user.cancellationRequestedAt?.toISOString() ?? null,
+    willRenew: isPro && !user.cancellationRequestedAt
   };
 }
 
@@ -80,7 +90,7 @@ export async function reconcileUpiAutopayMandate(user: User, mandate: RazorpayAu
             userId: user.id,
             status: "trialing",
             source: "upi-autopay-authorize",
-            data: { currency: "INR", trialEnd, currentPeriodEnd: trialEnd },
+            data: { currency: "INR", trialEnd, currentPeriodEnd: trialEnd, cancellationRequestedAt: null },
             client: tx
           });
         });

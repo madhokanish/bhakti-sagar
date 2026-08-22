@@ -146,6 +146,11 @@ model LlmUsage {
   /// Which code path spent it: chat-stream, chat-rewrite, chat-truncate.
   callSite         String
   guideId          String?
+  /// Set only for authenticated users. Null for anonymous traffic.
+  userId           String?
+  /// Identity the rate limiter uses: userId when signed in, else the anon session id.
+  /// Attributes spend for anonymous users too, who are otherwise invisible in a userId view.
+  rateKey          String?
   promptTokens     Int?
   completionTokens Int?
   totalTokens      Int?
@@ -154,6 +159,8 @@ model LlmUsage {
   @@index([createdAt])
   @@index([model, createdAt])
   @@index([callSite, createdAt])
+  @@index([rateKey, createdAt])
+  @@index([userId, createdAt])
 }
 
 /// One row per completed voice turn, so realtime spend is attributable.

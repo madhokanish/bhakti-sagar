@@ -2461,6 +2461,8 @@ async function createOpenAiText(params: {
   referralDirective?: string | null;
   /** Which path is spending, so the usage row is attributable. */
   callSite: LlmCallSite;
+  userId?: string | null;
+  rateKey?: string | null;
 }) {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
@@ -2557,6 +2559,8 @@ async function createOpenAiText(params: {
     model: params.model,
     callSite: params.callSite,
     guideId: params.guideId,
+    userId: params.userId,
+    rateKey: params.rateKey,
     usage: data.usage
   });
 
@@ -2575,6 +2579,8 @@ async function consumeOpenAiSse(params: {
   reader: ReadableStreamDefaultReader<Uint8Array>;
   model: string;
   guideId?: string | null;
+  userId?: string | null;
+  rateKey?: string | null;
   onToken: (token: string) => void;
   onFirstToken: () => void;
 }) {
@@ -2647,6 +2653,8 @@ async function consumeOpenAiSse(params: {
     model: params.model,
     callSite: "chat-stream",
     guideId: params.guideId,
+    userId: params.userId,
+    rateKey: params.rateKey,
     usage
   });
 
@@ -2740,10 +2748,14 @@ async function completeTruncatedReply(params: {
   userMessage: string;
   assistantText: string;
   suppressQuestionEnding: boolean;
+  userId?: string | null;
+  rateKey?: string | null;
 }) {
   const completion = await createOpenAiText({
     guideId: params.guideId,
     callSite: "chat-truncate",
+    userId: params.userId,
+    rateKey: params.rateKey,
     model: params.model,
     modeInstruction: params.modeInstruction,
     stateAnchor: params.stateAnchor,
@@ -3227,6 +3239,8 @@ export async function POST(request: Request) {
               reader,
               model: selectedModel,
               guideId,
+              userId: identity.userId,
+              rateKey,
               onFirstToken: () => {
                 if (ttftMs === null) {
                   ttftMs = Date.now() - startedAt;
@@ -3349,6 +3363,8 @@ export async function POST(request: Request) {
                 const rewritten = await createOpenAiText({
                   guideId,
                   callSite: "chat-rewrite",
+                  userId: identity.userId,
+                  rateKey,
                   model: selectedModel,
                   modeInstruction,
                   stateAnchor,
@@ -3387,6 +3403,8 @@ export async function POST(request: Request) {
             if (needsCompletionRepair) {
               try {
                 const completedTail = await completeTruncatedReply({
+                  userId: identity.userId,
+                  rateKey,
                   guideId,
                   model: selectedModel,
                   modeInstruction,

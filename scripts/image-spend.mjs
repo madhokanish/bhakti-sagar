@@ -112,7 +112,8 @@ for (const [cfg, c] of [...byConfig].sort((a, b) => b[1].cost - a[1].cost)) {
 // The free tier is 3 images per install. Anyone materially above it either reinstalled,
 // cleared app data, or is calling the endpoint directly — the client-side quota cannot
 // see any of those, which is the whole reason this table exists.
-const FREE_IMAGE_QUOTA = 3;
+// Matches EntitlementStore.FREE_IMAGE_QUOTA in the Android app — keep the two in step.
+const FREE_IMAGE_QUOTA = 1;
 const overQuota = [...byUser]
   .filter(([key, u]) => key !== "(no userKey)" && u.count > FREE_IMAGE_QUOTA)
   .sort((a, b) => b[1].count - a[1].count);

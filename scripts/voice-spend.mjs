@@ -87,6 +87,38 @@ for (const g of byGuide.sort((a, b) => (b._sum.durationSeconds ?? 0) - (a._sum.d
   console.log(`  ${g.guideId.padEnd(12)} ${String(g._count).padStart(5)} turns  ${((g._sum.durationSeconds ?? 0)/60).toFixed(1).padStart(8)} min`);
 }
 
+// Per-user spend. Voice is the rail where one heavy user can dominate the invoice, so this
+// is the view that matters most.
+const byUser = await prisma.voiceTurnUsage.groupBy({
+  by: ["rateKey"],
+  where,
+  _count: true,
+  _sum: { durationSeconds: true }
+});
+const rankedUsers = byUser
+  .map((u) => {
+    const mins = (u._sum.durationSeconds ?? 0) / 60;
+    return { key: u.rateKey, turns: u._count, mins, cost: mins * FALLBACK_USD_PER_MINUTE };
+  })
+  .sort((a, b) => b.mins - a.mins);
+
+console.log(`\nTop voice spenders  (${rankedUsers.length} users)\n`);
+console.log("user                          turns      minutes        est $");
+console.log("-".repeat(64));
+for (const u of rankedUsers.slice(0, 20)) {
+  console.log(
+    u.key.slice(0, 28).padEnd(30) +
+    String(u.turns).padStart(5) +
+    u.mins.toFixed(1).padStart(13) +
+    ("$" + u.cost.toFixed(2)).padStart(13)
+  );
+}
+const allMins = rankedUsers.reduce((a, u) => a + u.mins, 0);
+if (allMins > 0) {
+  const top5 = rankedUsers.slice(0, 5).reduce((a, u) => a + u.mins, 0);
+  console.log(`\nTop 5 users = ${((top5 / allMins) * 100).toFixed(0)}% of voice minutes`);
+}
+
 // The whole point of the cap is that no one exceeds it. Surface anyone who did.
 const cap = Number(process.env.VOICE_DAILY_MINUTES_CAP ?? 20);
 if (Number.isFinite(cap) && cap > 0) {

@@ -23,6 +23,9 @@ export function recordLlmUsage(input: {
   model: string;
   callSite: LlmCallSite;
   guideId?: string | null;
+  userId?: string | null;
+  /** userId when signed in, else the anon session id — so anonymous spend is attributable too. */
+  rateKey?: string | null;
   usage?: OpenAiUsage | null;
 }) {
   const usage = input.usage;
@@ -35,6 +38,8 @@ export function recordLlmUsage(input: {
         model: input.model,
         callSite: input.callSite,
         guideId: input.guideId ?? null,
+        userId: input.userId ?? null,
+        rateKey: input.rateKey ?? null,
         promptTokens: usage.prompt_tokens ?? null,
         completionTokens: usage.completion_tokens ?? null,
         totalTokens:

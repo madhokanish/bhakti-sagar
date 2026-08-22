@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isGuideId, type BhaktiGuideId } from "@/lib/bhaktigpt/guides";
-import { BHAKTIGPT_COOKIE, recordVoiceMinutesUsed, resolveBhaktiIdentity } from "@/lib/bhaktigpt/server";
+import { BHAKTIGPT_COOKIE, recordVoiceMinutesUsed, recordVoiceTurnUsage, resolveBhaktiIdentity } from "@/lib/bhaktigpt/server";
 import { auditVoiceTurnTranscript } from "@/lib/bhaktigpt/voiceSafetyAudit";
 
 export const runtime = "nodejs";
@@ -79,7 +79,14 @@ export async function POST(request: Request) {
     const rateKey = identity.userId || identity.anonSessionId || "anonymous";
 
     if (typeof body.durationSeconds === "number" && body.durationSeconds > 0) {
-      recordVoiceMinutesUsed(rateKey, body.durationSeconds / 60);
+      await recordVoiceMinutesUsed(rateKey, body.durationSeconds / 60);
+      await recordVoiceTurnUsage({
+        rateKey,
+        userId: identity.userId,
+        guideId: body.guideId,
+        conversationId: body.conversationId ?? null,
+        durationSeconds: body.durationSeconds
+      });
     }
 
     let conversation = body.conversationId

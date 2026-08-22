@@ -8,6 +8,11 @@ import {
   type BhaktiGuideId
 } from "@/lib/bhaktigpt/guides";
 import { pickKrishnaQuirk } from "@/lib/bhaktigpt/krishnaQuirks";
+import {
+  recordLlmUsage,
+  type LlmCallSite,
+  type OpenAiUsage
+} from "@/lib/bhaktigpt/llmUsage";
 import { KRISHNA_SECONDARY_GUARD } from "@/lib/bhaktigpt/personas/krishnaSystemPrompt";
 import { LAKSHMI_SECONDARY_GUARD } from "@/lib/bhaktigpt/personas/lakshmiSystemPrompt";
 import { SHANI_SECONDARY_GUARD } from "@/lib/bhaktigpt/personas/shaniSystemPrompt";
@@ -2454,6 +2459,8 @@ async function createOpenAiText(params: {
   messages: Array<{ role: "system" | "developer" | "user" | "assistant"; content: string }>;
   additionalDeveloperInstruction?: string | null;
   referralDirective?: string | null;
+  /** Which path is spending, so the usage row is attributable. */
+  callSite: LlmCallSite;
 }) {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
@@ -2542,8 +2549,17 @@ async function createOpenAiText(params: {
 
   const data = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
-    usage?: { completion_tokens?: number };
+    usage?: OpenAiUsage;
   };
+
+  // Recorded before the empty-content guard: those tokens were billed either way.
+  recordLlmUsage({
+    model: params.model,
+    callSite: params.callSite,
+    guideId: params.guideId,
+    usage: data.usage
+  });
+
   const content = data.choices?.[0]?.message?.content?.trim() ?? "";
   if (!content) {
     throw new Error("Empty response from model.");
@@ -2557,13 +2573,15 @@ async function createOpenAiText(params: {
 
 async function consumeOpenAiSse(params: {
   reader: ReadableStreamDefaultReader<Uint8Array>;
+  model: string;
+  guideId?: string | null;
   onToken: (token: string) => void;
   onFirstToken: () => void;
 }) {
   const decoder = new TextDecoder();
   let buffer = "";
   let firstTokenSeen = false;
-  let usage: { completion_tokens?: number } | null = null;
+  let usage: OpenAiUsage | null = null;
   let fullText = "";
   let finishReason: string | null = null;
 
@@ -2594,7 +2612,7 @@ async function consumeOpenAiSse(params: {
         try {
           const parsed = JSON.parse(payload) as {
             choices?: Array<{ delta?: { content?: string }; finish_reason?: string | null }>;
-            usage?: { completion_tokens?: number };
+            usage?: OpenAiUsage;
           };
 
           if (parsed.usage) {
@@ -2622,6 +2640,15 @@ async function consumeOpenAiSse(params: {
       }
     }
   }
+
+  // The usage frame arrives in the final SSE chunk (stream_options.include_usage), so this is
+  // the first point where prompt_tokens is known for a streamed reply.
+  recordLlmUsage({
+    model: params.model,
+    callSite: "chat-stream",
+    guideId: params.guideId,
+    usage
+  });
 
   return {
     fullText: fullText.trim(),
@@ -2716,6 +2743,7 @@ async function completeTruncatedReply(params: {
 }) {
   const completion = await createOpenAiText({
     guideId: params.guideId,
+    callSite: "chat-truncate",
     model: params.model,
     modeInstruction: params.modeInstruction,
     stateAnchor: params.stateAnchor,
@@ -3197,6 +3225,8 @@ export async function POST(request: Request) {
 
             const openAiResult = await consumeOpenAiSse({
               reader,
+              model: selectedModel,
+              guideId,
               onFirstToken: () => {
                 if (ttftMs === null) {
                   ttftMs = Date.now() - startedAt;
@@ -3318,6 +3348,7 @@ export async function POST(request: Request) {
 
                 const rewritten = await createOpenAiText({
                   guideId,
+                  callSite: "chat-rewrite",
                   model: selectedModel,
                   modeInstruction,
                   stateAnchor,

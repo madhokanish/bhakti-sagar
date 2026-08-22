@@ -116,6 +116,70 @@ model SubscriptionStatusChange {
   @@index([createdAt])
 }
 
+/// Daily voice-minutes counter, per rate key.
+///
+/// Replaces an in-memory Map. On Vercel each lambda instance had its own copy of that Map and
+/// lost it on cold start, so the cap only held within one warm instance — meaning it barely
+/// held at all. Realtime audio is the most expensive model in the stack, so this counter is
+/// the thing standing between a runaway session and the invoice; it has to be shared state.
+model VoiceUsageDaily {
+  id          String   @id @default(cuid())
+  rateKey     String
+  /// UTC calendar day, YYYY-MM-DD. Stored as text so the unique key is exact.
+  day         String
+  minutesUsed Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([rateKey, day])
+  @@index([day])
+}
+
+/// One row per OpenAI completion, so spend is attributable from our own data.
+///
+/// Only completion_tokens was ever read before, and input tokens are the larger share of a
+/// chat bill — which left no way to answer "where did the money go" without the OpenAI
+/// dashboard. Written best-effort: a failure here must never break a reply.
+model LlmUsage {
+  id               String   @id @default(cuid())
+  model            String
+  /// Which code path spent it: chat-stream, chat-rewrite, chat-truncate.
+  callSite         String
+  guideId          String?
+  promptTokens     Int?
+  completionTokens Int?
+  totalTokens      Int?
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([model, createdAt])
+  @@index([callSite, createdAt])
+}
+
+/// One row per completed voice turn, so realtime spend is attributable.
+///
+/// A row is a turn, not a session — group by conversationId for whole conversations.
+///
+/// Duration is what we can actually observe: the app talks to OpenAI directly over WebRTC
+/// using an ephemeral client secret, so the server never sees the realtime token counts. Cost
+/// is therefore estimated from audio minutes. For exact figures the client would have to
+/// forward the `response.done` usage payload — see scripts/voice-spend.mjs.
+model VoiceTurnUsage {
+  id              String   @id @default(cuid())
+  rateKey         String
+  userId          String?
+  guideId         String
+  conversationId  String?
+  model           String
+  durationSeconds Float
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([guideId, createdAt])
+  @@index([userId, createdAt])
+  @@index([conversationId])
+}
+
 model WebhookEvent {
   id            String   @id @default(cuid())
   stripeEventId String   @unique
@@ -279,4 +343,35 @@ enum BhaktiGptMessageRole {
   user
   assistant
   system
+}
+
+/// One row per divine-image generation attempt. Images are the dominant OpenAI cost
+/// (an image runs ~190x a chat message), but nothing server-side recorded them, so
+/// spend could only be reconstructed by elimination against the OpenAI invoice. The
+/// per-request config is denormalized onto the row because model/size/quality are
+/// env-tunable and change under us — storing the values actually used keeps historical
+/// cost math correct after a knob moves.
+model DivineImageGeneration {
+  id             String   @id @default(cuid())
+  /// Client-supplied stable per-install key (Android AnonUserKey). Unverified — good
+  /// enough to count and to spot quota evasion, not to authorize on.
+  userKey        String?
+  /// Set only when a real authenticated session was present (web/mobile session).
+  userId         String?
+  requestId      String?
+  mode           String?
+  /// "edit" when the user supplied a photo (the expensive path), else "generate".
+  endpoint       String
+  model          String
+  variant        String
+  size           String
+  quality        String?
+  inputFidelity  String?
+  status         String
+  durationMs     Int?
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userKey, createdAt])
+  @@index([userId, createdAt])
 }

@@ -5,6 +5,7 @@ import {
   BHAKTIGPT_COOKIE,
   isRateLimited,
   isVoiceDailyCapReached,
+  resolveRealtimeModel,
   resolveBhaktiIdentity
 } from "@/lib/bhaktigpt/server";
 import { pickVariantByRollout } from "@/lib/bhaktigpt/rollout";
@@ -91,8 +92,8 @@ export async function POST(request: Request) {
       );
     }
 
-    if (isVoiceDailyCapReached(rateKey)) {
-      trackServerEvent("voice_daily_cap_reached", { guideId: body.guideId, rateKey });
+    if (await isVoiceDailyCapReached(rateKey)) {
+      await trackServerEvent("voice_daily_cap_reached", { guideId: body.guideId, rateKey });
       return withIdentityCookie(
         NextResponse.json({ error: "voice_daily_cap_reached" }, { status: 429 }),
         identity
@@ -113,7 +114,7 @@ export async function POST(request: Request) {
       voiceLang === "hi"
         ? "Speak only in natural Hindi. Transcripts must use Devanagari script."
         : "Speak only in natural Hinglish, that is Hindi spoken with everyday English words mixed in, the way people actually talk in Indian cities. Write transcripts in Latin script only. Never reply in Devanagari, and never reply in formal textbook English.";
-    const model = process.env.OPENAI_REALTIME_MODEL?.trim() || "gpt-realtime";
+    const model = resolveRealtimeModel();
 
     const openAiResponse = await fetch(OPENAI_CLIENT_SECRETS_ENDPOINT, {
       method: "POST",
@@ -175,7 +176,7 @@ export async function POST(request: Request) {
       );
     }
 
-    trackServerEvent("voice_session_started", { guideId: body.guideId, rateKey });
+    await trackServerEvent("voice_session_started", { guideId: body.guideId, rateKey });
 
     return withIdentityCookie(
       NextResponse.json({

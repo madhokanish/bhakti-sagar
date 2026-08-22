@@ -255,50 +255,97 @@ export function isRateLimited(key: string, limit = 20, windowMs = 60_000) {
 
 // Voice sessions (OpenAI Realtime API) cost materially more per minute than text chat's
 // LLM-completion-only cost, so they get their own cap independent of the message-count
-// limiter above. In-memory only (same limitation as isRateLimited — per-instance, resets
-// on redeploy) — acceptable for a v1 rollout gated to a small percentage of users; revisit
-// with a persisted (Prisma) counter before a wide rollout if this needs to survive restarts.
-const globalVoiceUsage = globalThis as unknown as {
-  bhaktiVoiceMinutesMap?: Map<string, { day: string; minutesUsed: number }>;
-};
-
-function getVoiceUsageMap() {
-  if (!globalVoiceUsage.bhaktiVoiceMinutesMap) {
-    globalVoiceUsage.bhaktiVoiceMinutesMap = new Map();
-  }
-  return globalVoiceUsage.bhaktiVoiceMinutesMap;
-}
+// limiter above.
+//
+// Persisted in Postgres rather than in memory. The previous Map lived on globalThis, which on
+// Vercel means one copy per lambda instance, discarded on cold start — a user routed to a
+// fresh instance started the day over. Realtime audio is the most expensive model in the
+// stack, so this counter is the only thing bounding a runaway session and it has to be shared.
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD, UTC day boundary
 }
 
-/** True if `key` has already used up its daily voice-minutes cap (env `VOICE_DAILY_MINUTES_CAP`). */
-export function isVoiceDailyCapReached(key: string): boolean {
-  const capRaw = process.env.VOICE_DAILY_MINUTES_CAP?.trim();
-  const cap = capRaw ? Number(capRaw) : 20;
-  if (!Number.isFinite(cap) || cap <= 0) return false;
-
-  const map = getVoiceUsageMap();
-  const entry = map.get(key);
-  const today = todayKey();
-  if (!entry || entry.day !== today) return false;
-
-  return entry.minutesUsed >= cap;
+/** The realtime model in use. Shared so the session route and usage recording agree. */
+export function resolveRealtimeModel(): string {
+  return process.env.OPENAI_REALTIME_MODEL?.trim() || "gpt-realtime";
 }
 
-/** Records `minutes` of voice usage against `key` for today, resetting the counter on a new day. */
-export function recordVoiceMinutesUsed(key: string, minutes: number) {
-  const map = getVoiceUsageMap();
-  const today = todayKey();
-  const entry = map.get(key);
-
-  if (!entry || entry.day !== today) {
-    map.set(key, { day: today, minutesUsed: Math.max(0, minutes) });
-    return;
+/**
+ * Records one completed voice turn. Best-effort: reporting must never fail a turn.
+ *
+ * Duration is all the server can observe — the client holds the realtime connection directly,
+ * so token counts never reach us.
+ */
+export async function recordVoiceTurnUsage(input: {
+  rateKey: string;
+  userId?: string | null;
+  guideId: string;
+  conversationId?: string | null;
+  durationSeconds: number;
+}): Promise<void> {
+  if (!(input.durationSeconds > 0)) return;
+  try {
+    await prisma.voiceTurnUsage.create({
+      data: {
+        rateKey: input.rateKey,
+        userId: input.userId ?? null,
+        guideId: input.guideId,
+        conversationId: input.conversationId ?? null,
+        model: resolveRealtimeModel(),
+        durationSeconds: input.durationSeconds
+      }
+    });
+  } catch (error) {
+    console.error("[voiceUsage] failed to record turn", error);
   }
+}
 
-  entry.minutesUsed += Math.max(0, minutes);
+/** Resolved daily cap in minutes, or null when capping is disabled. */
+function voiceDailyCapMinutes(): number | null {
+  const capRaw = process.env.VOICE_DAILY_MINUTES_CAP?.trim();
+  const cap = capRaw ? Number(capRaw) : 20;
+  if (!Number.isFinite(cap) || cap <= 0) return null;
+  return cap;
+}
+
+/** True if `key` has already used up its daily voice-minutes cap (env `VOICE_DAILY_MINUTES_CAP`). */
+export async function isVoiceDailyCapReached(key: string): Promise<boolean> {
+  const cap = voiceDailyCapMinutes();
+  if (cap === null) return false;
+
+  try {
+    const row = await prisma.voiceUsageDaily.findUnique({
+      where: { rateKey_day: { rateKey: key, day: todayKey() } },
+      select: { minutesUsed: true }
+    });
+    return (row?.minutesUsed ?? 0) >= cap;
+  } catch (error) {
+    // Fail open. A database blip must not lock every user out of voice; the spend risk of a
+    // few uncapped minutes is smaller than the product risk of a dead feature.
+    console.error("[voiceCap] read failed, allowing session", error);
+    return false;
+  }
+}
+
+/**
+ * Adds `minutes` to `key`'s usage for today. Atomic increment, so two concurrent turn-complete
+ * calls cannot clobber each other the way a read-modify-write would.
+ */
+export async function recordVoiceMinutesUsed(key: string, minutes: number): Promise<void> {
+  const safeMinutes = Math.max(0, minutes);
+  if (safeMinutes === 0) return;
+  const day = todayKey();
+
+  try {
+    await prisma.voiceUsageDaily.upsert({
+      where: { rateKey_day: { rateKey: key, day } },
+      create: { rateKey: key, day, minutesUsed: safeMinutes },
+      update: { minutesUsed: { increment: safeMinutes } }
+    });
+  } catch (error) {
+    console.error("[voiceCap] write failed, minutes not counted", error);
+  }
 }
 
 const CRISIS_PATTERNS = [

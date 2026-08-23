@@ -378,15 +378,29 @@ function resolveChatLanguage(
   headerLanguage: string | null | undefined,
   userMessage?: string | null
 ): ChatLanguage {
-  const fromMessage = detectLanguageFromText(userMessage);
-  if (fromMessage) return fromMessage;
-
+  // A stated preference wins outright — including over the script the user typed in.
+  //
+  // Script detection used to sit at the top of this function, which meant the language the
+  // user had chosen was only consulted for messages carrying no script signal at all. Most
+  // Hindi speakers type romanised because that is what the keyboard offers, so detection read
+  // Latin, answered in Latin, and picking हिंदी changed nothing about the reply. Verified on
+  // device: interface fully Devanagari, guide still replying "Shanti paane ke liye...".
+  //
+  // Mirroring the sender's script is a reasonable guess when nothing is known. It is the wrong
+  // answer once a preference exists, so it moves to the bottom as the fallback it always was.
   const preferred = (preferredValue ?? "").toLowerCase();
   if (preferred === "hi" || preferred === "hinglish") return preferred;
   // "en" from an older build means the Latin option, which is Hinglish here.
   if (preferred === "en") return "hinglish";
 
-  if (headerLanguage === "hi") return "hi";
+  const header = (headerLanguage ?? "").toLowerCase();
+  if (header === "hi") return "hi";
+  if (header === "hinglish" || header === "en") return "hinglish";
+
+  // No preference from the client (older builds, web without a setting) — mirror the script.
+  const fromMessage = detectLanguageFromText(userMessage);
+  if (fromMessage) return fromMessage;
+
   return "hinglish";
 }
 

@@ -208,7 +208,14 @@ internal fun HomeDevotionalFeedPost(
     progress: Float,
     onToggleMute: () -> Unit,
     onOpenReel: (Reel) -> Unit,
-    onPlayAarti: (Reel, Long) -> Unit
+    onPlayAarti: (Reel, Long) -> Unit,
+    /**
+     * Gated for this user. Deliberately carries no visual treatment: the post looks and
+     * browses exactly like a free one, and the चढ़ावा screen appears only on tap. A lock badge
+     * here suppressed the taps we actually want.
+     */
+    isLocked: Boolean = false,
+    onLocked: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -277,6 +284,9 @@ internal fun HomeDevotionalFeedPost(
                 )
             }
 
+            // Gated posts autoplay too. What plays here is a short clipped preview, not the
+            // full reel, so it teases rather than gives the content away — and a feed where
+            // most tiles sit frozen is a feed people scroll past.
             if (isActive && entry.reel.hasVideoTrack) {
                 AndroidView(
                     factory = { ctx ->
@@ -371,7 +381,8 @@ internal fun HomeDevotionalFeedPost(
         ) {
             Button(
                 onClick = {
-                    if (entry.isAarti) onPlayAarti(entry.reel, entry.previewStartMillis)
+                    if (isLocked) onLocked()
+                    else if (entry.isAarti) onPlayAarti(entry.reel, entry.previewStartMillis)
                     else onOpenReel(entry.reel)
                 },
                 modifier = Modifier.weight(1f),
@@ -383,7 +394,8 @@ internal fun HomeDevotionalFeedPost(
             }
             OutlinedButton(
                 onClick = {
-                    if (!isExporting) {
+                    if (isLocked) onLocked()
+                    else if (!isExporting) {
                         isExporting = true
                         scope.launch {
                             ReelStatusExporter.export(context, entry.reel, exportTitle)

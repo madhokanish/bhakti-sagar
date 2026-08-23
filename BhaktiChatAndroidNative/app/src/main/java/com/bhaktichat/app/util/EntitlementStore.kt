@@ -307,18 +307,31 @@ class EntitlementStore(context: Context) {
     }
 
     companion object {
-        const val FREE_MESSAGE_QUOTA: Int = 100
-        const val FREE_IMAGE_QUOTA: Int = 3
+        const val FREE_MESSAGE_QUOTA: Int = 10
+
+        /**
+         * One free divine image, not three. The first generation is what sells the feature;
+         * the next two only gave it away.
+         */
+        const val FREE_IMAGE_QUOTA: Int = 1
 
         /**
          * Bump to wipe everyone's usage counters once, on their next launch.
          *
          * The quotas are being reintroduced after a period of unlimited use, so existing
          * users are carrying large counts — someone on 50 messages would otherwise open the
-         * update already locked out, having never seen a limit. Raising this gives everyone
-         * a clean 20/2 from the moment they upgrade.
+         * update already locked out, having never seen a limit.
+         *
+         * Bumped again for the subscription-only model: the free image allowance drops from
+         * 3 to 1, so anyone who had already generated 2 would install the update with no
+         * free image at all and never see the feature that sells itself.
+         *
+         * And again for the chat cap dropping 100 -> 10. Existing users are carrying counts
+         * well past 10 from the unlimited period, so without a reset they would open the
+         * update already locked out of chat having never seen a limit — the worst possible
+         * first impression of the paywall.
          */
-        private const val QUOTA_EPOCH: Int = 2
+        private const val QUOTA_EPOCH: Int = 4
         private const val PAYWALL_COOLDOWN_MS: Long = 24L * 60L * 60L * 1000L
 
         private const val PREFS_NAME = "bhakti_entitlements"

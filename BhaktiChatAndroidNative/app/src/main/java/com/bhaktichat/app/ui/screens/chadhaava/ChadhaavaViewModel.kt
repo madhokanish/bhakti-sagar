@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 /** Which gated feature sent the user here, so the screen can lead with it. */
-enum class BlockedFeature { WALLPAPERS, CHAT_QUOTA, IMAGE_QUOTA }
+enum class BlockedFeature { WALLPAPERS, CHAT_QUOTA, IMAGE_QUOTA, REELS, AARTIS, VOICE, FESTIVALS }
 
 sealed interface ChadhaavaUiState {
     data object Loading : ChadhaavaUiState

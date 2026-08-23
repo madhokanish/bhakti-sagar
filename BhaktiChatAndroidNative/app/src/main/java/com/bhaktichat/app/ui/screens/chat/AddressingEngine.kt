@@ -203,6 +203,7 @@ object AddressingEngine {
      * short/ambiguous to tell (e.g. "hi", "thanks", "ok") — callers should fall back to
      * [resolveLanguage]'s thread-aware default in that case.
      */
+    @Suppress("unused")
     private fun detectLanguage(userMessage: String): ConversationLanguage? {
         // An explicit request ("reply in Hindi") outranks the script the message is typed in.
         explicitLanguageRequest(userMessage)?.let { return it }
@@ -244,24 +245,26 @@ object AddressingEngine {
      * setting appeared to do nothing at all: the setting was never consulted.
      */
     fun resolveLanguage(
-        userMessage: String,
+        @Suppress("UNUSED_PARAMETER") userMessage: String,
         @Suppress("UNUSED_PARAMETER") recentUserMessages: List<String>,
         appLanguage: AppLanguage = AppLanguage.HINDI
     ): ConversationLanguage {
-        detectLanguage(userMessage)?.let { return it }
-
-        // The chosen language, not the thread's history.
+        // The chosen language wins outright — including over the script the user typed in.
         //
-        // Inheriting from the last four messages used to sit here, and it silently outranked
-        // the setting: switching the app to Hindi mid-conversation changed nothing, because
-        // the thread was still full of Latin and every ambiguous message inherited Hinglish
-        // from it. Verified on device — the interface was fully Devanagari while the guide
-        // kept answering "Achha hai, Google!".
+        // Script detection used to sit above this and take priority, which meant the setting
+        // only decided genuinely ambiguous messages ("ok", an emoji). That looked reasonable
+        // until you watch someone use it: most Hindi speakers type romanised because that is
+        // what the keyboard gives them, so detection read Latin, answered in Latin, and the
+        // हिंदी setting did nothing. Verified on device — interface fully Devanagari, guide
+        // replying "Shanti paane ke liye pehle khud se milna zaroori hai".
         //
-        // Changing the language setting is a deliberate act, so it outranks whatever the
-        // conversation happened to be doing before. Flip-flopping is still contained by
-        // detectLanguage above: a real Latin sentence keeps its Hinglish answer, and only
-        // genuinely ambiguous messages ("ok", an emoji) fall through to the setting.
+        // Mirroring the user's script is a decent guess in the absence of a preference. It is
+        // the wrong answer when a preference exists, and now that the switch sits in the chat
+        // top bar the preference is a deliberate, one-tap act. So it outranks the guess.
+        //
+        // detectLanguage() is kept: it still classifies the message for the addressing engine,
+        // and it is the natural place to reintroduce mirroring behind a "match my script"
+        // option if that is ever wanted.
         return when (appLanguage) {
             AppLanguage.HINDI -> ConversationLanguage.HINDI
             AppLanguage.HINGLISH, AppLanguage.ENGLISH -> ConversationLanguage.HINGLISH

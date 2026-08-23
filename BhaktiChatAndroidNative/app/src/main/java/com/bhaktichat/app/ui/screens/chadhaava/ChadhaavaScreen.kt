@@ -350,6 +350,8 @@ private fun OfferState(
             Spacer(Modifier.height(14.dp))
             PriceCard(compact = blockedBy != null)
             Spacer(Modifier.height(18.dp))
+            TempleBanner()
+            Spacer(Modifier.height(18.dp))
             Benefits(blockedBy = blockedBy)
             Spacer(Modifier.height(18.dp))
             BillingTimeline()
@@ -516,16 +518,28 @@ private fun BlockedContextCard(blockedBy: BlockedFeature) {
         BlockedFeature.WALLPAPERS -> R.drawable.shivji
         BlockedFeature.CHAT_QUOTA -> R.drawable.avatar_krishna
         BlockedFeature.IMAGE_QUOTA -> R.drawable.card_krishna
+        BlockedFeature.REELS -> R.drawable.chadhaava_hero
+        BlockedFeature.AARTIS -> R.drawable.chadhaava_hero
+        BlockedFeature.VOICE -> R.drawable.avatar_krishna
+        BlockedFeature.FESTIVALS -> R.drawable.chadhaava_hero
     }
     val titleKey = when (blockedBy) {
         BlockedFeature.WALLPAPERS -> "chadhaava_blocked_wallpaper_title"
         BlockedFeature.CHAT_QUOTA -> "chadhaava_blocked_chat_title"
         BlockedFeature.IMAGE_QUOTA -> "chadhaava_blocked_image_title"
+        BlockedFeature.REELS -> "chadhaava_blocked_reels_title"
+        BlockedFeature.AARTIS -> "chadhaava_blocked_aartis_title"
+        BlockedFeature.VOICE -> "chadhaava_blocked_voice_title"
+        BlockedFeature.FESTIVALS -> "chadhaava_blocked_festivals_title"
     }
     val subKey = when (blockedBy) {
         BlockedFeature.WALLPAPERS -> "chadhaava_blocked_wallpaper_sub"
         BlockedFeature.CHAT_QUOTA -> "chadhaava_blocked_chat_sub"
         BlockedFeature.IMAGE_QUOTA -> "chadhaava_blocked_image_sub"
+        BlockedFeature.REELS -> "chadhaava_blocked_reels_sub"
+        BlockedFeature.AARTIS -> "chadhaava_blocked_aartis_sub"
+        BlockedFeature.VOICE -> "chadhaava_blocked_voice_sub"
+        BlockedFeature.FESTIVALS -> "chadhaava_blocked_festivals_sub"
     }
     Surface(
         modifier = Modifier
@@ -848,10 +862,11 @@ private fun Benefits(blockedBy: BlockedFeature?) {
     // specific feature, that feature leads instead.
     val base = listOf(
         Benefit("chadhaava_benefit_voice", "chadhaava_benefit_voice_sub", "chadhaava_badge_popular", true),
+        Benefit("chadhaava_benefit_reels", "chadhaava_benefit_reels_sub"),
+        Benefit("chadhaava_benefit_aartis", "chadhaava_benefit_aartis_sub"),
         Benefit("chadhaava_benefit_chat", "chadhaava_benefit_chat_sub"),
         Benefit("chadhaava_benefit_image", "chadhaava_benefit_image_sub"),
-        Benefit("chadhaava_benefit_wallpaper", "chadhaava_benefit_wallpaper_sub"),
-        Benefit("chadhaava_benefit_adfree", "chadhaava_benefit_adfree_sub")
+        Benefit("chadhaava_benefit_wallpaper", "chadhaava_benefit_wallpaper_sub")
     )
     // Whatever they were blocked on leads the list, badged, so the offer answers the
     // thing they just hit rather than making them hunt for it.
@@ -859,6 +874,11 @@ private fun Benefits(blockedBy: BlockedFeature?) {
         BlockedFeature.WALLPAPERS -> "chadhaava_benefit_wallpaper"
         BlockedFeature.CHAT_QUOTA -> "chadhaava_benefit_chat"
         BlockedFeature.IMAGE_QUOTA -> "chadhaava_benefit_image"
+        BlockedFeature.REELS -> "chadhaava_benefit_reels"
+        BlockedFeature.AARTIS -> "chadhaava_benefit_aartis"
+        BlockedFeature.VOICE -> "chadhaava_benefit_voice"
+        // Festivals has no dedicated benefit row; the context card above already leads with it.
+        BlockedFeature.FESTIVALS -> null
         null -> null
     }
     val ordered = if (blockedKey != null && base.any { it.titleKey == blockedKey }) {
@@ -1089,6 +1109,10 @@ private fun CtaFooter(
                                 BlockedFeature.WALLPAPERS -> t("chadhaava_cta_blocked_wallpaper")
                                 BlockedFeature.CHAT_QUOTA -> t("chadhaava_cta_blocked_chat")
                                 BlockedFeature.IMAGE_QUOTA -> t("chadhaava_cta_blocked_image")
+                                BlockedFeature.REELS -> t("chadhaava_cta_blocked_reels")
+                                BlockedFeature.AARTIS -> t("chadhaava_cta_blocked_aartis")
+                                BlockedFeature.VOICE -> t("chadhaava_cta_blocked_voice")
+                                BlockedFeature.FESTIVALS -> t("chadhaava_cta_blocked_festivals")
                                 null -> t("chadhaava_cta_line1")
                             },
                             fontSize = 17.sp,
@@ -1269,12 +1293,15 @@ private fun ActiveState(
                 color = ChadhaavaPalette.TextPrimary
             )
             Spacer(Modifier.height(10.dp))
+            // Mirrors the Offer-state list: "ad-free" dropped now that nobody sees ads, reels
+            // and aartis added since both are part of the membership.
             listOf(
                 "chadhaava_benefit_voice",
+                "chadhaava_benefit_reels",
+                "chadhaava_benefit_aartis",
                 "chadhaava_benefit_chat",
                 "chadhaava_benefit_image",
-                "chadhaava_benefit_wallpaper",
-                "chadhaava_benefit_adfree"
+                "chadhaava_benefit_wallpaper"
             ).forEach { key ->
                 Row(
                     modifier = Modifier.padding(bottom = 8.dp),
@@ -1468,5 +1495,49 @@ private fun SecondaryButton(text: String, onClick: () -> Unit) {
                 modifier = Modifier.padding(vertical = 14.dp)
             )
         }
+    }
+}
+
+/**
+ * Devotional artwork strip on the चढ़ावा screen. Purely atmospheric — it carries the feeling
+ * that the benefit list cannot, and gives the eye somewhere to rest between the price card
+ * and the feature list. Text stays out of the image so it needs no translation.
+ */
+@Composable
+private fun TempleBanner() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .height(124.dp)
+            .clip(RoundedCornerShape(18.dp))
+    ) {
+        Image(
+            painter = painterResource(R.drawable.chadhaava_bells),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            0f to Color.Transparent,
+                            1f to Color(0xB3241009)
+                        )
+                    )
+                )
+        )
+        Text(
+            text = t("chadhaava_banner_line"),
+            color = Color.White,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 14.dp, end = 14.dp, bottom = 12.dp)
+        )
     }
 }

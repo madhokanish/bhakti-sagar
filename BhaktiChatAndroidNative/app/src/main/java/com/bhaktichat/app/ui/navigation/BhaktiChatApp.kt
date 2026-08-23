@@ -170,6 +170,24 @@ fun BhaktiChatApp(
             navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_WALLPAPERS))
         }
     }
+
+    // Same shape for the rest of the depth content. Choghadiya and Panchang are deliberately
+    // absent: they are daily-check habits, and a user who stops opening the app cannot be
+    // converted at all.
+    val openAartisOrGate: () -> Unit = {
+        if (isPro) {
+            navController.navigate(NavDestinations.AARTIS)
+        } else {
+            navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_AARTIS))
+        }
+    }
+    val openFestivalsOrGate: () -> Unit = {
+        if (isPro) {
+            navController.navigate(NavDestinations.FESTIVALS)
+        } else {
+            navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_FESTIVALS))
+        }
+    }
     val streak by appContainer.streakStore.currentStreak.collectAsStateWithLifecycle()
     val longestStreak by appContainer.streakStore.longestStreak.collectAsStateWithLifecycle()
     var showStreakDetails by rememberSaveable { mutableStateOf(false) }
@@ -459,12 +477,12 @@ fun BhaktiChatApp(
                         )
                     },
                     onOpenGuidePicker = { navController.navigate(NavDestinations.GUIDE_PICKER) },
-                    onOpenAartis = { navController.navigate(NavDestinations.AARTIS) },
+                    onOpenAartis = openAartisOrGate,
                     onOpenChoghadiya = {
                         Analytics.choghadiyaOpened()
                         navController.navigate(NavDestinations.CHOGHADIYA)
                     },
-                    onOpenSubscribe = { entitlementStore.presentManually() },
+                    onOpenSubscribe = { navController.navigate(NavDestinations.chadhaavaRoute()) },
                     onOpenDivineImage = { navController.navigate(NavDestinations.DIVINE_IMAGE_HOME) },
                     onOpenReels = { reelId ->
                         requestedReelId = reelId
@@ -512,7 +530,10 @@ fun BhaktiChatApp(
                     userName = currentUser.name.orEmpty(),
                     streak = streak,
                     onOpenStreak = { showStreakDetails = true },
-                    isPro = isPro
+                    isPro = isPro,
+                    onLockedFeature = { blocked ->
+                        navController.navigate(NavDestinations.chadhaavaRoute(blocked))
+                    }
                 )
             }
 
@@ -572,6 +593,7 @@ fun BhaktiChatApp(
                         chatApiClient = appContainer.chatApiClient,
                         entitlementStore = entitlementStore,
                         reviewPromptStore = appContainer.reviewPromptStore,
+                        chatNudgeStore = appContainer.chatNudgeStore,
                         userFirstName = currentUser.name.orEmpty(),
                         languageStore = appContainer.languageStore
                     )
@@ -595,7 +617,26 @@ fun BhaktiChatApp(
                     onSend = vm::sendMessage,
                     onRegenerate = vm::regenerateLastReply,
                     onOpenVoiceMode = { guideId, conversationId ->
-                        navController.navigate(NavDestinations.voiceModeRoute(guideId, conversationId))
+                        if (isPro) {
+                            navController.navigate(NavDestinations.voiceModeRoute(guideId, conversationId))
+                        } else {
+                            navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_VOICE))
+                        }
+                    },
+                    onOpenChadhaava = {
+                        navController.navigate(NavDestinations.chadhaavaRoute())
+                    },
+                    onDismissNudge = vm::dismissChadhaavaNudge,
+                    onToggleLanguage = {
+                        val next =
+                            if (language == com.bhaktichat.app.domain.AppLanguage.HINDI)
+                                com.bhaktichat.app.domain.AppLanguage.HINGLISH
+                            else com.bhaktichat.app.domain.AppLanguage.HINDI
+                        appContainer.languageStore.setLanguage(next)
+                        Analytics.capture(
+                            "language_switched",
+                            mapOf("to" to next.wireValue, "from" to "chat_topbar")
+                        )
                     }
                 )
             }
@@ -613,7 +654,13 @@ fun BhaktiChatApp(
                 val guideId = entry.arguments?.getString(NavDestinations.VOICE_MODE_GUIDE_ARG).orEmpty()
                 val conversationId = entry.arguments?.getString(NavDestinations.VOICE_MODE_CONVERSATION_ARG)
                 val guide = appContainer.guidesRepository.getGuide(guideId)
-                if (guide == null) {
+                if (!isPro) {
+                    LaunchedEffect(Unit) {
+                        navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_VOICE)) {
+                            popUpTo(NavDestinations.VOICE_MODE) { inclusive = true }
+                        }
+                    }
+                } else if (guide == null) {
                     LaunchedEffect(Unit) { navController.popBackStack() }
                 } else {
                     val vm: VoiceConversationViewModel = viewModel(
@@ -662,7 +709,7 @@ fun BhaktiChatApp(
                         )
                     },
                     isPro = isPro,
-                    onOpenSubscribe = { entitlementStore.presentManually() }
+                    onOpenSubscribe = { navController.navigate(NavDestinations.chadhaavaRoute()) }
                 )
             }
 
@@ -679,6 +726,10 @@ fun BhaktiChatApp(
                             "\"${reel.displayTitle(language)}\". ${reel.displayCaption(language)}\n\n" +
                             reelAskMeaning
                         launchThread(guideId = reel.deityId, initialPrompt = prompt, includeOpener = false)
+                    },
+                    isPro = isPro,
+                    onSubscribe = {
+                        navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_REELS))
                     }
                 )
                 LaunchedEffect(Unit) { requestedReelId = null }
@@ -688,19 +739,27 @@ fun BhaktiChatApp(
                 ExploreScreen(
                     onOpenProfile = { navController.navigate(NavDestinations.PROFILE) },
                     onOpenDivineImage = { navController.navigate(NavDestinations.DIVINE_IMAGE_HOME) },
-                    onOpenAartis = { navController.navigate(NavDestinations.AARTIS) },
+                    onOpenAartis = openAartisOrGate,
                     onOpenChoghadiya = {
                         Analytics.choghadiyaOpened()
                         navController.navigate(NavDestinations.CHOGHADIYA)
                     },
-                    onOpenFestivals = { navController.navigate(NavDestinations.FESTIVALS) },
+                    onOpenFestivals = openFestivalsOrGate,
                     onOpenPanchang = { navController.navigate(NavDestinations.PANCHANG) },
                     onOpenWallpapers = openWallpapersOrGate
                 )
             }
 
             composable(NavDestinations.FESTIVALS) {
-                FestivalsScreen(onBack = { navController.popBackStack() })
+                if (!isPro) {
+                    LaunchedEffect(Unit) {
+                        navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_FESTIVALS)) {
+                            popUpTo(NavDestinations.FESTIVALS) { inclusive = true }
+                        }
+                    }
+                } else {
+                    FestivalsScreen(onBack = { navController.popBackStack() })
+                }
             }
 
             composable(NavDestinations.PANCHANG) {
@@ -743,6 +802,10 @@ fun BhaktiChatApp(
                             BLOCKED_WALLPAPERS -> BlockedFeature.WALLPAPERS
                             BLOCKED_CHAT_QUOTA -> BlockedFeature.CHAT_QUOTA
                             BLOCKED_IMAGE_QUOTA -> BlockedFeature.IMAGE_QUOTA
+                            BLOCKED_REELS -> BlockedFeature.REELS
+                            BLOCKED_AARTIS -> BlockedFeature.AARTIS
+                            BLOCKED_VOICE -> BlockedFeature.VOICE
+                            BLOCKED_FESTIVALS -> BlockedFeature.FESTIVALS
                             else -> null
                         }
                     }
@@ -918,6 +981,14 @@ fun BhaktiChatApp(
             }
 
             composable(NavDestinations.AARTIS) {
+                if (!isPro) {
+                    LaunchedEffect(Unit) {
+                        navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_AARTIS)) {
+                            popUpTo(NavDestinations.AARTIS) { inclusive = true }
+                        }
+                    }
+                    return@composable
+                }
                 AartisScreen(
                     repository = appContainer.aartiRepository,
                     savedAartisStore = appContainer.savedAartisStore,
@@ -941,6 +1012,14 @@ fun BhaktiChatApp(
                 arguments = listOf(navArgument("aartiId") { type = NavType.StringType })
             ) { entry ->
                 val aartiId = entry.arguments?.getString("aartiId").orEmpty()
+                if (!isPro) {
+                    LaunchedEffect(Unit) {
+                        navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_AARTIS)) {
+                            popUpTo(NavDestinations.AARTI_DETAIL) { inclusive = true }
+                        }
+                    }
+                    return@composable
+                }
                 AartiDetailScreen(
                     aartiId = aartiId,
                     repository = appContainer.aartiRepository,
@@ -1289,3 +1368,7 @@ private fun shouldShowBottomBar(route: String, imeVisible: Boolean): Boolean {
 internal const val BLOCKED_WALLPAPERS = "wallpapers"
 internal const val BLOCKED_CHAT_QUOTA = "chat_quota"
 internal const val BLOCKED_IMAGE_QUOTA = "image_quota"
+internal const val BLOCKED_REELS = "reels"
+internal const val BLOCKED_AARTIS = "aartis"
+internal const val BLOCKED_VOICE = "voice"
+internal const val BLOCKED_FESTIVALS = "festivals"

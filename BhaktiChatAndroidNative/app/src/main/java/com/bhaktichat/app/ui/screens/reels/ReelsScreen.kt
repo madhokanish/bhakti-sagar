@@ -3,6 +3,7 @@ import com.bhaktichat.app.domain.displayTitle
 import com.bhaktichat.app.domain.displayCaption
 import com.bhaktichat.app.domain.displayAudioTitle
 import com.bhaktichat.app.ui.i18n.LocalAppLanguage
+import com.bhaktichat.app.ui.i18n.t
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -21,6 +22,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
@@ -28,6 +31,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.Share
@@ -52,8 +56,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -64,6 +70,7 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import com.bhaktichat.app.R
 import com.bhaktichat.app.domain.Reel
 import com.bhaktichat.app.domain.ReelFeed
 import com.bhaktichat.app.ui.components.shell.BhaktiBottomNavBarDefaults
@@ -80,7 +87,9 @@ import kotlinx.coroutines.launch
 @Composable
 fun ReelsScreen(
     factory: ReelsViewModelFactory,
-    onAskAbout: (Reel) -> Unit
+    onAskAbout: (Reel) -> Unit,
+    isPro: Boolean = false,
+    onSubscribe: () -> Unit = {}
 ) {
     val vm: ReelsViewModel = viewModel(factory = factory)
     val uiState by vm.uiState.collectAsStateWithLifecycle()
@@ -90,11 +99,23 @@ fun ReelsScreen(
         if (uiState.reels.isEmpty()) {
             EmptyState()
         } else {
-            val pagerState = rememberPagerState(pageCount = { uiState.reels.size })
+            // Free users get FREE_REEL_COUNT reels and then the pager simply ends on a
+            // paywall page. Capping pageCount rather than intercepting the scroll means the
+            // swipe resolves normally instead of fighting the user's gesture, and there is
+            // no way to page past it.
+            val pageCount = if (isPro) uiState.reels.size else FREE_REEL_COUNT + 1
+            val pagerState = rememberPagerState(pageCount = { pageCount })
             VerticalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
+                if (!isPro && page >= FREE_REEL_COUNT) {
+                    ReelsPaywallPage(
+                        isActive = pagerState.currentPage == page,
+                        onSubscribe = onSubscribe
+                    )
+                    return@VerticalPager
+                }
                 val reel = uiState.reels[page]
                 ReelPage(
                     reel = reel,
@@ -119,6 +140,87 @@ fun ReelsScreen(
                 .statusBarsPadding()
                 .padding(top = 6.dp)
         )
+    }
+}
+
+/** Reels a non-subscriber may watch before the paywall page. */
+private const val FREE_REEL_COUNT = 1
+
+/**
+ * Terminal page of the free reels feed. Deliberately styled like a reel rather than a dialog
+ * — it occupies the slot the next video would have, so the swipe that reached it feels
+ * answered instead of interrupted.
+ */
+@Composable
+private fun ReelsPaywallPage(isActive: Boolean, onSubscribe: () -> Unit) {
+    LaunchedEffect(isActive) {
+        if (isActive) Analytics.screen("reels_paywall")
+    }
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF120A06))) {
+        // Artwork behind a heavy scrim: the page still reads as a reel slot rather than a
+        // dialog, but it is warm instead of a dead black rectangle.
+        Image(
+            painter = painterResource(R.drawable.chadhaava_ghat),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        Box(modifier = Modifier.fillMaxSize().background(Color(0xD9160B05)))
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .clip(CircleShape)
+                .background(Color(0xF2F6C04A)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Lock,
+                contentDescription = null,
+                tint = Color(0xFF3A2410),
+                modifier = Modifier.size(30.dp)
+            )
+        }
+        Text(
+            text = t("chadhaava_blocked_reels_title"),
+            color = Color.White,
+            fontSize = 21.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 20.dp)
+        )
+        Text(
+            text = t("chadhaava_blocked_reels_sub"),
+            color = Color(0xCCFFFFFF),
+            fontSize = 14.5.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 10.dp)
+        )
+        Box(
+            modifier = Modifier
+                .padding(top = 26.dp)
+                .widthIn(min = 220.dp)
+                .clip(RoundedCornerShape(26.dp))
+                .background(Color(0xFFF6C04A))
+                .clickable(onClick = onSubscribe)
+                .padding(horizontal = 28.dp, vertical = 14.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = t("chadhaava_cta_blocked_reels"),
+                color = Color(0xFF3A2410),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.ExtraBold,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
     }
 }
 

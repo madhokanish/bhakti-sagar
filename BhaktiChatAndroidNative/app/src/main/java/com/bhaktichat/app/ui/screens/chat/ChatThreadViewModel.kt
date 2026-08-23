@@ -18,6 +18,7 @@ import com.bhaktichat.app.data.repo.GuidesRepository
 import com.bhaktichat.app.data.repo.MessagesRepository
 import com.bhaktichat.app.data.repo.ThreadsRepository
 import com.bhaktichat.app.domain.ChatRole
+import com.bhaktichat.app.util.ChatNudgeStore
 import com.bhaktichat.app.domain.Guide
 import com.bhaktichat.app.domain.MessageStatus
 import com.bhaktichat.app.util.Analytics
@@ -40,8 +41,28 @@ data class ThreadUiState(
     val inputText: String = "",
     val isLoading: Boolean = true,
     val isSending: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    /**
+     * Shows the चढ़ावा card under the conversation. Held in UI state rather than inserted
+     * into [messages] on purpose: ChatRepository builds the model's context from the message
+     * list, so a promo injected there would become conversation history the guide starts
+     * imitating.
+     */
+    val showChadhaavaNudge: Boolean = false
 )
+
+private val DEVOTIONAL_GREETING = Regex(
+    "\\b(jai|jay|jaikara|radhe|radhey|har har mahadev|om namah shivaya|namah shivay|" +
+        "hare krishna|hare ram|bajrangbali|jai mata di|praise be|praise the lord)\\b" +
+        "|जय|राधे|हर हर महादेव|ॐ नमः शिवाय|हरे कृष्ण|हरे राम|जय माता दी",
+    RegexOption.IGNORE_CASE
+)
+
+/** User messages between चढ़ावा nudges. */
+private const val NUDGE_EVERY_N_EXCHANGES = 5
+
+/** Hard ceiling per ViewModel instance, so one long session cannot nag repeatedly. */
+private const val NUDGE_MAX_PER_SESSION = 2
 
 class ChatThreadViewModel(
     private val threadId: String,
@@ -51,6 +72,7 @@ class ChatThreadViewModel(
     private val chatApiClient: ChatApiClient,
     private val entitlementStore: EntitlementStore,
     private val reviewPromptStore: ReviewPromptStore,
+    private val chatNudgeStore: ChatNudgeStore,
     private val userFirstName: String = "",
     private val languageStore: LanguageStore
 ) : ViewModel() {
@@ -197,6 +219,7 @@ class ChatThreadViewModel(
                 // actually came back). Failures / errors leave the counter alone.
                 entitlementStore.recordMessageSent()
                 reviewPromptStore.recordMessageSent()
+                maybeShowChadhaavaNudge(force = isDevotionalGreeting(trimmed))
                 Analytics.chatMessageSent(guideId = guide.id)
                 // Full turn text, so conversations are readable in PostHog for product review
                 // and model improvement. (Sensitive content — see Analytics.guideChatTurn.)
@@ -227,6 +250,47 @@ class ChatThreadViewModel(
                 }
             }
         }
+    }
+
+    private var nudgesShownThisSession = 0
+
+    /**
+     * Offers चढ़ावा after every [NUDGE_EVERY_N_EXCHANGES]th message the user sends. The offer is BhaktiChat's,
+     * not the guide's — a deity persona promising an outcome in exchange for payment is both
+     * a Play policy problem and the thing that generates refund disputes.
+     */
+    private fun maybeShowChadhaavaNudge(force: Boolean = false) {
+        if (entitlementStore.isPro.value) return
+        if (nudgesShownThisSession >= NUDGE_MAX_PER_SESSION) return
+        if (!chatNudgeStore.shouldShow()) return
+        if (!force) {
+            // Counts the user's own messages, not the guide's. One guide turn can land as
+            // several bubbles, so an assistant-message count jumps in irregular steps (3 -> 7)
+            // and a `% N == 0` test skips the multiple entirely — the nudge would fire only by
+            // luck. One user message per exchange makes the cadence exact.
+            val exchanges = _uiState.value.messages.count { it.role == ChatRole.USER.wire }
+            if (exchanges == 0 || exchanges % NUDGE_EVERY_N_EXCHANGES != 0) return
+        }
+        nudgesShownThisSession += 1
+        _uiState.update { it.copy(showChadhaavaNudge = true) }
+        Analytics.screen(if (force) "chat_chadhaava_nudge_jaikara" else "chat_chadhaava_nudge")
+    }
+
+    /**
+     * A jaikara — "Jai Shri Ram", "Radhe Radhe", "Har Har Mahadev" — is the user expressing
+     * devotion unprompted, so the offer surfaces there rather than waiting for the reply
+     * counter. It still respects the session cap and the dismissal cooldown, and it still
+     * only raises the card: the user is never navigated out of their conversation.
+     *
+     * Word boundaries matter on the short romanised forms. "jai" without \b would fire on
+     * "jaise", which is one of the most common words in Hinglish.
+     */
+    private fun isDevotionalGreeting(text: String): Boolean = DEVOTIONAL_GREETING.containsMatchIn(text)
+
+    /** User said no. Buys a day of quiet across every thread. */
+    fun dismissChadhaavaNudge() {
+        chatNudgeStore.markDismissed()
+        _uiState.update { it.copy(showChadhaavaNudge = false) }
     }
 
     /**
@@ -262,6 +326,7 @@ class ChatThreadViewModelFactory(
     private val chatApiClient: ChatApiClient,
     private val entitlementStore: EntitlementStore,
     private val reviewPromptStore: ReviewPromptStore,
+    private val chatNudgeStore: ChatNudgeStore,
     private val userFirstName: String = "",
     private val languageStore: LanguageStore
 ) : ViewModelProvider.Factory {
@@ -275,6 +340,7 @@ class ChatThreadViewModelFactory(
             chatApiClient = chatApiClient,
             entitlementStore = entitlementStore,
             reviewPromptStore = reviewPromptStore,
+            chatNudgeStore = chatNudgeStore,
             userFirstName = userFirstName,
             languageStore = languageStore
         ) as T

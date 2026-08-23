@@ -1,6 +1,9 @@
 package com.bhaktichat.app.ui.screens.chat
 import com.bhaktichat.app.ui.i18n.t
+import com.bhaktichat.app.domain.AppLanguage
 import com.bhaktichat.app.ui.i18n.LocalAppLanguage
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
@@ -161,7 +164,10 @@ fun ChatThreadScreen(
     onSend: (String) -> Unit,
     onRegenerate: () -> Unit = {},
     onClearChat: (() -> Unit)? = null,
-    onOpenVoiceMode: (guideId: String, conversationId: String?) -> Unit = { _, _ -> }
+    onOpenVoiceMode: (guideId: String, conversationId: String?) -> Unit = { _, _ -> },
+    onOpenChadhaava: () -> Unit = {},
+    onDismissNudge: () -> Unit = {},
+    onToggleLanguage: () -> Unit = {}
 ) {
     val guide = uiState.guide
     val listState = rememberLazyListState()
@@ -324,6 +330,24 @@ fun ChatThreadScreen(
                     }
                 },
                 actions = {
+                    // Script switch, first in the bar. The label is always the *other*
+                    // option written in its own script, so it is legible to someone who
+                    // cannot read the script they are currently stuck in — which is the
+                    // whole point. Until now this lived only in the first-launch sheet and
+                    // in Profile, and most people leave after two messages.
+                    val switchLabel =
+                        if (LocalAppLanguage.current == AppLanguage.HINDI) "English" else "हिंदी"
+                    Text(
+                        text = switchLabel,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .padding(end = 2.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable(onClick = onToggleLanguage)
+                            .padding(horizontal = 12.dp, vertical = 7.dp)
+                    )
                     if (guide != null) {
                         IconButton(
                             onClick = {
@@ -554,6 +578,15 @@ fun ChatThreadScreen(
                                     selectedMessageId = null
                                 },
                                 onRegenerate = onRegenerate
+                            )
+                        }
+                    }
+
+                    if (uiState.showChadhaavaNudge) {
+                        item(key = "chadhaava_nudge") {
+                            ChadhaavaNudgeCard(
+                                onOpen = onOpenChadhaava,
+                                onDismiss = onDismissNudge
                             )
                         }
                     }
@@ -1005,5 +1038,66 @@ private fun anchoredMessageIndex(messages: List<MessageEntity>): Int {
         lastUserIndex == -1 -> messages.lastIndex
         lastUserIndex < messages.lastIndex -> lastUserIndex
         else -> messages.lastIndex
+    }
+}
+
+/**
+ * In-chat चढ़ावा offer.
+ *
+ * Rendered as a card rather than a chat bubble, and without the guide's avatar, so it reads
+ * unmistakably as BhaktiChat speaking rather than the deity. That separation is the whole
+ * point: an offer of continued access is fine, a deity persona promising an outcome in
+ * exchange for money is not.
+ */
+@Composable
+private fun ChadhaavaNudgeCard(onOpen: () -> Unit, onDismiss: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = Color(0xFFFFF6E4),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33B85A22))
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = t("chat_nudge_title"),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2A1E14)
+            )
+            Text(
+                text = t("chat_nudge_body"),
+                fontSize = 13.sp,
+                color = Color(0xFF6B5541)
+            )
+            Row(
+                modifier = Modifier.padding(top = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = t("chat_nudge_cta"),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF3A2410),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFFF6C04A))
+                        .clickable(onClick = onOpen)
+                        .padding(horizontal = 18.dp, vertical = 9.dp)
+                )
+                Text(
+                    text = t("chat_nudge_dismiss"),
+                    fontSize = 13.5.sp,
+                    color = Color(0xFF8B735F),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable(onClick = onDismiss)
+                        .padding(horizontal = 12.dp, vertical = 9.dp)
+                )
+            }
+        }
     }
 }

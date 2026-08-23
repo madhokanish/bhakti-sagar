@@ -113,34 +113,42 @@ private val table: Map<String, Entry> = mapOf(
         "What you get"
     ),
     "chadhaava_benefit_voice" to Entry(
-        "Talk like a phone call",
+        "Phone jaisi baatcheet",
         "फ़ोन जैसी बातचीत",
         "Talk like a phone call"
     ),
     "chadhaava_benefit_voice_sub" to Entry(
-        "Speak your question, hear the answer right away",
+        "Bolkar poochhiye, turant awaaz mein jawaab paaiye",
         "बोलकर पूछें, तुरंत आवाज़ में जवाब पाएँ",
         "Speak your question, hear the answer right away"
     ),
-    "chadhaava_benefit_chat" to Entry("Unlimited conversations", "असीमित बातचीत", "Unlimited conversations"),
+    "chadhaava_benefit_chat" to Entry(
+        "Aseemit baatcheet",
+        "असीमित बातचीत",
+        "Unlimited conversations"
+    ),
     "chadhaava_benefit_chat_sub" to Entry(
-        "With Krishna, Lakshmi, Shani and every guide",
+        "Krishna, Lakshmi, Shani aur sabhi guruon ke saath",
         "कृष्ण, लक्ष्मी, शनि और सभी गुरुओं के साथ",
         "With Krishna, Lakshmi, Shani and every guide"
     ),
-    "chadhaava_benefit_image" to Entry("Divine images", "दिव्य तस्वीरें", "Divine images"),
+    "chadhaava_benefit_image" to Entry(
+        "Divine images",
+        "दिव्य तस्वीरें",
+        "Divine images"
+    ),
     "chadhaava_benefit_image_sub" to Entry(
-        "Create your photo with the deities",
+        "Bhagwan ke saath apni photo banaiye",
         "भगवान के साथ अपनी फ़ोटो बनाएँ",
         "Create your photo with the deities"
     ),
     "chadhaava_benefit_wallpaper" to Entry(
-        "Wallpapers and status",
+        "Wallpapers aur status",
         "वॉलपेपर और स्टेटस",
         "Wallpapers and status"
     ),
     "chadhaava_benefit_wallpaper_sub" to Entry(
-        "25 wallpapers, download and share",
+        "25 wallpapers, download aur share kijiye",
         "25 वॉलपेपर, डाउनलोड और शेयर करें",
         "25 wallpapers, download and share"
     ),
@@ -214,49 +222,204 @@ private val table: Map<String, Entry> = mapOf(
         "₹5 back right away • 3 days of BhaktiChat free"
     ),
     "chadhaava_cta_blocked_wallpaper" to Entry(
-        "Pay ₹5 to unlock wallpapers",
-        "₹5 देकर वॉलपेपर खोलें",
-        "Pay ₹5 to unlock wallpapers"
+        "3 din bilkul free shuru kijiye",
+        "3 दिन बिल्कुल मुफ़्त शुरू कीजिए",
+        "Start 3 days free"
     ),
     "chadhaava_link_refunds" to Entry("Refund policy", "रिफंड नीति", "Refund policy"),
     "chadhaava_link_terms" to Entry("Terms", "शर्तें", "Terms"),
 
     "chadhaava_blocked_wallpaper_title" to Entry(
-        "This wallpaper is part of Chadhava",
+        "Yeh wallpaper Chadhava mein shaamil hai",
         "यह वॉलपेपर चढ़ावा में शामिल है",
         "This wallpaper is part of Chadhava"
     ),
     "chadhaava_blocked_wallpaper_sub" to Entry(
-        "This wallpaper and 24 more, pay ₹5, get it back right away, download today",
-        "यह वॉलपेपर और 24 अन्य, ₹5 दें, तुरंत वापस पाएँ, आज ही डाउनलोड करें",
-        "This wallpaper and 24 more, pay ₹5, get it back right away, download today"
+        "Yeh wallpaper aur 24 aur, 3 din bilkul free",
+        "यह वॉलपेपर और 24 अन्य, 3 दिन बिल्कुल मुफ़्त",
+        "This wallpaper and 24 more, free for 3 days"
     ),
 
     "chadhaava_blocked_chat_title" to Entry(
-        "You have used your free messages",
+        "Aapke free message poore ho gaye",
         "आपके निःशुल्क संदेश पूरे हो गए",
         "You have used your free messages"
     ),
     "chadhaava_blocked_chat_sub" to Entry(
-        "Talk to the guides without limit, pay ₹5, get it back right away",
-        "चढ़ावा के साथ गुरुओं से असीमित बात कीजिए, ₹5 दें, तुरंत वापस पाएँ",
-        "Talk to the guides without limit, pay ₹5, get it back right away"
+        "Guruon se aseemit baatcheet, 3 din bilkul free",
+        "गुरुओं से असीमित बातचीत, 3 दिन बिल्कुल मुफ़्त",
+        "Talk to the guides without limit, free for 3 days"
     ),
     "chadhaava_blocked_image_title" to Entry(
-        "You have used your free divine images",
+        "Aapki free divine images poori ho gayin",
         "आपकी निःशुल्क दिव्य छवियाँ पूरी हो गईं",
         "You have used your free divine images"
     ),
     "chadhaava_blocked_image_sub" to Entry(
-        "Create as many divine images as you like, pay ₹5, get it back right away",
-        "चढ़ावा के साथ जितनी चाहें दिव्य छवियाँ बनाइए, ₹5 दें, तुरंत वापस पाएँ",
-        "Create as many divine images as you like, pay ₹5, get it back right away"
+        "Jitni chaahein divine images banaiye, 3 din bilkul free",
+        "जितनी चाहें दिव्य छवियाँ बनाइए, 3 दिन बिल्कुल मुफ़्त",
+        "Create as many divine images as you like, free for 3 days"
+    ),
+
+    // Locked-content surfaces. Copy sells continued access only — never an outcome in the
+    // user's life, which is what keeps this the right side of Play's purchase policy.
+    "chadhaava_blocked_reels_title" to Entry(
+        "Yeh reel Chadhava mein shaamil hai",
+        "यह रील चढ़ावा में शामिल है",
+        "This reel is part of Chadhava"
+    ),
+    "chadhaava_blocked_reels_sub" to Entry(
+        "Har reel bina rok-tok, 3 din bilkul free",
+        "हर रील बिना रोक-टोक, 3 दिन बिल्कुल मुफ़्त",
+        "Every reel without limit, free for 3 days"
+    ),
+    "chadhaava_blocked_aartis_title" to Entry(
+        "Yeh aarti Chadhava mein shaamil hai",
+        "यह आरती चढ़ावा में शामिल है",
+        "This aarti is part of Chadhava"
+    ),
+    "chadhaava_blocked_aartis_sub" to Entry(
+        "Saari 22 aartiyan jab chaahein suniye, 3 din bilkul free",
+        "सभी 22 आरतियाँ जब चाहें सुनिए, 3 दिन बिल्कुल मुफ़्त",
+        "All 22 aartis to play anytime, free for 3 days"
+    ),
+    "chadhaava_blocked_voice_title" to Entry(
+        "Awaaz mein baatcheet Chadhava mein shaamil hai",
+        "आवाज़ में बातचीत चढ़ावा में शामिल है",
+        "Voice conversation is part of Chadhava"
+    ),
+    "chadhaava_blocked_voice_sub" to Entry(
+        "Guruon se bolkar baat kijiye, 3 din bilkul free",
+        "गुरुओं से बोलकर बात कीजिए, 3 दिन बिल्कुल मुफ़्त",
+        "Speak with the guides out loud, free for 3 days"
+    ),
+    "chadhaava_blocked_festivals_title" to Entry(
+        "Tyohaar calendar Chadhava mein shaamil hai",
+        "त्योहार कैलेंडर चढ़ावा में शामिल है",
+        "Festival calendar is part of Chadhava"
+    ),
+    "chadhaava_blocked_festivals_sub" to Entry(
+        "Har tyohaar ki tithi aur vidhi, 3 din bilkul free",
+        "हर त्योहार की तिथि और विधि, 3 दिन बिल्कुल मुफ़्त",
+        "Every festival date and vidhi, free for 3 days"
+    ),
+
+    "chadhaava_benefit_reels" to Entry(
+        "Reels",
+        "रील्स",
+        "Reels"
+    ),
+    "chadhaava_benefit_reels_sub" to Entry(
+        "Aseemit bhakti reels",
+        "असीमित भक्ति रील्स",
+        "Unlimited devotional reels"
+    ),
+    "chadhaava_benefit_aartis" to Entry(
+        "Aarti sangrah",
+        "आरती संग्रह",
+        "Aarti sangrah"
+    ),
+    "chadhaava_benefit_aartis_sub" to Entry(
+        "22 aartiyan, jab chaahein suniye",
+        "22 आरतियाँ, जब चाहें सुनिए",
+        "22 aartis, play anytime"
+    ),
+
+    "chadhaava_cta_blocked_reels" to Entry(
+        "3 din bilkul free shuru kijiye",
+        "3 दिन बिल्कुल मुफ़्त शुरू कीजिए",
+        "Start 3 days free"
+    ),
+    "chadhaava_cta_blocked_aartis" to Entry(
+        "3 din bilkul free shuru kijiye",
+        "3 दिन बिल्कुल मुफ़्त शुरू कीजिए",
+        "Start 3 days free"
+    ),
+    "chadhaava_cta_blocked_voice" to Entry(
+        "3 din bilkul free shuru kijiye",
+        "3 दिन बिल्कुल मुफ़्त शुरू कीजिए",
+        "Start 3 days free"
+    ),
+    "chadhaava_cta_blocked_festivals" to Entry(
+        "3 din bilkul free shuru kijiye",
+        "3 दिन बिल्कुल मुफ़्त शुरू कीजिए",
+        "Start 3 days free"
+    ),
+
+    // In-chat चढ़ावा card. Deliberately BhaktiChat's voice, not the guide's: a deity persona
+    // promising an outcome in return for money is a Play policy problem and a refund magnet.
+    "chat_nudge_title" to Entry(
+        "Baatcheet jaari rakhiye",
+        "बातचीत जारी रखिए",
+        "Keep the conversation going"
+    ),
+    "chat_nudge_body" to Entry(
+        "Chadhava se khulti hai awaaz mein baatcheet, har reel aur aarti, wallpapers aur divine images. 3 din bilkul free.",
+        "चढ़ावा से खुलती है आवाज़ में बातचीत, हर रील और आरती, वॉलपेपर और दिव्य छवियाँ। 3 दिन बिल्कुल मुफ़्त।",
+        "Chadhava opens voice conversation, every reel and aarti, wallpapers and divine images. Free for 3 days."
+    ),
+    "chat_nudge_cta" to Entry(
+        "Chadhava dekhiye",
+        "चढ़ावा देखिए",
+        "See Chadhava"
+    ),
+    "chat_nudge_dismiss" to Entry(
+        "Abhi nahi",
+        "अभी नहीं",
+        "Not now"
+    ),
+
+    // Home-screen चढ़ावा card. Every line describes what the subscription actually contains.
+    // No outcome claims — see the note in ChadhaavaBenefitsCard.kt.
+    "chadhaava_card_title" to Entry(
+        "Chadhava ke laabh",
+        "चढ़ावा के लाभ",
+        "Benefits of Chadhava"
+    ),
+    "chadhaava_card_benefit_1" to Entry(
+        "Har guru se aseemit baatcheet",
+        "हर गुरु से असीमित बातचीत",
+        "Unlimited conversations with every guide"
+    ),
+    "chadhaava_card_benefit_2" to Entry(
+        "Saari 22 aartiyan, jab man chaahe",
+        "सभी 22 आरतियाँ, जब मन चाहे",
+        "All 22 aartis, whenever you need them"
+    ),
+    "chadhaava_card_benefit_3" to Entry(
+        "Har reel, wallpaper aur divine image",
+        "हर रील, वॉलपेपर और दिव्य छवि",
+        "Every reel, wallpaper and divine image"
+    ),
+    "chadhaava_card_benefit_4" to Entry(
+        "Phone jaisi awaaz mein baatcheet",
+        "फ़ोन जैसी आवाज़ में बातचीत",
+        "Voice conversation, like a phone call"
+    ),
+    "chadhaava_card_footnote" to Entry(
+        "3 din bilkul free, kabhi bhi cancel kijiye",
+        "3 दिन बिल्कुल मुफ़्त, कभी भी रद्द कीजिए",
+        "3 days free, cancel anytime"
+    ),
+    "chadhaava_card_cta" to Entry(
+        "3 din bilkul free shuru kijiye",
+        "3 दिन बिल्कुल मुफ़्त शुरू कीजिए",
+        "Start 3 days free"
+    ),
+    "chadhaava_banner_line" to Entry(
+        "Aapki bhakti, har din ke saath",
+        "आपकी भक्ति, हर दिन के साथ",
+        "Your devotion, every single day"
     ),
     "chadhaava_cta_blocked_chat" to Entry(
-        "Start unlimited chat", "असीमित बातचीत शुरू कीजिए", "Start unlimited chat"
+        "3 din bilkul free shuru kijiye",
+        "3 दिन बिल्कुल मुफ़्त शुरू कीजिए",
+        "Start 3 days free"
     ),
     "chadhaava_cta_blocked_image" to Entry(
-        "Start unlimited images", "असीमित छवियाँ शुरू कीजिए", "Start unlimited images"
+        "3 din bilkul free shuru kijiye",
+        "3 दिन बिल्कुल मुफ़्त शुरू कीजिए",
+        "Start 3 days free"
     ),
 
     "chadhaava_processing_title" to Entry(

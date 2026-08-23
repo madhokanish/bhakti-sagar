@@ -43,6 +43,7 @@ class InterstitialAdManager(
 
     /** Preloads an interstitial if one isn't already loaded/loading. Safe to call repeatedly. */
     fun load(context: Context) {
+        if (!ADS_ENABLED) return
         if (isPro()) return
         if (ad != null || loading) return
         loading = true
@@ -80,8 +81,9 @@ class InterstitialAdManager(
      */
     fun show(activity: Activity, placement: String, onDone: () -> Unit = {}) {
         // Subscribers see no interstitial, but onDone must still run so their navigation
-        // continues exactly as it would for a free user.
-        if (isPro()) {
+        // continues exactly as it would for a free user. Same contract when ads are off
+        // entirely — every placement is a pass-through, never a dead end.
+        if (!ADS_ENABLED || isPro()) {
             onDone()
             return
         }
@@ -117,7 +119,7 @@ class InterstitialAdManager(
      * ad load finishes.
      */
     fun loadThenShow(activity: Activity, placement: String, onDone: () -> Unit = {}) {
-        if (isPro()) {
+        if (!ADS_ENABLED || isPro()) {
             onDone()
             return
         }

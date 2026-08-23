@@ -33,6 +33,7 @@ import com.bhaktichat.app.data.repo.ThreadsRepository
 import com.bhaktichat.app.util.BookmarkStore
 import com.bhaktichat.app.util.EntitlementStore
 import com.bhaktichat.app.util.GuidePreferences
+import com.bhaktichat.app.util.ChatNudgeStore
 import com.bhaktichat.app.util.ReviewPromptStore
 import com.bhaktichat.app.util.LanguageStore
 import com.bhaktichat.app.util.StreakStore
@@ -124,6 +125,7 @@ class AppContainer(
     val entitlementStore = EntitlementStore(appContext)
     val streakStore = StreakStore(appContext)
     val reviewPromptStore = ReviewPromptStore(appContext)
+    val chatNudgeStore = ChatNudgeStore(appContext)
     val subscriptionManager = SubscriptionManager(appContext, entitlementStore, languageStore)
 
     // Chadhaava (Razorpay UPI AutoPay) — the current subscription rail. [subscriptionManager]

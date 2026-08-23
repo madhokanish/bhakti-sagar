@@ -80,6 +80,7 @@ import com.bhaktichat.app.ui.screens.aartis.components.aartiImageRes
 import com.bhaktichat.app.ui.screens.choghadiya.KaalTone
 import com.bhaktichat.app.ui.screens.choghadiya.heroGradientFor
 import com.bhaktichat.app.ui.screens.choghadiya.kaalToneFor
+import com.bhaktichat.app.ui.components.home.ChadhaavaBenefitsCard
 import com.bhaktichat.app.ui.i18n.t
 import com.bhaktichat.app.ui.theme.BhaktiThemeTokens
 import com.bhaktichat.app.domain.Guides
@@ -118,7 +119,9 @@ fun HomeScreen(
     userName: String = "",
     isPro: Boolean = false,
     streak: Int = 0,
-    onOpenStreak: () -> Unit = {}
+    onOpenStreak: () -> Unit = {},
+    /** Receives a BLOCKED_* key when a non-subscriber taps locked home-feed content. */
+    onLockedFeature: (String) -> Unit = {}
 ) {
     var reelsPreview by remember { mutableStateOf<List<Reel>>(emptyList()) }
     var aartiSpotlightFallback by remember { mutableStateOf<Aarti?>(null) }
@@ -380,6 +383,15 @@ fun HomeScreen(
             WallpapersPreviewRow(onClick = onOpenWallpapers)
         }
 
+        // Sits below the wallpapers shelf: the user has scrolled past the guides, the
+        // situations and every content shelf by this point, so they are engaged rather than
+        // glancing. Subscribers never see it.
+        if (!isPro) {
+            item("chadhaava-benefits") {
+                ChadhaavaBenefitsCard(onOpen = onOpenSubscribe)
+            }
+        }
+
         if (homeFeedEntries.isNotEmpty()) {
             item(key = "home-devotional-feed-title", contentType = "section-header") {
                 SectionHeaderRow(title = t("home_feed_title"))
@@ -389,6 +401,10 @@ fun HomeScreen(
                 key = ::homeFeedItemKey,
                 contentType = { "home-devotional-feed-post" }
             ) { entry ->
+                // Every post browses and previews normally. Gating is tap-only: nothing here
+                // looks withheld, and the चढ़ावा screen appears when the user reaches for the
+                // full reel. The first post is ungated so a tap there still plays.
+                val gated = !isPro && entry.instanceId != homeFeedEntries.first().instanceId
                 HomeDevotionalFeedPost(
                     entry = entry,
                     player = homeFeedPlayback.player,
@@ -399,7 +415,9 @@ fun HomeScreen(
                     onOpenReel = { reel -> onOpenReels(reel.id) },
                     onPlayAarti = { reel, startMillis ->
                         onPlayAartiFromFeed(reel.id.removePrefix("aarti-"), startMillis)
-                    }
+                    },
+                    isLocked = gated,
+                    onLocked = { onLockedFeature(if (entry.isAarti) "aartis" else "reels") }
                 )
             }
         }

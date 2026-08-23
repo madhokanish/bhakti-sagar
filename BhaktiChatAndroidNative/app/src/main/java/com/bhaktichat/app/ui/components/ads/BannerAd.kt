@@ -34,6 +34,7 @@ fun BannerAd(
     modifier: Modifier = Modifier,
     adUnitId: String = BuildConfig.ADMOB_BANNER_ID
 ) {
+    if (!ADS_ENABLED) return
     val context = LocalContext.current
     val isPro by (context.applicationContext as BhaktiChatApplication)
         .container.entitlementStore.isPro.collectAsStateWithLifecycle()

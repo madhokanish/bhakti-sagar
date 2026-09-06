@@ -5,9 +5,17 @@ import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { authenticateMobileHeaders } from "@/lib/mobileAuth";
 import { prisma } from "@/lib/prisma";
+import { hasSubscriptionEntitlement } from "@/lib/subscription";
 import { headers as nextHeaders } from "next/headers";
 
 export const BHAKTIGPT_COOKIE = "bs_bhaktigpt_session";
+// Native apps have no durable cookie jar — the Android client's is in-memory — so they send
+// a stable per-install id instead. Without it every cold start would look like a brand-new
+// anonymous visitor and the guide would have forgotten the conversation.
+const ANON_ID_HEADER = "x-bhakti-anon-id";
+// A v4 UUID as the client generates it. Narrow on purpose: this value becomes a database
+// key, and the only thing it unlocks is that install's own chat history.
+const ANON_ID_PATTERN = /^[0-9a-fA-F-]{36}$/;
 const ANON_LIMIT = 3;
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 90;
 // Chat is unlimited for everyone now (ad-supported model) — flip true to bring back
@@ -71,6 +79,15 @@ export type BhaktiIdentity = {
   cookieValue: string | null;
 };
 
+function readDeviceAnonId(): string | null {
+  try {
+    const value = nextHeaders().get(ANON_ID_HEADER)?.trim();
+    return value && ANON_ID_PATTERN.test(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function resolveBhaktiIdentity(): Promise<BhaktiIdentity> {
   let sessionUserId: string | null = null;
   try {
@@ -90,7 +107,11 @@ export async function resolveBhaktiIdentity(): Promise<BhaktiIdentity> {
   const cookieStore = cookies();
   const parsed = decodeCookiePayload(cookieStore.get(BHAKTIGPT_COOKIE)?.value);
 
-  const sessionId = parsed?.sessionId ?? crypto.randomUUID();
+  // Only consulted when there is no signed cookie, so the web path is untouched. It is not
+  // signed, which is fine for what it is: guessing another install's UUID is the only way to
+  // reach their history, and nothing here grants entitlement — that still requires a real
+  // session (see requireMobileSession on the subscription routes).
+  const sessionId = parsed?.sessionId ?? readDeviceAnonId() ?? crypto.randomUUID();
   const needsCookieSet = !parsed;
 
   const payload: ParsedAnonCookie = {
@@ -105,6 +126,65 @@ export async function resolveBhaktiIdentity(): Promise<BhaktiIdentity> {
     needsCookieSet,
     cookieValue: needsCookieSet ? encodeCookiePayload(payload) : null
   };
+}
+
+export const CLIENT_HEADER = "x-bhakti-client";
+
+/**
+ * True when the caller is a client whose paid features are enforced here rather than only in
+ * its own UI. Android only, for now, and deliberately opt-in by header.
+ *
+ * iOS is excluded because it has no purchase path at all — StoreKit was pulled before
+ * release, so `isPro` is permanently false there and the server has no way to recognise a
+ * paying iOS user. Enforcing against it would delete the feature on iOS and earn nothing.
+ * When iOS gets a purchase path and authenticates, it sends this header too and the
+ * exclusion disappears on its own.
+ *
+ * Being header-driven, this is bypassable by simply omitting the header — which is why the
+ * per-IP burst limit on the image route is not conditional. Treat this as enforcing the
+ * product rule against the shipped app, not as an anti-abuse boundary.
+ */
+export function isSubscriptionEnforcedClient(headersLike: Headers): boolean {
+  return headersLike.get(CLIENT_HEADER)?.trim().toLowerCase() === "android";
+}
+
+export type SubscriptionGate =
+  | { ok: true; userId: string }
+  | { ok: false; reason: "auth_required" | "subscription_required" };
+
+/**
+ * Server-side entitlement check for the features चढ़ावा actually pays for — image generation
+ * and voice. Chat deliberately does not use this: it is free for everyone, signed in or not.
+ *
+ * This exists because the client gates were the only thing standing in front of endpoints
+ * that cost real money per call, and the app no longer requires anyone to sign in to reach
+ * them. A client gate is a UX affordance; this is the enforcement.
+ *
+ * Entitlement is read from the same field the subscription summary uses, so what the server
+ * allows and what the app shows can never disagree.
+ */
+export async function requireSubscribedUser(): Promise<SubscriptionGate> {
+  const identity = await resolveBhaktiIdentity();
+  if (!identity.isAuthenticated || !identity.userId) {
+    return { ok: false, reason: "auth_required" };
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: identity.userId },
+      select: { subscriptionStatus: true }
+    });
+    if (!user || !hasSubscriptionEntitlement(user.subscriptionStatus)) {
+      return { ok: false, reason: "subscription_required" };
+    }
+    return { ok: true, userId: identity.userId };
+  } catch (error) {
+    // Fail CLOSED, unlike the voice minute cap above. That cap protects against overspend by
+    // people who are entitled; this decides whether someone is entitled at all, and a
+    // database blip must not hand out paid generations to everyone who asks.
+    console.error("[entitlement] lookup failed, denying", error);
+    return { ok: false, reason: "subscription_required" };
+  }
 }
 
 export function getAnonLimitInfo(messageCount: number) {

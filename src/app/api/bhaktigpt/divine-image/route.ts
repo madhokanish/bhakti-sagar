@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { pickVariantByRollout } from "@/lib/bhaktigpt/rollout";
+import {
+  isRateLimited,
+  isSubscriptionEnforcedClient,
+  requireSubscribedUser
+} from "@/lib/bhaktigpt/server";
+import { trackServerEvent } from "@/lib/bhaktigpt/tracking";
+import { getClientIpFromHeaders } from "@/lib/requestMeta";
 
 export const runtime = "nodejs";
 
@@ -146,6 +154,70 @@ function logAbEvent(event: Record<string, unknown>) {
   console.info("[divine-ab]", JSON.stringify({ ...event, ts: new Date().toISOString() }));
 }
 
+type GenerationRecord = {
+  userKey?: string;
+  requestId: string;
+  mode?: string;
+  endpoint: "edit" | "generate";
+  model: string;
+  variant: DivineVariant;
+  config: DivineConfig;
+  usedInputFidelity: boolean;
+  status: "success" | "failure";
+  durationMs: number;
+};
+
+/**
+ * Persists one generation attempt and mirrors it to PostHog.
+ *
+ * Images are by far the most expensive OpenAI call this app makes, and until now nothing
+ * server-side recorded them — chat lives in Postgres and is fully accountable, images left
+ * no trace at all, so their spend could only be inferred from the invoice. Recording the
+ * attempt (not just successes) is deliberate: a failure after OpenAI has already generated
+ * still bills, so success-only counting would under-report.
+ *
+ * Never throws. A bookkeeping failure must not turn a successful generation into an error
+ * for the user, who has already waited a minute or more for the image.
+ */
+async function recordGeneration(record: GenerationRecord): Promise<void> {
+  const properties = {
+    requestId: record.requestId,
+    mode: record.mode ?? null,
+    endpoint: record.endpoint,
+    model: record.model,
+    variant: record.variant,
+    size: record.config.size,
+    quality: record.config.quality ?? null,
+    inputFidelity: record.usedInputFidelity ? record.config.input_fidelity ?? null : null,
+    status: record.status,
+    durationMs: record.durationMs,
+    userKey: record.userKey ?? null
+  };
+
+  const [persisted] = await Promise.allSettled([
+    prisma.divineImageGeneration.create({
+      data: {
+        userKey: record.userKey ?? null,
+        requestId: record.requestId,
+        mode: record.mode ?? null,
+        endpoint: record.endpoint,
+        model: record.model,
+        variant: record.variant,
+        size: record.config.size,
+        quality: record.config.quality ?? null,
+        inputFidelity: record.usedInputFidelity ? record.config.input_fidelity ?? null : null,
+        status: record.status,
+        durationMs: record.durationMs
+      }
+    }),
+    trackServerEvent("divine_image_generated", properties, record.userKey)
+  ]);
+
+  if (persisted.status === "rejected") {
+    console.error("[divine-image] Failed to persist generation record.", persisted.reason);
+  }
+}
+
 async function generateFromPrompt(
   apiKey: string,
   model: string,
@@ -240,6 +312,34 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
   }
 
+  // Burst brake. This endpoint takes no session and never has: the free-image allowance is
+  // enforced entirely in the app, so anything that can POST here can generate gpt-image-1
+  // images at our expense. Keyed on IP rather than the body's userKey, which the caller
+  // picks and can rotate at will.
+  //
+  // Deliberately generous — it exists to stop a script, not to enforce the product rule. A
+  // real per-device allowance needs a persisted daily counter (see voiceUsageDaily); this
+  // in-memory window is per serverless instance and resets, so treat it as a floor.
+  const clientIp = getClientIpFromHeaders(request.headers);
+  if (clientIp && isRateLimited(`divine-image:${clientIp}`, 12, 60 * 60_000)) {
+    await trackServerEvent("divine_image_rate_limited", { mode: body.mode ?? null });
+    return NextResponse.json(
+      { error: "Too many image requests. Please try again later." },
+      { status: 429 }
+    );
+  }
+
+  // Hard gate for Android: image generation is चढ़ावा-only there, with no free allowance.
+  // 402 rather than 401/403 so the app can tell "you need to subscribe" apart from an
+  // ordinary auth failure and open चढ़ावा instead of the sign-in screen.
+  if (isSubscriptionEnforcedClient(request.headers)) {
+    const gate = await requireSubscribedUser();
+    if (!gate.ok) {
+      await trackServerEvent("divine_image_blocked", { reason: gate.reason, mode: body.mode ?? null });
+      return NextResponse.json({ error: gate.reason }, { status: 402 });
+    }
+  }
+
   const requestId =
     body.requestId?.trim() ||
     (typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -284,6 +384,17 @@ export async function POST(request: Request) {
     const payload = extractImagePayload(openAiData);
     const durationMs = Date.now() - startedAt;
 
+    const baseRecord = {
+      userKey,
+      requestId,
+      mode: body.mode,
+      endpoint: usedEditEndpoint ? ("edit" as const) : ("generate" as const),
+      model,
+      variant,
+      config,
+      usedInputFidelity: usedEditEndpoint && modelSupportsInputFidelity(model)
+    };
+
     if (!payload) {
       logAbEvent({
         event: "divine_image.failure",
@@ -292,6 +403,8 @@ export async function POST(request: Request) {
         reason: "no_image_payload",
         durationMs
       });
+      // Billed by OpenAI even though we got nothing usable back, so it is still recorded.
+      await recordGeneration({ ...baseRecord, status: "failure", durationMs });
       return NextResponse.json(
         { error: "OpenAI returned no image data.", variant, requestId },
         { status: 502 }
@@ -305,6 +418,8 @@ export async function POST(request: Request) {
       durationMs
     });
 
+    await recordGeneration({ ...baseRecord, status: "success", durationMs });
+
     // The client persists `variant` + `requestId` with the creation so we can
     // correlate user feedback later.
     return NextResponse.json({ ...payload, variant, requestId, durationMs });
@@ -316,6 +431,18 @@ export async function POST(request: Request) {
       requestId,
       variant,
       reason: message.slice(0, 200),
+      durationMs
+    });
+    await recordGeneration({
+      userKey,
+      requestId,
+      mode: body.mode,
+      endpoint: usedEditEndpoint ? "edit" : "generate",
+      model,
+      variant,
+      config,
+      usedInputFidelity: usedEditEndpoint && modelSupportsInputFidelity(model),
+      status: "failure",
       durationMs
     });
     return NextResponse.json(

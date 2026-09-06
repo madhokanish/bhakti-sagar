@@ -6,6 +6,8 @@ import {
   isRateLimited,
   isVoiceDailyCapReached,
   resolveRealtimeModel,
+  isSubscriptionEnforcedClient,
+  requireSubscribedUser,
   resolveBhaktiIdentity
 } from "@/lib/bhaktigpt/server";
 import { pickVariantByRollout } from "@/lib/bhaktigpt/rollout";
@@ -70,6 +72,20 @@ export async function POST(request: Request) {
 
     if (!body?.guideId || !isGuideId(body.guideId)) {
       return withIdentityCookie(badRequest("Invalid guideId."), identity);
+    }
+
+    // Hard gate for Android, same as divine images: voice is चढ़ावा-only and costs the most
+    // per minute of anything we run. Checked before the rate limiter so an unentitled caller
+    // cannot even consume limiter budget. iOS falls through to the daily cap below.
+    if (isSubscriptionEnforcedClient(request.headers)) {
+      const gate = await requireSubscribedUser();
+      if (!gate.ok) {
+        await trackServerEvent("voice_session_blocked", { reason: gate.reason, guideId: body.guideId });
+        return withIdentityCookie(
+          NextResponse.json({ error: gate.reason }, { status: 402 }),
+          identity
+        );
+      }
     }
 
     const rateKey = identity.userId || identity.anonSessionId || "anonymous";

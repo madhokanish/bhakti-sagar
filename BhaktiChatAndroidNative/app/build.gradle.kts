@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.google.services)
 }
 
 // Release signing is read from keystore.properties (git-ignored) so credentials never
@@ -67,8 +66,8 @@ android {
         applicationId = "com.anish.bhaktichat"
         minSdk = 24
         targetSdk = 36
-        versionCode = 51
-        versionName = "2.10.0"
+        versionCode = 52
+        versionName = "2.11.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -208,11 +207,6 @@ dependencies {
     implementation(libs.user.messaging.platform)
     implementation(libs.play.review.ktx)
     implementation(libs.androidx.lifecycle.process)
-    // Firebase Auth for phone OTP. Firebase sends the SMS and checks the code, which
-    // sidesteps India's DLT sender registration entirely.
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
-
     // Razorpay Checkout — UPI AutoPay mandate registration for चढ़ावा.
     implementation(libs.razorpay.checkout)
     // Chrome Custom Tabs — hosts Razorpay's checkout page in-app (web-redirect flow).

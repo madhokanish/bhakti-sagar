@@ -72,8 +72,9 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    currentUser: MobileUser,
+    currentUser: MobileUser?,
     onBack: () -> Unit,
+    onSignIn: () -> Unit,
     onSignOut: suspend () -> Unit,
     onDeleteAccount: suspend () -> Result<Unit>
 ) {
@@ -127,11 +128,15 @@ fun ProfileScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            AccountSection(
-                currentUser = currentUser,
-                onSignOut = { actionScope.launch { onSignOut() } },
-                onDeleteAccount = onDeleteAccount
-            )
+            if (currentUser == null) {
+                GuestAccountSection(onSignIn = onSignIn)
+            } else {
+                AccountSection(
+                    currentUser = currentUser,
+                    onSignOut = { actionScope.launch { onSignOut() } },
+                    onDeleteAccount = onDeleteAccount
+                )
+            }
 
             LanguageSection()
 
@@ -144,6 +149,42 @@ fun ProfileScreen(
             )
 
             NotificationsSection()
+        }
+    }
+}
+
+/**
+ * Shown to everyone without an account — the common case now that the app opens without a
+ * sign-in wall. There is nothing to sign out of and nothing to delete, so this offers the
+ * one thing an account actually buys: चढ़ावा, and a membership that survives a new device.
+ */
+@Composable
+private fun GuestAccountSection(onSignIn: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = t("profile_guest_title"),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = t("profile_guest_body"),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            TextButton(onClick = onSignIn) {
+                Text(t("profile_sign_in"))
+            }
         }
     }
 }

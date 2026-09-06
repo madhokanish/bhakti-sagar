@@ -111,12 +111,19 @@ object ChadhaavaPalette {
     val StepperTrack = Color(0xFFEADDD1)
 }
 
+/**
+ * @param requiresSignIn true for a guest. Checkout needs a server identity to hang the
+ *   Razorpay mandate on, so the subscribe button sends them to sign in first rather than
+ *   failing with AUTH_REQUIRED after the tap.
+ */
 @Composable
 fun ChadhaavaScreen(
     viewModel: ChadhaavaViewModel,
     onBack: (() -> Unit)?,
     onOpenUrl: (String) -> Unit,
-    userEmail: String? = null
+    userEmail: String? = null,
+    requiresSignIn: Boolean = false,
+    onSignIn: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val cancelState by viewModel.cancelState.collectAsStateWithLifecycle()
@@ -189,10 +196,15 @@ fun ChadhaavaScreen(
             current is ChadhaavaUiState.Failed
         if (showsOffer) {
             val offer = current as? ChadhaavaUiState.Offer
+            val subscribeAction: () -> Unit = when {
+                offer == null -> ({})
+                requiresSignIn -> onSignIn
+                else -> viewModel::startCheckout
+            }
             OfferState(
                 blockedBy = offer?.blockedBy,
                 onBack = if (offer != null) onBack else null,
-                onSubscribe = if (offer != null) viewModel::startCheckout else ({}),
+                onSubscribe = subscribeAction,
                 onOpenUrl = if (offer != null) onOpenUrl else ({}),
                 dimmed = offer == null
             )
@@ -213,7 +225,7 @@ fun ChadhaavaScreen(
             )
 
             is ChadhaavaUiState.Failed -> ErrorSheet(
-                onRetry = viewModel::startCheckout,
+                onRetry = if (requiresSignIn) onSignIn else viewModel::startCheckout,
                 onDismiss = viewModel::dismissError
             )
 
@@ -864,7 +876,6 @@ private fun Benefits(blockedBy: BlockedFeature?) {
         Benefit("chadhaava_benefit_voice", "chadhaava_benefit_voice_sub", "chadhaava_badge_popular", true),
         Benefit("chadhaava_benefit_reels", "chadhaava_benefit_reels_sub"),
         Benefit("chadhaava_benefit_aartis", "chadhaava_benefit_aartis_sub"),
-        Benefit("chadhaava_benefit_chat", "chadhaava_benefit_chat_sub"),
         Benefit("chadhaava_benefit_image", "chadhaava_benefit_image_sub"),
         Benefit("chadhaava_benefit_wallpaper", "chadhaava_benefit_wallpaper_sub")
     )
@@ -872,7 +883,9 @@ private fun Benefits(blockedBy: BlockedFeature?) {
     // thing they just hit rather than making them hunt for it.
     val blockedKey = when (blockedBy) {
         BlockedFeature.WALLPAPERS -> "chadhaava_benefit_wallpaper"
-        BlockedFeature.CHAT_QUOTA -> "chadhaava_benefit_chat"
+        // Chat is unlimited and free, so nothing routes here any more. The enum case
+        // remains only so the exhaustive `when` still compiles.
+        BlockedFeature.CHAT_QUOTA -> null
         BlockedFeature.IMAGE_QUOTA -> "chadhaava_benefit_image"
         BlockedFeature.REELS -> "chadhaava_benefit_reels"
         BlockedFeature.AARTIS -> "chadhaava_benefit_aartis"
@@ -1299,7 +1312,6 @@ private fun ActiveState(
                 "chadhaava_benefit_voice",
                 "chadhaava_benefit_reels",
                 "chadhaava_benefit_aartis",
-                "chadhaava_benefit_chat",
                 "chadhaava_benefit_image",
                 "chadhaava_benefit_wallpaper"
             ).forEach { key ->

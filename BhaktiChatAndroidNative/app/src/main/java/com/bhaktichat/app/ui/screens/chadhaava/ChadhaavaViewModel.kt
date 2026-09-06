@@ -77,7 +77,13 @@ const val CODE_NO_BROWSER = -1
 
 class ChadhaavaViewModel(
     private val repository: SubscriptionRepository,
-    private val blockedBy: BlockedFeature? = null
+    private val blockedBy: BlockedFeature? = null,
+    /**
+     * The user tapped subscribe, was sent to sign in, and has just come back. Checkout opens
+     * without a second tap — only from [ChadhaavaUiState.Offer], so somebody who turns out to
+     * be subscribed already lands on the manage view instead of a pointless payment sheet.
+     */
+    private val resumeCheckout: Boolean = false
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ChadhaavaUiState>(ChadhaavaUiState.Loading)
@@ -99,6 +105,7 @@ class ChadhaavaViewModel(
         viewModelScope.launch {
             repository.refresh()
             render(repository.state.value)
+            if (resumeCheckout && _uiState.value is ChadhaavaUiState.Offer) startCheckout()
         }
         viewModelScope.launch {
             repository.state.collect { summary ->
@@ -292,12 +299,13 @@ class ChadhaavaViewModel(
 
 class ChadhaavaViewModelFactory(
     private val repository: SubscriptionRepository,
-    private val blockedBy: BlockedFeature? = null
+    private val blockedBy: BlockedFeature? = null,
+    private val resumeCheckout: Boolean = false
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ChadhaavaViewModel::class.java)) {
-            return ChadhaavaViewModel(repository, blockedBy) as T
+            return ChadhaavaViewModel(repository, blockedBy, resumeCheckout) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

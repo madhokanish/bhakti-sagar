@@ -94,6 +94,17 @@ class BhaktiChatApplication : Application() {
         }
     }
 
+    /**
+     * Container for someone using the app without an account. Everything below चढ़ावा
+     * checkout works from here, so this is the container most sessions actually run on.
+     *
+     * Goes through [activateUser] deliberately: a guest gets the same per-id database and
+     * the same adoption step, which is what lets their chat history follow them into a real
+     * account if they later sign in to subscribe.
+     */
+    @Synchronized
+    fun activateGuest(): AppContainer = activateUser(AppContainer.guestUserId(this))
+
     @Synchronized
     fun activateUser(userId: String): AppContainer {
         if (activeUserId == userId) return checkNotNull(activeContainer)

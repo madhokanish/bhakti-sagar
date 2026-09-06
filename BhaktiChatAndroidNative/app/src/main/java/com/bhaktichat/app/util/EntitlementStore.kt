@@ -64,8 +64,6 @@ class EntitlementStore(context: Context) {
     // Set once the server reports the free message limit is exhausted. Persisted so the
     // hard gate survives relaunch and backstops the local counter (which resets on a
     // reinstall / clear-data). See [markChatLimitReached].
-    private var serverChatLimitReached = prefs.getBoolean(KEY_SERVER_CHAT_LIMIT, false)
-
     private val _messagesUsed = MutableStateFlow(prefs.getInt(KEY_MESSAGES_USED, 0))
     val messagesUsed: StateFlow<Int> = _messagesUsed.asStateFlow()
 
@@ -80,18 +78,35 @@ class EntitlementStore(context: Context) {
 
     // --- Derived gating ---------------------------------------------------
     //
-    // Free tier: [FREE_MESSAGE_QUOTA] chat messages and [FREE_IMAGE_QUOTA] divine images.
+    // Free tier: unlimited chat, and nothing else. Images and voice need चढ़ावा.
     // Crossing either sends the user to चढ़ावा. Subscribers bypass all of it — every gate
     // below short-circuits on [isPro], so a Razorpay subscriber (or a grandfathered Play
     // one) is never limited.
 
-    /** Free chat messages are exhausted. Always false for subscribers. */
+    /**
+     * Always false: chat is unlimited and free for everyone, subscriber or not.
+     *
+     * Chat is the reason people install, and it is cheap to serve — capping it was costing
+     * far more in abandoned installs than it ever earned. The accounting below still runs
+     * (it feeds analytics and the review prompt), it just no longer gates anything. The
+     * backend agrees: ENFORCE_ANON_LIMIT is false in lib/bhaktigpt/server.ts.
+     *
+     * चढ़ावा still covers everything expensive to run — voice mode, divine images, and the
+     * depth content — so the subscription is unaffected.
+     */
     val isOverChatLimit: Boolean
-        get() = !_isPro.value && (serverChatLimitReached || _messagesUsed.value >= FREE_MESSAGE_QUOTA)
+        get() = false
 
-    /** Free divine images are exhausted. Always false for subscribers. */
+    /**
+     * Divine images are चढ़ावा-only — there is no free allowance at all. The taster gave the
+     * feature away to people who then had no reason to pay for it, and generation is one of
+     * the most expensive calls we make.
+     *
+     * The server enforces the same rule (requireSubscribedUser on /api/bhaktigpt/divine-image),
+     * so clearing app data no longer buys anyone a free generation.
+     */
     val isOverImageLimit: Boolean
-        get() = !_isPro.value && _imagesUsed.value >= FREE_IMAGE_QUOTA
+        get() = !_isPro.value
 
     /** Either quota is exhausted — used to decide whether the paywall is escapable. */
     val isOverHardLimit: Boolean
@@ -122,12 +137,13 @@ class EntitlementStore(context: Context) {
 
     // --- Derived counters -------------------------------------------------
 
+    /** Unlimited; kept so existing call sites and analytics keep compiling. */
     val messagesRemaining: Int
-        get() = if (serverChatLimitReached) 0
-        else (FREE_MESSAGE_QUOTA - _messagesUsed.value).coerceAtLeast(0)
+        get() = Int.MAX_VALUE
 
+    /** Subscribers have no limit; everyone else has no allowance. */
     val imagesRemaining: Int
-        get() = (FREE_IMAGE_QUOTA - _imagesUsed.value).coerceAtLeast(0)
+        get() = if (_isPro.value) Int.MAX_VALUE else 0
 
     // --- Usage recording --------------------------------------------------
 
@@ -141,7 +157,7 @@ class EntitlementStore(context: Context) {
             kind = "chat",
             messagesUsed = next,
             imagesUsed = _imagesUsed.value,
-            remaining = (FREE_MESSAGE_QUOTA - next).coerceAtLeast(0),
+            remaining = messagesRemaining,
             isPro = false
         )
         evaluate(PaywallTrigger.MESSAGE_QUOTA)
@@ -157,7 +173,7 @@ class EntitlementStore(context: Context) {
             kind = "divine_image",
             messagesUsed = _messagesUsed.value,
             imagesUsed = next,
-            remaining = (FREE_IMAGE_QUOTA - next).coerceAtLeast(0),
+            remaining = imagesRemaining,
             isPro = false
         )
         evaluate(PaywallTrigger.IMAGE_QUOTA)
@@ -187,14 +203,12 @@ class EntitlementStore(context: Context) {
     }
 
     /**
-     * The backend reported its own free-message cap. Persisted so the gate survives a
-     * relaunch and backstops the local counter, which a reinstall would otherwise clear.
-     * Ignored for subscribers.
+     * No-op: chat is unlimited, so a server-reported cap can no longer lock anyone out.
+     * Kept because the streaming client can still surface a LimitReached event, and the two
+     * call sites use it to drop the pending bubble cleanly rather than render a fake reply.
      */
     fun markChatLimitReached() {
-        if (_isPro.value) return
-        serverChatLimitReached = true
-        prefs.edit().putBoolean(KEY_SERVER_CHAT_LIMIT, true).apply()
+        // no-op
     }
 
     /**
@@ -220,7 +234,6 @@ class EntitlementStore(context: Context) {
      */
     fun grantPro() {
         playPro = true
-        serverChatLimitReached = false
         prefs.edit()
             .putBoolean(KEY_PRO_ACTIVE, true)
             .putBoolean(KEY_SERVER_CHAT_LIMIT, false)
@@ -240,7 +253,6 @@ class EntitlementStore(context: Context) {
         serverPro = active
         prefs.edit().putBoolean(KEY_SERVER_PRO_ACTIVE, active).apply()
         if (active) {
-            serverChatLimitReached = false
             prefs.edit().putBoolean(KEY_SERVER_CHAT_LIMIT, false).apply()
             _shouldShowPaywall.value = false
         }
@@ -254,7 +266,6 @@ class EntitlementStore(context: Context) {
 
     /** Zero out usage counters and clear cooldown — for QA flows. */
     fun resetUsageCounters() {
-        serverChatLimitReached = false
         prefs.edit()
             .putInt(KEY_MESSAGES_USED, 0)
             .putInt(KEY_IMAGES_USED, 0)
@@ -307,13 +318,17 @@ class EntitlementStore(context: Context) {
     }
 
     companion object {
+        /**
+         * Retained for the analytics payload and as the number to restore if chat ever needs
+         * a cap again. Nothing gates on it — see [isOverChatLimit].
+         */
         const val FREE_MESSAGE_QUOTA: Int = 10
 
         /**
-         * One free divine image, not three. The first generation is what sells the feature;
-         * the next two only gave it away.
+         * No free divine images. Kept at zero rather than deleted so the accounting and the
+         * analytics payload still compile, and so restoring an allowance is a one-line change.
          */
-        const val FREE_IMAGE_QUOTA: Int = 1
+        const val FREE_IMAGE_QUOTA: Int = 0
 
         /**
          * Bump to wipe everyone's usage counters once, on their next launch.

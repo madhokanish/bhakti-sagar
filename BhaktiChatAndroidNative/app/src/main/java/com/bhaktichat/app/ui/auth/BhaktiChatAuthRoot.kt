@@ -1,5 +1,6 @@
 package com.bhaktichat.app.ui.auth
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -40,21 +41,32 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bhaktichat.app.BhaktiChatApplication
 import com.bhaktichat.app.R
 import com.bhaktichat.app.data.auth.AuthState
 import com.bhaktichat.app.ui.components.ads.findActivity
+import com.bhaktichat.app.ui.i18n.str
 import com.bhaktichat.app.ui.navigation.BhaktiChatApp
 import com.bhaktichat.app.util.Analytics
 import kotlinx.coroutines.launch
 
+/**
+ * Decides whether the app opens into itself or into the sign-in screen.
+ *
+ * It opens into itself. [AuthState.Guest] is the resting state for everyone without an
+ * account, and it renders the full app — the mandatory sign-in wall that used to sit here
+ * was where installs were being lost. Sign-in is now reached only on request, from चढ़ावा
+ * checkout (which genuinely needs a server identity to bill) or from Settings.
+ */
 @Composable
 fun BhaktiChatAuthRoot() {
     val context = LocalContext.current
     val application = context.applicationContext as BhaktiChatApplication
     val repository = application.authRepository
+    val languageStore = application.languageStore
     val state by repository.state.collectAsStateWithLifecycle()
     val activity = context.findActivity()
     val actionScope = rememberCoroutineScope()
@@ -64,53 +76,52 @@ fun BhaktiChatAuthRoot() {
     }
 
     when (val current = state) {
-        AuthState.Checking -> AuthLoadingScreen("Checking your account…")
+        AuthState.Checking -> AuthLoadingScreen(languageStore.str("auth_loading"))
+
+        AuthState.Guest -> {
+            val container = remember { application.activateGuest() }
+            BhaktiChatApp(
+                appContainer = container,
+                currentUser = null,
+                onRequestSignIn = { forCheckout -> repository.requestSignIn(forCheckout) },
+                onSignOut = { application.signOut() },
+                onDeleteAccount = { application.deleteAccountAndLocalData() }
+            )
+        }
+
         is AuthState.SigningIn -> SignInScreen(
             isLoading = true,
             loadingMessage = current.message,
             errorMessage = null,
+            reason = languageStore.str("auth_sign_in_reason"),
+            dismissLabel = languageStore.str("auth_not_now"),
             onGoogle = {},
-            onAccess = { _, _ -> }
+            onAccess = { _, _ -> },
+            onDismiss = null
         )
+
         is AuthState.SignedOut -> {
             LaunchedEffect(Unit) { Analytics.screen("sign_in") }
-            var showAccessDialog by rememberSaveable { mutableStateOf(false) }
-            if (activity != null) {
-                // Phone is now the primary sign-in; Google is a text link inside the phone
-                // screen, and the email/username reviewer path is the discreet access link.
-                PhoneAuthFlow(
-                    activity = activity,
-                    repository = repository,
-                    languageStore = application.languageStore,
-                    onUseGoogle = {
-                        actionScope.launch { repository.signInWithGoogle(activity, explicitButton = true) }
-                    },
-                    onUseAccess = { showAccessDialog = true },
-                    hostMessage = current.message
-                )
-            } else {
-                // Sign-in always runs inside MainActivity, so this is only a defensive
-                // fallback: the original Google-first screen, still fully functional.
-                SignInScreen(
-                    isLoading = false,
-                    loadingMessage = null,
-                    errorMessage = current.message,
-                    onGoogle = {},
-                    onAccess = { login, password ->
-                        actionScope.launch { repository.signInWithAccess(login, password) }
-                    }
-                )
-            }
-            if (showAccessDialog) {
-                AccessSignInDialog(
-                    onDismiss = { showAccessDialog = false },
-                    onSubmit = { login, password ->
-                        showAccessDialog = false
-                        actionScope.launch { repository.signInWithAccess(login, password) }
-                    }
-                )
-            }
+            // Backing out returns to browsing, never to a blank screen — this is a step
+            // inside checkout now, not the front door.
+            BackHandler { repository.dismissSignIn() }
+            SignInScreen(
+                isLoading = false,
+                loadingMessage = null,
+                errorMessage = current.message,
+                reason = languageStore.str("auth_sign_in_reason"),
+                dismissLabel = languageStore.str("auth_not_now"),
+                onGoogle = {
+                    val host = activity ?: return@SignInScreen
+                    actionScope.launch { repository.signInWithGoogle(host, explicitButton = true) }
+                },
+                onAccess = { login, password ->
+                    actionScope.launch { repository.signInWithAccess(login, password) }
+                },
+                onDismiss = { repository.dismissSignIn() }
+            )
         }
+
         is AuthState.Authenticated -> {
             val container = remember(current.session.user.id) {
                 application.activateUser(current.session.user.id)
@@ -118,6 +129,10 @@ fun BhaktiChatAuthRoot() {
             BhaktiChatApp(
                 appContainer = container,
                 currentUser = current.session.user,
+                onRequestSignIn = { /* already signed in */ },
+                // If this session started with a tap on subscribe, the app picks checkout
+                // back up on its own rather than dropping the user on Home.
+                consumePendingCheckout = repository::consumePendingCheckout,
                 onSignOut = { application.signOut() },
                 onDeleteAccount = { application.deleteAccountAndLocalData() }
             )
@@ -141,13 +156,22 @@ private fun AuthLoadingScreen(message: String) {
     }
 }
 
+/**
+ * Google is the only sign-in method. Phone OTP was removed: Firebase billed for every SMS,
+ * and with the app no longer gated the handful of people who reach this screen are here to
+ * pay — a Google account they already have on the device is one tap, and costs nothing.
+ * The email/username path below it remains for Play reviewers and managed accounts.
+ */
 @Composable
 private fun SignInScreen(
     isLoading: Boolean,
     loadingMessage: String?,
     errorMessage: String?,
+    reason: String,
+    dismissLabel: String,
     onGoogle: () -> Unit,
-    onAccess: (String, String) -> Unit
+    onAccess: (String, String) -> Unit,
+    onDismiss: (() -> Unit)?
 ) {
     var showAccessDialog by rememberSaveable { mutableStateOf(false) }
 
@@ -171,7 +195,14 @@ private fun SignInScreen(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            Spacer(Modifier.height(44.dp))
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = reason,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(32.dp))
 
             Button(
                 onClick = onGoogle,
@@ -210,11 +241,6 @@ private fun SignInScreen(
                 )
             }
 
-            // DEBUG ONLY — pre-auth entry point for the UPI diagnostic. Checkout needs no
-            // user session (it uses a fixed order), so exposing it here lets the payment
-            // sheet be tested on an emulator without signing in. Never in release.
-
-
             if (isLoading) {
                 Spacer(Modifier.height(18.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -233,6 +259,17 @@ private fun SignInScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
+            }
+
+            if (onDismiss != null) {
+                Spacer(Modifier.height(24.dp))
+                TextButton(onClick = onDismiss, enabled = !isLoading) {
+                    Text(
+                        text = dismissLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

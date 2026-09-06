@@ -110,10 +110,21 @@ import com.bhaktichat.app.util.MembershipPromoStore
 import kotlinx.coroutines.launch
 import java.util.UUID
 
+/**
+ * @param currentUser null when the app is being used without an account, which is the
+ *   ordinary case. Only चढ़ावा checkout and the Settings account card care.
+ * @param onRequestSignIn raises the sign-in screen. Called from the two places that need a
+ *   server identity; everything else works fine for a guest. The flag says whether the user
+ *   was already on their way to checkout, so it can resume afterwards.
+ * @param consumePendingCheckout true once if this composition started right after a sign-in
+ *   that began with a tap on subscribe.
+ */
 @Composable
 fun BhaktiChatApp(
     appContainer: AppContainer,
-    currentUser: MobileUser,
+    currentUser: MobileUser?,
+    onRequestSignIn: (forCheckout: Boolean) -> Unit,
+    consumePendingCheckout: () -> Boolean = { false },
     onSignOut: suspend () -> Unit,
     onDeleteAccount: suspend () -> Result<Unit>
 ) {
@@ -204,8 +215,14 @@ fun BhaktiChatApp(
 
     // Record the daily-darshan streak on open. (Intro upsell removed — ad-based model.)
     LaunchedEffect(Unit) {
-        context.findActivity()?.let { activity ->
-            AdsConsentManager.gather(activity) { }
+        // Only when ads actually exist. With ADS_ENABLED false nothing ever requests an ad,
+        // so gathering UMP consent asked a brand-new install to rule on 200+ ad vendors
+        // before it had shown them anything — a consent wall in front of a product that
+        // serves no ads, and one more thing to bounce off at first open.
+        if (com.bhaktichat.app.ui.components.ads.ADS_ENABLED) {
+            context.findActivity()?.let { activity ->
+                AdsConsentManager.gather(activity) { }
+            }
         }
         appContainer.streakStore.recordVisit()
         appContainer.aartiPlayerController.initialize()
@@ -213,6 +230,16 @@ fun BhaktiChatApp(
         // threads down to one visible row per guide (archived, not deleted). Idempotent —
         // safe to run on every launch.
         appContainer.threadsRepository.collapseDuplicateThreadsIfNeeded()
+    }
+
+    // Just signed in from the subscribe button — go straight back to checkout. Runs before
+    // anything else can claim the back stack, and consumes the flag so a rotation or a
+    // relaunch cannot reopen the payment sheet on its own.
+    LaunchedEffect(Unit) {
+        if (consumePendingCheckout()) {
+            Analytics.screen("chadhaava_resume_after_signin")
+            navController.navigate(NavDestinations.chadhaavaRoute(resumeCheckout = true))
+        }
     }
 
     // Analytics: one screen view per navigation route change (single-Activity app, so
@@ -270,19 +297,6 @@ fun BhaktiChatApp(
         includeOpener: Boolean,
         popUpRoute: String? = null
     ) {
-        // Second send path: the Home/BhaktiChat composer and the reel/situation shortcuts
-        // create a thread here and generate a reply directly, without going through
-        // ChatThreadViewModel.sendMessage(). It therefore needs its own gate — checking only
-        // the ViewModel let the quota be bypassed entirely from the tab composer.
-        //
-        // Only gated when a message is actually being sent. Opening a guide with no prompt
-        // is just navigation, and blocking that would strand the user on a paywall for
-        // having tapped an avatar.
-        if (initialPrompt != null && !entitlementStore.canUseChat) {
-            entitlementStore.reportQuotaReached("chat")
-            navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_CHAT_QUOTA))
-            return
-        }
         appScope.launch {
             val guide = appContainer.guidesRepository.getGuide(guideId) ?: return@launch
             Analytics.guideSelected(guideId = guide.id)
@@ -356,7 +370,7 @@ fun BhaktiChatApp(
                     currentState = ChatConversationState(),
                     remoteConversationId = null,
                     chatApiClient = appContainer.chatApiClient,
-                        userFirstName = currentUser.name.orEmpty(),
+                        userFirstName = currentUser?.name.orEmpty(),
                     appLanguage = appContainer.languageStore.language.value,
                     onToken = { streamed ->
                         appContainer.messagesRepository.replaceTypingWithResponse(typingId, streamed)
@@ -527,7 +541,7 @@ fun BhaktiChatApp(
                     aartiRepository = appContainer.aartiRepository,
                     choghadiyaRepository = appContainer.choghadiyaRepository,
                     aartiPlayerState = aartiPlayerState,
-                    userName = currentUser.name.orEmpty(),
+                    userName = currentUser?.name.orEmpty(),
                     streak = streak,
                     onOpenStreak = { showStreakDetails = true },
                     isPro = isPro,
@@ -594,7 +608,7 @@ fun BhaktiChatApp(
                         entitlementStore = entitlementStore,
                         reviewPromptStore = appContainer.reviewPromptStore,
                         chatNudgeStore = appContainer.chatNudgeStore,
-                        userFirstName = currentUser.name.orEmpty(),
+                        userFirstName = currentUser?.name.orEmpty(),
                         languageStore = appContainer.languageStore
                     )
                 )
@@ -792,6 +806,11 @@ fun BhaktiChatApp(
                         type = NavType.StringType
                         nullable = true
                         defaultValue = null
+                    },
+                    navArgument(NavDestinations.CHADHAAVA_RESUME_ARG) {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
                     }
                 )
             ) { backStackEntry ->
@@ -810,16 +829,23 @@ fun BhaktiChatApp(
                         }
                     }
 
+                val resumeCheckout = backStackEntry.arguments
+                    ?.getString(NavDestinations.CHADHAAVA_RESUME_ARG) == "1"
                 val vm: ChadhaavaViewModel = viewModel(
                     factory = ChadhaavaViewModelFactory(
                         repository = appContainer.subscriptionRepository,
-                        blockedBy = blocked
+                        blockedBy = blocked,
+                        resumeCheckout = resumeCheckout
                     )
                 )
                 val chadhaavaContext = LocalContext.current
                 ChadhaavaScreen(
                     viewModel = vm,
-                    userEmail = currentUser.email,
+                    userEmail = currentUser?.email,
+                    // Checkout mints a signed-in web handoff, so a guest is sent to sign in
+                    // first. This is the only hard account requirement left in the app.
+                    requiresSignIn = currentUser == null,
+                    onSignIn = { onRequestSignIn(true) },
                     onBack = if (blocked != null) {
                         { navController.popBackStack() }
                     } else {
@@ -1064,6 +1090,7 @@ fun BhaktiChatApp(
                 ProfileScreen(
                     currentUser = currentUser,
                     onBack = { navController.popBackStack() },
+                    onSignIn = { onRequestSignIn(false) },
                     onSignOut = onSignOut,
                     onDeleteAccount = onDeleteAccount
                 )

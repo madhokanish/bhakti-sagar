@@ -51,7 +51,11 @@ class SubscriptionRepository(
             authRepository.state.collect { auth ->
                 when (auth) {
                     is AuthState.Authenticated -> refresh()
-                    is AuthState.SignedOut -> clearLocalEntitlement()
+                    // Guest and SignedOut both mean "no account on this device right now".
+                    // Entitlement is per-account, so it must not survive into a guest
+                    // session — otherwise signing out would leave the next person holding
+                    // someone else's चढ़ावा.
+                    AuthState.Guest, is AuthState.SignedOut -> clearLocalEntitlement()
                     else -> Unit
                 }
             }

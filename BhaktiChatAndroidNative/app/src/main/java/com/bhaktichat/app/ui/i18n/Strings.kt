@@ -122,16 +122,6 @@ private val table: Map<String, Entry> = mapOf(
         "बोलकर पूछें, तुरंत आवाज़ में जवाब पाएँ",
         "Speak your question, hear the answer right away"
     ),
-    "chadhaava_benefit_chat" to Entry(
-        "Aseemit baatcheet",
-        "असीमित बातचीत",
-        "Unlimited conversations"
-    ),
-    "chadhaava_benefit_chat_sub" to Entry(
-        "Krishna, Lakshmi, Shani aur sabhi guruon ke saath",
-        "कृष्ण, लक्ष्मी, शनि और सभी गुरुओं के साथ",
-        "With Krishna, Lakshmi, Shani and every guide"
-    ),
     "chadhaava_benefit_image" to Entry(
         "Divine images",
         "दिव्य तस्वीरें",
@@ -240,20 +230,27 @@ private val table: Map<String, Entry> = mapOf(
         "This wallpaper and 24 more, free for 3 days"
     ),
 
+    // UNREACHABLE: chat has no cap, so BlockedFeature.CHAT_QUOTA is never navigated to. Kept
+    // because the enum case still has to resolve, and rewritten off the old "your free
+    // messages are finished" so that a future re-route cannot resurrect a claim that is no
+    // longer true. Leads with voice, which is what चढ़ावा actually adds to a conversation.
     "chadhaava_blocked_chat_title" to Entry(
-        "Aapke free message poore ho gaye",
-        "आपके निःशुल्क संदेश पूरे हो गए",
-        "You have used your free messages"
+        "Awaaz mein baat kijiye",
+        "आवाज़ में बात कीजिए",
+        "Talk out loud"
     ),
     "chadhaava_blocked_chat_sub" to Entry(
-        "Guruon se aseemit baatcheet, 3 din bilkul free",
-        "गुरुओं से असीमित बातचीत, 3 दिन बिल्कुल मुफ़्त",
-        "Talk to the guides without limit, free for 3 days"
+        "Chadhava se guruon se phone jaisi baatcheet, 3 din bilkul free",
+        "चढ़ावा से गुरुओं से फ़ोन जैसी बातचीत, 3 दिन बिल्कुल मुफ़्त",
+        "Chadhava adds phone-like voice conversation, free for 3 days"
     ),
+    // Not "your free images are finished" — there is no free allowance to finish. Divine
+    // images are a चढ़ावा feature, and the offer should say so plainly rather than imply the
+    // user spent something they never had.
     "chadhaava_blocked_image_title" to Entry(
-        "Aapki free divine images poori ho gayin",
-        "आपकी निःशुल्क दिव्य छवियाँ पूरी हो गईं",
-        "You have used your free divine images"
+        "Divine images Chadhava mein shaamil hain",
+        "दिव्य छवियाँ चढ़ावा में शामिल हैं",
+        "Divine images are part of Chadhava"
     ),
     "chadhaava_blocked_image_sub" to Entry(
         "Jitni chaahein divine images banaiye, 3 din bilkul free",
@@ -376,10 +373,12 @@ private val table: Map<String, Entry> = mapOf(
         "चढ़ावा के लाभ",
         "Benefits of Chadhava"
     ),
+    // Not "unlimited conversations": chat is free for everyone, and a paid card must only
+    // list what चढ़ावा actually unlocks.
     "chadhaava_card_benefit_1" to Entry(
-        "Har guru se aseemit baatcheet",
-        "हर गुरु से असीमित बातचीत",
-        "Unlimited conversations with every guide"
+        "Bina kisi vigyapan ke",
+        "बिना किसी विज्ञापन के",
+        "No ads, no interruptions"
     ),
     "chadhaava_card_benefit_2" to Entry(
         "Saari 22 aartiyan, jab man chaahe",
@@ -545,10 +544,12 @@ private val table: Map<String, Entry> = mapOf(
     "promo_title" to Entry(
         "FREE trial paayein", "मुफ़्त ट्रायल पाएं", "Get a FREE trial"
     ),
+    // Leads with voice, not chat: chat is free for everyone, so promising it here would be
+    // selling something the user already has.
     "promo_subtitle" to Entry(
-        "Saare features unlock karein — unlimited baat, divine images, wallpapers, ad-free.",
-        "सभी फ़ीचर अनलॉक करें — अनलिमिटेड बातचीत, दिव्य तस्वीरें, वॉलपेपर, विज्ञापन-मुक्त।",
-        "Unlock all features — unlimited talks, divine images, wallpapers, ad-free."
+        "Awaaz mein baatcheet, divine images, aartiyan, wallpapers — sab unlock.",
+        "आवाज़ में बातचीत, दिव्य तस्वीरें, आरतियाँ, वॉलपेपर — सब अनलॉक।",
+        "Voice conversation, divine images, aartis, wallpapers — all unlocked."
     ),
     "promo_cta" to Entry("FREE trial shuru karein", "मुफ़्त ट्रायल शुरू करें", "Start free trial"),
     "promo_close" to Entry("Band karein", "बंद करें", "Close"),
@@ -1366,55 +1367,18 @@ private val table: Map<String, Entry> = mapOf(
         "Google sign-in is not available right now."
     ),
 
-    // --- Phone sign-in (non-composable: resolved via LanguageStore.str) ---
-    // These run before the user picks a language, so they are deliberately NOT localised:
-    // English leads and the columns are identical, except the subtitle, which is a fixed
-    // Hindi hint under the English title. str() returns the same value whatever the language.
-    "phone_title" to Entry(
-        "Enter your phone number", "Enter your phone number", "Enter your phone number"
+    // --- Sign-in screen (non-composable: resolved via LanguageStore.str) ---
+    // Rendered by BhaktiChatAuthRoot, which sits outside LocalAppLanguage, so t() is not
+    // available there. Unlike the old pre-login screens these are properly localised: the
+    // user has been using the app as a guest and has already picked a language by the time
+    // they ever see this.
+    "auth_loading" to Entry("Loading…", "लोड हो रहा है…", "Loading…"),
+    "auth_sign_in_reason" to Entry(
+        "Sign in to continue to चढ़ावा",
+        "चढ़ावा के लिए साइन इन कीजिए",
+        "Sign in to continue to Chadhava"
     ),
-    "phone_subtitle" to Entry(
-        "अपना फ़ोन नंबर डालिए", "अपना फ़ोन नंबर डालिए", "अपना फ़ोन नंबर डालिए"
-    ),
-    "phone_continue" to Entry("Next", "Next", "Next"),
-    "phone_use_google" to Entry(
-        "Continue with Google", "Continue with Google", "Continue with Google"
-    ),
-    "phone_otp_title" to Entry("Enter the code", "Enter the code", "Enter the code"),
-    "phone_sent_to" to Entry("Sent to", "Sent to", "Sent to"),
-    "phone_change_number" to Entry("Change", "Change", "Change"),
-    "phone_resend" to Entry("Resend code", "Resend code", "Resend code"),
-    "phone_resend_in" to Entry("Resend in %ds", "Resend in %ds", "Resend in %ds"),
-    "phone_error_invalid_number" to Entry(
-        "Enter a valid 10-digit mobile number.",
-        "Enter a valid 10-digit mobile number.",
-        "Enter a valid 10-digit mobile number."
-    ),
-    "phone_error_send_failed" to Entry(
-        "Couldn't send the code. Please try again.",
-        "Couldn't send the code. Please try again.",
-        "Couldn't send the code. Please try again."
-    ),
-    "phone_error_too_many" to Entry(
-        "Too many attempts. Please try again later.",
-        "Too many attempts. Please try again later.",
-        "Too many attempts. Please try again later."
-    ),
-    "phone_error_invalid_code" to Entry(
-        "That code isn't right. Please check and try again.",
-        "That code isn't right. Please check and try again.",
-        "That code isn't right. Please check and try again."
-    ),
-    "phone_access_link" to Entry(
-        "Sign in with email or username",
-        "Sign in with email or username",
-        "Sign in with email or username"
-    ),
-    "auth_phone_failed" to Entry(
-        "Phone sign-in pura nahi ho saka. Kripya dobara koshish kariye.",
-        "फ़ोन साइन-इन पूरा नहीं हो सका। कृपया फिर से प्रयास करें।",
-        "Phone sign-in could not be completed. Please try again."
-    ),
+    "auth_not_now" to Entry("Not now", "अभी नहीं", "Not now"),
 
     // --- Billing (non-composable) ---
     "billing_checkout_failed" to Entry(
@@ -1843,6 +1807,13 @@ private val table: Map<String, Entry> = mapOf(
         "Choose the language for the app."
     ),
     "profile_member" to Entry("BhaktiChat member", "BhaktiChat सदस्य", "BhaktiChat member"),
+    "profile_guest_title" to Entry("You're browsing as a guest", "आप अतिथि के रूप में देख रहे हैं", "You're browsing as a guest"),
+    "profile_guest_body" to Entry(
+        "Sign in to take चढ़ावा and keep your membership across devices.",
+        "चढ़ावा लेने और अपनी सदस्यता हर डिवाइस पर रखने के लिए साइन इन कीजिए।",
+        "Sign in to take Chadhava and keep your membership across devices."
+    ),
+    "profile_sign_in" to Entry("Sign in", "साइन इन", "Sign in"),
     "profile_sign_out" to Entry("Sign out", "साइन आउट", "Sign out"),
     "profile_delete_account" to Entry("Delete account", "अकाउंट हटाएँ", "Delete account"),
     "profile_manage_membership" to Entry("Manage membership", "सदस्यता प्रबंधित करें", "Manage membership"),

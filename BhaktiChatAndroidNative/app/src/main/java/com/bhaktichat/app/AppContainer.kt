@@ -30,6 +30,7 @@ import com.bhaktichat.app.data.repo.RoomMessagesRepository
 import com.bhaktichat.app.data.repo.RoomThreadsRepository
 import com.bhaktichat.app.data.repo.StaticDivineTemplateRepository
 import com.bhaktichat.app.data.repo.ThreadsRepository
+import com.bhaktichat.app.util.AnonUserKey
 import com.bhaktichat.app.util.BookmarkStore
 import com.bhaktichat.app.util.EntitlementStore
 import com.bhaktichat.app.util.GuidePreferences
@@ -83,6 +84,16 @@ class AppContainer(
         .addInterceptor { chain ->
             val request = chain.request().newBuilder().apply {
                 authRepository.authorizationHeader()?.let { header("Authorization", it) }
+                // Guests have no Authorization header, so this is the only thing tying them
+                // to their own server-side conversations. It has to be stable across
+                // launches: the cookie jar is in-memory, so relying on the backend's anon
+                // cookie alone would hand every guest a fresh identity — and an amnesiac
+                // guide — on every cold start.
+                header(ANON_ID_HEADER, AnonUserKey.get(appContext))
+                // Opts this client into server-side enforcement of the चढ़ावा-only features
+                // (divine images, voice). iOS does not send it and is not enforced, because
+                // it has no purchase path for the server to recognise.
+                header(CLIENT_HEADER, CLIENT_ANDROID)
             }.build()
             chain.proceed(request)
         }
@@ -178,6 +189,17 @@ class AppContainer(
 
     companion object {
         private const val LEGACY_DATABASE_NAME = "bhaktichat.db"
+        private const val ANON_ID_HEADER = "x-bhakti-anon-id"
+        private const val CLIENT_HEADER = "x-bhakti-client"
+        private const val CLIENT_ANDROID = "android"
+
+        /**
+         * Container id for someone using the app without an account. Derived from the
+         * per-install [AnonUserKey] rather than a fixed literal so that clearing app data
+         * starts a genuinely clean guest, and so the name still goes through the same
+         * hashing as a real account id.
+         */
+        fun guestUserId(context: Context): String = "guest_" + AnonUserKey.get(context)
 
         fun accountDatabaseName(userId: String): String {
             val digest = MessageDigest.getInstance("SHA-256")
@@ -188,20 +210,34 @@ class AppContainer(
         }
 
         /**
-         * Claims the pre-login database for the first account used after this upgrade.
-         * Room has not been opened yet, so moving the database and its WAL sidecars is safe.
+         * Hands an existing account-less database to the first account that signs in.
+         *
+         * Two sources, in priority order: the guest database (someone browsed anonymously,
+         * then signed in to subscribe — their conversations must not vanish at the moment
+         * they pay), then the pre-login database from before accounts existed.
+         *
+         * Only ever claims when the account has no database of its own, so signing back in
+         * on a device that has since been used by a guest cannot overwrite real history.
+         * Room has not been opened yet, so moving the file and its WAL sidecars is safe.
          */
         fun migrateLegacyDatabaseIfNeeded(context: Context, userId: String) {
             val targetName = accountDatabaseName(userId)
-            val target = context.getDatabasePath(targetName)
-            val legacy = context.getDatabasePath(LEGACY_DATABASE_NAME)
-            if (target.exists() || !legacy.exists()) return
+            if (context.getDatabasePath(targetName).exists()) return
 
-            target.parentFile?.mkdirs()
+            val sources = listOf(
+                accountDatabaseName(guestUserId(context)),
+                LEGACY_DATABASE_NAME
+            )
+            val sourceName = sources.firstOrNull { context.getDatabasePath(it).exists() } ?: return
+            moveDatabase(context, from = sourceName, to = targetName)
+        }
+
+        private fun moveDatabase(context: Context, from: String, to: String) {
+            context.getDatabasePath(to).parentFile?.mkdirs()
             listOf("", "-wal", "-shm").forEach { suffix ->
-                val sourceFile = context.getDatabasePath(LEGACY_DATABASE_NAME + suffix)
+                val sourceFile = context.getDatabasePath(from + suffix)
                 if (!sourceFile.exists()) return@forEach
-                val targetFile = context.getDatabasePath(targetName + suffix)
+                val targetFile = context.getDatabasePath(to + suffix)
                 if (!sourceFile.renameTo(targetFile)) {
                     sourceFile.copyTo(targetFile, overwrite = false)
                     sourceFile.delete()

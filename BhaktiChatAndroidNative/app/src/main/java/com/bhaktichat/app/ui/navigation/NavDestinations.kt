@@ -52,11 +52,26 @@ object NavDestinations {
      */
     const val CHADHAAVA_BASE = "chadhaava"
     const val CHADHAAVA_BLOCKED_ARG = "blocked"
-    const val CHADHAAVA = "chadhaava?blocked={blocked}"
 
-    fun chadhaavaRoute(blockedFeature: String? = null): String =
-        if (blockedFeature.isNullOrBlank()) CHADHAAVA_BASE
-        else "$CHADHAAVA_BASE?blocked=${Uri.encode(blockedFeature)}"
+    /**
+     * Set when the user is arriving straight back from signing in, having already tapped
+     * subscribe. Checkout opens on its own — being returned to the offer and asked to tap
+     * the same button a second time is the worst possible place to add a step.
+     */
+    const val CHADHAAVA_RESUME_ARG = "resume"
+    const val CHADHAAVA = "chadhaava?blocked={blocked}&resume={resume}"
+
+    fun chadhaavaRoute(
+        blockedFeature: String? = null,
+        resumeCheckout: Boolean = false
+    ): String {
+        val params = buildList {
+            if (!blockedFeature.isNullOrBlank()) add("blocked=${Uri.encode(blockedFeature)}")
+            if (resumeCheckout) add("resume=1")
+        }
+        return if (params.isEmpty()) CHADHAAVA_BASE
+        else "$CHADHAAVA_BASE?${params.joinToString("&")}"
+    }
 
     fun bhaktiChatRoute(guideId: String? = null, prefill: String? = null): String {
         val params = buildList {

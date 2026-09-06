@@ -34,11 +34,16 @@ class AuthRepository(
     val currentSession: MobileSession?
         get() = (_state.value as? AuthState.Authenticated)?.session
 
+    /**
+     * Opens the app. Anyone without a usable session lands in [AuthState.Guest] rather than
+     * on a sign-in screen — the gate in front of the app is what people were dropping at
+     * after install, and nothing below checkout actually needs an account.
+     */
     suspend fun restoreSession() {
         val stored = sessionStore.load()
         if (stored == null || stored.expiresAtMillis <= System.currentTimeMillis()) {
             sessionStore.clear()
-            _state.value = AuthState.SignedOut()
+            _state.value = AuthState.Guest
             return
         }
 
@@ -52,13 +57,48 @@ class AuthRepository(
         } catch (error: AuthApiException) {
             if (error.status == 401) {
                 sessionStore.clear()
-                _state.value = AuthState.SignedOut(languageStore.str("auth_session_expired"))
+                _state.value = AuthState.Guest
             } else {
                 _state.value = AuthState.Authenticated(stored)
             }
         } catch (_: Exception) {
             _state.value = AuthState.Authenticated(stored)
         }
+    }
+
+    // Survives the sign-in round trip. Signing in swaps the whole composition — a new
+    // NavController, back at the start destination — so without this the user is dropped on
+    // Home and has to find चढ़ावा and tap subscribe all over again.
+    private var pendingCheckout = false
+
+    /**
+     * Shows the sign-in screen. Called only from the two places that need an account:
+     * चढ़ावा checkout, and the "sign in" row in Settings.
+     *
+     * @param forCheckout true when the user has already tapped subscribe, so checkout should
+     *   resume by itself once they are signed in.
+     */
+    fun requestSignIn(forCheckout: Boolean = false) {
+        if (_state.value is AuthState.Authenticated) return
+        pendingCheckout = forCheckout
+        _state.value = AuthState.SignedOut()
+    }
+
+    /** Backs out of the sign-in screen and returns to browsing as a guest. */
+    fun dismissSignIn() {
+        if (_state.value is AuthState.Authenticated) return
+        pendingCheckout = false
+        _state.value = AuthState.Guest
+    }
+
+    /**
+     * True once, if the session that just started began with a tap on subscribe. Clears on
+     * read so a later relaunch — or a rotation — cannot reopen checkout by itself.
+     */
+    fun consumePendingCheckout(): Boolean {
+        val pending = pendingCheckout
+        pendingCheckout = false
+        return pending
     }
 
     suspend fun signInWithGoogle(activity: Activity, explicitButton: Boolean) {
@@ -134,51 +174,12 @@ class AuthRepository(
         }
     }
 
-    /**
-     * Finishes phone sign-in once Firebase has verified the code and produced [firebaseIdToken].
-     * Stores the session exactly like [signInWithGoogle] does.
-     *
-     * Unlike the Google path this does not flip [_state] to SigningIn on entry, and it returns
-     * the error message instead of publishing SignedOut on failure. The OTP screen owns its own
-     * verifying spinner and inline error, and driving those off the shared state would tear it
-     * down and lose the entered code. On success we publish Authenticated and the root swaps to
-     * the app; on failure the caller keeps showing the OTP screen with the returned message.
-     *
-     * @return null on success, otherwise a localised, user-facing error message.
-     */
-    suspend fun signInWithPhone(firebaseIdToken: String): String? {
-        return try {
-            val session = api.exchangePhone(firebaseIdToken)
-            sessionStore.save(session)
-            // Identify before the success event so the phone number lands on the person
-            // profile immediately, rather than leaving them as an "Anonymous user (UUID)".
-            Analytics.identify(
-                userId = session.user.id,
-                email = session.user.email,
-                name = session.user.name,
-                phone = session.user.phone
-            )
-            _state.value = AuthState.Authenticated(session)
-            Analytics.authSucceeded("phone", session.user.phone)
-            null
-        } catch (error: AuthApiException) {
-            Analytics.authFailed("phone", error.code)
-            error.toHindiMessage()
-        } catch (_: IOException) {
-            Analytics.authFailed("phone", "network_error")
-            languageStore.str("auth_check_connection")
-        } catch (_: Exception) {
-            Analytics.authFailed("phone", "unknown_error")
-            languageStore.str("auth_phone_failed")
-        }
-    }
-
     suspend fun signOut() {
         val token = currentSession?.accessToken
         if (token != null) runCatching { api.logout(token) }
         sessionStore.clear()
         runCatching { credentialManager.clearCredentialState(ClearCredentialStateRequest()) }
-        _state.value = AuthState.SignedOut()
+        _state.value = AuthState.Guest
     }
 
     suspend fun deleteAccount(): Result<String> {
@@ -187,7 +188,7 @@ class AuthRepository(
             api.deleteAccount(session.accessToken)
             sessionStore.clear()
             runCatching { credentialManager.clearCredentialState(ClearCredentialStateRequest()) }
-            _state.value = AuthState.SignedOut()
+            _state.value = AuthState.Guest
             session.user.id
         }
     }

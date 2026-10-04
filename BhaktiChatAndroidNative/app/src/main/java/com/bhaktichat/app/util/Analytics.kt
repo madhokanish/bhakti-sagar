@@ -1,6 +1,8 @@
 package com.bhaktichat.app.util
 
 import android.content.Context
+import android.content.SharedPreferences
+import com.google.firebase.analytics.FirebaseAnalytics
 import com.posthog.PostHog
 import com.posthog.android.PostHogAndroid
 import com.posthog.android.PostHogAndroidConfig
@@ -20,8 +22,24 @@ object Analytics {
     @Volatile
     private var enabled = false
 
-    /** Initializes PostHog. Safe to call with a blank key (becomes a no-op). */
+    // Firebase Analytics exists only so Google Ads can optimise for engaged users, not raw
+    // installs. It gets a small allowlist of events (never chat text) plus a one-time
+    // `engaged_user` event, which is imported into Google Ads as the campaign conversion.
+    private var firebase: FirebaseAnalytics? = null
+    private var prefs: SharedPreferences? = null
+    private val firebaseEvents = setOf(
+        "chat_message_sent", "aarti_play_started", "divine_image_generated", "reel_viewed"
+    )
+    private val engagementEvents = setOf(
+        "chat_message_sent", "aarti_play_started", "divine_image_generated"
+    )
+    private const val ENGAGED_EVENT = "engaged_user"
+    private const val ENGAGED_PREF_KEY = "engaged_user_logged"
+
+    /** Initializes Firebase Analytics and PostHog. PostHog is a no-op with a blank key. */
     fun init(context: Context, apiKey: String, host: String, debug: Boolean) {
+        firebase = FirebaseAnalytics.getInstance(context.applicationContext)
+        prefs = context.applicationContext.getSharedPreferences("analytics", Context.MODE_PRIVATE)
         if (apiKey.isBlank()) return
         val config = PostHogAndroidConfig(apiKey = apiKey, host = host).apply {
             // We track screens manually per Compose route (this app is single-Activity, so
@@ -37,8 +55,20 @@ object Analytics {
 
     /** Records a custom event with optional properties. No-op when analytics is disabled. */
     fun capture(event: String, properties: Map<String, Any>? = null) {
+        logToFirebase(event)
         if (!enabled) return
         PostHog.capture(event = event, properties = properties)
+    }
+
+    /** Mirrors allowlisted events to Firebase and fires [ENGAGED_EVENT] once per install. */
+    private fun logToFirebase(event: String) {
+        val fa = firebase ?: return
+        if (event in firebaseEvents) fa.logEvent(event, null)
+        val p = prefs ?: return
+        if (event in engagementEvents && !p.getBoolean(ENGAGED_PREF_KEY, false)) {
+            p.edit().putBoolean(ENGAGED_PREF_KEY, true).apply()
+            fa.logEvent(ENGAGED_EVENT, null)
+        }
     }
 
     /**

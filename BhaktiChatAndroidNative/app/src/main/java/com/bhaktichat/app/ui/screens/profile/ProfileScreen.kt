@@ -128,7 +128,9 @@ fun ProfileScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (currentUser == null) {
+            // A guest account (made silently at checkout) has nothing to sign out of — doing so
+            // would strand its membership — so it gets the same "sign in" offer as no account.
+            if (currentUser == null || currentUser.isGuest) {
                 GuestAccountSection(onSignIn = onSignIn)
             } else {
                 AccountSection(

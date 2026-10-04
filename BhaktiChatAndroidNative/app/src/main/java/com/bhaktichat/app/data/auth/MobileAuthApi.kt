@@ -30,9 +30,34 @@ class MobileAuthApi(
         )
     }
 
-    suspend fun exchangeGoogle(challengeId: String, idToken: String): MobileSession = post(
-        "$apiBase/auth/google",
-        JSONObject().put("challengeId", challengeId).put("idToken", idToken)
+    /**
+     * [guestAccessToken] is the device's guest session, if it has one. Sending it lets the
+     * server carry that guest's membership over to the Google account.
+     */
+    suspend fun exchangeGoogle(
+        challengeId: String,
+        idToken: String,
+        guestAccessToken: String? = null
+    ): MobileSession = request(
+        Request.Builder()
+            .url("$apiBase/auth/google")
+            .post(
+                JSONObject().put("challengeId", challengeId).put("idToken", idToken)
+                    .toString().toRequestBody(jsonMedia)
+            )
+            .header("Accept", "application/json")
+            .apply { guestAccessToken?.let { header("Authorization", "Bearer $it") } }
+            .build()
+    ) { parseSession(it) }
+
+    /** Signs in (creating on first use) the guest account tied to this install's anon id. */
+    suspend fun exchangeGuest(anonId: String): MobileSession = request(
+        Request.Builder()
+            .url("$apiBase/auth/guest")
+            .post("{}".toRequestBody(jsonMedia))
+            .header("Accept", "application/json")
+            .header("x-bhakti-anon-id", anonId)
+            .build()
     ) { parseSession(it) }
 
     suspend fun exchangeAccess(login: String, password: String): MobileSession = post(
@@ -127,7 +152,8 @@ class MobileAuthApi(
         name = json.optNullableString("name"),
         phone = json.optNullableString("phone"),
         image = json.optNullableString("image"),
-        isReviewer = json.optBoolean("isReviewer", false)
+        isReviewer = json.optBoolean("isReviewer", false),
+        isGuest = json.optBoolean("isGuest", false)
     )
 
     private fun parseIsoMillis(value: String): Long {

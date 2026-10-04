@@ -482,6 +482,17 @@ private val table: Map<String, Entry> = mapOf(
     ),
     "chadhaava_cancel" to Entry("Cancel membership", "सदस्यता कैंसल करें", "Cancel membership"),
     "chadhaava_cancel_trial" to Entry("Cancel trial", "ट्रायल कैंसल करें", "Cancel trial"),
+    "chadhaava_save_title" to Entry(
+        "Keep your membership safe",
+        "अपनी सदस्यता सुरक्षित रखें",
+        "Keep your membership safe"
+    ),
+    "chadhaava_save_body" to Entry(
+        "Link Google so your चढ़ावा stays with you if you change phones or reinstall.",
+        "Google से जोड़ें, ताकि फ़ोन बदलने या ऐप दोबारा इंस्टॉल करने पर भी आपका चढ़ावा आपके साथ रहे।",
+        "Link Google so your Chadhava stays with you if you change phones or reinstall."
+    ),
+    "chadhaava_save_cta" to Entry("Link Google", "Google से जोड़ें", "Link Google"),
     "chadhaava_cancelled_title" to Entry(
         "Membership cancelled",
         "सदस्यता कैंसल हो गई",
@@ -1809,9 +1820,9 @@ private val table: Map<String, Entry> = mapOf(
     "profile_member" to Entry("BhaktiChat member", "BhaktiChat सदस्य", "BhaktiChat member"),
     "profile_guest_title" to Entry("You're browsing as a guest", "आप अतिथि के रूप में देख रहे हैं", "You're browsing as a guest"),
     "profile_guest_body" to Entry(
-        "Sign in to take चढ़ावा and keep your membership across devices.",
-        "चढ़ावा लेने और अपनी सदस्यता हर डिवाइस पर रखने के लिए साइन इन कीजिए।",
-        "Sign in to take Chadhava and keep your membership across devices."
+        "Sign in with Google to keep your चढ़ावा membership on every device.",
+        "अपनी चढ़ावा सदस्यता हर डिवाइस पर रखने के लिए Google से साइन इन कीजिए।",
+        "Sign in with Google to keep your Chadhava membership on every device."
     ),
     "profile_sign_in" to Entry("Sign in", "साइन इन", "Sign in"),
     "profile_sign_out" to Entry("Sign out", "साइन आउट", "Sign out"),

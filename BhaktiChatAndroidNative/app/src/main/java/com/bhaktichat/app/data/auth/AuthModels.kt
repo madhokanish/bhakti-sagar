@@ -6,7 +6,13 @@ data class MobileUser(
     val name: String?,
     val phone: String?,
     val image: String?,
-    val isReviewer: Boolean
+    val isReviewer: Boolean,
+    /**
+     * A silent checkout account: created when someone taps pay without signing in, so the
+     * subscription has a server user to belong to. Treated like no account everywhere except
+     * checkout, and upgraded in place when the person later signs in with Google.
+     */
+    val isGuest: Boolean = false
 )
 
 data class MobileSession(

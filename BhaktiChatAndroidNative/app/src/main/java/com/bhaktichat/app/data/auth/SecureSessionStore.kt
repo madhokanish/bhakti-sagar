@@ -26,6 +26,7 @@ class SecureSessionStore(context: Context) {
                 put("phone", session.user.phone)
                 put("image", session.user.image)
                 put("isReviewer", session.user.isReviewer)
+                put("isGuest", session.user.isGuest)
             })
         }.toString().toByteArray(Charsets.UTF_8)
 
@@ -53,7 +54,8 @@ class SecureSessionStore(context: Context) {
                 name = userJson.optNullableString("name"),
                 phone = userJson.optNullableString("phone"),
                 image = userJson.optNullableString("image"),
-                isReviewer = userJson.optBoolean("isReviewer", false)
+                isReviewer = userJson.optBoolean("isReviewer", false),
+                isGuest = userJson.optBoolean("isGuest", false)
             )
         )
     }.getOrElse {

@@ -83,7 +83,11 @@ fun BhaktiChatAuthRoot() {
             BhaktiChatApp(
                 appContainer = container,
                 currentUser = null,
-                onRequestSignIn = { forCheckout -> repository.requestSignIn(forCheckout) },
+                // Paying needs no sign-in: checkout gets a silent guest account instead.
+                onRequestSignIn = { forCheckout ->
+                    if (forCheckout) actionScope.launch { repository.startGuestCheckout() }
+                    else repository.requestSignIn(false)
+                },
                 onSignOut = { application.signOut() },
                 onDeleteAccount = { application.deleteAccountAndLocalData() }
             )
@@ -129,7 +133,9 @@ fun BhaktiChatAuthRoot() {
             BhaktiChatApp(
                 appContainer = container,
                 currentUser = current.session.user,
-                onRequestSignIn = { /* already signed in */ },
+                // A no-op for a real account; a guest account may still sign in to keep its
+                // membership on any device.
+                onRequestSignIn = { forCheckout -> repository.requestSignIn(forCheckout) },
                 // If this session started with a tap on subscribe, the app picks checkout
                 // back up on its own rather than dropping the user on Home.
                 consumePendingCheckout = repository::consumePendingCheckout,

@@ -112,9 +112,11 @@ object ChadhaavaPalette {
 }
 
 /**
- * @param requiresSignIn true for a guest. Checkout needs a server identity to hang the
- *   Razorpay mandate on, so the subscribe button sends them to sign in first rather than
- *   failing with AUTH_REQUIRED after the tap.
+ * @param requiresSignIn true when there is no session at all. Checkout needs a server
+ *   identity to hang the Razorpay mandate on, so the subscribe button calls [onSignIn],
+ *   which quietly creates a guest account and resumes checkout (no sign-in screen).
+ * @param isGuestAccount true when paying through such a guest account. The active view then
+ *   asks them to link Google ([onLinkAccount]) so the membership survives a new phone.
  */
 @Composable
 fun ChadhaavaScreen(
@@ -123,7 +125,9 @@ fun ChadhaavaScreen(
     onOpenUrl: (String) -> Unit,
     userEmail: String? = null,
     requiresSignIn: Boolean = false,
-    onSignIn: () -> Unit = {}
+    onSignIn: () -> Unit = {},
+    isGuestAccount: Boolean = false,
+    onLinkAccount: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val cancelState by viewModel.cancelState.collectAsStateWithLifecycle()
@@ -216,7 +220,8 @@ fun ChadhaavaScreen(
             is ChadhaavaUiState.Active -> ActiveState(
                 state = current,
                 onCancel = { cancelConfirmStep = 1 },
-                onOpenUrl = onOpenUrl
+                onOpenUrl = onOpenUrl,
+                onLinkAccount = if (isGuestAccount) onLinkAccount else null
             )
 
             is ChadhaavaUiState.Processing -> ProcessingSheet(
@@ -1186,7 +1191,8 @@ private fun PolicyLinksRow(onOpenUrl: (String) -> Unit) {
 private fun ActiveState(
     state: ChadhaavaUiState.Active,
     onCancel: () -> Unit,
-    onOpenUrl: (String) -> Unit
+    onOpenUrl: (String) -> Unit,
+    onLinkAccount: (() -> Unit)? = null
 ) {
     Column(
         modifier = Modifier
@@ -1297,6 +1303,44 @@ private fun ActiveState(
         }
 
         Spacer(Modifier.height(18.dp))
+
+        // Paid as a guest: the membership lives on this install only until Google is linked.
+        // Asked here, right after paying, when people are most willing to sign in.
+        if (onLinkAccount != null) {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(ChadhaavaPalette.SurfaceWarm)
+                    .border(1.dp, ChadhaavaPalette.CardBorderAccent, RoundedCornerShape(16.dp))
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = t("chadhaava_save_title"),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = ChadhaavaPalette.TextPrimary
+                )
+                Text(
+                    text = t("chadhaava_save_body"),
+                    fontSize = 12.5.sp,
+                    color = ChadhaavaPalette.TextBody
+                )
+                Text(
+                    text = t("chadhaava_save_cta"),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ChadhaavaPalette.DeepAccent,
+                    modifier = Modifier
+                        .heightIn(min = 44.dp)
+                        .clickable(onClick = onLinkAccount)
+                        .padding(vertical = 12.dp)
+                )
+            }
+            Spacer(Modifier.height(18.dp))
+        }
 
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             Text(

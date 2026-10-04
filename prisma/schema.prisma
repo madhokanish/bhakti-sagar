@@ -35,6 +35,11 @@ model User {
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   isReviewer             Boolean                 @default(false)
+  /// The app's per-install anon id, set only on guest accounts: rows created silently when
+  /// someone taps pay without signing in, so checkout has a User to hang the subscription
+  /// on. A guest that later signs in with Google is upgraded in place (or its membership is
+  /// moved to the existing Google account) — see linkGuestToGoogleUser in mobileAuth.ts.
+  guestDeviceId          String?                 @unique
   accounts               Account[]
   sessions               Session[]
   mobileSessions         MobileSession[]

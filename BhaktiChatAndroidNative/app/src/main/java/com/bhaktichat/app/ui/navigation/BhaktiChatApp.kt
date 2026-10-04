@@ -842,10 +842,13 @@ fun BhaktiChatApp(
                 ChadhaavaScreen(
                     viewModel = vm,
                     userEmail = currentUser?.email,
-                    // Checkout mints a signed-in web handoff, so a guest is sent to sign in
-                    // first. This is the only hard account requirement left in the app.
+                    // Checkout mints a signed-in web handoff, so with no session at all the
+                    // subscribe tap first creates a silent guest account (see
+                    // AuthRepository.startGuestCheckout) — no sign-in screen in the way.
                     requiresSignIn = currentUser == null,
                     onSignIn = { onRequestSignIn(true) },
+                    isGuestAccount = currentUser?.isGuest == true,
+                    onLinkAccount = { onRequestSignIn(false) },
                     onBack = if (blocked != null) {
                         { navController.popBackStack() }
                     } else {

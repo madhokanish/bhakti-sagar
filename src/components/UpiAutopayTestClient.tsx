@@ -64,7 +64,7 @@ export default function UpiAutopayTestClient({ email, phone, lang }: Props) {
         key: keyId,
         subscription_id: createData.subscriptionId,
         name: "BhaktiChat",
-        description: "Monthly membership (test)",
+        description: "Monthly membership",
         // Prefill whatever the account has. A phone user's number goes straight into the UPI
         // contact field so they don't retype it; email is included only when present.
         prefill: {

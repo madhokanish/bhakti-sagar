@@ -4,6 +4,8 @@ import crypto from "node:crypto";
 import type { Prisma, User } from "@prisma/client";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
+import { hasSubscriptionEntitlement } from "@/lib/subscription";
+import { setUserSubscriptionStatus } from "@/lib/subscriptionStatus";
 
 const GOOGLE_JWKS = createRemoteJWKSet(
   new URL("https://www.googleapis.com/oauth2/v3/certs")
@@ -99,6 +101,8 @@ export type MobileUser = {
   phone: string | null;
   image: string | null;
   isReviewer: boolean;
+  /** A silent checkout account with no sign-in behind it. See exchangeGuestDevice. */
+  isGuest: boolean;
 };
 
 export type AuthenticatedMobileSession = {
@@ -159,8 +163,12 @@ function googleClientId() {
   return value;
 }
 
+function isGuestUser(user: Pick<User, "guestDeviceId" | "email" | "phone">) {
+  return Boolean(user.guestDeviceId) && !user.email && !user.phone;
+}
+
 function toMobileUser(
-  user: Pick<User, "id" | "email" | "name" | "phone" | "image" | "isReviewer">
+  user: Pick<User, "id" | "email" | "name" | "phone" | "image" | "isReviewer" | "guestDeviceId">
 ): MobileUser {
   return {
     id: user.id,
@@ -168,7 +176,8 @@ function toMobileUser(
     name: user.name,
     phone: user.phone,
     image: user.image,
-    isReviewer: user.isReviewer
+    isReviewer: user.isReviewer,
+    isGuest: isGuestUser(user)
   };
 }
 
@@ -212,8 +221,15 @@ async function findOrCreateGoogleUser(input: {
   name: string | null;
   image: string | null;
   hostedDomain: string | null;
+  /** The guest account this device was using, if any — linked to the Google user below. */
+  guestUserId?: string | null;
 }) {
   return prisma.$transaction(async (tx) => {
+    const guestRow = input.guestUserId
+      ? await tx.user.findUnique({ where: { id: input.guestUserId } })
+      : null;
+    const guest = guestRow && isGuestUser(guestRow) ? guestRow : null;
+
     const account = await tx.account.findUnique({
       where: {
         provider_providerAccountId: {
@@ -235,6 +251,7 @@ async function findOrCreateGoogleUser(input: {
         }
       });
       await ensureProfile(tx, user.id, user.name);
+      if (guest && guest.id !== user.id) return moveGuestMembership(tx, guest, user);
       return user;
     }
 
@@ -263,6 +280,8 @@ async function findOrCreateGoogleUser(input: {
       );
     }
 
+    // A brand-new Google user who was checking out as a guest becomes that guest: same user
+    // id, so the subscription, the webhook mapping and the app's local data all stay put.
     const user = existingUser
       ? await tx.user.update({
           where: { id: existingUser.id },
@@ -270,6 +289,17 @@ async function findOrCreateGoogleUser(input: {
             name: existingUser.name || input.name,
             image: existingUser.image || input.image,
             emailVerified: existingUser.emailVerified || new Date()
+          }
+        })
+      : guest
+      ? await tx.user.update({
+          where: { id: guest.id },
+          data: {
+            email: input.email,
+            name: input.name,
+            image: input.image,
+            emailVerified: new Date(),
+            guestDeviceId: null
           }
         })
       : await tx.user.create({
@@ -291,8 +321,90 @@ async function findOrCreateGoogleUser(input: {
       }
     });
     await ensureProfile(tx, user.id, user.name);
+    if (guest && existingUser) return moveGuestMembership(tx, guest, user);
     return user;
   });
+}
+
+/**
+ * A guest paid, then signed in with a Google account that already exists. Moves the
+ * membership onto that account so it follows them to any device. The webhook finds users by
+ * razorpaySubscriptionId, so moving that id is all it takes to keep renewals landing.
+ *
+ * If the Google account is already a member too (they paid twice), nothing moves: the
+ * guest's subscription stays on the guest row and is logged for support to refund.
+ */
+async function moveGuestMembership(tx: Prisma.TransactionClient, guest: User, target: User) {
+  if (!guest.razorpaySubscriptionId) return target;
+  if (hasSubscriptionEntitlement(target.subscriptionStatus)) {
+    console.error("[Mobile auth] Guest and Google account both hold a membership", {
+      guestUserId: guest.id,
+      targetUserId: target.id,
+      guestSubscriptionId: guest.razorpaySubscriptionId
+    });
+    return target;
+  }
+
+  const membership = {
+    razorpaySubscriptionId: guest.razorpaySubscriptionId,
+    razorpayCustomerId: target.razorpayCustomerId ? undefined : guest.razorpayCustomerId,
+    currency: guest.currency,
+    trialEnd: guest.trialEnd,
+    currentPeriodEnd: guest.currentPeriodEnd,
+    cancellationRequestedAt: guest.cancellationRequestedAt,
+    reminder3DaySentAt: guest.reminder3DaySentAt,
+    reminder1DaySentAt: guest.reminder1DaySentAt
+  };
+
+  // Clear the guest first: both Razorpay ids are unique columns.
+  await setUserSubscriptionStatus({
+    userId: guest.id,
+    status: "inactive",
+    source: "guest-link",
+    data: {
+      razorpaySubscriptionId: null,
+      ...(membership.razorpayCustomerId ? { razorpayCustomerId: null } : {}),
+      trialEnd: null,
+      currentPeriodEnd: null,
+      cancellationRequestedAt: null
+    },
+    client: tx
+  });
+  return setUserSubscriptionStatus({
+    userId: target.id,
+    status: guest.subscriptionStatus,
+    source: "guest-link",
+    data: membership,
+    client: tx
+  });
+}
+
+/**
+ * Signs in the device's guest account, creating it on first use. This is what lets someone
+ * pay without a Google sign-in: checkout only needs a User row to own the subscription.
+ *
+ * The anon id is a random per-install UUID the app generates and keeps to itself, so it is
+ * as good a credential as the device it lives on. A reinstall mints a new one, which is why
+ * the app asks a paying guest to link Google afterwards.
+ */
+export async function exchangeGuestDevice(input: { anonId: string }) {
+  const anonId = input.anonId.trim().toLowerCase();
+  if (!/^[0-9a-f-]{36}$/.test(anonId)) {
+    throw new MobileAuthError("INVALID_REQUEST", "Missing device id.", 400);
+  }
+
+  const existing = await prisma.user.findUnique({ where: { guestDeviceId: anonId } });
+  const user =
+    existing ??
+    (await prisma.user.create({
+      data: {
+        guestDeviceId: anonId,
+        currency: "INR",
+        profile: { create: {} }
+      }
+    }));
+
+  return issueMobileSession(user);
 }
 
 export async function createMobileAuthChallenge() {
@@ -318,6 +430,7 @@ export async function createMobileAuthChallenge() {
 export async function exchangeGoogleIdToken(input: {
   challengeId: string;
   idToken: string;
+  guestUserId?: string | null;
 }) {
   if (!input.challengeId || !input.idToken) {
     throw new MobileAuthError("INVALID_REQUEST", "Missing sign-in response.", 400);
@@ -374,7 +487,8 @@ export async function exchangeGoogleIdToken(input: {
     emailVerified: payload.email_verified === true,
     name: typeof payload.name === "string" ? payload.name.trim() || null : null,
     image: typeof payload.picture === "string" ? payload.picture : null,
-    hostedDomain: typeof payload.hd === "string" ? payload.hd : null
+    hostedDomain: typeof payload.hd === "string" ? payload.hd : null,
+    guestUserId: input.guestUserId
   });
 
   return issueMobileSession(user);

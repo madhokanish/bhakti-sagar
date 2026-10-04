@@ -13,6 +13,7 @@ import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.bhaktichat.app.ui.i18n.str
 import com.bhaktichat.app.util.Analytics
+import com.bhaktichat.app.util.AnonUserKey
 import com.bhaktichat.app.util.LanguageStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +26,7 @@ class AuthRepository(
     private val googleWebClientId: String,
     private val languageStore: LanguageStore
 ) {
+    private val appContext = context.applicationContext
     private val sessionStore = SecureSessionStore(context)
     private val api = MobileAuthApi(baseUrl)
     private val credentialManager = CredentialManager.create(context.applicationContext)
@@ -71,24 +73,53 @@ class AuthRepository(
     // Home and has to find चढ़ावा and tap subscribe all over again.
     private var pendingCheckout = false
 
+    // The guest account the sign-in screen was opened from, so backing out returns to it
+    // rather than to an account-less guest who has lost their membership on this device.
+    private var guestSession: MobileSession? = null
+
     /**
-     * Shows the sign-in screen. Called only from the two places that need an account:
-     * चढ़ावा checkout, and the "sign in" row in Settings.
+     * Someone without an account tapped pay. Rather than stopping them at a Google sign-in —
+     * where four in five dropped off — this quietly signs the device into its own guest
+     * account and resumes checkout. Only if that fails do they see the sign-in screen.
+     */
+    suspend fun startGuestCheckout() {
+        if (_state.value is AuthState.Authenticated) return
+        try {
+            val session = api.exchangeGuest(AnonUserKey.get(appContext))
+            sessionStore.save(session)
+            pendingCheckout = true
+            _state.value = AuthState.Authenticated(session)
+            Analytics.capture("guest_checkout_started")
+        } catch (error: Exception) {
+            val reason = (error as? AuthApiException)?.code
+                ?: if (error is IOException) "network_error" else "unknown_error"
+            Analytics.capture("guest_checkout_failed", mapOf("reason" to reason))
+            requestSignIn(forCheckout = true)
+        }
+    }
+
+    /**
+     * Shows the sign-in screen. Called from checkout (only if the guest account could not be
+     * created), the "sign in" row in Settings, and the "keep your membership" prompt a paying
+     * guest sees. A guest account may sign in; a real one already has.
      *
      * @param forCheckout true when the user has already tapped subscribe, so checkout should
      *   resume by itself once they are signed in.
      */
     fun requestSignIn(forCheckout: Boolean = false) {
-        if (_state.value is AuthState.Authenticated) return
+        val current = (_state.value as? AuthState.Authenticated)?.session
+        if (current != null && !current.user.isGuest) return
+        guestSession = current
         pendingCheckout = forCheckout
         _state.value = AuthState.SignedOut()
     }
 
-    /** Backs out of the sign-in screen and returns to browsing as a guest. */
+    /** Backs out of the sign-in screen, to the guest account if there was one. */
     fun dismissSignIn() {
         if (_state.value is AuthState.Authenticated) return
         pendingCheckout = false
-        _state.value = AuthState.Guest
+        _state.value = guestSession?.let { AuthState.Authenticated(it) } ?: AuthState.Guest
+        guestSession = null
     }
 
     /**
@@ -132,8 +163,13 @@ class AuthRepository(
                 throw IllegalStateException("Unsupported Google credential")
             }
             val googleCredential = GoogleIdTokenCredential.createFrom(credential.data)
-            val session = api.exchangeGoogle(challenge.challengeId, googleCredential.idToken)
+            val session = api.exchangeGoogle(
+                challenge.challengeId,
+                googleCredential.idToken,
+                guestAccessToken = guestSession?.accessToken
+            )
             sessionStore.save(session)
+            guestSession = null
             _state.value = AuthState.Authenticated(session)
             Analytics.authSucceeded("google")
         } catch (_: GetCredentialCancellationException) {
@@ -160,6 +196,7 @@ class AuthRepository(
         try {
             val session = api.exchangeAccess(login.trim(), password)
             sessionStore.save(session)
+            guestSession = null
             _state.value = AuthState.Authenticated(session)
             Analytics.authSucceeded("access")
         } catch (error: AuthApiException) {

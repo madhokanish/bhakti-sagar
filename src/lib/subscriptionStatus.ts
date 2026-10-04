@@ -27,7 +27,8 @@ export type SubscriptionStatusSource =
   | "upi-autopay-charge"
   | "upi-autopay-cancel"
   | "upi-autopay-expire"
-  | "mobile-auth";
+  | "mobile-auth"
+  | "guest-link";
 
 /** Accepts either the base client or a transaction client, so callers inside `$transaction` work. */
 type Client = typeof prisma | Prisma.TransactionClient;

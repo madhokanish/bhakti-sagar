@@ -68,6 +68,8 @@ import com.bhaktichat.app.ui.screens.chadhaava.BlockedFeature
 import com.bhaktichat.app.ui.screens.chadhaava.ChadhaavaScreen
 import com.bhaktichat.app.ui.screens.chadhaava.ChadhaavaViewModel
 import com.bhaktichat.app.ui.screens.chadhaava.ChadhaavaViewModelFactory
+import com.bhaktichat.app.ui.screens.chadhaava.QuickCheckoutSheet
+import com.bhaktichat.app.ui.screens.chadhaava.ChadhaavaPayButton
 import com.bhaktichat.app.ui.screens.chat.ChatThreadScreen
 import com.bhaktichat.app.ui.screens.chat.ChatThreadViewModel
 import com.bhaktichat.app.ui.screens.chat.ChatThreadViewModelFactory
@@ -169,6 +171,27 @@ fun BhaktiChatApp(
     // SubscriptionRepository. Grandfathered Play subscribers also read true here.
     val isPro by entitlementStore.isPro.collectAsStateWithLifecycle()
 
+    // The gate (a BLOCKED_* value) whose quick-checkout sheet is open, or null when closed.
+    // Every gate opens the same sheet rather than the full चढ़ावा page; see QuickCheckoutSheet.
+    var quickCheckoutFor by rememberSaveable { mutableStateOf<String?>(null) }
+
+    /** A gate was hit: show the quick-checkout sheet for it. */
+    val openGate: (String) -> Unit = { blocked ->
+        Analytics.capture("paywall_viewed", mapOf("source" to blocked))
+        quickCheckoutFor = blocked
+    }
+
+    /**
+     * Someone said yes to the offer: go straight to payment. With no session the guest path
+     * runs first (AuthRepository.startGuestCheckout) and resumes checkout by itself; otherwise
+     * the चढ़ावा page opens with checkout already starting, and hosts the wait for UPI.
+     */
+    val startCheckoutFrom: (String, String?) -> Unit = { source, blocked ->
+        Analytics.capture("checkout_started", mapOf("source" to source))
+        if (currentUser == null) onRequestSignIn(true)
+        else navController.navigate(NavDestinations.chadhaavaRoute(blocked, resumeCheckout = true))
+    }
+
     /**
      * Wallpapers is the one feature gated behind चढ़ावा in this build. Non-subscribers are
      * routed to the subscription screen with the blocking feature attached so it can lead
@@ -178,7 +201,7 @@ fun BhaktiChatApp(
         if (isPro) {
             navController.navigate(NavDestinations.WALLPAPERS)
         } else {
-            navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_WALLPAPERS))
+            openGate(BLOCKED_WALLPAPERS)
         }
     }
 
@@ -189,14 +212,14 @@ fun BhaktiChatApp(
         if (isPro) {
             navController.navigate(NavDestinations.AARTIS)
         } else {
-            navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_AARTIS))
+            openGate(BLOCKED_AARTIS)
         }
     }
     val openFestivalsOrGate: () -> Unit = {
         if (isPro) {
             navController.navigate(NavDestinations.FESTIVALS)
         } else {
-            navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_FESTIVALS))
+            openGate(BLOCKED_FESTIVALS)
         }
     }
     val streak by appContainer.streakStore.currentStreak.collectAsStateWithLifecycle()
@@ -263,6 +286,7 @@ fun BhaktiChatApp(
             showMembershipPromo = true
             membershipPromoStore.markShown()
             Analytics.screen("membership_promo")
+            Analytics.capture("paywall_viewed", mapOf("source" to "promo"))
         }
     }
 
@@ -297,6 +321,12 @@ fun BhaktiChatApp(
         includeOpener: Boolean,
         popUpRoute: String? = null
     ) {
+        // A pre-filled question counts against the daily free chat like a typed one.
+        if (!initialPrompt.isNullOrBlank() && entitlementStore.isOverChatLimit) {
+            entitlementStore.reportQuotaReached("chat")
+            openGate(BLOCKED_CHAT_QUOTA)
+            return
+        }
         appScope.launch {
             val guide = appContainer.guidesRepository.getGuide(guideId) ?: return@launch
             Analytics.guideSelected(guideId = guide.id)
@@ -546,7 +576,7 @@ fun BhaktiChatApp(
                     onOpenStreak = { showStreakDetails = true },
                     isPro = isPro,
                     onLockedFeature = { blocked ->
-                        navController.navigate(NavDestinations.chadhaavaRoute(blocked))
+                        openGate(blocked)
                     }
                 )
             }
@@ -615,7 +645,7 @@ fun BhaktiChatApp(
                 val uiState by vm.uiState.collectAsStateWithLifecycle()
                 LaunchedEffect(vm) {
                     vm.paywallEvents.collect {
-                        navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_CHAT_QUOTA))
+                        openGate(BLOCKED_CHAT_QUOTA)
                     }
                 }
                 ChatThreadScreen(
@@ -634,7 +664,7 @@ fun BhaktiChatApp(
                         if (isPro) {
                             navController.navigate(NavDestinations.voiceModeRoute(guideId, conversationId))
                         } else {
-                            navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_VOICE))
+                            openGate(BLOCKED_VOICE)
                         }
                     },
                     onOpenChadhaava = {
@@ -742,9 +772,9 @@ fun BhaktiChatApp(
                         launchThread(guideId = reel.deityId, initialPrompt = prompt, includeOpener = false)
                     },
                     isPro = isPro,
-                    onSubscribe = {
-                        navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_REELS))
-                    }
+                    // The in-feed paywall page has already made the offer, so its button goes
+                    // straight to payment rather than to a second page selling the same thing.
+                    onSubscribe = { startCheckoutFrom("reels", BLOCKED_REELS) }
                 )
                 LaunchedEffect(Unit) { requestedReelId = null }
             }
@@ -814,23 +844,23 @@ fun BhaktiChatApp(
                     }
                 )
             ) { backStackEntry ->
-                val blocked = backStackEntry.arguments
+                val rawBlocked = backStackEntry.arguments
                     ?.getString(NavDestinations.CHADHAAVA_BLOCKED_ARG)
-                    ?.let { raw ->
-                        when (raw) {
-                            BLOCKED_WALLPAPERS -> BlockedFeature.WALLPAPERS
-                            BLOCKED_CHAT_QUOTA -> BlockedFeature.CHAT_QUOTA
-                            BLOCKED_IMAGE_QUOTA -> BlockedFeature.IMAGE_QUOTA
-                            BLOCKED_REELS -> BlockedFeature.REELS
-                            BLOCKED_AARTIS -> BlockedFeature.AARTIS
-                            BLOCKED_VOICE -> BlockedFeature.VOICE
-                            BLOCKED_FESTIVALS -> BlockedFeature.FESTIVALS
-                            else -> null
-                        }
-                    }
+                val blocked = rawBlocked?.let(::blockedFeatureFor)
+                // Funnel source: the gate that sent them, or "tab" for the चढ़ावा tab itself.
+                val source = rawBlocked ?: "tab"
 
                 val resumeCheckout = backStackEntry.arguments
                     ?.getString(NavDestinations.CHADHAAVA_RESUME_ARG) == "1"
+                // A resumed arrival already counted its view (and its checkout tap) wherever
+                // the offer was made, so only a plain visit counts as a paywall view here.
+                var viewCounted by rememberSaveable { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    if (!viewCounted && !resumeCheckout) {
+                        Analytics.capture("paywall_viewed", mapOf("source" to source))
+                    }
+                    viewCounted = true
+                }
                 val vm: ChadhaavaViewModel = viewModel(
                     factory = ChadhaavaViewModelFactory(
                         repository = appContainer.subscriptionRepository,
@@ -849,6 +879,9 @@ fun BhaktiChatApp(
                     onSignIn = { onRequestSignIn(true) },
                     isGuestAccount = currentUser?.isGuest == true,
                     onLinkAccount = { onRequestSignIn(false) },
+                    onCheckoutStarted = {
+                        Analytics.capture("checkout_started", mapOf("source" to source))
+                    },
                     onBack = if (blocked != null) {
                         { navController.popBackStack() }
                     } else {
@@ -908,7 +941,7 @@ fun BhaktiChatApp(
                 val uiState by vm.uiState.collectAsStateWithLifecycle()
                 LaunchedEffect(vm) {
                     vm.paywallEvents.collect {
-                        navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_IMAGE_QUOTA))
+                        openGate(BLOCKED_IMAGE_QUOTA)
                     }
                 }
                 val localContext = LocalContext.current
@@ -969,7 +1002,7 @@ fun BhaktiChatApp(
                 val uiState by vm.uiState.collectAsStateWithLifecycle()
                 LaunchedEffect(vm) {
                     vm.paywallEvents.collect {
-                        navController.navigate(NavDestinations.chadhaavaRoute(BLOCKED_IMAGE_QUOTA))
+                        openGate(BLOCKED_IMAGE_QUOTA)
                     }
                 }
                 DivineImageResultScreen(
@@ -1118,8 +1151,24 @@ fun BhaktiChatApp(
             onGetMembership = {
                 showMembershipPromo = false
                 Analytics.screen("membership_promo_cta")
-                navigateToTopLevel(NavDestinations.CHADHAAVA_BASE)
+                // The popup has already made the offer: straight to payment, no second page.
+                startCheckoutFrom("promo", null)
             }
+        )
+    }
+
+    quickCheckoutFor?.let { blocked ->
+        QuickCheckoutSheet(
+            blockedBy = blockedFeatureFor(blocked),
+            onCheckout = {
+                quickCheckoutFor = null
+                startCheckoutFrom(blocked, blocked)
+            },
+            onSeeAllBenefits = {
+                quickCheckoutFor = null
+                navController.navigate(NavDestinations.chadhaavaRoute(blocked))
+            },
+            onDismiss = { quickCheckoutFor = null }
         )
     }
     }
@@ -1218,24 +1267,7 @@ private fun MembershipInterstitial(
                     color = Color(0xFF8A6F5C)
                 )
                 Spacer(Modifier.height(4.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(
-                            Brush.horizontalGradient(listOf(Color(0xFFFB923C), Color(0xFFEA580C)))
-                        )
-                        .clickable { onGetMembership() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = t("promo_cta"),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
+                ChadhaavaPayButton(onClick = onGetMembership)
             }
         }
     }
@@ -1397,6 +1429,18 @@ private fun shouldShowBottomBar(route: String, imeVisible: Boolean): Boolean {
 /** Route argument value marking wallpapers as the feature that gated the user. */
 internal const val BLOCKED_WALLPAPERS = "wallpapers"
 internal const val BLOCKED_CHAT_QUOTA = "chat_quota"
+
+/** Maps a चढ़ावा route's `blocked` value to the feature it names; null for anything else. */
+private fun blockedFeatureFor(raw: String): BlockedFeature? = when (raw) {
+    BLOCKED_WALLPAPERS -> BlockedFeature.WALLPAPERS
+    BLOCKED_CHAT_QUOTA -> BlockedFeature.CHAT_QUOTA
+    BLOCKED_IMAGE_QUOTA -> BlockedFeature.IMAGE_QUOTA
+    BLOCKED_REELS -> BlockedFeature.REELS
+    BLOCKED_AARTIS -> BlockedFeature.AARTIS
+    BLOCKED_VOICE -> BlockedFeature.VOICE
+    BLOCKED_FESTIVALS -> BlockedFeature.FESTIVALS
+    else -> null
+}
 internal const val BLOCKED_IMAGE_QUOTA = "image_quota"
 internal const val BLOCKED_REELS = "reels"
 internal const val BLOCKED_AARTIS = "aartis"

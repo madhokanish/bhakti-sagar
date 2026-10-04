@@ -84,18 +84,23 @@ class EntitlementStore(context: Context) {
     // one) is never limited.
 
     /**
-     * Always false: chat is unlimited and free for everyone, subscriber or not.
+     * Free chat is capped at [DAILY_CHAT_LIMIT] messages a day; subscribers are unlimited.
      *
-     * Chat is the reason people install, and it is cheap to serve — capping it was costing
-     * far more in abandoned installs than it ever earned. The accounting below still runs
-     * (it feeds analytics and the review prompt), it just no longer gates anything. The
-     * backend agrees: ENFORCE_ANON_LIMIT is false in lib/bhaktigpt/server.ts.
-     *
-     * चढ़ावा still covers everything expensive to run — voice mode, divine images, and the
-     * depth content — so the subscription is unaffected.
+     * Daily rather than lifetime: the old lifetime cap of 20 sent everyone who hit it away
+     * for good. A daily cap lets them come back tomorrow, while the heaviest chatters — the
+     * people most likely to pay — meet चढ़ावा at their most engaged moment. Enforced on the
+     * device only (the backend's ENFORCE_ANON_LIMIT stays false), so clearing app data resets
+     * it; that is an accepted trade for a first version.
      */
     val isOverChatLimit: Boolean
-        get() = false
+        get() = !_isPro.value && messagesSentToday() >= DAILY_CHAT_LIMIT
+
+    /** Successful free messages sent today (device-local calendar day). */
+    fun messagesSentToday(): Int =
+        if (prefs.getString(KEY_CHAT_DAY, null) == today()) prefs.getInt(KEY_CHAT_DAY_COUNT, 0) else 0
+
+    private fun today(): String =
+        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
 
     /**
      * Divine images are चढ़ावा-only — there is no free allowance at all. The taster gave the
@@ -137,9 +142,9 @@ class EntitlementStore(context: Context) {
 
     // --- Derived counters -------------------------------------------------
 
-    /** Unlimited; kept so existing call sites and analytics keep compiling. */
+    /** Free messages left today; unlimited for subscribers. */
     val messagesRemaining: Int
-        get() = Int.MAX_VALUE
+        get() = if (_isPro.value) Int.MAX_VALUE else (DAILY_CHAT_LIMIT - messagesSentToday()).coerceAtLeast(0)
 
     /** Subscribers have no limit; everyone else has no allowance. */
     val imagesRemaining: Int
@@ -151,7 +156,11 @@ class EntitlementStore(context: Context) {
     fun recordMessageSent() {
         if (_isPro.value) return
         val next = _messagesUsed.value + 1
-        prefs.edit().putInt(KEY_MESSAGES_USED, next).apply()
+        prefs.edit()
+            .putInt(KEY_MESSAGES_USED, next)
+            .putString(KEY_CHAT_DAY, today())
+            .putInt(KEY_CHAT_DAY_COUNT, messagesSentToday() + 1)
+            .apply()
         _messagesUsed.value = next
         Analytics.usageRecorded(
             kind = "chat",
@@ -354,6 +363,9 @@ class EntitlementStore(context: Context) {
         private const val KEY_SERVER_PRO_ACTIVE = "bhakti_server_pro_active"
         private const val KEY_QUOTA_EPOCH = "bhakti_quota_epoch"
         private const val KEY_MESSAGES_USED = "bhakti_free_messages_used"
+        private const val KEY_CHAT_DAY = "bhakti_chat_day"
+        private const val KEY_CHAT_DAY_COUNT = "bhakti_chat_day_count"
+        const val DAILY_CHAT_LIMIT = 10
         private const val KEY_IMAGES_USED = "bhakti_free_images_used"
         private const val KEY_DISMISSED_AT = "bhakti_paywall_dismissed_at"
         private const val KEY_SERVER_CHAT_LIMIT = "bhakti_server_chat_limit_reached"

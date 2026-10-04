@@ -201,20 +201,21 @@ private val table: Map<String, Entry> = mapOf(
         "Two taps on this screen. Cancel within 3 days and ₹199 is never charged."
     ),
 
+    // The one call to action on every चढ़ावा surface (see ChadhaavaPayButton).
     "chadhaava_cta_line1" to Entry(
-        "Start Chadhava for ₹5",
-        "₹5 में चढ़ावा शुरू करें",
-        "Start Chadhawa for ₹5"
+        "₹5 mein 3 din free shuru kijiye",
+        "₹5 में 3 दिन मुफ़्त शुरू कीजिए",
+        "Start 3 days free for ₹5"
     ),
     "chadhaava_cta_line2" to Entry(
-        "₹5 back right away • 3 days of BhaktiChat free",
-        "₹5 तुरंत वापस • 3 दिन BhaktiChat फ़्री",
-        "₹5 back right away • 3 days of BhaktiChat free"
+        "₹5 turant wapas • phir ₹199/mahina • kabhi bhi cancel",
+        "₹5 तुरंत वापस • फिर ₹199/महीना • कभी भी कैंसल",
+        "₹5 back right away • then ₹199/month • cancel anytime"
     ),
-    "chadhaava_cta_blocked_wallpaper" to Entry(
-        "3 din bilkul free shuru kijiye",
-        "3 दिन बिल्कुल मुफ़्त शुरू कीजिए",
-        "Start 3 days free"
+    "chadhaava_see_all_benefits" to Entry(
+        "Saare fayde dekhiye",
+        "सारे फ़ायदे देखिए",
+        "See all benefits"
     ),
     "chadhaava_link_refunds" to Entry("Refund policy", "रिफंड नीति", "Refund policy"),
     "chadhaava_link_terms" to Entry("Terms", "शर्तें", "Terms"),
@@ -235,14 +236,14 @@ private val table: Map<String, Entry> = mapOf(
     // messages are finished" so that a future re-route cannot resurrect a claim that is no
     // longer true. Leads with voice, which is what चढ़ावा actually adds to a conversation.
     "chadhaava_blocked_chat_title" to Entry(
-        "Awaaz mein baat kijiye",
-        "आवाज़ में बात कीजिए",
-        "Talk out loud"
+        "Aaj ke 10 free sandesh poore hue",
+        "आज के 10 मुफ़्त संदेश पूरे हुए",
+        "You've used today's 10 free messages"
     ),
     "chadhaava_blocked_chat_sub" to Entry(
-        "Chadhava se guruon se phone jaisi baatcheet, 3 din bilkul free",
-        "चढ़ावा से गुरुओं से फ़ोन जैसी बातचीत, 3 दिन बिल्कुल मुफ़्त",
-        "Chadhava adds phone-like voice conversation, free for 3 days"
+        "Chadhava se guruon se jitni chaahein baat kijiye, 3 din bilkul free. Free sandesh kal phir milenge.",
+        "चढ़ावा से गुरुओं से जितनी चाहें बात कीजिए, 3 दिन बिल्कुल मुफ़्त। मुफ़्त संदेश कल फिर मिलेंगे।",
+        "Chadhava gives you unlimited chat with the guides, free for 3 days. Free messages return tomorrow."
     ),
     // Not "your free images are finished" — there is no free allowance to finish. Divine
     // images are a चढ़ावा feature, and the offer should say so plainly rather than imply the
@@ -322,26 +323,6 @@ private val table: Map<String, Entry> = mapOf(
         "22 aartis, play anytime"
     ),
 
-    "chadhaava_cta_blocked_reels" to Entry(
-        "3 din bilkul free shuru kijiye",
-        "3 दिन बिल्कुल मुफ़्त शुरू कीजिए",
-        "Start 3 days free"
-    ),
-    "chadhaava_cta_blocked_aartis" to Entry(
-        "3 din bilkul free shuru kijiye",
-        "3 दिन बिल्कुल मुफ़्त शुरू कीजिए",
-        "Start 3 days free"
-    ),
-    "chadhaava_cta_blocked_voice" to Entry(
-        "3 din bilkul free shuru kijiye",
-        "3 दिन बिल्कुल मुफ़्त शुरू कीजिए",
-        "Start 3 days free"
-    ),
-    "chadhaava_cta_blocked_festivals" to Entry(
-        "3 din bilkul free shuru kijiye",
-        "3 दिन बिल्कुल मुफ़्त शुरू कीजिए",
-        "Start 3 days free"
-    ),
 
     // In-chat चढ़ावा card. Deliberately BhaktiChat's voice, not the guide's: a deity persona
     // promising an outcome in return for money is a Play policy problem and a refund magnet.
@@ -409,16 +390,6 @@ private val table: Map<String, Entry> = mapOf(
         "Aapki bhakti, har din ke saath",
         "आपकी भक्ति, हर दिन के साथ",
         "Your devotion, every single day"
-    ),
-    "chadhaava_cta_blocked_chat" to Entry(
-        "3 din bilkul free shuru kijiye",
-        "3 दिन बिल्कुल मुफ़्त शुरू कीजिए",
-        "Start 3 days free"
-    ),
-    "chadhaava_cta_blocked_image" to Entry(
-        "3 din bilkul free shuru kijiye",
-        "3 दिन बिल्कुल मुफ़्त शुरू कीजिए",
-        "Start 3 days free"
     ),
 
     "chadhaava_processing_title" to Entry(
@@ -555,14 +526,13 @@ private val table: Map<String, Entry> = mapOf(
     "promo_title" to Entry(
         "FREE trial paayein", "मुफ़्त ट्रायल पाएं", "Get a FREE trial"
     ),
-    // Leads with voice, not chat: chat is free for everyone, so promising it here would be
-    // selling something the user already has.
+    // Leads with voice rather than chat: everyone gets 10 free messages a day, so voice is
+    // the clearer reason to subscribe.
     "promo_subtitle" to Entry(
         "Awaaz mein baatcheet, divine images, aartiyan, wallpapers — sab unlock.",
         "आवाज़ में बातचीत, दिव्य तस्वीरें, आरतियाँ, वॉलपेपर — सब अनलॉक।",
         "Voice conversation, divine images, aartis, wallpapers — all unlocked."
     ),
-    "promo_cta" to Entry("FREE trial shuru karein", "मुफ़्त ट्रायल शुरू करें", "Start free trial"),
     "promo_close" to Entry("Band karein", "बंद करें", "Close"),
     "chadhaava_resubscribe" to Entry(
         "Restart membership",

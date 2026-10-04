@@ -111,6 +111,14 @@ class ChatThreadViewModel(
         val trimmed = text.trim()
         if (trimmed.isBlank() || _uiState.value.isSending) return
 
+        // Daily free allowance used up: send them to चढ़ावा instead. The typed text stays in
+        // the box, so nothing is lost if they come back after subscribing.
+        if (entitlementStore.isOverChatLimit) {
+            entitlementStore.reportQuotaReached("chat")
+            _paywallEvents.tryEmit(Unit)
+            return
+        }
+
         viewModelScope.launch {
             try {
             val now = System.currentTimeMillis()

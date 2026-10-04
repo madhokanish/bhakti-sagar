@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
 }
 
 // Release signing is read from keystore.properties (git-ignored) so credentials never
@@ -66,8 +67,8 @@ android {
         applicationId = "com.anish.bhaktichat"
         minSdk = 24
         targetSdk = 36
-        versionCode = 52
-        versionName = "2.11.0"
+        versionCode = 54
+        versionName = "3.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -202,6 +203,9 @@ dependencies {
     implementation(libs.billing.ktx)
 
     implementation(libs.posthog.android)
+    // Firebase Analytics — feeds the in-app conversion (engaged_user) that Google Ads bids on.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
 
     implementation(libs.play.services.ads)
     implementation(libs.user.messaging.platform)

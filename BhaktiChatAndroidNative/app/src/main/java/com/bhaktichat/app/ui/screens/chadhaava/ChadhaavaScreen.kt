@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -127,7 +129,9 @@ fun ChadhaavaScreen(
     requiresSignIn: Boolean = false,
     onSignIn: () -> Unit = {},
     isGuestAccount: Boolean = false,
-    onLinkAccount: () -> Unit = {}
+    onLinkAccount: () -> Unit = {},
+    /** Fired when the pay button is tapped, before checkout starts — for the funnel. */
+    onCheckoutStarted: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val cancelState by viewModel.cancelState.collectAsStateWithLifecycle()
@@ -202,8 +206,8 @@ fun ChadhaavaScreen(
             val offer = current as? ChadhaavaUiState.Offer
             val subscribeAction: () -> Unit = when {
                 offer == null -> ({})
-                requiresSignIn -> onSignIn
-                else -> viewModel::startCheckout
+                requiresSignIn -> ({ onCheckoutStarted(); onSignIn() })
+                else -> ({ onCheckoutStarted(); viewModel.startCheckout() })
             }
             OfferState(
                 blockedBy = offer?.blockedBy,
@@ -386,7 +390,6 @@ private fun OfferState(
         }
 
         CtaFooter(
-            blockedBy = blockedBy,
             onSubscribe = onSubscribe,
             onOpenUrl = onOpenUrl
         )
@@ -888,8 +891,8 @@ private fun Benefits(blockedBy: BlockedFeature?) {
     // thing they just hit rather than making them hunt for it.
     val blockedKey = when (blockedBy) {
         BlockedFeature.WALLPAPERS -> "chadhaava_benefit_wallpaper"
-        // Chat is unlimited and free, so nothing routes here any more. The enum case
-        // remains only so the exhaustive `when` still compiles.
+        // Hit the daily free-chat cap. There is no "unlimited chat" benefit row; the context
+        // card above already leads with it.
         BlockedFeature.CHAT_QUOTA -> null
         BlockedFeature.IMAGE_QUOTA -> "chadhaava_benefit_image"
         BlockedFeature.REELS -> "chadhaava_benefit_reels"
@@ -1085,9 +1088,99 @@ private fun PolicyBlock() {
     }
 }
 
+/**
+ * The one pay button. Every route into चढ़ावा — this page, the quick-checkout sheet, the
+ * reels paywall page and the membership promo — uses it, so the offer reads the same
+ * wherever someone meets it: one call to action, one price line.
+ */
+@Composable
+fun ChadhaavaPayButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    // Fixed height: long labels wrap rather than shrinking the button.
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.Transparent
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.linearGradient(
+                        listOf(ChadhaavaPalette.GradStart, ChadhaavaPalette.Accent)
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = t("chadhaava_cta_line1"),
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White
+                )
+                Text(
+                    text = t("chadhaava_cta_line2"),
+                    fontSize = 10.5.sp,
+                    color = Color.White.copy(alpha = 0.92f)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Half-height offer shown at every gate (chat cap, voice, aartis, wallpapers, festivals,
+ * divine images) instead of the full page: why they are here, the price, one button that
+ * goes straight to payment, and a link to the full चढ़ावा page for anyone who wants more.
+ *
+ * Rendered at the app root over a scrim; tapping the scrim or pressing back dismisses it.
+ */
+@Composable
+fun QuickCheckoutSheet(
+    blockedBy: BlockedFeature?,
+    onCheckout: () -> Unit,
+    onSeeAllBenefits: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    androidx.activity.compose.BackHandler(onBack = onDismiss)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0x992A1C15))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onDismiss
+            )
+    ) {
+        BottomSheetScaffold {
+            if (blockedBy != null) {
+                BlockedContextCard(blockedBy)
+                Spacer(Modifier.height(12.dp))
+            }
+            PriceCard(compact = true)
+            Spacer(Modifier.height(16.dp))
+            ChadhaavaPayButton(onClick = onCheckout)
+            Text(
+                text = t("chadhaava_see_all_benefits"),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = ChadhaavaPalette.DeepAccent,
+                modifier = Modifier
+                    .heightIn(min = 44.dp)
+                    .clickable(onClick = onSeeAllBenefits)
+                    .padding(vertical = 12.dp, horizontal = 8.dp)
+            )
+            Spacer(Modifier.navigationBarsPadding())
+        }
+    }
+}
+
 @Composable
 private fun CtaFooter(
-    blockedBy: BlockedFeature?,
     onSubscribe: () -> Unit,
     onOpenUrl: (String) -> Unit
 ) {
@@ -1102,49 +1195,7 @@ private fun CtaFooter(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Fixed height: long labels wrap rather than shrinking the button.
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .clickable(onClick = onSubscribe),
-                shape = RoundedCornerShape(16.dp),
-                color = Color.Transparent
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.linearGradient(
-                                listOf(ChadhaavaPalette.GradStart, ChadhaavaPalette.Accent)
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = when (blockedBy) {
-                                BlockedFeature.WALLPAPERS -> t("chadhaava_cta_blocked_wallpaper")
-                                BlockedFeature.CHAT_QUOTA -> t("chadhaava_cta_blocked_chat")
-                                BlockedFeature.IMAGE_QUOTA -> t("chadhaava_cta_blocked_image")
-                                BlockedFeature.REELS -> t("chadhaava_cta_blocked_reels")
-                                BlockedFeature.AARTIS -> t("chadhaava_cta_blocked_aartis")
-                                BlockedFeature.VOICE -> t("chadhaava_cta_blocked_voice")
-                                BlockedFeature.FESTIVALS -> t("chadhaava_cta_blocked_festivals")
-                                null -> t("chadhaava_cta_line1")
-                            },
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = t("chadhaava_cta_line2"),
-                            fontSize = 10.5.sp,
-                            color = Color.White.copy(alpha = 0.92f)
-                        )
-                    }
-                }
-            }
+            ChadhaavaPayButton(onClick = onSubscribe)
 
             // Refund/Terms links deliberately are NOT here. This footer is pinned over the
             // scrolling offer, so every row it holds is a row permanently taken away from the

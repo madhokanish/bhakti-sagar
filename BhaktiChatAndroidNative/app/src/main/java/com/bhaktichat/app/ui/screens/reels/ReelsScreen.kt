@@ -74,6 +74,7 @@ import com.bhaktichat.app.R
 import com.bhaktichat.app.domain.Reel
 import com.bhaktichat.app.domain.ReelFeed
 import com.bhaktichat.app.ui.components.shell.BhaktiBottomNavBarDefaults
+import com.bhaktichat.app.ui.screens.chadhaava.ChadhaavaPayButton
 import com.bhaktichat.app.util.Analytics
 import kotlinx.coroutines.launch
 
@@ -154,7 +155,10 @@ private const val FREE_REEL_COUNT = 1
 @Composable
 private fun ReelsPaywallPage(isActive: Boolean, onSubscribe: () -> Unit) {
     LaunchedEffect(isActive) {
-        if (isActive) Analytics.screen("reels_paywall")
+        if (isActive) {
+            Analytics.screen("reels_paywall")
+            Analytics.capture("paywall_viewed", mapOf("source" to "reels"))
+        }
     }
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFF120A06))) {
         // Artwork behind a heavy scrim: the page still reads as a reel slot rather than a
@@ -202,24 +206,10 @@ private fun ReelsPaywallPage(isActive: Boolean, onSubscribe: () -> Unit) {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 10.dp)
         )
-        Box(
-            modifier = Modifier
-                .padding(top = 26.dp)
-                .widthIn(min = 220.dp)
-                .clip(RoundedCornerShape(26.dp))
-                .background(Color(0xFFF6C04A))
-                .clickable(onClick = onSubscribe)
-                .padding(horizontal = 28.dp, vertical = 14.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = t("chadhaava_cta_blocked_reels"),
-                color = Color(0xFF3A2410),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.ExtraBold,
-                textAlign = TextAlign.Center
-            )
-        }
+        ChadhaavaPayButton(
+            onClick = onSubscribe,
+            modifier = Modifier.padding(top = 26.dp)
+        )
     }
     }
 }

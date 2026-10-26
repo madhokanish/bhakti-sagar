@@ -13,7 +13,8 @@
 const PRICES = {
   "gpt-4o-mini":  { in: 0.15, out: 0.60 },
   "gpt-4.1-mini": { in: 0.40, out: 1.60 },
-  "gpt-4.1":      { in: 2.00, out: 8.00 }
+  "gpt-4.1":      { in: 2.00, out: 8.00 },
+  "gpt-6-luna":   { in: 0.10, out: 0.50 }
 };
 
 import { readFileSync } from "node:fs";

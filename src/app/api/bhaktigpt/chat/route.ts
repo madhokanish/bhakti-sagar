@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { openAiChatParams } from "@/lib/openaiParams";
 import {
   BHAKTIGPT_DISCLAIMER,
   getGuide,
@@ -176,7 +177,7 @@ function getFastModel() {
     process.env.OPENAI_MODEL_BHAKTIGPT_FAST?.trim() ||
     process.env.OPENAI_MODEL_BHAKTIGPT?.trim() ||
     process.env.OPENAI_MODEL?.trim() ||
-    "gpt-4.1-mini"
+    "gpt-6-luna"
   );
 }
 
@@ -2442,7 +2443,7 @@ async function createOpenAiStream(params: {
     body: JSON.stringify({
       model: params.model,
       temperature: 0.5,
-      max_tokens: 420,
+      ...openAiChatParams(params.model, 420),
       stream: true,
       stream_options: {
         include_usage: true
@@ -2493,7 +2494,7 @@ async function createOpenAiText(params: {
     body: JSON.stringify({
       model: params.model,
       temperature: 0.4,
-      max_tokens: 420,
+      ...openAiChatParams(params.model, 420),
       messages: [
         {
           role: "system",

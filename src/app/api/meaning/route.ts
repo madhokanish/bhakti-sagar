@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { openAiChatParams } from "@/lib/openaiParams";
 
 type RequestBody = {
   title: string;
@@ -72,6 +73,7 @@ export async function POST(request: Request) {
     },
     body: JSON.stringify({
       model,
+      ...openAiChatParams(model),
       messages: [
         {
           role: "system",

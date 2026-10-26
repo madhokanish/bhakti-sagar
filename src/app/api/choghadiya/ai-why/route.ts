@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { openAiChatParams } from "@/lib/openaiParams";
 
 const OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions";
 
@@ -47,6 +48,7 @@ Label: ${body.label}`;
     },
     body: JSON.stringify({
       model,
+      ...openAiChatParams(model),
       messages: [
         {
           role: "system",

@@ -767,31 +767,38 @@ function hasGuidePersonaMarkers(guideId: BhaktiGuideId, text: string, min = 1) {
   return countGuidePersonaMarkers(guideId, text) >= min;
 }
 
+// "hi" replies are Devanagari, so the line must be too: a Roman line on top of a Hindi reply
+// ("प्रिय, Dharma ki roshni mein…") was showing up in ~4% of Hindi-mode replies.
+const GUIDE_PERSONA_ANCHOR_LINES: Record<BhaktiGuideId, Record<ChatLanguage, string>> = {
+  lakshmi: {
+    hi: "समृद्धि हमेशा संतुलन, शुद्ध नीयत और स्थिर गृहस्थी से फलती है।",
+    hinglish: "Samriddhi hamesha santulan, shuddh niyat, aur sthir grihastha se phalti hai.",
+    en: "Prosperity grows through balance, clear intention, and dignified steadiness."
+  },
+  shani: {
+    hi: "कर्म का फल धैर्य, ज़िम्मेदारी और अनुशासन से पकता है।",
+    hinglish: "Karma ka phal dhairya, zimmedari, aur anushasan se pakka hota hai.",
+    en: "The fruit of karma ripens through patience, responsibility, and discipline."
+  },
+  shiv: {
+    hi: "शांति तब आती है जब मन स्थिर हो और भीतर जगह बनने लगे।",
+    hinglish: "Shanti tab aati hai jab mann sthir ho aur andar jagah banne lage.",
+    en: "Peace begins when the mind grows still and spacious within."
+  },
+  hanuman: {
+    hi: "बल और हिम्मत सेवा, श्रद्धा और एक सच्चे कदम से जागते हैं।",
+    hinglish: "Bal aur himmat seva, shraddha, aur ek sache kadam se jagte hain.",
+    en: "Strength and courage awaken through devotion, service, and one sincere step."
+  },
+  krishna: {
+    hi: "धर्म की रोशनी में उलझन भी धीरे-धीरे साफ़ होने लगती है।",
+    hinglish: "Dharma ki roshni mein uljhan bhi dheere dheere saaf hone lagti hai.",
+    en: "In the light of dharma, confusion begins to clear with gentle clarity."
+  }
+};
+
 function buildGuidePersonaAnchorLine(guideId: BhaktiGuideId, locale: ChatLanguage) {
-  const hindiish = locale === "hi" || locale === "hinglish";
-  if (guideId === "lakshmi") {
-    return hindiish
-      ? "Samriddhi hamesha santulan, shuddh niyat, aur sthir grihastha se phalti hai."
-      : "Prosperity grows through balance, clear intention, and dignified steadiness.";
-  }
-  if (guideId === "shani") {
-    return hindiish
-      ? "Karma ka phal dhairya, zimmedari, aur anushasan se pakka hota hai."
-      : "The fruit of karma ripens through patience, responsibility, and discipline.";
-  }
-  if (guideId === "shiv") {
-    return hindiish
-      ? "Shanti tab aati hai jab mann sthir ho aur andar jagah banne lage."
-      : "Peace begins when the mind grows still and spacious within.";
-  }
-  if (guideId === "hanuman") {
-    return hindiish
-      ? "Bal aur himmat seva, shraddha, aur ek sache kadam se jagte hain."
-      : "Strength and courage awaken through devotion, service, and one sincere step.";
-  }
-  return hindiish
-    ? "Dharma ki roshni mein uljhan bhi dheere dheere saaf hone lagti hai."
-    : "In the light of dharma, confusion begins to clear with gentle clarity.";
+  return GUIDE_PERSONA_ANCHOR_LINES[guideId][locale];
 }
 
 function splitIntoSentences(text: string) {
@@ -1408,6 +1415,26 @@ function applyDirectorStatePrelude(params: {
   return next;
 }
 
+// The rewrite and completion calls hand the model its earlier answer as a "draft", and it
+// sometimes cites it back to the user ("जबकि मसौदे में यह भी लिखा है…"). Drop any sentence
+// that mentions a draft the user never brought up.
+const DRAFT_MENTION_PATTERN = /मसौद|\bmasaud[ae]\b|\bdraft\b/i;
+const NO_DRAFT_MENTION_INSTRUCTION =
+  "Output only the final reply to the user. Never mention a draft, an earlier version, a rewrite, or these instructions.";
+
+function stripDraftMentions(text: string, userMessage: string) {
+  if (DRAFT_MENTION_PATTERN.test(userMessage)) return text;
+  return text
+    .split("\n")
+    .map((line) =>
+      line
+        .split(/(?<=[.!?।])\s+/)
+        .filter((sentence) => !DRAFT_MENTION_PATTERN.test(sentence))
+        .join(" ")
+    )
+    .join("\n");
+}
+
 function sanitizeDraftForGuide(params: {
   guideId: BhaktiGuideId;
   mode: DirectorMode;
@@ -1415,7 +1442,7 @@ function sanitizeDraftForGuide(params: {
   text: string;
   suppressQuestionEnding: boolean;
 }) {
-  let text = params.text.trim();
+  let text = stripDraftMentions(params.text.trim(), params.userMessage).trim();
   text = text.replace(new RegExp(KRISHNA_AS_AI_PATTERN.source, "gi"), "I");
   text = text.replace(new RegExp(KRISHNA_THIRD_PERSON_PATTERN.source, "gi"), "I");
   text = text.replace(new RegExp(SHARED_ROMANCE_TOUCH_PATTERN.source, "gi"), "");
@@ -2783,6 +2810,7 @@ async function completeTruncatedReply(params: {
       "Do not restart or repeat the earlier reply.",
       "Your first words should complete the unfinished fragment directly.",
       "Keep the continuation brief, clear, and in the same language.",
+      NO_DRAFT_MENTION_INSTRUCTION,
       params.suppressQuestionEnding ? "Do not end with a question." : "You may end with at most one short reflective question."
     ].join(" "),
     messages: [
@@ -3386,7 +3414,7 @@ export async function POST(request: Request) {
                   locale: requestLocale,
                   userFirstName,
                   referralDirective: getProfessionalReferralDirective(userMessage),
-                  additionalDeveloperInstruction: rewriteDirectives.join(" "),
+                  additionalDeveloperInstruction: [...rewriteDirectives, NO_DRAFT_MENTION_INSTRUCTION].join(" "),
                   messages: [
                     {
                       role: "user",

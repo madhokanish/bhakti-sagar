@@ -77,10 +77,24 @@ class AuthRepository(
     // rather than to an account-less guest who has lost their membership on this device.
     private var guestSession: MobileSession? = null
 
+    // Set when the guest account could not be made for want of a connection. The guest UI
+    // shows it and clears it; see [startGuestCheckout].
+    private val _checkoutError = MutableStateFlow<String?>(null)
+    val checkoutError: StateFlow<String?> = _checkoutError.asStateFlow()
+
+    fun clearCheckoutError() {
+        _checkoutError.value = null
+    }
+
     /**
      * Someone without an account tapped pay. Rather than stopping them at a Google sign-in —
      * where four in five dropped off — this quietly signs the device into its own guest
      * account and resumes checkout. Only if that fails do they see the sign-in screen.
+     *
+     * Except when the failure is the connection: Google sign-in needs the same network and
+     * fails the same way (44 network failures to 7 sign-ins in a week), so a full-screen
+     * detour only loses them. They stay where they are with a message, and tapping pay again
+     * is the retry.
      */
     suspend fun startGuestCheckout() {
         if (_state.value is AuthState.Authenticated) return
@@ -94,7 +108,11 @@ class AuthRepository(
             val reason = (error as? AuthApiException)?.code
                 ?: if (error is IOException) "network_error" else "unknown_error"
             Analytics.capture("guest_checkout_failed", mapOf("reason" to reason))
-            requestSignIn(forCheckout = true)
+            if (error is IOException) {
+                _checkoutError.value = languageStore.str("auth_check_connection")
+            } else {
+                requestSignIn(forCheckout = true)
+            }
         }
     }
 

@@ -137,15 +137,34 @@ object Analytics {
      * Sensitive content: this sends real conversation text to PostHog. It rides on the
      * identified person (user id), and must be covered by the AI-consent screen and the
      * privacy policy ("we store conversations to improve the service").
+     *
+     * [isRegenerate] marks a re-ask of the previous question via the regenerate button.
      */
-    fun guideChatTurn(guideId: String, userInput: String, guideResponse: String, language: String) =
+    fun guideChatTurn(
+        guideId: String,
+        userInput: String,
+        guideResponse: String,
+        language: String,
+        isRegenerate: Boolean = false
+    ) =
         capture(
             "guide_chat_turn",
             mapOf(
                 "guide_id" to guideId,
                 "user_input" to userInput,
                 "guide_response" to guideResponse,
-                "language" to language
+                "language" to language,
+                "is_regenerate" to isRegenerate
+            )
+        )
+
+    /** No reply came back; the user saw the "soch raha hoon" fallback instead. */
+    fun chatSendFailed(guideId: String, error: Throwable) =
+        capture(
+            "chat_send_failed",
+            mapOf(
+                "guide_id" to guideId,
+                "reason" to if (error is java.io.IOException) "network_error" else (error::class.simpleName ?: "unknown_error")
             )
         )
 

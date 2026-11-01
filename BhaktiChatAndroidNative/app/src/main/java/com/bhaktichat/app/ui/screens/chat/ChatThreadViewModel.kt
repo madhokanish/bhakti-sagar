@@ -105,7 +105,12 @@ class ChatThreadViewModel(
         _uiState.update { it.copy(inputText = value) }
     }
 
-    fun sendMessage(text: String = _uiState.value.inputText) {
+    /**
+     * @param isRegenerate true when re-asking the previous question. It is not a new message,
+     *   so it neither counts toward nor is stopped by the daily free cap — regenerate has
+     *   already deleted the old turn, and gating it here would lose that turn for good.
+     */
+    fun sendMessage(text: String = _uiState.value.inputText, isRegenerate: Boolean = false) {
         val thread = _uiState.value.thread ?: return
         val guide = _uiState.value.guide ?: return
         val trimmed = text.trim()
@@ -113,7 +118,7 @@ class ChatThreadViewModel(
 
         // Daily free allowance used up: send them to चढ़ावा instead. The typed text stays in
         // the box, so nothing is lost if they come back after subscribing.
-        if (entitlementStore.isOverChatLimit) {
+        if (!isRegenerate && entitlementStore.isOverChatLimit) {
             entitlementStore.reportQuotaReached("chat")
             _paywallEvents.tryEmit(Unit)
             return
@@ -184,6 +189,7 @@ class ChatThreadViewModel(
                 _uiState.update { it.copy(isSending = false, error = null) }
                 return@launch
             }
+            sendResult.exceptionOrNull()?.let { Analytics.chatSendFailed(guide.id, it) }
 
             val response = sendResult.getOrNull()?.replyText
                 ?: translate("chat_thinking_fallback", languageStore.language.value)
@@ -204,7 +210,7 @@ class ChatThreadViewModel(
                 remoteConversationId = result.conversationId
                 // Only burn quota on a successful round-trip (the assistant reply
                 // actually came back). Failures / errors leave the counter alone.
-                entitlementStore.recordMessageSent()
+                if (!isRegenerate) entitlementStore.recordMessageSent()
                 reviewPromptStore.recordMessageSent()
                 Analytics.chatMessageSent(guideId = guide.id)
                 // Full turn text, so conversations are readable in PostHog for product review
@@ -213,7 +219,8 @@ class ChatThreadViewModel(
                     guideId = guide.id,
                     userInput = trimmed,
                     guideResponse = response,
-                    language = languageStore.language.value.wireValue
+                    language = languageStore.language.value.wireValue,
+                    isRegenerate = isRegenerate
                 )
             }
 
@@ -269,7 +276,7 @@ class ChatThreadViewModel(
             withContext(Dispatchers.IO) {
                 toRemove.forEach { messagesRepository.removeMessage(it.id) }
             }
-            sendMessage(lastUser.content)
+            sendMessage(lastUser.content, isRegenerate = true)
         }
     }
 }

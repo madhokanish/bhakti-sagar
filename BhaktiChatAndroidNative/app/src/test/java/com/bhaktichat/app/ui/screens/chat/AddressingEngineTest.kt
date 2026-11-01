@@ -173,6 +173,15 @@ class AddressingEngineTest {
         assertTrue(AddressingEngine.shouldPrependPrefix("Anish, ", "Take one calm step first."))
     }
 
+    @Test
+    fun prefixIsSkippedWhenReplyOpensWithItsOwnVocative() {
+        assertFalse(AddressingEngine.shouldPrependPrefix("Karmayogi, ", "Haan, bolo."))
+        assertFalse(AddressingEngine.shouldPrependPrefix("Priye, ", "Mitra, “Houd ha” se mera matlab haan tha."))
+        assertFalse(AddressingEngine.shouldPrependPrefix("कर्मयोगी, ", "हाँ, मैं सुन रहा हूँ।"))
+        assertTrue(AddressingEngine.shouldPrependPrefix("Karmayogi, ", "Main yahin hoon, beta."))
+        assertTrue(AddressingEngine.shouldPrependPrefix("कर्मयोगी, ", "मैं यहीं हूँ।"))
+    }
+
     private fun assistantMessage(content: String) = MessageEntity(
         id = "assistant-1",
         guideId = "krishna",

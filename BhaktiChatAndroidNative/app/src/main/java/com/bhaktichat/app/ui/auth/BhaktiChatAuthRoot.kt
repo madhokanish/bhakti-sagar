@@ -1,5 +1,6 @@
 package com.bhaktichat.app.ui.auth
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -80,6 +81,14 @@ fun BhaktiChatAuthRoot() {
 
         AuthState.Guest -> {
             val container = remember { application.activateGuest() }
+            // Pay failed for want of a connection (AuthRepository.startGuestCheckout): say so
+            // here, where they tapped, rather than on a sign-in screen that would fail too.
+            val checkoutError by repository.checkoutError.collectAsStateWithLifecycle()
+            LaunchedEffect(checkoutError) {
+                val message = checkoutError ?: return@LaunchedEffect
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                repository.clearCheckoutError()
+            }
             BhaktiChatApp(
                 appContainer = container,
                 currentUser = null,

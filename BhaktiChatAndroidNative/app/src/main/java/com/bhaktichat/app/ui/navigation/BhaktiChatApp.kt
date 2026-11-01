@@ -70,6 +70,7 @@ import com.bhaktichat.app.ui.screens.chadhaava.ChadhaavaViewModel
 import com.bhaktichat.app.ui.screens.chadhaava.ChadhaavaViewModelFactory
 import com.bhaktichat.app.ui.screens.chadhaava.QuickCheckoutSheet
 import com.bhaktichat.app.ui.screens.chadhaava.ChadhaavaPayButton
+import com.bhaktichat.app.ui.screens.chat.ChatContentRequest
 import com.bhaktichat.app.ui.screens.chat.ChatThreadScreen
 import com.bhaktichat.app.ui.screens.chat.ChatThreadViewModel
 import com.bhaktichat.app.ui.screens.chat.ChatThreadViewModelFactory
@@ -688,6 +689,17 @@ fun BhaktiChatApp(
                             "language_switched",
                             mapOf("to" to next.wireValue, "from" to "chat_topbar")
                         )
+                    },
+                    // The चढ़ावा card under a reply to "bhajan / ringtone / wallpaper chahiye"
+                    // goes straight to the quick-checkout sheet, counted under the chat
+                    // source; once paid, it is all on Home. Subscribers never see the card.
+                    showContentCards = !isPro,
+                    onOpenContent = { request ->
+                        Analytics.capture(
+                            "chat_content_opened",
+                            mapOf("source" to request.source, "guide_id" to uiState.guide?.id.orEmpty())
+                        )
+                        openGate(request.source)
                     }
                 )
             }
@@ -1446,7 +1458,8 @@ private fun blockedFeatureFor(raw: String): BlockedFeature? = when (raw) {
     BLOCKED_AARTIS -> BlockedFeature.AARTIS
     BLOCKED_VOICE -> BlockedFeature.VOICE
     BLOCKED_FESTIVALS -> BlockedFeature.FESTIVALS
-    else -> null
+    // Chat cards carry their own source ("chat_aarti", …) so the funnel reads separately.
+    else -> ChatContentRequest.fromSource(raw)?.blockedFeature
 }
 internal const val BLOCKED_IMAGE_QUOTA = "image_quota"
 internal const val BLOCKED_REELS = "reels"

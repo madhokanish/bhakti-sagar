@@ -46,8 +46,20 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Wallpaper
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -167,7 +179,10 @@ fun ChatThreadScreen(
     onOpenVoiceMode: (guideId: String, conversationId: String?) -> Unit = { _, _ -> },
     onOpenChadhaava: () -> Unit = {},
     onDismissNudge: () -> Unit = {},
-    onToggleLanguage: () -> Unit = {}
+    onToggleLanguage: () -> Unit = {},
+    // Off for subscribers: the card is an offer, and they already have all of it on Home.
+    showContentCards: Boolean = false,
+    onOpenContent: (ChatContentRequest) -> Unit = {}
 ) {
     val guide = uiState.guide
     val listState = rememberLazyListState()
@@ -234,6 +249,24 @@ fun ChatThreadScreen(
         uiState.messages
             .lastOrNull { ChatRole.fromWire(it.role) == ChatRole.ASSISTANT && !it.isTypingIndicator }
             ?.id
+    }
+    // A guide reply to "Hanuman ji ka bhajan" / "ringtone chahiye" / "aapka wallpaper" gets a
+    // चढ़ावा card for that feature (see ChatContentRequest), keyed by reply id.
+    val contentRequestByReplyId = remember(uiState.messages) {
+        val byReply = mutableMapOf<String, ChatContentRequest>()
+        var pending: ChatContentRequest? = null
+        uiState.messages.forEach { message ->
+            when {
+                ChatRole.fromWire(message.role) == ChatRole.USER ->
+                    pending = ChatContentRequest.detect(message.content)
+                message.isTypingIndicator -> Unit
+                else -> {
+                    pending?.let { byReply[message.id] = it }
+                    pending = null
+                }
+            }
+        }
+        byReply
     }
     val topAnchorOffset = remember(configuration.screenHeightDp, density) {
         with(density) { (configuration.screenHeightDp.dp / 3f).roundToPx() }
@@ -561,24 +594,36 @@ fun ChatThreadScreen(
                     ) { item ->
                         when (item) {
                             is ChatListItem.DateSeparator -> DateSeparatorItem(label = item.label)
-                            is ChatListItem.MessageItem -> ThreadMessageItem(
-                                message = item.message,
-                                avatarRes = guide?.avatarRes,
-                                avatarBias = guide?.avatarVerticalBias ?: -1f,
-                                guideName = guide?.displayName(LocalAppLanguage.current).orEmpty(),
-                                isSelected = selectedMessageId == item.message.id,
-                                isLastAssistant = item.message.id == lastAssistantId,
-                                onTapBubble = {
-                                    selectedMessageId =
-                                        if (selectedMessageId == item.message.id) null else item.message.id
-                                },
-                                onCopyMessage = {
-                                    clipboardManager.setText(AnnotatedString(item.message.content))
-                                    Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
-                                    selectedMessageId = null
-                                },
-                                onRegenerate = onRegenerate
-                            )
+                            is ChatListItem.MessageItem -> Column {
+                                ThreadMessageItem(
+                                    message = item.message,
+                                    avatarRes = guide?.avatarRes,
+                                    avatarBias = guide?.avatarVerticalBias ?: -1f,
+                                    guideName = guide?.displayName(LocalAppLanguage.current).orEmpty(),
+                                    isSelected = selectedMessageId == item.message.id,
+                                    isLastAssistant = item.message.id == lastAssistantId,
+                                    onTapBubble = {
+                                        selectedMessageId =
+                                            if (selectedMessageId == item.message.id) null else item.message.id
+                                    },
+                                    onCopyMessage = {
+                                        clipboardManager.setText(AnnotatedString(item.message.content))
+                                        Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
+                                        selectedMessageId = null
+                                    },
+                                    onRegenerate = onRegenerate
+                                )
+                                if (showContentCards) {
+                                    contentRequestByReplyId[item.message.id]?.let { request ->
+                                        ContentRequestCard(
+                                            request = request,
+                                            guideName = guide?.displayName(LocalAppLanguage.current).orEmpty(),
+                                            guideImageRes = guide?.profileImageRes,
+                                            onClick = { onOpenContent(request) }
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -655,6 +700,134 @@ private fun DateSeparatorItem(label: String) {
             modifier = Modifier.weight(1f),
             color = BhaktiThemeTokens.BorderSubtle
         )
+    }
+}
+
+// ---------------------------------------------------------------------------
+// चढ़ावा card under a guide reply that asked for a paid feature (see ChatContentRequest)
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun ContentRequestCard(
+    request: ChatContentRequest,
+    guideName: String,
+    guideImageRes: Int?,
+    onClick: () -> Unit
+) {
+    val (titleKey, icon) = when (request) {
+        ChatContentRequest.AARTI -> "chat_card_aarti" to Icons.Filled.MusicNote
+        ChatContentRequest.RINGTONE -> "chat_card_bhajan" to Icons.Filled.NotificationsActive
+        ChatContentRequest.WALLPAPER -> "chat_card_wallpaper" to Icons.Filled.Wallpaper
+        ChatContentRequest.DIVINE_IMAGE -> "chat_card_divine_image" to Icons.Filled.AutoAwesome
+        ChatContentRequest.VOICE -> "chat_card_voice" to Icons.Filled.Call
+        ChatContentRequest.REELS -> "chat_card_reels" to Icons.Filled.PlayCircle
+        ChatContentRequest.FESTIVALS -> "chat_card_festivals" to Icons.Filled.Event
+    }
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(18.dp),
+        color = Color.Transparent,
+        shadowElevation = 3.dp,
+        // Lines up with the reply bubble, past the 28dp avatar and its 8dp gap.
+        modifier = Modifier
+            .padding(start = 36.dp, top = 8.dp)
+            .fillMaxWidth(0.88f)
+    ) {
+        Row(
+            modifier = Modifier
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(BhaktiThemeTokens.AccentGradientStart, BhaktiThemeTokens.AccentGradientEnd)
+                    )
+                )
+                .padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box {
+                if (guideImageRes != null) {
+                    Image(
+                        painter = painterResource(guideImageRes),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color.White.copy(alpha = 0.2f))
+                    )
+                }
+                // The feature, badged onto the deity: music for an aarti, a frame for a
+                // wallpaper, a phone for voice.
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 6.dp, y = 6.dp)
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = BhaktiThemeTokens.AccentPrimary,
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = t(titleKey).format(guideName),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color.White)
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.LockOpen,
+                            contentDescription = null,
+                            tint = BhaktiThemeTokens.AccentPrimary,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            text = t("chat_card_cta"),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = BhaktiThemeTokens.AccentPrimary
+                        )
+                    }
+                    Text(
+                        text = t("chat_card_included"),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.9f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
     }
 }
 

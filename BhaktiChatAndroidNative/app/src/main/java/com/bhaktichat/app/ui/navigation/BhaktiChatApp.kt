@@ -413,6 +413,7 @@ fun BhaktiChatApp(
                     entitlementStore.markChatLimitReached()
                     return@launch
                 }
+                sendResult.exceptionOrNull()?.let { Analytics.chatSendFailed(guide.id, it) }
                 val response = sendResult.getOrNull()?.replyText
                     ?: thinkingFallback
                 appContainer.messagesRepository.replaceTypingWithResponse(typingId, response)
@@ -430,6 +431,12 @@ fun BhaktiChatApp(
                     entitlementStore.recordMessageSent()
                     appContainer.reviewPromptStore.recordMessageSent()
                     Analytics.chatMessageSent(guideId = guide.id)
+                    Analytics.guideChatTurn(
+                        guideId = guide.id,
+                        userInput = initialPrompt.orEmpty().trim(),
+                        guideResponse = response,
+                        language = appContainer.languageStore.language.value.wireValue
+                    )
                 }
             }
         }

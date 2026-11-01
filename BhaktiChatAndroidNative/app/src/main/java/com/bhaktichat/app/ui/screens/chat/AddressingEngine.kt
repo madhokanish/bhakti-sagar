@@ -102,6 +102,10 @@ object AddressingEngine {
      *
      * Matched on word boundaries so a name that happens to be a substring of another word
      * ("Ram" inside "Rampal") does not count as already addressed.
+     *
+     * A reply that already opens with its own vocative or interjection ("Haan, …", "Mitra, …",
+     * "हाँ, …") is left alone too: prefixing it gave "Karmayogi, Haan, bolo." in ~4% of
+     * replies.
      */
     fun shouldPrependPrefix(prefix: String, firstChunk: String): Boolean {
         val token = prefix.trim().removeSuffix(",").trim()
@@ -115,8 +119,12 @@ object AddressingEngine {
             RegexOption.IGNORE_CASE
         ).containsMatchIn(opening)
 
-        return !alreadyAddressed
+        return !alreadyAddressed && !openingVocative.containsMatchIn(opening)
     }
+
+    // One or two words then a comma at the very start of the reply. \p{M} keeps Devanagari
+    // matras ("हाँ") inside the word.
+    private val openingVocative = Regex("^[\\p{L}\\p{M}]+(?:\\s+[\\p{L}\\p{M}]+)?\\s*,")
 
     fun didUseAddressing(message: String, token: String): Boolean {
         val normalized = message.trimStart().lowercase(Locale.getDefault())

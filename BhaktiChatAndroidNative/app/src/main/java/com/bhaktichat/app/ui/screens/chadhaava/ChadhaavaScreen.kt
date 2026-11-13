@@ -418,7 +418,7 @@ private fun HeroVideo(modifier: Modifier = Modifier) {
             // instead — ExoPlayer buffers the next entry while the current one is still
             // playing, so a decoded frame is always ready.
             //
-            // Ten entries at 15s is 2.5 minutes before the playlist wraps; REPEAT_MODE_ALL
+            // Ten entries at ~17s is ~2.8 minutes before the playlist wraps; REPEAT_MODE_ALL
             // then handles the wrap. They all reference the same file, so the extra entries
             // cost nothing.
             val uri = RawResourceDataSource.buildRawResourceUri(R.raw.chadhaava_hero)
@@ -483,15 +483,16 @@ private fun Hero() {
         // behind it, so a static image there showed through as a flicker. The clip is a
         // bundled resource, so there is no load failure to guard against.
         //
-        // No headline either: the footage already carries "SiRF 5" and "OFFER", so an
-        // overlay duplicated its message and sat unreadably across the subject once the
-        // scrim behind it was removed. The offer is restated in full on the price card
-        // directly below.
+        // No headline either: the footage already carries "सिर्फ़ ₹5 में" and "₹5 भी वापस",
+        // so an overlay duplicated its message and sat unreadably across the subject once
+        // the scrim behind it was removed. The offer, including ₹199/month, is stated in
+        // full on the price card directly below; the clip deliberately leaves billing to it.
+        // Source and renderer: BhaktiChat repo, output/chadhaava-hero/.
         //
         // Rendered at the clip's exact native ratio (1280x720) rather than filling the
         // 190dp box directly. resize_mode="zoom" in view_hero_video.xml crops to fill —
         // at this box's aspect ratio that cropped symmetrically off the top and bottom,
-        // slicing through the BhaktiChat mark sitting right at the top of frame. Full,
+        // slicing through Meera's head and the "AI character" tag at the top of frame. Full,
         // uncropped height plus TopCenter alignment on the surrounding box means any crop
         // now falls only at the bottom, where there's nothing worth keeping.
         HeroVideo(

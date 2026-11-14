@@ -34,7 +34,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.bhaktichat.app.ui.components.ads.findActivity
 import com.bhaktichat.app.domain.VoiceCallState
 
 @Composable
@@ -62,6 +65,18 @@ fun VoiceModeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
+    // The End button and the Ended-state effect below both leave the screen; without this
+    // guard a tap popped twice (endCall flips the state to Ended, which pops again). The
+    // button still leaves on its own because endCall() is a no-op — no Ended — when the
+    // call never started (e.g. audio focus was refused).
+    var hasLeft by remember { mutableStateOf(false) }
+    val leave = {
+        if (!hasLeft) {
+            hasLeft = true
+            onBack()
+        }
+    }
+
     val recordAudioLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -69,7 +84,7 @@ fun VoiceModeScreen(
             viewModel.start()
         } else {
             Toast.makeText(context, micRequiredMessage, Toast.LENGTH_SHORT).show()
-            onBack()
+            leave()
         }
     }
 
@@ -84,22 +99,25 @@ fun VoiceModeScreen(
     }
 
     // Backgrounding mid-call ends the session — a foreground service to keep the mic
-    // alive in the background is deliberately out of scope for v1.
+    // alive in the background is deliberately out of scope for v1. A rotation also passes
+    // through ON_STOP, so that is skipped: the ViewModel survives it and the call carries on.
+    // Leaving the screen is covered by VoiceConversationViewModel.onCleared(), which ends the
+    // call when the back-stack entry is popped.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) viewModel.endCall()
+            if (event == Lifecycle.Event.ON_STOP &&
+                context.findActivity()?.isChangingConfigurations != true
+            ) {
+                viewModel.endCall()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    DisposableEffect(viewModel) {
-        onDispose { viewModel.endCall() }
-    }
-
     LaunchedEffect(uiState.callState) {
-        if (uiState.callState is VoiceCallState.Ended) onBack()
+        if (uiState.callState is VoiceCallState.Ended) leave()
     }
 
     Box(
@@ -205,7 +223,7 @@ fun VoiceModeScreen(
             IconButton(
                 onClick = {
                     viewModel.endCall()
-                    onBack()
+                    leave()
                 },
                 modifier = Modifier
                     .size(64.dp)

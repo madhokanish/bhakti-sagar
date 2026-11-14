@@ -7,17 +7,15 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.bhaktichat.app.ui.i18n.t
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.PlayerConstants
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
@@ -35,9 +33,7 @@ import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTube
 @Composable
 fun YouTubePlayerEmbed(
     videoId: String?,
-    title: String,
-    modifier: Modifier = Modifier,
-    onOpenExternal: (() -> Unit)? = null
+    modifier: Modifier = Modifier
 ) {
     if (videoId.isNullOrBlank()) {
         VideoPlaceholder(
@@ -110,9 +106,7 @@ fun YouTubePlayerEmbed(
 private fun VideoPlaceholder(
     title: String,
     body: String,
-    modifier: Modifier = Modifier,
-    actionLabel: String? = null,
-    onAction: (() -> Unit)? = null
+    modifier: Modifier = Modifier
 ) {
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -140,11 +134,6 @@ private fun VideoPlaceholder(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (!actionLabel.isNullOrBlank() && onAction != null) {
-                    Button(onClick = onAction) {
-                        Text(actionLabel)
-                    }
-                }
             }
         }
     }

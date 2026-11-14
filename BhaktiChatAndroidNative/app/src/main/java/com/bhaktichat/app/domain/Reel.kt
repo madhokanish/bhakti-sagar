@@ -35,9 +35,6 @@ data class Reel(
             "%.1f %s".format(likeCount / 1_000.0, translate("reel_like_thousand", language))
         else -> likeCount.toString()
     }
-
-    val durationLabel: String
-        get() = "%d:%02d".format(durationSeconds / 60, durationSeconds % 60)
 }
 
 /**

@@ -4,6 +4,7 @@ import androidx.media3.datasource.RawResourceDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.common.Player
 import androidx.media3.common.MediaItem
+import androidx.media3.common.util.UnstableApi
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.Lifecycle
@@ -56,6 +57,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
@@ -354,7 +356,13 @@ private fun OfferState(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .then(if (dimmed) Modifier.background(Color(0x6B2A1C15)) else Modifier)
+            // Scrim drawn over the content; a background modifier would sit behind the cards.
+            .then(
+                if (dimmed) Modifier.drawWithContent {
+                    drawContent()
+                    drawRect(Color(0x6B2A1C15))
+                } else Modifier
+            )
     ) {
         Column(
             modifier = Modifier
@@ -379,11 +387,6 @@ private fun OfferState(
             Spacer(Modifier.height(18.dp))
             PolicyBlock()
 
-            // DEBUG-ONLY. Opens Checkout against a one-time order instead of a
-            // subscription so we can see whether UPI is missing for subscriptions
-            // specifically, or for this app in general. Never present in release.
-
-
             Spacer(Modifier.height(14.dp))
             PolicyLinksRow(onOpenUrl = onOpenUrl)
             Spacer(Modifier.height(22.dp))
@@ -402,6 +405,7 @@ private fun OfferState(
  * backgrounded rather than burning battery behind a lock screen, and the player is
  * released on dispose.
  */
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 private fun HeroVideo(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -733,45 +737,6 @@ private fun CheckCircle(size: androidx.compose.ui.unit.Dp) {
             tint = Color.White,
             modifier = Modifier.size(size * 0.62f)
         )
-    }
-}
-
-/**
- * The differentiator card: a weekly puja performed in the subscriber's name at two named
- * temples, with photo/video sent back.
- *
- * This is a promise about a real-world religious service, not a software feature. Every
- * claim here must actually be fulfilled each week for real subscribers — the named temples,
- * the sankalp, and the photos. The header image is a placeholder and should be replaced
- * with documentary photography of the actual puja; a stock temple shot undercuts the one
- * claim on this screen that cannot be verified in-app.
- */
-
-@Composable
-private fun TempleRow(name: String, place: String) {
-    Row(
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(9.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .padding(top = 5.dp)
-                .size(7.dp)
-                .background(ChadhaavaPalette.Accent, CircleShape)
-        )
-        Column {
-            Text(
-                text = name,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = ChadhaavaPalette.TextPrimary
-            )
-            Text(
-                text = place,
-                fontSize = 11.sp,
-                color = ChadhaavaPalette.TextSecondary
-            )
-        }
     }
 }
 

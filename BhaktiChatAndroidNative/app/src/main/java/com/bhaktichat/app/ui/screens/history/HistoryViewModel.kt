@@ -145,13 +145,14 @@ class HistoryViewModel(
         if (ids.isEmpty()) return emptyList()
         // Walk all threads — small N in practice, simple & correct.
         val threads = threadsRepository.listThreads()
-        val results = mutableListOf<SavedMessageItem>()
+        // Paired with createdAt so the sort is by time, not by the display label's text.
+        val results = mutableListOf<Pair<Long, SavedMessageItem>>()
         for (thread in threads) {
             val guide = guidesRepository.getGuide(thread.guideId) ?: continue
             val messages = messagesRepository.listMessages(thread.id)
             for (msg in messages) {
                 if (msg.id in ids) {
-                    results += SavedMessageItem(
+                    results += msg.createdAt to SavedMessageItem(
                         messageId = msg.id,
                         guideName = guide.displayName(languageStore.language.value),
                         avatarRes = guide.avatarRes,
@@ -162,7 +163,7 @@ class HistoryViewModel(
                 }
             }
         }
-        return results.sortedByDescending { it.timeLabel }
+        return results.sortedByDescending { it.first }.map { it.second }
     }
 
     private suspend fun resolveSavedAartis(ids: Set<String>): List<SavedAartiItem> {

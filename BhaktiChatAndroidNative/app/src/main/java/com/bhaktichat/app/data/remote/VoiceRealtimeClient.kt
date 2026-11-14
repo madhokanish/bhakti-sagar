@@ -72,7 +72,8 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
 
     // DEBUG only: while true, the live mic is suppressed and a bundled test utterance is streamed
     // instead — used to prove the full capture→VAD→response→playback loop in an emulator, which
-    // has no real microphone. Never set in release (no caller).
+    // has no real microphone. Set only by [injectTestUtterance], whose sole caller is the
+    // DEBUG-only test button in VoiceModeScreen, so it is never set in release.
     @Volatile private var injectingTestAudio = false
 
     // Diagnostic: track outgoing mic audio so we can tell "mic is silent" (peak ~0, e.g.

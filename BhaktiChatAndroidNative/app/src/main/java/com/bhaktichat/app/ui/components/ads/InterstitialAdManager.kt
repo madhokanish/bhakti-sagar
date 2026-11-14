@@ -15,12 +15,14 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 
 /**
  * Loads and shows a single interstitial at a time, auto-preloading the next one after each
- * show. Not yet wired to any placement — create one instance (e.g. in the Activity or a
- * container), call [load] early, then [show] at a natural break such as the Divine-Image
- * result → back transition. Impressions/clicks flow to PostHog via [Analytics].
+ * show. One app-scoped instance lives in AppContainer: the Divine-Image Create screen calls
+ * [load] and the Result screen calls [loadThenShow] over the generation wait (placement
+ * "divine_generation"). Everything is a no-op while ADS_ENABLED is false.
+ * Impressions/clicks flow to PostHog via [Analytics].
  *
- * IMPORTANT: never show an interstitial mid chat, mid aarti playback, or during the
- * divine-image generation wait — those are active devotional/anticipation moments.
+ * IMPORTANT: never show an interstitial mid chat or mid aarti playback — those are active
+ * devotional moments. The generation-wait placement is deliberate: the ad covers backend
+ * time, and the result reveal underneath stays uninterrupted.
  */
 class InterstitialAdManager(
     private val adUnitId: String = BuildConfig.ADMOB_INTERSTITIAL_ID,

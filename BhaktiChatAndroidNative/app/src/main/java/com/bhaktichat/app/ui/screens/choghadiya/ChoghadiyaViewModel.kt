@@ -42,6 +42,8 @@ fun kaalToneFor(baseLabel: String): KaalTone = when (baseLabel) {
 
 data class CurrentKaalUi(
     val displayLabel: String,
+    /** Untranslated slot name ("Amrit", "Shubh", …) — for icon lookup, not display. */
+    val baseLabel: String,
     val timeRange: String,
     val guidanceKey: String,
     val tone: KaalTone,
@@ -59,6 +61,8 @@ data class NextGoodKaalUi(
 data class TimelineItemUi(
     val id: String,
     val title: String,
+    /** Untranslated slot name ("Amrit", "Shubh", …) — for icon lookup, not display. */
+    val baseLabel: String,
     val timeRange: String,
     val meaningKey: String,
     val tone: KaalTone,
@@ -197,6 +201,7 @@ class ChoghadiyaViewModel(
             TimelineItemUi(
                 id = "${slot.label}_${slot.startEpochMillis}",
                 title = slot.displayLabel(languageStore.language.value),
+                baseLabel = slot.baseLabel,
                 timeRange = translate("chogh_time_range", languageStore.language.value).format(slot.start, slot.end),
                 meaningKey = timelineMeaningKey(slot),
                 tone = toneFor(slot),
@@ -236,6 +241,7 @@ class ChoghadiyaViewModel(
         val elapsed = (now - startEpochMillis).coerceAtLeast(0L).coerceAtMost(totalDuration)
         return CurrentKaalUi(
             displayLabel = displayLabel(languageStore.language.value),
+            baseLabel = baseLabel,
             timeRange = translate("chogh_time_range", languageStore.language.value).format(start, end),
             guidanceKey = currentGuidanceKey(this),
             tone = toneFor(this),

@@ -122,7 +122,8 @@ import java.util.Locale
 
 sealed class ChatListItem {
     data class MessageItem(val message: MessageEntity) : ChatListItem()
-    data class DateSeparator(val label: String) : ChatListItem()
+    // Keyed by the message it precedes: the label has no year, so "5 Nov" can repeat.
+    data class DateSeparator(val label: String, val firstMessageId: String) : ChatListItem()
 }
 
 @Composable
@@ -150,7 +151,7 @@ fun buildChatListItems(messages: List<MessageEntity>): List<ChatListItem> {
         }
 
         if (label != lastDateLabel) {
-            result.add(ChatListItem.DateSeparator(label))
+            result.add(ChatListItem.DateSeparator(label, message.id))
             lastDateLabel = label
         }
         result.add(ChatListItem.MessageItem(message))
@@ -458,7 +459,8 @@ fun ChatThreadScreen(
                 shadowElevation = 4.dp
             ) {
                 Column(modifier = Modifier.imePadding()) {
-                // Free-message quota hint removed — ad-based model, chat is free for all.
+                // No quota hint here: free chat is capped daily (EntitlementStore.DAILY_CHAT_LIMIT)
+                // and an over-limit send goes straight to चढ़ावा instead.
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -588,7 +590,7 @@ fun ChatThreadScreen(
                         key = { item ->
                             when (item) {
                                 is ChatListItem.MessageItem -> item.message.id
-                                is ChatListItem.DateSeparator -> "separator_${item.label}"
+                                is ChatListItem.DateSeparator -> "separator_${item.firstMessageId}"
                             }
                         }
                     ) { item ->

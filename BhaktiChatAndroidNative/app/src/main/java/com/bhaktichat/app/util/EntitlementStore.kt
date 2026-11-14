@@ -6,16 +6,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Tracks free-tier usage (messages sent + divine images generated) and decides when to
- * surface the BhaktiChat Pro paywall.
+ * Tracks चढ़ावा entitlement and free-tier usage, and answers the feature gates.
  *
- * Mirrors the iOS [EntitlementStore]:
- *  - Hard limits are 20 chat messages or 2 divine images (free tier).
- *  - Once a hard limit is crossed, the paywall is non-dismissible and gated features
- *    (chat send, divine image generation) refuse to run until the user subscribes.
- *  - A manual soft-dismiss respects a 24h cooldown so we don't pester the user.
- *  - Successful purchase flips [isPro]; failures and errors must NOT burn quota — call
- *    sites must only invoke [recordMessageSent] / [recordImageGenerated] on success.
+ *  - Free chat is capped at [DAILY_CHAT_LIMIT] messages per device-local day.
+ *  - Divine images and voice are subscriber-only; there is no free allowance.
+ *  - A gate that refuses sends the user to चढ़ावा (there is no separate paywall sheet).
+ *  - [isPro] comes from either subscription rail; failures and errors must NOT burn quota —
+ *    call sites must only invoke [recordMessageSent] / [recordImageGenerated] on success.
  *
  * Persisted via [android.content.SharedPreferences] under "bhakti_entitlements" so the
  * state survives relaunch. [MutableStateFlow]s mirror persisted values so Compose
@@ -29,15 +26,6 @@ class EntitlementStore(context: Context) {
     // pre-reset values and the migration silently does nothing for this session.
     init {
         migrateQuotaEpochIfNeeded()
-    }
-
-    enum class PaywallTrigger {
-        /** User tapped the PRO pill in a top bar. */
-        MANUAL,
-        /** User hit the free-tier chat message threshold. */
-        MESSAGE_QUOTA,
-        /** User hit the free-tier divine-image threshold. */
-        IMAGE_QUOTA
     }
 
     // --- Persisted, observable state --------------------------------------
@@ -61,25 +49,17 @@ class EntitlementStore(context: Context) {
     /** True when either rail grants entitlement. The only flag feature gates should read. */
     val isPro: StateFlow<Boolean> = _isPro.asStateFlow()
 
-    // Set once the server reports the free message limit is exhausted. Persisted so the
-    // hard gate survives relaunch and backstops the local counter (which resets on a
-    // reinstall / clear-data). See [markChatLimitReached].
+    // Lifetime free usage counters, reported to analytics only — nothing gates on them.
     private val _messagesUsed = MutableStateFlow(prefs.getInt(KEY_MESSAGES_USED, 0))
     val messagesUsed: StateFlow<Int> = _messagesUsed.asStateFlow()
 
     private val _imagesUsed = MutableStateFlow(prefs.getInt(KEY_IMAGES_USED, 0))
     val imagesUsed: StateFlow<Int> = _imagesUsed.asStateFlow()
 
-    private val _shouldShowPaywall = MutableStateFlow(false)
-    val shouldShowPaywall: StateFlow<Boolean> = _shouldShowPaywall.asStateFlow()
-
-    private val _paywallTrigger = MutableStateFlow(PaywallTrigger.MANUAL)
-    val paywallTrigger: StateFlow<PaywallTrigger> = _paywallTrigger.asStateFlow()
-
     // --- Derived gating ---------------------------------------------------
     //
-    // Free tier: unlimited chat, and nothing else. Images and voice need चढ़ावा.
-    // Crossing either sends the user to चढ़ावा. Subscribers bypass all of it — every gate
+    // Free tier: [DAILY_CHAT_LIMIT] chat messages a day, and nothing else. Images and voice
+    // need चढ़ावा. Hitting a gate sends the user to चढ़ावा. Subscribers bypass all of it — every gate
     // below short-circuits on [isPro], so a Razorpay subscriber (or a grandfathered Play
     // one) is never limited.
 
@@ -113,13 +93,6 @@ class EntitlementStore(context: Context) {
     val isOverImageLimit: Boolean
         get() = !_isPro.value
 
-    /** Either quota is exhausted — used to decide whether the paywall is escapable. */
-    val isOverHardLimit: Boolean
-        get() = isOverChatLimit || isOverImageLimit
-
-    val canUseChat: Boolean
-        get() = !isOverChatLimit
-
     val canUseDivineImage: Boolean
         get() = !isOverImageLimit
 
@@ -135,20 +108,6 @@ class EntitlementStore(context: Context) {
             imagesUsed = _imagesUsed.value
         )
     }
-
-    /** No paywall is ever shown, so dismissibility is moot (kept for API compatibility). */
-    val paywallIsDismissible: Boolean
-        get() = true
-
-    // --- Derived counters -------------------------------------------------
-
-    /** Free messages left today; unlimited for subscribers. */
-    val messagesRemaining: Int
-        get() = if (_isPro.value) Int.MAX_VALUE else (DAILY_CHAT_LIMIT - messagesSentToday()).coerceAtLeast(0)
-
-    /** Subscribers have no limit; everyone else has no allowance. */
-    val imagesRemaining: Int
-        get() = if (_isPro.value) Int.MAX_VALUE else 0
 
     // --- Usage recording --------------------------------------------------
 
@@ -166,10 +125,9 @@ class EntitlementStore(context: Context) {
             kind = "chat",
             messagesUsed = next,
             imagesUsed = _imagesUsed.value,
-            remaining = messagesRemaining,
+            remaining = (DAILY_CHAT_LIMIT - messagesSentToday()).coerceAtLeast(0),
             isPro = false
         )
-        evaluate(PaywallTrigger.MESSAGE_QUOTA)
     }
 
     /** Call after a divine image has been *successfully* generated. No-op for Pro users. */
@@ -182,58 +140,19 @@ class EntitlementStore(context: Context) {
             kind = "divine_image",
             messagesUsed = _messagesUsed.value,
             imagesUsed = next,
-            remaining = imagesRemaining,
+            remaining = 0,
             isPro = false
         )
-        evaluate(PaywallTrigger.IMAGE_QUOTA)
-    }
-
-    // --- Paywall presentation --------------------------------------------
-
-    // --- Paywall presentation (neutralized under the ad model) ------------
-    //
-    // These are kept as no-ops so existing call sites keep compiling, but the paywall
-    // is never shown. The paywall UI and its call sites are being removed as part of the
-    // ad-model pivot; these stubs are the backstop.
-
-    /** No-op: the purchase paywall has been removed (ad-based model). */
-    fun presentManually() {
-        // no-op
-    }
-
-    /** No-op: no intro upsell under the ad model. */
-    fun maybePresentIntro() {
-        // no-op
-    }
-
-    /** No-op: features are no longer gated, so nothing is ever "blocked". */
-    fun presentForBlockedFeature(trigger: PaywallTrigger) {
-        // no-op
     }
 
     /**
-     * No-op: chat is unlimited, so a server-reported cap can no longer lock anyone out.
-     * Kept because the streaming client can still surface a LimitReached event, and the two
-     * call sites use it to drop the pending bubble cleanly rather than render a fake reply.
+     * No-op: the free chat cap is enforced on the device ([isOverChatLimit]), not from a
+     * server-reported limit, so a server LimitReached is not persisted. Kept because the
+     * streaming client can still surface a LimitReached event, and the two call sites use it
+     * to drop the pending bubble cleanly rather than render a fake reply.
      */
     fun markChatLimitReached() {
         // no-op
-    }
-
-    /**
-     * User dismissed without subscribing. Suppresses re-triggering for
-     * [PAYWALL_COOLDOWN_MS] — UNLESS the user is over the hard limit, in which case
-     * the paywall snaps back open immediately (it must not be escapable until they
-     * subscribe).
-     */
-    fun dismissPaywall() {
-        if (isOverHardLimit) {
-            // Hard gate: do not actually dismiss; do not start cooldown.
-            _shouldShowPaywall.value = true
-            return
-        }
-        _shouldShowPaywall.value = false
-        prefs.edit().putLong(KEY_DISMISSED_AT, System.currentTimeMillis()).apply()
     }
 
     /**
@@ -243,12 +162,8 @@ class EntitlementStore(context: Context) {
      */
     fun grantPro() {
         playPro = true
-        prefs.edit()
-            .putBoolean(KEY_PRO_ACTIVE, true)
-            .putBoolean(KEY_SERVER_CHAT_LIMIT, false)
-            .apply()
+        prefs.edit().putBoolean(KEY_PRO_ACTIVE, true).apply()
         recomputeIsPro()
-        _shouldShowPaywall.value = false
     }
 
     /**
@@ -261,28 +176,7 @@ class EntitlementStore(context: Context) {
         if (serverPro == active) return
         serverPro = active
         prefs.edit().putBoolean(KEY_SERVER_PRO_ACTIVE, active).apply()
-        if (active) {
-            prefs.edit().putBoolean(KEY_SERVER_CHAT_LIMIT, false).apply()
-            _shouldShowPaywall.value = false
-        }
         recomputeIsPro()
-    }
-
-    // --- Debug / QA helpers ----------------------------------------------
-    //
-    // Exposed unconditionally because the project keeps QA tooling lightweight,
-    // but only the DEBUG profile screen / future debug menu should call these.
-
-    /** Zero out usage counters and clear cooldown — for QA flows. */
-    fun resetUsageCounters() {
-        prefs.edit()
-            .putInt(KEY_MESSAGES_USED, 0)
-            .putInt(KEY_IMAGES_USED, 0)
-            .putLong(KEY_DISMISSED_AT, 0L)
-            .putBoolean(KEY_SERVER_CHAT_LIMIT, false)
-            .apply()
-        _messagesUsed.value = 0
-        _imagesUsed.value = 0
     }
 
     /**
@@ -300,11 +194,6 @@ class EntitlementStore(context: Context) {
         _isPro.value = playPro || serverPro
     }
 
-    /** Clear the "intro paywall shown" flag so the first-open sheet reappears — for QA. */
-    fun resetIntroPaywall() {
-        prefs.edit().putBoolean(KEY_INTRO_SHOWN, false).apply()
-    }
-
     // --- Internal ---------------------------------------------------------
 
     /**
@@ -316,29 +205,11 @@ class EntitlementStore(context: Context) {
         prefs.edit()
             .putInt(KEY_MESSAGES_USED, 0)
             .putInt(KEY_IMAGES_USED, 0)
-            .putBoolean(KEY_SERVER_CHAT_LIMIT, false)
             .putInt(KEY_QUOTA_EPOCH, QUOTA_EPOCH)
             .commit()
     }
 
-    private fun evaluate(trigger: PaywallTrigger) {
-        // Ad-based model: usage no longer triggers a paywall. Kept as a no-op so the
-        // recordMessageSent()/recordImageGenerated() call sites stay unchanged.
-    }
-
     companion object {
-        /**
-         * Retained for the analytics payload and as the number to restore if chat ever needs
-         * a cap again. Nothing gates on it — see [isOverChatLimit].
-         */
-        const val FREE_MESSAGE_QUOTA: Int = 10
-
-        /**
-         * No free divine images. Kept at zero rather than deleted so the accounting and the
-         * analytics payload still compile, and so restoring an allowance is a one-line change.
-         */
-        const val FREE_IMAGE_QUOTA: Int = 0
-
         /**
          * Bump to wipe everyone's usage counters once, on their next launch.
          *
@@ -356,7 +227,6 @@ class EntitlementStore(context: Context) {
          * first impression of the paywall.
          */
         private const val QUOTA_EPOCH: Int = 4
-        private const val PAYWALL_COOLDOWN_MS: Long = 24L * 60L * 60L * 1000L
 
         private const val PREFS_NAME = "bhakti_entitlements"
         private const val KEY_PRO_ACTIVE = "bhakti_pro_active"
@@ -367,8 +237,5 @@ class EntitlementStore(context: Context) {
         private const val KEY_CHAT_DAY_COUNT = "bhakti_chat_day_count"
         const val DAILY_CHAT_LIMIT = 10
         private const val KEY_IMAGES_USED = "bhakti_free_images_used"
-        private const val KEY_DISMISSED_AT = "bhakti_paywall_dismissed_at"
-        private const val KEY_SERVER_CHAT_LIMIT = "bhakti_server_chat_limit_reached"
-        private const val KEY_INTRO_SHOWN = "bhakti_intro_paywall_shown"
     }
 }

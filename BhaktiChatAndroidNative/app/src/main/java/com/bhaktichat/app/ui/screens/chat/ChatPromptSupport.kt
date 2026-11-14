@@ -454,8 +454,8 @@ object ChatTurnProcessor {
         currentState: ChatConversationState,
         remoteConversationId: String?,
         chatApiClient: ChatApiClient,
-        // Sign-in is mandatory now, so the guide can address the user by name. Blank falls
-        // back to AddressingEngine's devotional tokens (priye / vatsa / karmayogi).
+        // Signed-in users are addressed by name. Blank (guests, or no name on the account)
+        // falls back to AddressingEngine's devotional tokens (priye / vatsa / karmayogi).
         userFirstName: String = "",
         // The language the user actually picked. It is the fallback when a message carries no
         // script signal of its own, so "ok" or an emoji no longer forces Devanagari on someone

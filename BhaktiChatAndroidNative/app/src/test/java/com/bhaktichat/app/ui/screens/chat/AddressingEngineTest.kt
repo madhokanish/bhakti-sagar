@@ -1,6 +1,7 @@
 package com.bhaktichat.app.ui.screens.chat
 
 import com.bhaktichat.app.data.local.MessageEntity
+import com.bhaktichat.app.domain.AppLanguage
 import com.bhaktichat.app.domain.ChatRole
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -17,7 +18,8 @@ class AddressingEngineTest {
             isAuthenticated = false,
             firstName = "",
             userMessage = "I feel anxious and confused. Please help me.",
-            previousAssistantMessage = null
+            previousAssistantMessage = null,
+            appLanguage = AppLanguage.HINGLISH
         )
 
         assertEquals("priye", AddressingEngine.getAddressingToken(context))
@@ -69,7 +71,8 @@ class AddressingEngineTest {
             isAuthenticated = false,
             firstName = "",
             userMessage = "I still feel scared and unlucky. Please help.",
-            previousAssistantMessage = assistantMessage("Karmayogi, hold your ground.")
+            previousAssistantMessage = assistantMessage("Karmayogi, hold your ground."),
+            appLanguage = AppLanguage.HINGLISH
         )
 
         assertEquals("karmayogi", AddressingEngine.getAddressingToken(context))
@@ -82,7 +85,8 @@ class AddressingEngineTest {
             isAuthenticated = false,
             firstName = "",
             userMessage = "Good morning Lakshmi ji",
-            previousAssistantMessage = null
+            previousAssistantMessage = null,
+            appLanguage = AppLanguage.HINGLISH
         )
 
         assertEquals("vats", AddressingEngine.getAddressingToken(context))
@@ -95,7 +99,8 @@ class AddressingEngineTest {
             isAuthenticated = true,
             firstName = "   ",
             userMessage = "I am worried about my relationship.",
-            previousAssistantMessage = null
+            previousAssistantMessage = null,
+            appLanguage = AppLanguage.HINGLISH
         )
 
         assertEquals("priye", AddressingEngine.getAddressingToken(context))
@@ -116,26 +121,28 @@ class AddressingEngineTest {
     }
 
     @Test
-    fun plainEnglishMessageGetsEnglishReplyLanguage() {
-        val context = AddressingEngine.buildMessageContext(
-            guideId = "krishna",
-            isAuthenticated = false,
-            firstName = "",
-            userMessage = "I feel confused and need help today.",
-            previousAssistantMessage = null
-        )
-
-        assertEquals(ConversationLanguage.ENGLISH, context.detectedLanguage)
-    }
-
-    @Test
-    fun romanHindiMessageGetsHinglishReplyLanguage() {
+    fun languageSettingOutranksRomanisedHindi() {
         val context = AddressingEngine.buildMessageContext(
             guideId = "krishna",
             isAuthenticated = false,
             firstName = "",
             userMessage = "Mujhe aaj bahut chinta ho rahi hai",
-            previousAssistantMessage = null
+            previousAssistantMessage = null,
+            appLanguage = AppLanguage.HINDI
+        )
+
+        assertEquals(ConversationLanguage.HINDI, context.detectedLanguage)
+    }
+
+    @Test
+    fun languageSettingOutranksDevanagariScript() {
+        val context = AddressingEngine.buildMessageContext(
+            guideId = "krishna",
+            isAuthenticated = false,
+            firstName = "",
+            userMessage = "मुझे आज बहुत चिंता हो रही है",
+            previousAssistantMessage = null,
+            appLanguage = AppLanguage.HINGLISH
         )
 
         assertEquals(ConversationLanguage.HINGLISH, context.detectedLanguage)
@@ -168,6 +175,17 @@ class AddressingEngineTest {
     }
 
     @Test
+    fun greetingWordInsideAnotherWordIsNotAGreeting() {
+        // "hi" sits inside both "nahi" and "chahiye".
+        assertFalse(context(userMessage = "Mujhe nahi chahiye").isGreeting)
+    }
+
+    @Test
+    fun wholeWordGreetingIsAGreeting() {
+        assertTrue(context(userMessage = "Hi Krishna").isGreeting)
+    }
+
+    @Test
     fun prefixIsNotDuplicatedWhenStreamAlreadyStartsWithToken() {
         assertFalse(AddressingEngine.shouldPrependPrefix("Anish, ", "Anish, take one calm step first."))
         assertTrue(AddressingEngine.shouldPrependPrefix("Anish, ", "Take one calm step first."))
@@ -181,6 +199,15 @@ class AddressingEngineTest {
         assertTrue(AddressingEngine.shouldPrependPrefix("Karmayogi, ", "Main yahin hoon, beta."))
         assertTrue(AddressingEngine.shouldPrependPrefix("कर्मयोगी, ", "मैं यहीं हूँ।"))
     }
+
+    private fun context(userMessage: String) = AddressingEngine.buildMessageContext(
+        guideId = "krishna",
+        isAuthenticated = false,
+        firstName = "",
+        userMessage = userMessage,
+        previousAssistantMessage = null,
+        appLanguage = AppLanguage.HINGLISH
+    )
 
     private fun assistantMessage(content: String) = MessageEntity(
         id = "assistant-1",

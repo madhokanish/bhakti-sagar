@@ -86,7 +86,6 @@ import com.bhaktichat.app.ui.theme.BhaktiThemeTokens
 import com.bhaktichat.app.domain.Guides
 import com.bhaktichat.app.ui.components.shell.AppTopBar
 import com.bhaktichat.app.ui.components.shell.BhaktiBottomNavBarDefaults
-import com.bhaktichat.app.ui.components.shell.GuideAvatarItem
 import com.bhaktichat.app.ui.components.shell.SectionHeaderRow
 import com.bhaktichat.app.ui.components.shell.SituationCard
 import com.bhaktichat.app.ui.navigation.DiscoveryGuideConfig
@@ -111,7 +110,7 @@ fun HomeScreen(
     onOpenReels: (String?) -> Unit = {},
     onOpenWallpapers: () -> Unit = {},
     onPlayAartiFromFeed: (String, Long) -> Unit = { _, _ -> },
-    onToggleAartiSpotlight: () -> Unit = {},
+    onToggleAartiSpotlight: (displayedAartiId: String?) -> Unit = {},
     reelsRepository: ReelsRepository,
     aartiRepository: AartiRepository,
     choghadiyaRepository: ChoghadiyaRepository,
@@ -361,7 +360,7 @@ fun HomeScreen(
                 playerState = aartiPlayerState,
                 fallback = aartiSpotlightFallback,
                 onOpenAartis = onOpenAartis,
-                onToggle = onToggleAartiSpotlight
+                onToggle = { onToggleAartiSpotlight(aartiSpotlightFallback?.id) }
             )
         }
 
@@ -922,7 +921,7 @@ private fun deityRingGradient(guideId: String): List<Color> {
 
 /**
  * Large, gradient-ringed guide avatar — the visual centrepiece of Home
- * (design_handoff_bhaktichat_ia). Notably bigger than the shared GuideAvatarItem.
+ * (design_handoff_bhaktichat_ia). Notably bigger than the guide avatars elsewhere in the app.
  */
 @Composable
 private fun HomeGuideTile(

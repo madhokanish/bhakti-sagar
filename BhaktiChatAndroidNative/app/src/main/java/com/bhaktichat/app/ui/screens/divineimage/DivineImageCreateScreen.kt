@@ -138,7 +138,7 @@ fun DivineImageCreateScreen(
         (adContext.applicationContext as BhaktiChatApplication).container.interstitialAdManager.load(adContext)
     }
 
-    // Ad-based model: divine image is free for everyone — no quota chip.
+    // No quota chip: divine image is subscriber-only, so there is no free allowance to show.
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -788,7 +788,7 @@ private fun SectionHeader(number: String, title: String) {
 
 // MARK: - Generate dock --------------------------------------------------------
 
-// FreeImageQuotaChip removed — ad-based model, no image limit.
+// FreeImageQuotaChip removed — divine image is subscriber-only, so there is no free quota.
 
 @Composable
 private fun GenerateDock(
@@ -940,6 +940,3 @@ private fun deityShortName(deity: String): String = when (deity) {
     "Ganesh Ji"    -> t("di_short_ganesh")
     else           -> divineChoiceDisplayText(deity, LocalAppLanguage.current)
 }
-
-private fun String.capitalizeFirst(): String =
-    if (isEmpty()) this else first().uppercaseChar() + substring(1)

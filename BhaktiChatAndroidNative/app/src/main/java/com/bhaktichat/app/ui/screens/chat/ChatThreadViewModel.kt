@@ -26,6 +26,7 @@ import com.bhaktichat.app.util.EntitlementStore
 import com.bhaktichat.app.util.ReviewPromptStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,9 +45,9 @@ data class ThreadUiState(
     val error: String? = null,
     /**
      * Shows the चढ़ावा card under the conversation. Held in UI state rather than inserted
-     * into [messages] on purpose: ChatRepository builds the model's context from the message
-     * list, so a promo injected there would become conversation history the guide starts
-     * imitating.
+     * into [messages] on purpose: ChatTurnProcessor builds the model's context from the
+     * message list, so a promo injected there would become conversation history the guide
+     * starts imitating.
      */
     val showChadhaavaNudge: Boolean = false
 )
@@ -124,7 +125,13 @@ class ChatThreadViewModel(
             return
         }
 
+        // Flip isSending before the first suspension point so a quick double-tap can't slip
+        // a second send past the guard above.
+        _uiState.update { it.copy(inputText = "", isSending = true, error = null) }
+
         viewModelScope.launch {
+            var typingMessageId: String? = null
+            var receivedToken = false
             try {
             val now = System.currentTimeMillis()
             val userMessage = MessageEntity(
@@ -149,16 +156,9 @@ class ChatThreadViewModel(
                 status = MessageStatus.SENT.name,
                 isTypingIndicator = true
             )
+            typingMessageId = typingMessage.id
             messagesRepository.addMessage(typingMessage)
             threadsRepository.touchThread(thread.id, typingMessage.createdAt)
-
-            _uiState.update {
-                it.copy(
-                    inputText = "",
-                    isSending = true,
-                    error = null
-                )
-            }
 
             val sendResult = withContext(Dispatchers.IO) {
                 ChatTurnProcessor.generateReply(
@@ -176,13 +176,14 @@ class ChatThreadViewModel(
                     // Stream tokens straight into the assistant bubble as they arrive so
                     // the reply feels live instead of appearing all at once.
                     onToken = { streamed ->
+                        receivedToken = true
                         messagesRepository.replaceTypingWithResponse(typingMessage.id, streamed)
                     }
                 )
             }
 
-            // Server says the free limit is exhausted → drop the pending bubble and show
-            // the non-skippable Pro gate instead of a fake/error reply.
+            // Server says the free limit is exhausted → drop the pending bubble rather than
+            // render a fake/error reply. (The backend does not enforce a limit today.)
             if (sendResult.exceptionOrNull() is ChatLimitReachedException) {
                 withContext(Dispatchers.IO) { messagesRepository.removeMessage(typingMessage.id) }
                 entitlementStore.markChatLimitReached()
@@ -231,6 +232,15 @@ class ChatThreadViewModel(
                 )
             }
             } catch (cancellation: CancellationException) {
+                // Leaving the screen mid-reply cancels viewModelScope. Without this the
+                // typing row would sit in the thread forever. Once a token has streamed in the
+                // row is a (partial) real reply, so it stays.
+                if (!receivedToken) {
+                    typingMessageId?.let { id ->
+                        withContext(NonCancellable) { messagesRepository.removeMessage(id) }
+                    }
+                }
+                _uiState.update { it.copy(isSending = false) }
                 throw cancellation
             } catch (error: Exception) {
                 // A DB write here must not strand the UI: isSending has to clear, or the
@@ -247,7 +257,7 @@ class ChatThreadViewModel(
 
     /**
      * The in-chat चढ़ावा offer used to be raised from here every few messages. Chat carries
-     * no subscription hooks any more, so nothing turns [ChatUiState.showChadhaavaNudge] on.
+     * no subscription hooks any more, so nothing turns [ThreadUiState.showChadhaavaNudge] on.
      * The card and its dismissal are left wired up so the offer can be restored in one place.
      */
     /** User said no. Buys a day of quiet across every thread. */
@@ -267,6 +277,8 @@ class ChatThreadViewModel(
         if (msgs.isEmpty()) return
         val lastUser = msgs.lastOrNull { ChatRole.fromWire(it.role) == ChatRole.USER } ?: return
 
+        // Claim the send slot now so a tap on send can't race the deletes below.
+        _uiState.update { it.copy(isSending = true, error = null) }
         viewModelScope.launch {
             // Remove the trailing assistant message(s) AND the last user message itself
             // so that sendMessage() can re-insert a fresh user message and produce a
@@ -276,6 +288,8 @@ class ChatThreadViewModel(
             withContext(Dispatchers.IO) {
                 toRemove.forEach { messagesRepository.removeMessage(it.id) }
             }
+            // Release the slot and re-claim it inside sendMessage with no suspension between.
+            _uiState.update { it.copy(isSending = false) }
             sendMessage(lastUser.content, isRegenerate = true)
         }
     }

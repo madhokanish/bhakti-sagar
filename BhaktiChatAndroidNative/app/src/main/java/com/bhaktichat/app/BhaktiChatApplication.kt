@@ -6,7 +6,6 @@ import android.content.res.Configuration
 import android.os.LocaleList
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.bhaktichat.app.data.auth.AuthRepository
-import com.bhaktichat.app.data.subscription.preloadRazorpay
 import com.bhaktichat.app.domain.AppLanguage
 import com.bhaktichat.app.util.Analytics
 import com.bhaktichat.app.util.LanguageStore
@@ -17,10 +16,10 @@ import kotlin.concurrent.thread
 
 class BhaktiChatApplication : Application() {
     /**
-     * Owned here rather than by [AppContainer] because the container only exists once a user
-     * is authenticated, while the locale and AuthRepository both need the language earlier —
-     * attachBaseContext runs before onCreate, and sign-in errors are produced before anyone
-     * has signed in. One instance process-wide keeps its StateFlow authoritative.
+     * Owned here rather than by [AppContainer] because containers are swapped per identity
+     * (guest ↔ account) and only exist once one is activated, while the locale and
+     * AuthRepository both need the language earlier — attachBaseContext runs before onCreate.
+     * One instance process-wide keeps its StateFlow authoritative across container switches.
      */
     lateinit var languageStore: LanguageStore
         private set
@@ -31,7 +30,7 @@ class BhaktiChatApplication : Application() {
     private var activeUserId: String? = null
 
     val container: AppContainer
-        get() = checkNotNull(activeContainer) { "Authenticated app container is not active" }
+        get() = checkNotNull(activeContainer) { "No app container is active (guest or account)" }
 
     override fun attachBaseContext(base: Context) {
         // Follows the user's choice instead of pinning Hindi. This drives the surfaces the
@@ -56,8 +55,6 @@ class BhaktiChatApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // Keep SDK-owned surfaces (for example Google's consent form) in the same
-        // Devanagari Hindi experience as the rest of the application.
         // Analytics first, so early lifecycle events are captured. No-op if no key is set.
         Analytics.init(
             context = this,
@@ -65,11 +62,6 @@ class BhaktiChatApplication : Application() {
             host = BuildConfig.POSTHOG_HOST,
             debug = BuildConfig.DEBUG
         )
-        // Razorpay preload fetches checkout preferences and enumerates installed UPI apps.
-        // Started here (on a background thread — doing it on the main thread previously
-        // caused a startup ANR) so it has the whole session to finish rather than the few
-        // seconds between opening चढ़ावा and tapping pay.
-        preloadRazorpay(this)
 
         authRepository = AuthRepository(
             context = this,
@@ -134,6 +126,7 @@ class BhaktiChatApplication : Application() {
     suspend fun signOut() {
         authRepository.signOut()
         deactivateUser()
+        Analytics.reset()
     }
 
     suspend fun deleteAccountAndLocalData(): Result<Unit> {
@@ -142,6 +135,7 @@ class BhaktiChatApplication : Application() {
         val result = authRepository.deleteAccount()
         if (result.isFailure) return Result.failure(checkNotNull(result.exceptionOrNull()))
         deactivateUser()
+        Analytics.reset()
         deleteDatabase(AppContainer.accountDatabaseName(userId))
         clearAccountPreferences()
         return Result.success(Unit)

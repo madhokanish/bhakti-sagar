@@ -10,6 +10,7 @@ import com.bhaktichat.app.util.EntitlementStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -132,5 +133,10 @@ class SubscriptionRepository(
     private fun clearLocalEntitlement() {
         _state.value = SubscriptionSummary.NONE
         entitlementStore.setServerPro(false)
+    }
+
+    /** Stops the auth-state collector. Called when the owning AppContainer is torn down. */
+    fun close() {
+        scope.cancel()
     }
 }

@@ -3,7 +3,4 @@
     <cache-path
         name="divine_images"
         path="." />
-    <external-files-path
-        name="external_images"
-        path="Pictures/" />
 </paths>

@@ -27,7 +27,8 @@ data class ChatApiClientResponse(
 
 /**
  * Thrown (as a [Result.failure]) when the server reports the free-tier message limit is
- * exhausted. Callers should surface the non-skippable Pro gate rather than a generic error.
+ * exhausted. Callers drop the pending reply bubble rather than show a generic error; the
+ * daily free cap itself is enforced on the device (EntitlementStore.isOverChatLimit).
  */
 class ChatLimitReachedException : Exception("Free message limit reached.")
 

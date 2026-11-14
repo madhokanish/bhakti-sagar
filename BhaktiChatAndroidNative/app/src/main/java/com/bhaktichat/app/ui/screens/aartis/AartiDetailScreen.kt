@@ -48,7 +48,6 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.bhaktichat.app.R
 import com.bhaktichat.app.data.repo.AartiRepository
 import com.bhaktichat.app.domain.Aarti
 import com.bhaktichat.app.domain.Deity
@@ -57,12 +56,14 @@ import com.bhaktichat.app.util.AartiSpeechPlayer
 import com.bhaktichat.app.data.local.SavedAartisStore
 import com.bhaktichat.app.ui.i18n.t
 import com.bhaktichat.app.ui.screens.aartis.components.YouTubePlayerEmbed
+import com.bhaktichat.app.ui.screens.aartis.components.aartiImageRes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AartiDetailScreen(
     aartiId: String,
     repository: AartiRepository,
+    savedStore: SavedAartisStore,
     onBack: () -> Unit,
     onAskKrishna: (String) -> Unit
 ) {
@@ -92,9 +93,8 @@ fun AartiDetailScreen(
         onDispose { speechPlayer.shutdown() }
     }
 
-    // Save — unified with the Aartis list (both use SavedAartisStore) so a save on either
-    // surface is reflected on the other.
-    val savedStore = remember(context) { SavedAartisStore(context) }
+    // Save — the same app-wide SavedAartisStore instance as the Aartis list, so a save on
+    // either surface is reflected on the other.
     val savedAartiIds by savedStore.savedIds.collectAsState()
     val isBookmarked = currentAarti.id in savedAartiIds
 
@@ -248,11 +248,7 @@ fun AartiDetailScreen(
 
                 item("player") {
                     YouTubePlayerEmbed(
-                        videoId = currentAarti.youtubeVideoId,
-                        title = currentAarti.title,
-                        onOpenExternal = watchUrl?.let { url ->
-                            { uriHandler.openUri(url) }
-                        }
+                        videoId = currentAarti.youtubeVideoId
                     )
                 }
 
@@ -296,7 +292,7 @@ private fun AartiHeaderCard(aarti: Aarti) {
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Image(
-                    painter = painterResource(id = aartiThumbnailRes(aarti.deity)),
+                    painter = painterResource(id = aartiImageRes(LocalContext.current, aarti)),
                     contentDescription = t("aarti_icon_content_description").format(aarti.title),
                     modifier = Modifier
                         .size(96.dp)
@@ -367,13 +363,6 @@ private fun VerseCard(index: Int, text: String) {
             )
         }
     }
-}
-
-private fun aartiThumbnailRes(deity: Deity): Int = when (deity) {
-    Deity.GANESH -> R.drawable.ic_ganesh_top_aarti
-    Deity.SHIV -> R.drawable.ic_shiv_top_aarti
-    Deity.LAKSHMI -> R.drawable.ic_lakshmi_top_aarti
-    else -> R.drawable.ic_default_aarti
 }
 
 @Composable

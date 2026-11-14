@@ -10,14 +10,12 @@ import android.util.Log
 import android.util.Base64
 import androidx.core.content.FileProvider
 import com.bhaktichat.app.BuildConfig
-import com.bhaktichat.app.R
 import com.bhaktichat.app.domain.DIVINE_IDENTITY_REALISM_PREFIX
 import com.bhaktichat.app.domain.DivineImageResult
 import com.bhaktichat.app.domain.DivineMode
 import com.bhaktichat.app.util.AnonUserKey
 import com.bhaktichat.app.util.decodeSampledBitmapFromBytes
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -29,7 +27,6 @@ import java.io.InputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
-import kotlin.random.Random
 
 interface DivineImageGenerator {
     suspend fun generate(
@@ -206,82 +203,6 @@ class RemoteDivineImageGenerator(
             "${BuildConfig.APPLICATION_ID}.fileprovider",
             file
         )
-    }
-
-    private fun applyWatermark(bitmap: Bitmap) {
-        val canvas = Canvas(bitmap)
-        val textSize = bitmap.width * 0.045f
-        val padding = bitmap.width * 0.04f
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = android.graphics.Color.argb(205, 255, 255, 255)
-            this.textSize = textSize
-            textAlign = Paint.Align.RIGHT
-            setShadowLayer(textSize * 0.18f, 0f, 0f, android.graphics.Color.argb(120, 0, 0, 0))
-        }
-        canvas.drawText(
-            "BhaktiChat",
-            bitmap.width - padding,
-            bitmap.height - padding,
-            paint
-        )
-    }
-}
-
-class FakeDivineImageGenerator(
-    context: Context
-) : DivineImageGenerator {
-    private val appContext = context.applicationContext
-
-    override suspend fun generate(
-        mode: DivineMode,
-        prompt: String,
-        inputImageUri: Uri?
-    ): Result<DivineImageResult> = withContext(Dispatchers.IO) {
-        runCatching {
-            val start = System.currentTimeMillis()
-            delay(Random.nextLong(from = 2_000, until = 4_001))
-
-            val drawableRes = resolvePlaceholder(mode = mode, prompt = prompt)
-            val sourceBitmap = BitmapFactory.decodeResource(appContext.resources, drawableRes)
-                ?: error("Could not decode placeholder image.")
-            val bitmap = sourceBitmap.copy(Bitmap.Config.ARGB_8888, true)
-            applyWatermark(bitmap)
-
-            val outputDir = File(appContext.cacheDir, "divine_images").apply { mkdirs() }
-            val file = File(outputDir, "divine_${System.currentTimeMillis()}.png")
-            FileOutputStream(file).use { output ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
-            }
-
-            val uri = FileProvider.getUriForFile(
-                appContext,
-                "${BuildConfig.APPLICATION_ID}.fileprovider",
-                file
-            )
-            DivineImageResult(
-                uri = uri,
-                variant = "fake",
-                requestId = UUID.randomUUID().toString(),
-                durationMs = System.currentTimeMillis() - start
-            )
-        }
-    }
-
-    private fun resolvePlaceholder(
-        mode: DivineMode,
-        prompt: String
-    ): Int {
-        val normalized = prompt.lowercase()
-        return when (mode) {
-            DivineMode.PHOTO_WITH_GOD -> when {
-                "hanuman" in normalized -> R.drawable.hanumanji
-                "shiv" in normalized || "shiva" in normalized -> R.drawable.shivji
-                "lakshmi" in normalized -> R.drawable.card_lakshmi
-                else -> R.drawable.card_krishna
-            }
-
-            DivineMode.PHOTO_AT_TEMPLE -> R.drawable.aarti_sangreh
-        }
     }
 
     private fun applyWatermark(bitmap: Bitmap) {

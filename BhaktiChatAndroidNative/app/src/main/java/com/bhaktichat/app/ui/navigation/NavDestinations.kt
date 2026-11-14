@@ -3,17 +3,7 @@ package com.bhaktichat.app.ui.navigation
 import android.net.Uri
 
 object NavDestinations {
-    const val PREFILL_TOPIC_KEY = "prefill_topic"
-    const val CHAT_PREFILL_ARG = "prefill"
-    const val CHAT_PROMPT_ARG = "prompt"
-    const val CHAT_FRESH_ARG = "fresh"
-    const val CHAT_SKIP_OPENER_ARG = "skipOpener"
-    const val CHAT_LAUNCH_ID_ARG = "launchId"
-    const val HUB_PREFILL_ARG = "prefill"
     const val HUB_GUIDE_ARG = "guide"
-    const val CHAT_ROUTE_PREFILL_APPLIED_KEY = "chat_route_prefill_applied"
-    const val CHAT_ROUTE_LAUNCH_APPLIED_KEY = "chat_route_launch_applied"
-    const val START_NEW_CHAT_KEY = "start_new_chat"
     const val HOME = "home"
     const val BHAKTI_CHAT_BASE = "bhakti_hub"
     const val BHAKTI_CHAT_ROUTE_PREFIX = "bhakti_hub"
@@ -27,10 +17,7 @@ object NavDestinations {
     const val DIVINE_IMAGE_CREATION_ID_ARG = "creationId"
     const val DIVINE_IMAGE_CREATE = "divine_image_create/{mode}/{templateId}"
     const val DIVINE_IMAGE_RESULT = "divine_image_result/{creationId}"
-    const val CHAT_ENTRY = "chat_entry"
     const val GUIDE_PICKER = "guide_picker"
-    const val CHAT =
-        "chat/{guideId}?prefill={prefill}&prompt={prompt}&fresh={fresh}&skipOpener={skipOpener}&launchId={launchId}"
     const val EXPLORE = "explore"
     const val REELS = "reels"
     const val AARTIS = "aartis"
@@ -85,28 +72,6 @@ object NavDestinations {
     }
 
     fun threadRoute(threadId: String): String = "thread/${Uri.encode(threadId)}"
-
-    fun chatRoute(
-        guideId: String,
-        prefill: String? = null,
-        prompt: String? = null,
-        fresh: Boolean = false,
-        skipOpener: Boolean = false,
-        launchId: String? = null
-    ): String {
-        val params = buildList {
-            if (!prefill.isNullOrBlank()) add("prefill=${Uri.encode(prefill)}")
-            if (!prompt.isNullOrBlank()) add("prompt=${Uri.encode(prompt)}")
-            if (fresh) add("fresh=true")
-            if (skipOpener) add("skipOpener=true")
-            if (!launchId.isNullOrBlank()) add("launchId=${Uri.encode(launchId)}")
-        }
-        return if (params.isEmpty()) {
-            "chat/$guideId"
-        } else {
-            "chat/$guideId?${params.joinToString("&")}"
-        }
-    }
 
     fun divineImageCreateRoute(mode: String, templateId: String): String =
         "divine_image_create/${Uri.encode(mode)}/${Uri.encode(templateId)}"

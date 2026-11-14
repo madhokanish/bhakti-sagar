@@ -91,16 +91,11 @@ class ChatPromptSupportTest {
 
     private fun sampleGuide(id: String) = Guide(
         id = id,
-        displayName = "Shri Krishna",
-        status = "Online guide",
         avatarRes = 0,
         avatarVerticalBias = 0f,
         profileImageRes = 0,
         profileVerticalBias = 0f,
-        description = "",
-        teachings = emptyList(),
         openingScenes = emptyMap(),
-        suggestedPrompts = emptyList(),
         serverPromptKey = id
     )
 }

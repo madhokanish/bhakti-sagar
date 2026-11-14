@@ -1,43 +1,34 @@
 # BhaktiChat Android Native
 
-Native Android app (Kotlin + Jetpack Compose) for persona based AI chat with Shri Krishna, Lakshmi Ji, and Shani Dev.
+Native Android app (Kotlin + Jetpack Compose) for BhaktiChat: persona-based AI chat with
+devotional guides, divine images, voice mode, aartis, reels, choghadiya and the चढ़ावा
+subscription.
 
 ## Tech stack
 - Kotlin + Jetpack Compose + Material 3
-- ViewModel + StateFlow
-- Room for local chat history
-- OkHttp + Moshi for API payloads
-- Streaming-ready client with SSE and chunked fallback
+- ViewModel + StateFlow, manual DI via `AppContainer`
+- Room for local chat history (one database per user; guests get their own)
+- OkHttp + `org.json`; chat streams over SSE
+- Media3 for aarti playback and reels, AdMob + UMP, PostHog + Firebase Analytics
+- Razorpay (web checkout / UPI mandate) for चढ़ावा
 
-## Folder structure
-- `app/src/main/java/com/bhaktichat/app/data`
-- `app/src/main/java/com/bhaktichat/app/domain`
-- `app/src/main/java/com/bhaktichat/app/ui`
-- `app/src/main/java/com/bhaktichat/app/util`
-- `app/src/main/assets/aartis.json`
-- `mock-backend/server.mjs`
+## Backend
+Debug and release builds both talk to production, `https://bhaktichat.com`
+(`API_BASE_URL` in `app/build.gradle.kts`). The backend is the Next.js app one level up.
 
-## Run locally
-1. Open project in Android Studio.
-2. Let Gradle sync complete.
-3. Run app on emulator/device.
+## Local configuration
+`local.properties` (git-ignored) holds `posthog.apiKey`, `posthog.host`,
+`google.webClientId` and the `admob.*` ids. Release builds fail fast without a valid
+`google.webClientId`. Debug builds always use Google's test ad units.
 
-## Streaming backend setup
-By default, debug builds use `USE_FAKE_STREAM=true` and stream mock responses inside app.
+Release signing reads `keystore.properties` (copy `keystore.properties.template`).
 
-### Use external backend instead
-1. In `app/build.gradle.kts`, set debug `USE_FAKE_STREAM` to `false`.
-2. Set debug `CHAT_BASE_URL` to your backend URL.
-3. Backend endpoint required:
-   - `POST /chat`
-   - Body: `{ "guideId": "krishna", "messages": [{"role":"user","content":"..."}] }`
-   - Response: SSE (`data: ...`) or plain chunked text stream.
+## Build
+There is no system Java on the dev machine; use Android Studio's JBR:
 
-## Optional local Node mock server
-From `mock-backend`:
 ```bash
-npm install
-npm start
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+./gradlew :app:assembleDebug        # debug APK
+./gradlew :app:testDebugUnitTest    # unit tests
+./gradlew :app:bundleRelease        # Play bundle
 ```
-Server starts at `http://localhost:8787`.
-For Android emulator use `http://10.0.2.2:8787` as `CHAT_BASE_URL`.

@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -141,7 +142,7 @@ fun BhaktiChatApp(
         com.bhaktichat.app.ui.i18n.LocalAppLanguage provides language
     ) {
 
-    // Asked once, on first launch after sign-in — including for existing users, who have
+    // Asked once, on first launch (no sign-in needed) — including for existing users, who have
     // been on Hindi by fiat until now and have never been offered the choice.
     var languageChosen by rememberSaveable {
         mutableStateOf(appContainer.languageStore.hasChosenLanguage)
@@ -165,7 +166,12 @@ fun BhaktiChatApp(
     val backStack by navController.currentBackStackEntryAsState()
     val route = backStack?.destination?.route.orEmpty()
     val density = LocalDensity.current
-    val imeVisible = WindowInsets.ime.getBottom(density) > 0
+    val imeInsets = WindowInsets.ime
+    // derivedStateOf: only recompose the root when the keyboard shows/hides, not on every
+    // frame of the IME animation.
+    val imeVisible by remember(imeInsets, density) {
+        derivedStateOf { imeInsets.getBottom(density) > 0 }
+    }
     val showBottomBar = shouldShowBottomBar(route = route, imeVisible = imeVisible)
     val entitlementStore = appContainer.entitlementStore
     // Entitlement is server truth (Razorpay/Chadhaava), mirrored locally by
@@ -237,7 +243,7 @@ fun BhaktiChatApp(
     val appScope = rememberCoroutineScope()
     val aartiPlayerState by appContainer.aartiPlayerController.state.collectAsStateWithLifecycle()
 
-    // Record the daily-darshan streak on open. (Intro upsell removed — ad-based model.)
+    // One-time launch work: ad consent (only if ads are on), daily-darshan streak, player init.
     LaunchedEffect(Unit) {
         // Only when ads actually exist. With ADS_ENABLED false nothing ever requests an ad,
         // so gathering UMP consent asked a brand-new install to rule on 200+ ad vendors
@@ -408,8 +414,8 @@ fun BhaktiChatApp(
                     }
                 )
                 if (sendResult.exceptionOrNull() is com.bhaktichat.app.data.remote.ChatLimitReachedException) {
-                    // Server free-limit reached → remove the pending bubble and show the
-                    // non-skippable Pro gate.
+                    // Server free-limit reached → remove the pending bubble rather than render
+                    // a fake reply. (The backend does not enforce a limit today.)
                     appContainer.messagesRepository.removeMessage(typingId)
                     entitlementStore.markChatLimitReached()
                     return@launch
@@ -471,7 +477,8 @@ fun BhaktiChatApp(
         }
     }
 
-    // Paywall removed (ad-based model). Features are free for all users.
+    // No blanket paywall: free chat is capped at 10 messages/day; images, voice, reels, aartis,
+    // festivals and wallpapers are चढ़ावा-only. Each gate opens the quick-checkout sheet (openGate).
 
     if (shouldShowReviewPrompt) {
         ReviewPromptDialog(
@@ -559,13 +566,16 @@ fun BhaktiChatApp(
                             }
                         }
                     },
-                    onToggleAartiSpotlight = {
+                    onToggleAartiSpotlight = { displayedAartiId ->
                         if (aartiPlayerState.currentAartiId != null) {
                             appContainer.aartiPlayerController.togglePlayPause()
                         } else {
                             appScope.launch {
                                 val all = appContainer.aartiRepository.loadAartis()
-                                val start = all.firstOrNull { it.isTop } ?: all.firstOrNull()
+                                // Start the aarti the card is showing, not a different top one.
+                                val start = all.firstOrNull { it.id == displayedAartiId }
+                                    ?: all.firstOrNull { it.isTop }
+                                    ?: all.firstOrNull()
                                 if (start != null) {
                                     appContainer.aartiPlayerController.playQueue(
                                         all.filter { it.hasAudio },
@@ -1104,6 +1114,7 @@ fun BhaktiChatApp(
                 AartiDetailScreen(
                     aartiId = aartiId,
                     repository = appContainer.aartiRepository,
+                    savedStore = appContainer.savedAartisStore,
                     onBack = { navController.popBackStack() },
                     onAskKrishna = { prefill ->
                         launchThread(
@@ -1195,9 +1206,10 @@ fun BhaktiChatApp(
 }
 
 /**
- * A dismissable ("crossable") full-screen promo for BhaktiChat Pro. The X or a tap outside the
- * card closes it; the CTA routes to the चढ़ावा subscription screen. Deliberately soft-sell —
- * one appearance per launch, non-subscribers only (gated at the call site).
+ * A dismissable ("crossable") full-screen promo for the चढ़ावा membership. The X or a tap outside
+ * the card closes it; the CTA routes to the चढ़ावा subscription screen. Deliberately soft-sell —
+ * at most once per MembershipPromoStore cooldown (3 days), non-subscribers only (gated at the
+ * call site).
  */
 @Composable
 private fun MembershipInterstitial(

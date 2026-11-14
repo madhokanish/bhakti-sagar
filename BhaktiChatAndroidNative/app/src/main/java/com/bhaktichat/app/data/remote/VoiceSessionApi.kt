@@ -36,7 +36,6 @@ class VoiceSessionApi(
                 // Tells the server which language to speak. Without it the model just
                 // picked, and it always picked Devanagari Hindi.
                 put("lang", lang)
-                put("lang", lang)
                 put("requestId", UUID.randomUUID().toString())
             }
             val request = Request.Builder()

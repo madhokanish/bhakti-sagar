@@ -1879,10 +1879,6 @@ fun translateTone(key: String, language: AppLanguage): String =
 @ReadOnlyComposable
 fun t(key: String): String = translate(key, LocalAppLanguage.current)
 
-@Composable
-@ReadOnlyComposable
-fun tTone(key: String): String = translateTone(key, LocalAppLanguage.current)
-
 /**
  * Shorthand for the many non-composable call sites (repositories, managers, ViewModels)
  * that need a translated string: `languageStore.str("key")`. Reads the language at call

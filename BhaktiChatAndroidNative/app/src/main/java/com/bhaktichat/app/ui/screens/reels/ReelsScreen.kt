@@ -47,6 +47,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -61,12 +62,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -268,6 +273,7 @@ private fun FeedSwitcher(
     }
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 private fun ReelPage(
     reel: Reel,
@@ -303,6 +309,21 @@ private fun ReelPage(
     }
     DisposableEffect(reel.id) {
         onDispose { exoPlayer.release() }
+    }
+    // Pause when the app goes to the background (ON_STOP); resume on return only if this is
+    // still the visible page. Mirrors ChadhaavaScreen's HeroVideo.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val currentIsActive by rememberUpdatedState(isActive)
+    DisposableEffect(lifecycleOwner, exoPlayer) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> if (currentIsActive) exoPlayer.play()
+                Lifecycle.Event.ON_STOP -> exoPlayer.pause()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     LaunchedEffect(reel.id, isActive) {
         if (isActive) {
@@ -344,6 +365,7 @@ private fun ReelPage(
                         setBackgroundColor(android.graphics.Color.TRANSPARENT)
                     }
                 },
+                update = { it.player = exoPlayer },
                 modifier = Modifier.fillMaxSize()
             )
         }

@@ -15,12 +15,12 @@ object AddressingEngine {
     )
 
     private val greetingKeywords = listOf(
-        "hello", "hi", "hey", "good morning", "good night", "good evening",
+        "hello", "hi", "hii", "hey", "heyy", "good morning", "good night", "good evening",
         "namaste", "radhe", "hare krishna", "जय श्री कृष्ण", "प्रणाम", "नमस्ते"
     )
 
     private val closingKeywords = listOf(
-        "bye", "good night", "thanks", "thank you", "shukriya", "धन्यवाद", "शुभ रात्रि"
+        "bye", "goodbye", "good night", "thanks", "thank you", "shukriya", "धन्यवाद", "शुभ रात्रि"
     )
 
     private val informationalKeywords = listOf(
@@ -49,11 +49,11 @@ object AddressingEngine {
             userMessage = userMessage,
             detectedLanguage = detectedLanguage,
             sentimentTag = detectSentiment(normalized),
-            isGreeting = containsAny(normalized, greetingKeywords),
-            isClosing = containsAny(normalized, closingKeywords),
+            isGreeting = containsAnyWord(normalized, greetingKeywords),
+            isClosing = containsAnyWord(normalized, closingKeywords),
             asksForHelp = containsAny(normalized, listOf("please help", "help me", "what should i do", "guide me", "मदद", "क्या करूँ", "क्या करूं")),
             isInformational = containsAny(normalized, informationalKeywords),
-            isNewTopic = containsAny(normalized, listOf("another question", "new topic", "also", "one more thing")),
+            isNewTopic = containsAnyWord(normalized, listOf("another question", "new topic", "also", "one more thing")),
             usedAddressingInPreviousAssistantMessage = token != null &&
                 didUseAddressing(previousAssistantMessage?.content.orEmpty(), token)
         )
@@ -142,9 +142,9 @@ object AddressingEngine {
     ): String? {
         val cleanedName = firstName.trim()
         // The name is used in every language, Hindi included. This previously excluded
-        // Hindi in favour of the devotional tokens below, but sign-in is mandatory now and
-        // being addressed by name reads warmly in Devanagari too ("अनीश, आज मन क्या कह रहा
-        // है?"). The tokens remain the fallback when there is no name to use.
+        // Hindi in favour of the devotional tokens below, but being addressed by name reads
+        // warmly in Devanagari too ("अनीश, आज मन क्या कह रहा है?"). Guests have no name, so
+        // the tokens remain the fallback for them.
         if (isAuthenticated && cleanedName.isNotBlank()) {
             return cleanedName.substringBefore(' ').trim()
         }
@@ -165,92 +165,13 @@ object AddressingEngine {
         }
     }
 
-    // Common romanized-Hindi tokens. If a Latin-script message contains any of these we
-    // treat it as Hinglish. Kept identical to iOS's ChatPromptSupport.hinglishMarkers —
-    // update both together.
-    private val hinglishMarkers = setOf(
-        "hai", "hain", "kya", "kyu", "kyun", "mujhe", "mera", "meri", "mere", "nahi", "nahin",
-        "kaise", "kaisa", "kaisi", "tum", "tumhe", "tumhara", "aap", "ap", "aapka", "hum",
-        "kar", "karo", "karna", "raha", "rahi", "rahe", "ho", "hona", "hoon", "hun",
-        "acha", "accha", "achha", "theek", "thik", "bhagwan", "bhagavan", "ji", "aur", "par",
-        "bas", "matlab", "kuch", "chahiye", "zindagi", "dil", "mann", "pyaar", "pyar", "dukh",
-        "pareshani", "pareshan", "uljhan", "batao", "samajh", "kripya", "namaste", "namaskar",
-        "prabhu", "maa", "daan", "seva", "puja", "haan", "bolo", "tha", "thi", "aaj", "sab",
-        "dharma"
-    )
-
-    // Instruction verbs that mark a message as *asking* for a language, versus just mentioning
-    // one. "aap Hindi mein message karo" switches; "maine Hindi movie dekhi" does not.
-    private val languageRequestVerbs = setOf(
-        "message", "reply", "respond", "answer", "bol", "bolo", "boliye", "likh", "likho",
-        "bata", "batao", "bataye", "karo", "kariye", "kariy", "bhej", "bhejo", "type",
-        "jawab", "jawaab", "samjha", "switch", "talk"
-    )
-
     /**
-     * An explicit in-message request to use a language wins over the message's own script:
-     * someone typing in Latin who asks "Hindi mein baat karo" should get Devanagari back. A
-     * bare mention is not enough — the message must also carry an instruction verb — so casual
-     * references ("I like Hindi songs") don't flip the conversation.
-     */
-    private fun explicitLanguageRequest(userMessage: String): ConversationLanguage? {
-        val m = userMessage.lowercase()
-        val hasVerb = languageRequestVerbs.any { m.contains(it) }
-        if (!hasVerb && !userMessage.contains("हिंदी") && !userMessage.contains("अंग्रे")) return null
-        fun asks(vararg langWords: String) = hasVerb && langWords.any { m.contains(it) }
-        return when {
-            userMessage.contains("हिंदी") || asks("hindi") -> ConversationLanguage.HINDI
-            asks("hinglish", "roman") -> ConversationLanguage.HINGLISH
-            userMessage.contains("अंग्रे") || asks("english", "angrezi", "angreji") -> ConversationLanguage.ENGLISH
-            else -> null
-        }
-    }
-
-    /**
-     * Returns a clear language signal for [userMessage], or null when the message is too
-     * short/ambiguous to tell (e.g. "hi", "thanks", "ok") — callers should fall back to
-     * [resolveLanguage]'s thread-aware default in that case.
-     */
-    @Suppress("unused")
-    private fun detectLanguage(userMessage: String): ConversationLanguage? {
-        // An explicit request ("reply in Hindi") outranks the script the message is typed in.
-        explicitLanguageRequest(userMessage)?.let { return it }
-
-        val hasDevanagari = userMessage.any { Character.UnicodeBlock.of(it) == Character.UnicodeBlock.DEVANAGARI }
-        if (hasDevanagari) return ConversationLanguage.HINDI
-
-        val words = userMessage.lowercase().split(Regex("[^a-z]+")).filter { it.length >= 2 }
-
-        // A Roman-Hindi marker is a signal on its own: "haan" or "theek" is unambiguous even
-        // alone.
-        if (words.any { it in hinglishMarkers }) return ConversationLanguage.HINGLISH
-
-        // Otherwise Latin input means Latin script back, and that means Hinglish.
-        //
-        // This used to return ENGLISH for Latin text without a marker word, which meant "I feel
-        // stressed about work" was answered in textbook English even though the only Latin
-        // option the picker offers is labelled English but *is* Hinglish.
-        //
-        // Two words minimum: one Latin word is not a language signal. "ok", "hmm" and "thanks"
-        // get typed in Latin by Hindi users constantly, and treating them as a switch flipped a
-        // Hindi reader to Hinglish mid-conversation. Below that, callers fall through to the
-        // language the user chose.
-        if (words.size >= 2) return ConversationLanguage.HINGLISH
-
-        return null
-    }
-
-    /**
-     * Resolves the conversation language for [userMessage].
+     * Resolves the conversation language: always [appLanguage], the language the user
+     * chose. [userMessage] and [recentUserMessages] are currently ignored (see below).
      *
-     * A clear signal in the message wins, so the guide follows the user's script the moment
-     * they switch: Devanagari gets Hindi back, Latin gets Hinglish back. Failing that it
-     * inherits the recent thread, so a bare "ok" mid-conversation does not flip languages.
-     *
-     * With no signal anywhere it falls back to [appLanguage], the language the user actually
-     * chose. That fallback used to be a hard-coded Hindi, which is why an English-selecting
-     * user who sent "ok" or an emoji got a Devanagari reply, and why changing the language
-     * setting appeared to do nothing at all: the setting was never consulted.
+     * The fallback used to be a hard-coded Hindi, which is why an English-selecting user who
+     * sent "ok" or an emoji got a Devanagari reply, and why changing the language setting
+     * appeared to do nothing at all: the setting was never consulted.
      */
     fun resolveLanguage(
         @Suppress("UNUSED_PARAMETER") userMessage: String,
@@ -270,9 +191,8 @@ object AddressingEngine {
         // the wrong answer when a preference exists, and now that the switch sits in the chat
         // top bar the preference is a deliberate, one-tap act. So it outranks the guess.
         //
-        // detectLanguage() is kept: it still classifies the message for the addressing engine,
-        // and it is the natural place to reintroduce mirroring behind a "match my script"
-        // option if that is ever wanted.
+        // The script-detection code was removed as dead; the unused parameters stay so a
+        // "match my script" option could bring mirroring back without touching callers.
         return when (appLanguage) {
             AppLanguage.HINDI -> ConversationLanguage.HINDI
             AppLanguage.HINGLISH, AppLanguage.ENGLISH -> ConversationLanguage.HINGLISH
@@ -287,4 +207,21 @@ object AddressingEngine {
 
     private fun containsAny(haystack: String, needles: List<String>): Boolean =
         needles.any { haystack.contains(it.lowercase(Locale.getDefault())) }
+
+    // Letters, matras and digits make a word, so Devanagari stays whole.
+    private val wordSeparator = Regex("[^\\p{L}\\p{M}\\p{N}]+")
+
+    /**
+     * Like [containsAny], but a single-word needle must match a whole word. Plain substring
+     * matching made "hi" fire inside "nahi", "abhi" and "chahiye", and "hey" inside "they",
+     * so nearly every Hinglish message counted as a greeting and got an address prefix.
+     * Multi-word needles ("good morning") still match as substrings.
+     */
+    private fun containsAnyWord(haystack: String, needles: List<String>): Boolean {
+        val words = haystack.split(wordSeparator).toSet()
+        return needles.any { needle ->
+            val n = needle.lowercase(Locale.getDefault())
+            if (n.contains(' ')) haystack.contains(n) else n in words
+        }
+    }
 }

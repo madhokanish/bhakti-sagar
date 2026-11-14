@@ -32,6 +32,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,11 +57,14 @@ fun WallpaperDetailScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val wallpaper = Wallpapers.byId(wallpaperId) ?: run {
-        onBack()
+    val wallpaper = Wallpapers.byId(wallpaperId)
+    if (wallpaper == null) {
+        // Navigate away once, as an effect — calling onBack() during composition can pop twice.
+        LaunchedEffect(Unit) { onBack() }
         return
     }
     val savedToPhotosText = t("saved_to_photos")
+    val saveFailedText = t("di_save_failed")
     val shareWallpaperTitle = t("share_wallpaper")
     val setAsWallpaperTitle = t("set_as_wallpaper")
     val noWallpaperAppMessage = t("no_wallpaper_app_found")
@@ -112,8 +116,12 @@ fun WallpaperDetailScreen(
                     modifier = Modifier.weight(1f),
                     onClick = {
                         val uri = drawableToCacheUri(context, wallpaper.imageRes, "wallpaper_${wallpaper.id}")
-                        saveImageToDevice(context, uri)
-                        Toast.makeText(context, savedToPhotosText, Toast.LENGTH_SHORT).show()
+                        val saved = saveImageToDevice(context, uri)
+                        Toast.makeText(
+                            context,
+                            if (saved) savedToPhotosText else saveFailedText,
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 )
                 WallpaperAction(
@@ -174,11 +182,12 @@ private fun drawableToCacheUri(context: Context, drawableRes: Int, fileNamePrefi
     return FileProvider.getUriForFile(context, "${BuildConfig.APPLICATION_ID}.fileprovider", file)
 }
 
-private fun saveImageToDevice(context: Context, sourceUri: Uri) {
+/** Copies the image into the device gallery. Returns true only if the copy completed. */
+private fun saveImageToDevice(context: Context, sourceUri: Uri): Boolean {
     val resolver = context.contentResolver
     val fileName = "bhakti_wallpaper_${System.currentTimeMillis()}.png"
 
-    runCatching {
+    return runCatching {
         resolver.openInputStream(sourceUri)?.use { inputStream ->
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val contentValues = ContentValues().apply {
@@ -190,6 +199,7 @@ private fun saveImageToDevice(context: Context, sourceUri: Uri) {
                 val outputUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
                     ?: error("Unable to create MediaStore entry.")
                 resolver.openOutputStream(outputUri)?.use { output -> inputStream.copyTo(output) }
+                    ?: error("Unable to open MediaStore output stream.")
                 contentValues.clear()
                 contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
                 resolver.update(outputUri, contentValues, null, null)
@@ -200,8 +210,9 @@ private fun saveImageToDevice(context: Context, sourceUri: Uri) {
                 FileOutputStream(outputFile).use { output -> inputStream.copyTo(output) }
                 MediaScannerConnection.scanFile(context, arrayOf(outputFile.absolutePath), null, null)
             }
-        }
-    }
+            true
+        } ?: false
+    }.getOrDefault(false)
 }
 
 private const val SHARE_CAPTION =

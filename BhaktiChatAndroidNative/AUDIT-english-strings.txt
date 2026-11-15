@@ -1,0 +1,126 @@
+Strings.kt entries whose ENGLISH variant is written in Hinglish (123 of 768 entries checked).
+Format: key | english text
+
+guide_description_krishna | Jab life mein bahut shor lage, Shri Krishna ka margdarshan aapko clarity aur sthir kaam ki taraf laut'ne mein madad karta hai.\n\nUnki baat karuna se bhari aur practical hai. Yeh aapko dharm, sankalp aur aaj kiye ja sakne wale kaam par dhyaan dene mein madad karti hai.\n\nYeh shastron aur kathaon se inspired ek AI guru hai, asli devta nahi.\n\nRoz ki life mein aatm-chintan, emotional balance aur samajhdaar faislon ke liye inse baat karein.
+guide_teaching_krishna_0 | Dharm aur duty
+guide_teaching_krishna_1 | Karm ke saath detachment
+guide_teaching_krishna_2 | Prem aur bhakti
+guide_teaching_krishna_3 | Mushkil waqt mein andar ki taakat
+guide_teaching_krishna_4 | React karne se pehle clarity
+guide_prompt_krishna_0 | Mere saamne do mushkil choices hain. Main decide kaise karun?
+guide_prompt_krishna_1 | Result ki tension liye bina kaam kaise karun?
+guide_prompt_krishna_2 | Mann ki clarity ke liye paanch minute ka Gita chintan dijiye.
+guide_prompt_krishna_3 | Mushkil baat karne se pehle shaant rehne mein meri madad kijiye.
+guide_teaching_lakshmi_0 | Zimmedari ke saath samruddhi
+guide_teaching_lakshmi_3 | Paise aur life mein balance
+guide_teaching_lakshmi_4 | Order aur discipline
+guide_prompt_lakshmi_0 | Mujhe paise ki tension hai. Aaj main kaun sa practical step lun?
+guide_prompt_lakshmi_1 | Zyada kharch kiye bina samruddhi ka abhyaas kaise karun?
+guide_prompt_lakshmi_2 | Lakshmi Ji se inspired weekly gratitude practice bataiye.
+guide_prompt_lakshmi_3 | Main apne ghar mein aur harmony kaise laa sakta hoon?
+guide_teaching_shani_3 | Mehnat se long-term growth
+guide_prompt_shani_0 | Itni mehnat ke baad bhi main atka hua feel karta hoon. Is hafte kya karun?
+guide_prompt_shani_1 | Deri aur uncertainty ke beech shaant kaise rahun?
+guide_prompt_shani_2 | Shanivaar ke liye aisa discipline practice bataiye jo main nibha sakun.
+guide_teaching_shiv_0 | React karne se pehle thehrav
+guide_teaching_shiv_2 | Andar ki khamoshi
+guide_teaching_shiv_3 | Shor se upar sach
+guide_teaching_shiv_4 | Surrender ki himmat
+guide_prompt_shiv_0 | Jo mere control mein nahi hai, use chhodne mein meri madad kijiye.
+guide_prompt_shiv_1 | Aaj ke liye Shiv Ji se inspired ek shaant chintan dijiye.
+guide_prompt_shiv_2 | Mann mein shor ho to main sthir kaise rahun?
+guide_prompt_shiv_3 | Main abhi kis sach se bhaag raha hoon?
+guide_teaching_hanuman_0 | Kaam mein bhakti
+guide_teaching_hanuman_3 | Vinamrata se taakat
+guide_prompt_hanuman_0 | Jis kaam se main bhaag raha hoon, uske liye mujhe himmat dijiye.
+guide_prompt_hanuman_2 | Aaj taakat ke liye Hanuman Ji se inspired ek kadam bataiye.
+guide_prompt_hanuman_3 | Ghabraye bina dar ka saamna karne mein meri madad kijiye.
+di_err_pick_temple_scene | Mandir ka ek scene chuniye.
+di_err_generate_failed | Abhi yeh image nahi ban saki. Phir try kijiye.
+di_scene_krishna_1 | Vrindavan mein Shri Krishna aapke saath khade hain
+di_scene_krishna_2 | Shri Krishna aapko aashirwad de rahe hain
+di_scene_krishna_3 | Shri Krishna Gita ka gyaan de rahe hain
+di_scene_lakshmi_1 | Lakshmi Ji aapko aashirwad de rahi hain
+di_scene_lakshmi_2 | Lakshmi Ji samruddhi ka aashirwad de rahi hain
+di_scene_shiv_1 | Shiv Ji aapke paas dhyaan kar rahe hain
+di_scene_shiv_2 | Shiv Ji aapko aashirwad de rahe hain
+di_scene_hanuman_1 | Hanuman Ji aapki raksha kar rahe hain
+di_scene_hanuman_2 | Hanuman Ji aapko aashirwad de rahe hain
+di_tscene_front | Mandir ke saamne khade hue
+di_tscene_courtyard | Mandir ke aangan mein chalte hue
+di_your_darshan | Aapka divine darshan
+di_your_photo | Aapki photo
+di_tap_add_photo | Apni photo add karne ke liye tap kijiye
+di_try_sample | Sample photo se try kijiye
+di_photo_hint | Chehre ki clear photo sabse acchi rehti hai.
+di_choose_deity | Apne deity chuniye
+di_choose_moment | Darshan ka pal chuniye
+di_add_details | Extra details add kijiye
+di_need_photo | Aage badhne ke liye apni photo add kijiye
+di_need_steps | Aage badhne ke liye upar ke steps poore kijiye
+di_ready_tap | Ready · banane ke liye tap kijiye
+di_generating_dots | Ban raha hai...
+di_generating_eta | Aapka divine darshan ban raha hai · 60–90 second
+di_result_creating | Aapka divine darshan ban raha hai
+di_result_eta | Ismein aam taur par 60–90 second lagte hain
+di_generating_ellipsis | Ban raha hai…
+di_just_created | Abhi banaya gaya
+di_make_another | Ek aur banaiye
+di_try_again | Phir try kijiye
+di_share | Divine darshan share kijiye
+di_feedback_thanks | Aapke feedback ke liye dhanyavaad 🙏
+di_save_failed | Image save karne ki jagah nahi ban saki.
+di_share_caption | Maine BhaktiChat se apna divine darshan banaya 🙏🪔\nAap bhi free mein banaiye: https://bhaktichat.com
+chat_input_hint | Apna message likhiye…
+chat_voice_start | Voice typing shuru kijiye
+chat_voice_call | Voice se baat shuru kijiye
+chat_mic_denied | Microphone ki permission nahi mili
+chat_copy_convo | Chat copy kijiye
+chat_copied_convo | Chat copy ho gayi
+chat_copy_message | Message copy kijiye
+chat_copied | Copy ho gaya
+chat_copy_latest | Latest reply copy kijiye
+chat_copied_latest | Latest reply copy ho gaya
+chat_regenerate | Phir se jawaab dijiye
+chat_delete | Chat delete kijiye
+chat_loading | Chat load ho rahi hai…
+chat_share_mind | Apne mann ki baat likhiye...
+chat_start_new | Nayi chat shuru kijiye
+voice_starting | Shuru ho raha hai...
+voice_connecting | Connect ho raha hai...
+voice_listening | Sun rahe hain
+voice_listening_dots | Sun rahe hain...
+voice_thinking | Soch rahe hain...
+voice_speaking | Bol rahe hain
+voice_end_call | Voice call khatam kijiye
+voice_mic_required | Voice se baat karne ke liye microphone ki permission chahiye
+streak_title | Aapki darshan streak
+streak_sub | Apni streak banaye rakhne ke liye roz darshan kijiye.
+streak_now | Abhi
+common_ok | Theek hai
+common_not_now | Abhi nahi
+review_title | Kya aapko BhaktiChat pasand aa raha hai? 🙏
+review_body | Agar BhaktiChat aapke kaam aaya hai, to aapki chhoti si rating dusre logon ko bhi ise dhoondhne mein madad karegi.
+review_yes | Haan, bahut pasand hai!
+reel_ask_meaning | Iska mere jeevan mein kya matlab hai?
+chat_thinking_fallback | Main aapke sawaal par soch raha hoon. Kuch der baad phir try kijiye.
+reel_ask_prefix | Maine abhi ek reel dekhi:
+chogh_load_failed | Abhi Choghadiya load nahi ho saka. Phir try kijiye.
+streak_body | Aap BhaktiChat par lagatar %1\$s din se darshan kar rahe hain.
+di_needs_work | Behtar ho sakta hai
+chat_you | Aap
+common_something_wrong | Kuch gadbad hui. Phir try kijiye.
+chat_send_failed | Message bheja nahi ja saka. Phir try kijiye.
+voice_start_failed | Awaaz shuru nahi ho saki. Phir try kijiye.
+voice_call_problem | Voice call mein dikkat aayi. Phir try kijiye.
+voice_call_start_failed | Voice call shuru nahi ho saki. Phir try kijiye.
+di_made_with | Divine Image se banaya gaya
+reminder_channel_desc | Chintan ke liye ek pyaara daily reminder.
+reminder_title | 🕉️ Daily chintan ka samay
+reminder_body | BhaktiChat ke saath kuch pal shaant bitaiye.
+voice_mic_unavailable | Microphone available nahi hai. Baat phir shuru kijiye.
+please_sign_in | Pehle sign in kijiye.
+voice_not_heard | Aapki awaaz sunai nahi de rahi, microphone shaant lag raha hai.
+aarti_tap_lyrics | Poore bol padhne ke liye tap kijiye.
+di_scene_ganesh_1 | Ganesh Ji aapko aashirwad de rahe hain
+di_scene_ganesh_2 | Ganesh Ji vighn door kar rahe hain

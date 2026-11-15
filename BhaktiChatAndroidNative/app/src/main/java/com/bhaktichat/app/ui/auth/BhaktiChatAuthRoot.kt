@@ -142,6 +142,7 @@ fun BhaktiChatAuthRoot() {
                 errorMessage = null,
                 reason = languageStore.str("auth_sign_in_reason"),
                 dismissLabel = languageStore.str("auth_not_now"),
+                googleLabel = languageStore.str("auth_continue_google"),
                 onGoogle = {},
                 onAccess = { _, _ -> },
                 onDismiss = null
@@ -158,6 +159,7 @@ fun BhaktiChatAuthRoot() {
                     errorMessage = current.message,
                     reason = languageStore.str("auth_sign_in_reason"),
                     dismissLabel = languageStore.str("auth_not_now"),
+                googleLabel = languageStore.str("auth_continue_google"),
                     onGoogle = {
                         val host = activity ?: return@SignInScreen
                         actionScope.launch { repository.signInWithGoogle(host, explicitButton = true) }
@@ -203,6 +205,7 @@ private fun SignInScreen(
     errorMessage: String?,
     reason: String,
     dismissLabel: String,
+    googleLabel: String,
     onGoogle: () -> Unit,
     onAccess: (String, String) -> Unit,
     onDismiss: (() -> Unit)?
@@ -260,7 +263,7 @@ private fun SignInScreen(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.size(10.dp))
-                Text("Continue with Google", fontWeight = FontWeight.Medium)
+                Text(googleLabel, fontWeight = FontWeight.Medium)
             }
 
             Spacer(Modifier.height(10.dp))

@@ -1322,6 +1322,7 @@ private val table: Map<String, Entry> = mapOf(
         "Sign in to continue to Chadhava"
     ),
     "auth_not_now" to Entry("Not now", "अभी नहीं", "Not now"),
+    "auth_continue_google" to Entry("Continue with Google", "Google से जारी रखें", "Continue with Google"),
 
     // --- Billing (non-composable) ---
     "billing_checkout_failed" to Entry(

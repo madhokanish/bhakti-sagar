@@ -262,3 +262,52 @@ Not read this pass: `ChoghadiyaScreen` (UI), the rest of `DiscoveryScreen`,
 - Switch app language, then open system Settings → Apps → BhaktiChat → Notifications: the
   channel name should be in the new language once a reminder has fired or Settings in the
   app has been opened.
+
+## Chunk 6: Explore, strings and resources (done)
+
+Read in full: `WallpaperDetailScreen`; the sign-in screen and dialog in `BhaktiChatAuthRoot`.
+Script checks over the whole app: every key in `Strings.kt` against Android and iOS usage,
+duplicate keys, format placeholders, Latin-script Hindi entries, hard-coded UI text, and
+every file under `res/` against Kotlin, XML, the manifest and `aartis.json`.
+Not read this pass: `ExploreScreen`, `WallpapersScreen`, `PanchangScreen`,
+`FestivalsScreen`, `Theme.kt`, `Type.kt`.
+
+Results of the checks: no unused string keys, no duplicate keys, no placeholder mismatches,
+no unused drawables, raw files or layouts. Nothing to remove.
+
+### Fixed
+
+1. **Wallpaper Save, Share and Set froze the screen.** Each tap decoded the full wallpaper
+   and wrote it out as a PNG on the main thread, then (for Save) copied it into the gallery
+   there too. That work now runs in the background. (`WallpaperDetailScreen.kt`)
+2. **Every wallpaper tap left another PNG in the cache.** The file name carried a
+   timestamp, so nothing was ever overwritten. There is now one file per wallpaper.
+3. **"Continue with Google" was hard-coded English.** It has a string key now and reads
+   "Google से जारी रखें" in Hindi. iOS `Strings.swift` was regenerated for the new key (that
+   file is in your uncommitted iOS folder).
+
+### For you to review
+
+- **Many "English" strings are Hinglish.** In English mode the UI shows text such as
+  "Apni photo add karne ke liye tap kijiye". The full list (key and text) is in
+  `AUDIT-english-strings.txt` next to this file. This is the UI side of review item 1 from
+  the first audit (English mode replies in Hinglish).
+- **On Android 7 to 9, "Saved to Photos" is not true.** Below Android 10 the wallpaper is
+  written to the app's own external folder, which the gallery does not index. Saving to the
+  shared Pictures folder there needs the storage permission. Divine image saving likely has
+  the same gap (not re-read this pass).
+- **The wallpaper share caption says "Get yours free"** while wallpapers are members-only,
+  and it is hard-coded English (`SHARE_CAPTION`).
+- **The reviewer sign-in path is hard-coded English** ("Enter email or username", "Sign in",
+  "Email or username", "Password", "Cancel"). Only Play reviewers use it, so I left it.
+- **`cancel` and `common_cancel` are the same string under two keys.**
+
+### What could break
+
+- Fix 1: Save, Share and Set now react a moment after the tap instead of blocking; a second
+  quick tap starts a second copy of the same work.
+
+### Tests to run by hand
+
+- Open a wallpaper and tap Save, Share and Set as wallpaper: no freeze, and each still works.
+- Hindi mode → Settings → Sign in: the Google button reads "Google से जारी रखें".

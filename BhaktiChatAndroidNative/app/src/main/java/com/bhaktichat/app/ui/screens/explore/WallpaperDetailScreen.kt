@@ -33,6 +33,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +51,9 @@ import com.bhaktichat.app.domain.Wallpapers
 import com.bhaktichat.app.ui.i18n.t
 import java.io.File
 import java.io.FileOutputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun WallpaperDetailScreen(
@@ -70,6 +74,12 @@ fun WallpaperDetailScreen(
     val noWallpaperAppMessage = t("no_wallpaper_app_found")
     val wallpaperTitle = t("wallpaper_title_${wallpaper.id}")
     val wallpaperSubtitle = t("wallpaper_subtitle_${wallpaper.id}")
+    // Decoding the wallpaper and writing it out as a PNG takes a second or more, so the
+    // three actions do that work off the main thread instead of freezing the screen.
+    val scope = rememberCoroutineScope()
+    suspend fun wallpaperUri(): Uri = withContext(Dispatchers.IO) {
+        drawableToCacheUri(context, wallpaper.imageRes, "wallpaper_${wallpaper.id}")
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         Image(
@@ -115,13 +125,17 @@ fun WallpaperDetailScreen(
                     label = t("save"),
                     modifier = Modifier.weight(1f),
                     onClick = {
-                        val uri = drawableToCacheUri(context, wallpaper.imageRes, "wallpaper_${wallpaper.id}")
-                        val saved = saveImageToDevice(context, uri)
-                        Toast.makeText(
-                            context,
-                            if (saved) savedToPhotosText else saveFailedText,
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        scope.launch {
+                            val saved = runCatching {
+                                val uri = wallpaperUri()
+                                withContext(Dispatchers.IO) { saveImageToDevice(context, uri) }
+                            }.getOrDefault(false)
+                            Toast.makeText(
+                                context,
+                                if (saved) savedToPhotosText else saveFailedText,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                 )
                 WallpaperAction(
@@ -129,8 +143,10 @@ fun WallpaperDetailScreen(
                     label = t("share"),
                     modifier = Modifier.weight(1f),
                     onClick = {
-                        val uri = drawableToCacheUri(context, wallpaper.imageRes, "wallpaper_${wallpaper.id}")
-                        shareImage(context, uri, shareWallpaperTitle)
+                        scope.launch {
+                            runCatching { wallpaperUri() }
+                                .onSuccess { uri -> shareImage(context, uri, shareWallpaperTitle) }
+                        }
                     }
                 )
                 WallpaperAction(
@@ -138,8 +154,11 @@ fun WallpaperDetailScreen(
                     label = t("set_wallpaper_button"),
                     modifier = Modifier.weight(1f),
                     onClick = {
-                        val uri = drawableToCacheUri(context, wallpaper.imageRes, "wallpaper_${wallpaper.id}")
-                        setAsWallpaper(context, uri, setAsWallpaperTitle, noWallpaperAppMessage)
+                        scope.launch {
+                            runCatching { wallpaperUri() }.onSuccess { uri ->
+                                setAsWallpaper(context, uri, setAsWallpaperTitle, noWallpaperAppMessage)
+                            }
+                        }
                     }
                 )
             }
@@ -175,10 +194,13 @@ private fun WallpaperAction(
 private fun drawableToCacheUri(context: Context, drawableRes: Int, fileNamePrefix: String): Uri {
     val bitmap = BitmapFactory.decodeResource(context.resources, drawableRes)
     val outputDir = File(context.cacheDir, "wallpapers").apply { mkdirs() }
-    val file = File(outputDir, "${fileNamePrefix}_${System.currentTimeMillis()}.png")
+    // One file per wallpaper, overwritten each time: a timestamped name left a new
+    // multi-megabyte PNG in the cache on every tap.
+    val file = File(outputDir, "$fileNamePrefix.png")
     FileOutputStream(file).use { output ->
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
     }
+    bitmap.recycle()
     return FileProvider.getUriForFile(context, "${BuildConfig.APPLICATION_ID}.fileprovider", file)
 }
 

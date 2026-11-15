@@ -361,3 +361,22 @@ the targeted-share code in `DivineImageResultScreen`.
   APK is 21.6 MB.
 - Emulator: the debug build installs, launches to Home in English with no crash.
 - Not tried on a device: every fix above. The emulator check only covers startup.
+
+## Emulator test (guest, debug build of 547412a)
+
+Passed:
+- Situation card for a guide with an existing chat: the reply arrived and the thread's
+  stored server conversation id was the same before and after (chunk 1, fix 1).
+- Chat date separators read "Kal" / "Aaj" in Hinglish (chunk 1, fix 3).
+- Home Choghadiya row and the full screen agree, show AM/PM and an English date, and the
+  current slot is right for London on a Sunday evening.
+- Hindi mode: the sign-in button reads "Google से जारी रखें"; "अभी नहीं" returns to Settings.
+- No crash in logcat during the run.
+
+Not testable as a guest (members only, or needs a real mic): aarti search, wallpaper
+save/share/set, voice, divine images and Instagram share, checkout, mic dictation.
+
+Seen while testing, for review:
+- Declining the system location prompt on Choghadiya is followed at once by the app's own
+  "Enable location access" dialog, so a "no" is asked twice. Its text reads "todays".
+- Opening Settings asks for the notification permission straight away.

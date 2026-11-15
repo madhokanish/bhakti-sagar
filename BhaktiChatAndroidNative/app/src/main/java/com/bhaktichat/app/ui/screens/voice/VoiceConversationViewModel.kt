@@ -129,6 +129,10 @@ class VoiceConversationViewModel(
                 lang = if (language == AppLanguage.HINDI) "hi" else "en"
             )
                 .onSuccess { session ->
+                    // The call was ended while the session was being set up (End tapped, or a
+                    // phone call took audio focus). Connecting now would open the mic with
+                    // nothing left to close it: endCall() is a no-op once hasStarted is false.
+                    if (!hasStarted) return@onSuccess
                     realtimeClient.connect(session.ephemeralKey, session.model, guide.openingScene(language))
                 }
                 .onFailure { error ->

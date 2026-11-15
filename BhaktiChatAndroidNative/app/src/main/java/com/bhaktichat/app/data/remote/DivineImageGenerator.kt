@@ -27,6 +27,8 @@ import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.File
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import java.io.FileOutputStream
 import java.util.UUID
 
@@ -57,6 +59,21 @@ class RemoteDivineImageGenerator(
     private val appContext = context.applicationContext
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
     private val endpoint = baseUrl.trimEnd('/') + "/api/bhaktigpt/divine-image"
+
+    init {
+        // Creations live only in memory, so every photo and result already on disk when a
+        // container starts belongs to a creation that no longer exists. Each result is a
+        // multi-megabyte PNG; without this the cache only ever grew. The hour of grace is for
+        // a file another app may still be reading from a share.
+        thread(name = "divine-cache-prune") {
+            val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1)
+            listOf("divine_images", "divine_inputs").forEach { dir ->
+                File(appContext.cacheDir, dir).listFiles()
+                    ?.filter { it.isFile && it.lastModified() < cutoff }
+                    ?.forEach { it.delete() }
+            }
+        }
+    }
 
     override suspend fun generate(
         mode: DivineMode,
@@ -102,8 +119,10 @@ class RemoteDivineImageGenerator(
             val sourceBitmap = decodeSampledBitmapFromBytes(imageBytes, maxDimensionPx = 2048)
                 ?: error("Failed to decode generated image.")
             val bitmap = sourceBitmap.copy(Bitmap.Config.ARGB_8888, true)
+            sourceBitmap.recycle()
             applyWatermark(bitmap)
             val savedUri = saveBitmapToCache(bitmap)
+            bitmap.recycle()
 
             val variant = responseJson.optString("variant").takeIf { it.isNotBlank() }
             val responseRequestId = responseJson.optString("requestId").takeIf { it.isNotBlank() }
@@ -139,9 +158,10 @@ class RemoteDivineImageGenerator(
             .build()
 
         httpClient.newCall(request).execute().use { response ->
+            // Before parsing: a 402 whose body isn't JSON must still read as "needs membership".
+            if (response.code == 402) throw SubscriptionRequiredException()
             val raw = response.body?.string().orEmpty()
             val json = raw.takeIf { it.isNotBlank() }?.let(::JSONObject) ?: JSONObject()
-            if (response.code == 402) throw SubscriptionRequiredException()
             if (!response.isSuccessful) {
                 val error = json.optString("error").ifBlank {
                     "Divine image request failed (${response.code})"

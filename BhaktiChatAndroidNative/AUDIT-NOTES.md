@@ -115,3 +115,61 @@ return-from-tab handling all read correctly.
 
 - Nothing behavioural: the removals had no callers, and the tone fallback only changes the
   text for a tone key that does not exist.
+
+## Chunk 3: divine images and voice (done)
+
+Read in full: `DivineCreationRepository`, `DivineImageUi`, `BitmapDecoding`,
+`DivineImageModels`, `DivineImageResultViewModel`, `DivineImageGenerator`,
+`launchDivineGeneration`, `VoiceRealtimeClient`, `VoiceConversationViewModel`,
+`VoiceSessionApi`, the voice route in `BhaktiChatApp`.
+Not read this pass: the divine image screens (`Create`, `Result`, `Home` composables), the
+rest of `DivineImageCreateViewModel`, `DivineTemplateRepository`, `VoiceModeScreen`,
+`VoiceAudioCapture`, `VoiceAudioPlayer`, `VoiceAudioFocusManager`.
+
+### Fixed
+
+1. **Voice could leave the mic open after the call was ended.** If the call ended while the
+   session was still being set up (End tapped, or a phone call took audio focus), the
+   session reply then connected anyway and started recording, and nothing could stop it:
+   `endCall()` does nothing once the call is marked as not started. The reply is now ignored
+   if the call has already ended. (`VoiceConversationViewModel.kt`)
+2. **Divine image files piled up in the cache for ever.** Creations are kept in memory only,
+   so after a restart every generated PNG (several MB each) and copied input photo is
+   unreachable, and nothing deleted them. Files older than an hour are now removed when the
+   app starts. (`DivineImageGenerator.kt`)
+3. **Each generation left two full-size bitmaps for the garbage collector** (about 16 MB
+   each at 2048 px). They are recycled once the file is written. (`DivineImageGenerator.kt`)
+4. **A 402 with a non-JSON body read as a generic failure** because the body was parsed
+   before the status was checked. The status is checked first. (`DivineImageGenerator.kt`)
+
+### For you to review
+
+- **Divine image history is lost every time the app restarts.** `DivineCreation` rows are
+  only in memory (`InMemoryDivineCreationRepository`), so History's creations list is empty
+  after a restart and a paid image that was not saved to the gallery is gone. Fixing it
+  means a Room table and keeping the files out of the cache directory.
+- **A voice call is not recorded in the chat.** Voice turns are sent to the server, but the
+  conversation id the server returns is never written to the thread, and the transcripts
+  are not added to the local messages. On a thread with no earlier text chat, the next text
+  message starts a new server conversation that knows nothing about the call.
+- **The "microphone seems silent" warning is hard-coded English**
+  (`VoiceRealtimeClient.kt`, `onMicAppearsDead`). It needs a string key and the language
+  passed in.
+- **The voice route still opens the full चढ़ावा page** when a non-member reaches it, while
+  every other gate opens the quick-checkout sheet.
+- **The input photo is JPEG-encoded twice** (once when copied in, again when sent). Small
+  quality loss and wasted work; sending the copied file's bytes as they are would avoid it.
+
+### What could break
+
+- Fix 2: a divine image shared to another app more than an hour before a restart can no
+  longer be re-opened from that app's stale link. Images saved to the gallery are not
+  touched.
+- Fix 3: if any code kept using the bitmap after saving it would crash; nothing does.
+
+### Tests to run by hand
+
+- Start a voice call and tap End immediately, several times: the mic indicator in the
+  status bar should go away each time.
+- Generate a divine image, save it, restart the app: the saved image is still in the
+  gallery.

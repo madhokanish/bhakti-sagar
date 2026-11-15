@@ -40,9 +40,6 @@ class SubscriptionRepository(
     private val _state = MutableStateFlow(SubscriptionSummary.NONE)
     val state: StateFlow<SubscriptionSummary> = _state.asStateFlow()
 
-    private val _syncing = MutableStateFlow(false)
-    val syncing: StateFlow<Boolean> = _syncing.asStateFlow()
-
     // Serializes refreshes so a resume-triggered sync and a post-payment poll can't
     // interleave and write stale state over fresh state.
     private val refreshLock = Mutex()
@@ -77,14 +74,11 @@ class SubscriptionRepository(
     suspend fun refresh(reconcileWithGateway: Boolean = false) {
         val token = authRepository.currentSession?.accessToken ?: return
         refreshLock.withLock {
-            _syncing.value = true
             try {
                 apply(api.status(token, refresh = reconcileWithGateway))
             } catch (_: Exception) {
                 // Offline or a backend blip must not revoke a paying user's access. Keep the
                 // last known state; the next successful refresh corrects it.
-            } finally {
-                _syncing.value = false
             }
         }
     }

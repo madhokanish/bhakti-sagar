@@ -20,12 +20,6 @@ class BookmarkStore(context: Context) {
     private val _aartiIds = MutableStateFlow(readSet(KEY_AARTIS))
     val aartiIds: StateFlow<Set<String>> = _aartiIds.asStateFlow()
 
-    fun bookmarkedMessageIds(): Set<String> = _messageIds.value
-    fun bookmarkedAartiIds(): Set<String> = _aartiIds.value
-
-    fun isMessageBookmarked(id: String): Boolean = id in _messageIds.value
-    fun isAartiBookmarked(id: String): Boolean = id in _aartiIds.value
-
     fun toggleMessage(id: String) {
         if (id.isBlank()) return
         val updated = _messageIds.value.toMutableSet().apply {

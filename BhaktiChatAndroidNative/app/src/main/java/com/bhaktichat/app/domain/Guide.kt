@@ -30,13 +30,7 @@ data class Guide(
     fun teachings(language: AppLanguage): List<String> =
         (0 until TEACHING_COUNT).map { translate("guide_teaching_${id}_$it", language) }
 
-    /** Sent to the guide as the user's message, so it must follow the chosen language —
-     *  the chat backend mirrors the script it receives. */
-    fun suggestedPrompts(language: AppLanguage): List<String> =
-        (0 until PROMPT_COUNT).map { translate("guide_prompt_${id}_$it", language) }
-
     private companion object {
         const val TEACHING_COUNT = 5
-        const val PROMPT_COUNT = 4
     }
 }

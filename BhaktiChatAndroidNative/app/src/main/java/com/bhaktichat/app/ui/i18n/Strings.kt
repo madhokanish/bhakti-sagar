@@ -1799,7 +1799,7 @@ fun translate(key: String, language: AppLanguage): String {
 }
 
 fun translateTone(key: String, language: AppLanguage): String =
-    toneWords[key]?.forLanguage(language) ?: translate("tone_neutral_fallback", language)
+    (toneWords[key] ?: toneWords.getValue("neutral")).forLanguage(language)
 
 /**
  * The in-composition translator. Reads [LocalAppLanguage], so every call site recomposes

@@ -60,3 +60,58 @@ Not read this pass: `HistoryScreen`, `HistoryViewModel`, `GuidePickerScreen`,
 - Tap the mic and speak a full sentence: the whole sentence should land in the box.
 - English mode, a chat with messages from last week: the separator should read "8 Nov".
 - As a paying guest: Settings → Sign in → "Not now" in airplane mode: still a member.
+
+## Chunk 2: चढ़ावा and checkout (done)
+
+Read in full: `ChadhaavaViewModel`, `EntitlementStore`, `SubscriptionApi`, `WebCheckout`,
+`MembershipPromoStore`, `ReviewPromptStore`, `BookmarkStore`; the gate, quick-checkout,
+promo and चढ़ावा-route code in `BhaktiChatApp`; checkout effects, `HeroVideo` and
+`QuickCheckoutSheet` in `ChadhaavaScreen`. Also ran a whole-app scan for declarations that
+nothing references.
+Not read this pass: the rest of `ChadhaavaScreen` (offer and manage UI), `ProfileScreen`,
+`Analytics`, `SubscriptionManager` (Play Billing leftover), the backend subscription routes.
+
+No bug found in the checkout flow itself: the resume flag, promo suppression, polling and
+return-from-tab handling all read correctly.
+
+### Fixed
+
+1. **Tone-word fallback printed a raw key.** `translateTone` fell back to
+   `translate("tone_neutral_fallback")`, but that entry was never in the main string table,
+   so an unknown tone would render as the literal text `tone_neutral_fallback`. It now falls
+   back to the "neutral" tone word. (`Strings.kt`)
+2. **Removed code nothing references:** four `BookmarkStore` getters, `syncing` in
+   `SubscriptionRepository`, and `Guide.suggestedPrompts` (iOS has its own copy; the string
+   keys stay because iOS uses them).
+
+### For you to review
+
+- **History's "Saved" section can never show anything.** It reads `BookmarkStore`, and
+  nothing in the app adds to that store: there is no bookmark action on a chat message, and
+  saving an aarti writes to a different store (`SavedAartisStore`). Suggested fix: make
+  History read saved aartis from `SavedAartisStore`, and either add a bookmark action to
+  chat messages or delete the saved-messages UI and `BookmarkStore`.
+- **The चढ़ावा hero video plays over a playing aarti.** The hero `ExoPlayer` does not request
+  audio focus, so with an aarti in the mini-player both play at once. Suggested fix: give the
+  hero player audio attributes with `handleAudioFocus = true`. Needs a listen on a device.
+- **The iOS string generator has the same tone fallback.** Line 192 of
+  `BhaktiChatiOS/scripts/generate_strings_from_android.py` still writes
+  `translate("tone_neutral_fallback", ...)` into `Strings.swift`. Left alone (iOS work).
+- **A guest who taps pay at a gate loses the gate.** The silent guest-account path resumes
+  on the चढ़ावा page with no `blocked` value, so the page does not say what they were trying
+  to open and its analytics source reads "tab".
+- **Checkout polling asks Razorpay every 3 seconds for 3 minutes** (up to 60 gateway reads
+  per attempt), and keeps going after the user is back on the offer. Deliberate, but heavy.
+- **`recordImageGenerated` and `imagesUsed` do nothing now.** Images are members-only and
+  the recorder returns early for members, so the counter is always 0.
+- **Unused colour constants:** `ScreenBgTop`, `ScreenBgBottom`, `ModeTempleStart`,
+  `ModeTempleEnd` (`DivineImageTheme.kt`); `SurfaceElevated`, `AccentWarm`, `AccentSuccess`
+  (`Theme.kt`). Harmless; left in place.
+- Still open from the first audit: `CheckoutRequest`, `createSubscription`,
+  `preloadRazorpay`, `purchaseInFlight`, `UserCancelled` and the AD_ID permission all belong
+  to the unused Razorpay SDK / Play Billing / AdMob paths.
+
+### What could break
+
+- Nothing behavioural: the removals had no callers, and the tone fallback only changes the
+  text for a tone key that does not exist.

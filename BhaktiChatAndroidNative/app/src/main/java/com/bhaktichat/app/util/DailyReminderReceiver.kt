@@ -67,16 +67,17 @@ class DailyReminderReceiver : BroadcastReceiver() {
         fun ensureChannel(context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                if (manager.getNotificationChannel(CHANNEL_ID) == null) {
-                    val channel = NotificationChannel(
-                        CHANNEL_ID,
-                        LanguageStore(context).str("reminder_channel"),
-                        NotificationManager.IMPORTANCE_DEFAULT
-                    ).apply {
-                        description = LanguageStore(context).str("reminder_channel_desc")
-                    }
-                    manager.createNotificationChannel(channel)
+                // Not guarded by "does it exist": re-creating a channel is how its name and
+                // description are updated, so they follow a change of app language. The
+                // user's own importance and sound settings are kept by the system.
+                val channel = NotificationChannel(
+                    CHANNEL_ID,
+                    LanguageStore(context).str("reminder_channel"),
+                    NotificationManager.IMPORTANCE_DEFAULT
+                ).apply {
+                    description = LanguageStore(context).str("reminder_channel_desc")
                 }
+                manager.createNotificationChannel(channel)
             }
         }
     }

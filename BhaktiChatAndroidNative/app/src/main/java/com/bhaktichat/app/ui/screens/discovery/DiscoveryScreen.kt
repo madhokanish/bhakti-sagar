@@ -169,10 +169,12 @@ fun HomeScreen(
         isRefreshing = false
 
         // Keep the active slot and its progress live while Home remains open. The response
-        // covers a full sun cycle, so only refetch once that cycle ends at the next sunrise.
-        while (slots.isNotEmpty()) {
+        // covers a full sun cycle, so only refetch once that cycle ends at the next sunrise —
+        // or when there is nothing yet: a first load that failed offline used to leave the
+        // row empty until a manual refresh.
+        while (true) {
             val now = System.currentTimeMillis()
-            if (now >= slots.last().endEpochMillis) {
+            if (slots.isEmpty() || now >= slots.last().endEpochMillis) {
                 slots = loadSlots().ifEmpty { slots }
             }
             val slot = slots.firstOrNull { now in it.startEpochMillis until it.endEpochMillis }

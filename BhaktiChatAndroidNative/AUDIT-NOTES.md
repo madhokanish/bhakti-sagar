@@ -214,3 +214,51 @@ Not read this pass: `AartiDetailScreen`, `AartiNowPlayingScreen`, `AartiRow`,
 ### Tests to run by hand
 
 - Aartis → search "ganesh": the Ganesh aarti should appear. Search "गणेश": still appears.
+
+## Chunk 5: Home and Choghadiya (done)
+
+Read in full: `ChoghadiyaCalculator`, `ChoghadiyaRepository`, `ChoghadiyaViewModel`,
+`ChoghadiyaSlot`, `DailyReminderReceiver` (receiver, scheduler, boot receiver); the Home
+refresh and Choghadiya preview loop in `DiscoveryScreen`; `NotificationsSection` in
+`ProfileScreen`. Checked both Choghadiya tables (7 weekdays, day and night) against the
+standard sequences: all 112 entries are correct.
+Not read this pass: `ChoghadiyaScreen` (UI), the rest of `DiscoveryScreen`,
+`HomeDevotionalFeed`, `ChoghadiyaCity`.
+
+### Fixed
+
+1. **Home's Choghadiya row stayed empty after an offline launch.** If the first load failed,
+   the update loop never started, so the row only came back on a manual pull-to-refresh. It
+   now retries every 30 seconds until it has data. (`DiscoveryScreen.kt`)
+2. **The reminder's notification channel kept the language it was first created in.** The
+   channel name and description in system settings never changed after a language switch.
+   The channel is now re-created each time, which updates them. (`DailyReminderReceiver.kt`)
+
+### For you to review
+
+- **The daily reminder is only set up when someone opens Settings.** The alarm is scheduled
+  from the Notifications section of Settings, and after a reboot or app update. A new install
+  that never opens Settings has no reminder until its first reboot, and on Android 13+ the
+  notification permission is only requested from Settings, so most users never get one.
+  Suggested fix: ask for the permission at a chosen moment (for example after the first chat
+  reply) and schedule the alarm at app start.
+- **The reminder uses the launcher icon as its small icon** (`R.mipmap.ic_launcher`).
+  Android draws small icons as a flat silhouette, so it shows as a blank circle or square.
+  It needs a single-colour vector.
+- **Choghadiya times keep the language they were loaded in.** Slot times ("5:43 AM" or
+  "5:43 पूर्वाह्न") are formatted when the data loads, so after a language switch the open
+  screen shows the old format until the next load.
+- **At sunrise the Choghadiya screen flips to its full loading state** while the new day
+  loads, instead of keeping the old slots visible.
+
+### What could break
+
+- Fix 1: an offline Home screen now makes one failing request every 30 seconds.
+
+### Tests to run by hand
+
+- Airplane mode, open the app, turn airplane mode off: the Choghadiya row on Home should
+  appear within about 30 seconds without pulling to refresh.
+- Switch app language, then open system Settings → Apps → BhaktiChat → Notifications: the
+  channel name should be in the new language once a reminder has fired or Settings in the
+  app has been opened.

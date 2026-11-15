@@ -42,13 +42,8 @@ class AartiRepository(private val context: Context,
                     val isTop = item.optBoolean("isTop", false)
 
                     val lyricsObj = item.optJSONObject("lyrics")
-                    val englishLyrics = lyricsObj.optStringArray("english")
-                    val hindiLyrics = lyricsObj.optStringArray("hindi")
-                    val selectedLyrics = when {
-                        hindiLyrics.isNotEmpty() -> hindiLyrics
-                        englishLyrics.isNotEmpty() -> emptyList()
-                        else -> emptyList()
-                    }
+                    // Only the Devanagari lyrics are shown; the romanised set is not used yet.
+                    val selectedLyrics = lyricsObj.optStringArray("hindi")
 
                     val rawTags = item.optStringArray("tags")
                     val deity = resolveDeity(
@@ -89,7 +84,8 @@ class AartiRepository(private val context: Context,
                             Deity.OTHER -> Unit
                         }
 
-                        if (displayTitle.contains("vrat", ignoreCase = true) || rawTags.any {
+                        // The English title: the displayed one is Devanagari and can't match.
+                        if (catalogTitle.contains("vrat", ignoreCase = true) || rawTags.any {
                                 it.contains("ekadashi", ignoreCase = true) || it.contains("vrat", ignoreCase = true)
                             }
                         ) {

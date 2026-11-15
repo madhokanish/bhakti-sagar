@@ -173,3 +173,44 @@ rest of `DivineImageCreateViewModel`, `DivineTemplateRepository`, `VoiceModeScre
   status bar should go away each time.
 - Generate a divine image, save it, restart the app: the saved image is still in the
   gallery.
+
+## Chunk 4: aartis and reels (done)
+
+Read in full: `AartiPlayerController`, `AartiPlaybackService`, `AartiRepository`,
+`ReelsRepository`; the pager and player code in `ReelsScreen`; the filter and search code in
+`AartisScreen`. Checked `aartis.json` with a script: 25 entries, no duplicate ids, every
+entry has a Hindi title, Hindi lyrics, artwork that exists, and audio or a YouTube link.
+Not read this pass: `AartiDetailScreen`, `AartiNowPlayingScreen`, `AartiRow`,
+`YouTubePlayerEmbed`, `ReelsViewModel`, `ReelStatusExporter`, the rest of `AartisScreen`.
+
+### Fixed
+
+1. **Aarti search did not work in Latin letters.** Both title fields hold the Devanagari
+   title, so typing "ganesh ji ki aarti" only matched if a deity name or tag happened to
+   match. Search now also matches the slug, which is the English title. (`AartisScreen.kt`)
+2. **The "vrat" tag check looked at the Devanagari title for the word "vrat".** It can never
+   match; it now checks the English title. No aarti is affected today (the one vrat aarti is
+   tagged), so this only matters for aartis added later. (`AartiRepository.kt`)
+3. **Removed a `when` whose three branches reduced to "use the Hindi lyrics".**
+   (`AartiRepository.kt`)
+
+### For you to review
+
+- **Aarti titles and lyrics are always Devanagari, in every app language.** `aartis.json`
+  has an English title and romanised lyrics for each aarti, and the app never shows them.
+  English and Hinglish users get Hindi-script titles and lyrics. `Aarti.title` and
+  `Aarti.titleHi` are always the same string, so `Aarti.subtitle` is always null.
+- **Switching the reels feed keeps the page number.** The pager state is not reset when
+  moving between "Top" and "Aartis", so you land part-way down the other feed.
+- **Reel like counts are hard-coded numbers** in `ReelsRepository` (12,400, 8,730, ...).
+- **An aarti keeps playing after sign-out or account switch**, and the last track in a queue
+  never reports `aartiPlayCompleted`.
+
+### What could break
+
+- Fix 1: a search term can now match more aartis than before (any word in the English
+  title).
+
+### Tests to run by hand
+
+- Aartis → search "ganesh": the Ganesh aarti should appear. Search "गणेश": still appears.

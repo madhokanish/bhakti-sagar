@@ -689,6 +689,8 @@ private fun shareImage(
             return
         }
         Toast.makeText(context, noAppMessage, Toast.LENGTH_SHORT).show()
+        // Fall back to the ordinary share sheet, not one still limited to the missing app.
+        sendIntent.setPackage(null)
     }
 
     context.startActivity(

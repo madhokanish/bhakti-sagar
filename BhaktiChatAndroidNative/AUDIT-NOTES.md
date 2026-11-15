@@ -311,3 +311,53 @@ no unused drawables, raw files or layouts. Nothing to remove.
 
 - Open a wallpaper and tap Save, Share and Set as wallpaper: no freeze, and each still works.
 - Hindi mode → Settings → Sign in: the Google button reads "Google से जारी रखें".
+
+## Chunk 7: build config and manifest (done)
+
+Read in full: `app/build.gradle.kts`, `gradle/libs.versions.toml`, `proguard-rules.pro`,
+`gradle.properties`, `AndroidManifest.xml`, `res/xml/*`, `SecureSessionStore` (save/load),
+the targeted-share code in `DivineImageResultScreen`.
+
+### Fixed
+
+1. **"Share to Instagram" never found Instagram on Android 11+.** A targeted share can only
+   see packages listed under `<queries>`, and Instagram was not listed, so the divine image
+   result always said the app was missing. WhatsApp only worked because it happened to be
+   in the UPI list. Instagram is now declared. (`AndroidManifest.xml`)
+2. **The fallback share sheet was still limited to the missing app.** After the "not
+   installed" message the ordinary share sheet opened with the package still set, so it
+   offered nothing. The package is cleared first. (`DivineImageResultScreen.kt`)
+3. **Removed the UPI app list from `<queries>`.** It declared ten UPI apps and two `upi://`
+   intents for a "direct `upi://mandate` intent" that no longer exists in the code: checkout
+   runs in a Custom Tab, where the browser hands off to the UPI app. (`AndroidManifest.xml`)
+
+### For you to review
+
+- **A guest's chats do not survive a move to a new phone.** Backup covers databases only.
+  The guest database is named after the anonymous id, which is not backed up, so on the new
+  phone it is never opened. Signed-in accounts are fine.
+- **`-optimizations !method/inlining/*` in `proguard-rules.pro` does nothing.** R8 ignores
+  it. The other rules there are all for the unused Razorpay SDK.
+- **Library versions are a year or more behind** (Compose BOM 2024.11, lifecycle 2.8.7,
+  navigation 2.8.4, activity 1.9.3). Nothing is broken by it; upgrading is its own job.
+- Still open from the first audit: the Razorpay SDK, Play Billing and AdMob dependencies,
+  the AD_ID permission and the AdMob manifest entry.
+
+### What could break
+
+- Fix 3: if anything outside this code base relied on those UPI package declarations (the
+  unused Razorpay SDK merges its own), UPI app detection there would change. Web checkout
+  does not use them.
+
+### Tests to run by hand
+
+- Generate a divine image and tap the Instagram and WhatsApp share buttons with each app
+  installed, then with Instagram uninstalled: the plain share sheet should open.
+- Run one real चढ़ावा checkout through to the UPI app and back.
+
+## Final verification
+
+- Unit tests: 36 pass. `assembleDebug` and `assembleRelease` (R8) both succeed; the release
+  APK is 21.6 MB.
+- Emulator: the debug build installs, launches to Home in English with no crash.
+- Not tried on a device: every fix above. The emulator check only covers startup.

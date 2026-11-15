@@ -163,7 +163,8 @@ class BhaktiChatApplication : Application() {
             "bhakti_anon",
             "bhakti_streak",
             "bhakti_review_prompt",
-            "bhaktichat_prefs",
+            "bhakti_chat_nudge",
+            "bhakti_membership_promo",
             "bhakti_notifications",
             "theme_prefs"
         ).forEach { name -> getSharedPreferences(name, MODE_PRIVATE).edit().clear().commit() }

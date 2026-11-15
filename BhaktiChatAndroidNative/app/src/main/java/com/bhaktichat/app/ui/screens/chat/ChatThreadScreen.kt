@@ -81,6 +81,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -134,6 +135,9 @@ fun buildChatListItems(messages: List<MessageEntity>): List<ChatListItem> {
     val result = mutableListOf<ChatListItem>()
     var lastDateLabel: String? = null
 
+    val monthLocale = Locale.forLanguageTag(
+        if (LocalAppLanguage.current == AppLanguage.HINDI) "hi-IN" else "en-IN"
+    )
     val todayCal = Calendar.getInstance()
     val yesterdayCal = Calendar.getInstance().also { it.add(Calendar.DAY_OF_YEAR, -1) }
 
@@ -145,7 +149,7 @@ fun buildChatListItems(messages: List<MessageEntity>): List<ChatListItem> {
             isSameDay(msgCal, yesterdayCal) -> t("date_yesterday")
             else -> {
                 val day = msgCal.get(Calendar.DAY_OF_MONTH)
-                val month = msgCal.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.forLanguageTag("hi-IN"))
+                val month = msgCal.getDisplayName(Calendar.MONTH, Calendar.SHORT, monthLocale)
                     ?: ""
                 "$day $month"
             }
@@ -213,6 +217,10 @@ fun ChatThreadScreen(
         ) }
     val voiceState by speechManager.state.collectAsState()
     var lastTranscript by remember { mutableStateOf("") }
+    // The recognizer holds on to the callback it was started with, so the callback must read
+    // the box as it is now. Reading uiState directly appended each partial result to the
+    // text from before recording started, dropping every word but the last.
+    val currentInputText by rememberUpdatedState(uiState.inputText)
     val applyTranscriptDelta: (String) -> Unit = { newTranscript ->
         if (newTranscript.isNotEmpty() && newTranscript != lastTranscript) {
             val delta = if (newTranscript.startsWith(lastTranscript)) {
@@ -221,7 +229,7 @@ fun ChatThreadScreen(
                 newTranscript
             }
             if (delta.isNotEmpty()) {
-                onInputChange(uiState.inputText + delta)
+                onInputChange(currentInputText + delta)
             }
             lastTranscript = newTranscript
         }

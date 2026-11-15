@@ -419,10 +419,12 @@ fun BhaktiChatApp(
                     messages = appContainer.messagesRepository
                         .listMessages(thread.id)
                         .filterNot { it.isTypingIndicator },
-                    currentState = ChatConversationState(),
-                    remoteConversationId = null,
+                    // An existing thread is resumed, so the reply continues its server
+                    // conversation. A new or freshly reset thread has neither of these.
+                    currentState = ChatConversationState.fromStoredPayload(thread.statePayload),
+                    remoteConversationId = thread.remoteConversationId,
                     chatApiClient = appContainer.chatApiClient,
-                        userFirstName = currentUser?.name.orEmpty(),
+                    userFirstName = currentUser?.name.orEmpty(),
                     appLanguage = appContainer.languageStore.language.value,
                     onToken = { streamed ->
                         appContainer.messagesRepository.replaceTypingWithResponse(typingId, streamed)

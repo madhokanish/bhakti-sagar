@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.bhaktichat.app.data.repo.ChoghadiyaDayData
 import com.bhaktichat.app.data.repo.ChoghadiyaRepository
+import com.bhaktichat.app.domain.AppLanguage
 import com.bhaktichat.app.domain.ChoghadiyaCities
 import com.bhaktichat.app.domain.ChoghadiyaCity
 import com.bhaktichat.app.domain.ChoghadiyaSlot
@@ -170,6 +171,11 @@ class ChoghadiyaViewModel(
     private fun startTicker() {
         viewModelScope.launch {
             while (isActive) {
+                // The loaded cycle ends at the next sunrise; fetch the new day once it's over.
+                val cycleEnd = latestDayData?.slots?.lastOrNull()?.endEpochMillis
+                if (cycleEnd != null && System.currentTimeMillis() >= cycleEnd && loadJob?.isActive != true) {
+                    loadForSelectedCity()
+                }
                 publishState()
                 delay(millisUntilNextMinute())
             }
@@ -224,10 +230,14 @@ class ChoghadiyaViewModel(
             sunset = dayData?.sunset ?: "--",
             nextSunrise = dayData?.nextSunrise ?: "--",
             todayLabel = LocalDate.now(ZoneId.of(selectedCity.tz))
-                .format(DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.forLanguageTag("hi-IN"))),
+                .format(DateTimeFormatter.ofPattern("EEEE, d MMMM", dateLocale())),
             isCitySheetOpen = isCitySheetOpen
         )
     }
+
+    private fun dateLocale(): Locale = Locale.forLanguageTag(
+        if (languageStore.language.value == AppLanguage.HINDI) "hi-IN" else "en-IN"
+    )
 
     private fun filterCities(query: String): List<ChoghadiyaCity> {
         if (query.isBlank()) return ChoghadiyaCities.all

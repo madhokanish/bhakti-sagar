@@ -96,7 +96,9 @@ fun DivineImageResultScreen(
     onShareToInstagram: () -> Unit,
     onShareToWhatsApp: () -> Unit,
     onShareWithSystem: () -> Unit,
-    onFeedback: (String) -> Unit = {}
+    onFeedback: (String) -> Unit = {},
+    /** The server refused the generation with 402 (members only). Defaulted until wired. */
+    onSubscriptionRequired: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val creation = uiState.creation
@@ -126,6 +128,7 @@ fun DivineImageResultScreen(
         uiEvents.collect { event ->
             when (event) {
                 DivineImageResultUiEvent.NavigateHome -> onBackToHome()
+                DivineImageResultUiEvent.SubscriptionRequired -> onSubscriptionRequired()
                 is DivineImageResultUiEvent.SaveImage -> {
                     val saved = saveImageToDevice(context, Uri.parse(event.uri))
                     Toast.makeText(
@@ -271,9 +274,14 @@ fun DivineImageResultScreen(
             CreationStatus.FAILED,
             CreationStatus.IDLE -> {
                 item("failed") {
-                    val failureMessage = creation?.errorMessage
-                        ?.takeIf { it.isNotBlank() }
-                        ?: t("di_err_generate_failed")
+                    val subscriptionRequired = creation?.subscriptionRequired == true
+                    val failureMessage = if (subscriptionRequired) {
+                        t("subscription_required_message")
+                    } else {
+                        creation?.errorMessage
+                            ?.takeIf { it.isNotBlank() }
+                            ?: t("di_err_generate_failed")
+                    }
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = DivineImagePalette.Card,
@@ -294,11 +302,12 @@ fun DivineImageResultScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
+                                // Retrying a 402 just fails again — offer membership instead.
                                 GradientActionButton(
-                                    label = t("di_try_again"),
-                                    icon = Icons.Filled.Refresh,
+                                    label = if (subscriptionRequired) t("subscription_required_cta") else t("di_try_again"),
+                                    icon = if (subscriptionRequired) null else Icons.Filled.Refresh,
                                     modifier = Modifier.weight(1f),
-                                    onClick = onRegenerate
+                                    onClick = if (subscriptionRequired) onSubscriptionRequired else onRegenerate
                                 )
                                 OutlineActionButton(
                                     label = t("go_back"),

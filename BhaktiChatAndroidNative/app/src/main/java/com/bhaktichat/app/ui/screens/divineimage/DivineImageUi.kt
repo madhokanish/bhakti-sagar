@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -59,7 +60,13 @@ fun UriPreviewImage(
 }
 
 private object ImageBitmapCache {
-    private val cache = LruCache<String, ImageBitmap>(24)
+    // Sized in bytes, not entries: 24 full-size results could be hundreds of MB.
+    private val cache = object : LruCache<String, ImageBitmap>(
+        (Runtime.getRuntime().maxMemory() / 8).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+    ) {
+        override fun sizeOf(key: String, value: ImageBitmap): Int =
+            value.asAndroidBitmap().allocationByteCount
+    }
 
     fun get(key: String): ImageBitmap? = cache.get(key)
 

@@ -40,6 +40,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Call
@@ -175,6 +176,7 @@ fun ChatThreadScreen(
     onBack: () -> Unit,
     onInputChange: (String) -> Unit,
     onSend: (String) -> Unit,
+    onDismissError: () -> Unit = {},
     onRegenerate: () -> Unit = {},
     onClearChat: (() -> Unit)? = null,
     onOpenVoiceMode: (guideId: String, conversationId: String?) -> Unit = { _, _ -> },
@@ -290,7 +292,10 @@ fun ChatThreadScreen(
 
     val isSendEnabled = uiState.inputText.isNotBlank()
 
-    LaunchedEffect(uiState.messages.map { Triple(it.id, it.content, it.isTypingIndicator) }) {
+    // Keyed on message ids only: re-anchoring on every streamed token yanked the list back
+    // each time, so nobody could scroll up while a reply was still coming in. The anchor is
+    // the user's own message, so a growing reply doesn't need the list to move anyway.
+    LaunchedEffect(uiState.messages.map { it.id }) {
         if (uiState.messages.isNotEmpty()) {
             val anchorIndex = anchoredMessageIndex(uiState.messages)
             // Offset by date separators that were inserted before this message index
@@ -459,6 +464,41 @@ fun ChatThreadScreen(
                 shadowElevation = 4.dp
             ) {
                 Column(modifier = Modifier.imePadding()) {
+                // A failed send leaves the fallback reply in the thread; this says it plainly
+                // and stays until dismissed or the next send clears it.
+                uiState.error?.let { error ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 12.dp, end = 4.dp, top = 6.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(BhaktiThemeTokens.AccentError.copy(alpha = 0.08f))
+                            .padding(start = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ErrorOutline,
+                            contentDescription = null,
+                            tint = BhaktiThemeTokens.AccentError,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = error,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = BhaktiThemeTokens.AccentError,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = onDismissError) {
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = t("promo_close"),
+                                tint = BhaktiThemeTokens.AccentError,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
                 // No quota hint here: free chat is capped daily (EntitlementStore.DAILY_CHAT_LIMIT)
                 // and an over-limit send goes straight to चढ़ावा instead.
                 Row(

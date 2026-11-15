@@ -446,6 +446,8 @@ Keep responses respectful, concise, and mobile-friendly.
 }
 
 object ChatTurnProcessor {
+    private const val STREAM_UPDATE_INTERVAL_MS = 250L
+
     suspend fun generateReply(
         threadId: String,
         guide: Guide,
@@ -491,11 +493,22 @@ object ChatTurnProcessor {
             firstName = ""
         )
 
-        val streamCallback = if (messageContext.detectedLanguage == ConversationLanguage.HINDI) {
-            null
-        } else {
-            onToken
-        }
+        // Every token used to be a Room write and a full chat-list recomposition. A few
+        // updates a second still reads as live; the first token goes through at once, and
+        // callers write the finished reply themselves, so nothing is lost at the end.
+        var lastStreamedAt = 0L
+        val streamCallback: (suspend (String) -> Unit)? =
+            if (messageContext.detectedLanguage == ConversationLanguage.HINDI || onToken == null) {
+                null
+            } else {
+                { streamed ->
+                    val now = System.currentTimeMillis()
+                    if (now - lastStreamedAt >= STREAM_UPDATE_INTERVAL_MS) {
+                        lastStreamedAt = now
+                        onToken(streamed)
+                    }
+                }
+            }
 
         return chatApiClient.sendMessage(
             ChatApiClientRequest(

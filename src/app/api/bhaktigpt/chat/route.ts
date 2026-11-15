@@ -2173,11 +2173,11 @@ function streamSseEvent(controller: ReadableStreamDefaultController<Uint8Array>,
 }
 
 function chunkTextForStream(text: string, chunkSize = 40) {
-  const words = text.split(/\s+/).filter(Boolean);
-  if (words.length === 0) return [];
+  // Each word keeps its trailing whitespace so line and paragraph breaks survive streaming.
+  const words = text.trim().match(/\S+\s*/g) ?? [];
   const chunks: string[] = [];
   for (let i = 0; i < words.length; i += chunkSize) {
-    chunks.push(`${words.slice(i, i + chunkSize).join(" ")}${i + chunkSize < words.length ? " " : ""}`);
+    chunks.push(words.slice(i, i + chunkSize).join(""));
   }
   return chunks;
 }

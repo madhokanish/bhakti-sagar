@@ -2,6 +2,7 @@ package com.bhaktichat.app
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.withTransaction
 import com.bhaktichat.app.data.auth.AuthRepository
 import com.bhaktichat.app.data.subscription.SubscriptionRepository
 import com.bhaktichat.app.data.billing.SubscriptionManager
@@ -42,12 +43,16 @@ import java.net.CookieManager
 import java.net.CookiePolicy
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class AppContainer(
     context: Context,
     val userId: String,
     private val authRepository: AuthRepository,
-    val languageStore: LanguageStore
+    val languageStore: LanguageStore,
+    /** A guest's database to fold into this one; see [adoptGuestHistoryIfNeeded]. */
+    private var guestDatabaseToAdopt: String? = null
 ) {
     private val appContext = context.applicationContext
     private val cookieManager = CookieManager().apply {
@@ -55,21 +60,7 @@ class AppContainer(
     }
 
     private val databaseName = accountDatabaseName(userId)
-    private val db: AppDatabase = Room.databaseBuilder(
-        appContext,
-        AppDatabase::class.java,
-        databaseName
-    )
-        // Never silently wipe user data (threads + chat history) on an upgrade. With no
-        // migration for a version bump, Room will now throw instead of destroying the DB,
-        // forcing a real Migration to be added via .addMigrations(...) before release.
-        // Destroying is only tolerated on a downgrade, which shouldn't reach production, and
-        // for v1/v2 files (e.g. an adopted pre-accounts bhaktichat.db) that no migration path
-        // reaches — those would otherwise throw on open and crash the container.
-        .addMigrations(MIGRATION_3_4)
-        .fallbackToDestructiveMigrationFrom(dropAllTables = true, 1, 2)
-        .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
-        .build()
+    private val db: AppDatabase = openDatabase(appContext, databaseName)
 
     // Bounded client for ordinary request/response calls (image, feedback, choghadiya).
     private val baseHttpClient: OkHttpClient = OkHttpClient.Builder()
@@ -182,6 +173,49 @@ class AppContainer(
     // so playback + the mini-player survive navigation between screens.
     val aartiPlayerController = com.bhaktichat.app.playback.AartiPlayerController(appContext, languageStore)
 
+    /**
+     * Folds a guest's conversations into this account's database, then empties the guest's
+     * so a later sign-in cannot import them twice.
+     *
+     * [migrateLegacyDatabaseIfNeeded] only hands over the guest's file when the account has
+     * no database yet. A guest who paid (silent checkout account) and then signed in to an
+     * existing Google account would otherwise lose their chats to an orphaned file. One
+     * conversation per guide: a guest thread for a guide the account already talks to is
+     * merged into that thread (messages interleave by time); the rest are copied as they are.
+     */
+    suspend fun adoptGuestHistoryIfNeeded() {
+        val sourceName = guestDatabaseToAdopt ?: return
+        withContext(Dispatchers.IO) {
+            if (!appContext.getDatabasePath(sourceName).exists()) return@withContext
+            val guestDb = openDatabase(appContext, sourceName)
+            try {
+                val guestThreads = guestDb.threadDao().listAllThreadsIncludingArchived()
+                db.withTransaction {
+                    for (thread in guestThreads) {
+                        val existing = if (thread.isArchived) null
+                        else db.threadDao().getActiveThreadForGuide(thread.guideId)
+                        val targetId = if (existing != null) {
+                            db.threadDao().updateUpdatedAt(existing.id, maxOf(existing.updatedAt, thread.updatedAt))
+                            existing.id
+                        } else {
+                            db.threadDao().insert(thread)
+                            thread.id
+                        }
+                        guestDb.messageDao().listMessagesForThread(thread.id)
+                            // A typing row left by an interrupted reply would spin forever.
+                            .filterNot { it.isTypingIndicator }
+                            .forEach { message -> db.messageDao().insert(message.copy(threadId = targetId)) }
+                    }
+                }
+                guestDb.messageDao().deleteAll()
+                guestDb.threadDao().deleteAllThreads()
+            } finally {
+                guestDb.close()
+            }
+        }
+        guestDatabaseToAdopt = null
+    }
+
     fun close() {
         subscriptionRepository.close()
         subscriptionManager.close()
@@ -202,6 +236,19 @@ class AppContainer(
          * hashing as a real account id.
          */
         fun guestUserId(context: Context): String = "guest_" + AnonUserKey.get(context)
+
+        private fun openDatabase(context: Context, name: String): AppDatabase =
+            Room.databaseBuilder(context, AppDatabase::class.java, name)
+                // Never silently wipe user data (threads + chat history) on an upgrade. With no
+                // migration for a version bump, Room will now throw instead of destroying the DB,
+                // forcing a real Migration to be added via .addMigrations(...) before release.
+                // Destroying is only tolerated on a downgrade, which shouldn't reach production, and
+                // for v1/v2 files (e.g. an adopted pre-accounts bhaktichat.db) that no migration path
+                // reaches — those would otherwise throw on open and crash the container.
+                .addMigrations(MIGRATION_3_4)
+                .fallbackToDestructiveMigrationFrom(dropAllTables = true, 1, 2)
+                .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
+                .build()
 
         fun accountDatabaseName(userId: String): String {
             val digest = MessageDigest.getInstance("SHA-256")

@@ -32,9 +32,19 @@ class ChoghadiyaRepository(
 ) {
     private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE
 
-    suspend fun loadToday(city: ChoghadiyaCity): ChoghadiyaDayData = withContext(Dispatchers.IO) {
+    /** A Choghadiya day runs sunrise to next sunrise, so between midnight and sunrise the
+     *  current slots belong to yesterday's cycle. */
+    suspend fun loadToday(city: ChoghadiyaCity): ChoghadiyaDayData {
+        val today = LocalDate.now(ZoneId.of(city.tz))
+        val todayData = loadForDate(city, today)
+        val firstStart = todayData.slots.firstOrNull()?.startEpochMillis ?: return todayData
+        return if (System.currentTimeMillis() < firstStart) loadForDate(city, today.minusDays(1)) else todayData
+    }
+
+    private suspend fun loadForDate(city: ChoghadiyaCity, date: LocalDate): ChoghadiyaDayData = withContext(Dispatchers.IO) {
         val zoneId = ZoneId.of(city.tz)
-        val dateIso = LocalDate.now(zoneId).format(dateFormatter)
+        val language = languageStore.language.value
+        val dateIso = date.format(dateFormatter)
         val endpoint = (baseUrl.trimEnd('/') + "/api/choghadiya/sun")
             .toHttpUrl()
             .newBuilder()
@@ -88,11 +98,11 @@ class ChoghadiyaRepository(
                     sunset = sunsetInstant,
                     nextSunrise = nextSunriseInstant,
                     zoneId = zoneId,
-                    language = languageStore.language.value
+                    language = language
                 ),
-                sunrise = HindiTimeFormatter.format(sunriseInstant.atZone(zoneId)),
-                sunset = HindiTimeFormatter.format(sunsetInstant.atZone(zoneId)),
-                nextSunrise = HindiTimeFormatter.format(nextSunriseInstant.atZone(zoneId))
+                sunrise = HindiTimeFormatter.format(sunriseInstant.atZone(zoneId), language),
+                sunset = HindiTimeFormatter.format(sunsetInstant.atZone(zoneId), language),
+                nextSunrise = HindiTimeFormatter.format(nextSunriseInstant.atZone(zoneId), language)
             )
         }
     }

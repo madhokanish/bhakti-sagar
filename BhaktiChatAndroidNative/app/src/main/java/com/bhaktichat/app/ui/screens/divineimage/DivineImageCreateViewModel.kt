@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.bhaktichat.app.R
 import com.bhaktichat.app.data.remote.DivineImageGenerator
+import com.bhaktichat.app.data.remote.SubscriptionRequiredException
 import com.bhaktichat.app.data.repo.DivineCreationRepository
 import com.bhaktichat.app.data.repo.DivineTemplateRepository
 import com.bhaktichat.app.domain.AppLanguage
@@ -178,8 +179,17 @@ class DivineImageCreateViewModel(
     val uiEvents: SharedFlow<DivineImageCreateUiEvent> = _uiEvents.asSharedFlow()
 
     fun pickImage(uri: Uri?) {
-        _uiState.update { current ->
-            current.copy(selectedImageUri = uri, validationMessage = null)
+        if (uri == null) {
+            _uiState.update { current -> current.copy(selectedImageUri = null, validationMessage = null) }
+            return
+        }
+        viewModelScope.launch {
+            // Keep our own upright, downsampled copy: the picker's URI grant dies with the
+            // activity, which a later regenerate or the app-scoped generation can outlive.
+            val localUri = generator.importInputPhoto(uri) ?: uri
+            _uiState.update { current ->
+                current.copy(selectedImageUri = localUri, validationMessage = null)
+            }
         }
     }
 
@@ -273,38 +283,15 @@ class DivineImageCreateViewModel(
         viewModelScope.launch {
             creationRepository.upsertCreation(creation)
             _uiEvents.emit(DivineImageCreateUiEvent.NavigateToResult(creationId))
-
-            val result = generator.generate(
-                mode = mode,
-                prompt = finalPrompt,
-                inputImageUri = current.selectedImageUri
+            launchDivineGeneration(
+                creationRepository = creationRepository,
+                generator = generator,
+                entitlementStore = entitlementStore,
+                generating = creation,
+                failedMessage = languageStore.str("di_err_generate_failed"),
+                onSuccess = { Analytics.divineImageGenerated(mode = creation.mode.name) }
             )
-
-            val updatedCreation = result.fold(
-                onSuccess = { divineResult ->
-                    creation.copy(
-                        status = CreationStatus.SUCCESS,
-                        outputImageUri = divineResult.uri.toString(),
-                        variant = divineResult.variant,
-                        requestId = divineResult.requestId,
-                        errorMessage = null
-                    )
-                },
-                onFailure = { throwable ->
-                    creation.copy(
-                        status = CreationStatus.FAILED,
-                        errorMessage = languageStore.str("di_err_generate_failed")
-                    )
-                }
-            )
-
-            creationRepository.upsertCreation(updatedCreation)
-            if (updatedCreation.status == CreationStatus.SUCCESS) {
-                // Only burn quota on a successful creation. Failures leave the
-                // counter alone so the user gets to retry without penalty.
-                entitlementStore.recordImageGenerated()
-                Analytics.divineImageGenerated(mode = mode.name)
-            }
+            // The row now tracks progress; this screen is done with it.
             _uiState.update { state -> state.copy(isSubmitting = false) }
         }
     }
@@ -387,6 +374,52 @@ class DivineImageCreateViewModel(
     companion object {
         fun defaultDemoPhotoUri(packageName: String): Uri =
             Uri.parse("android.resource://$packageName/${R.drawable.demopic}")
+    }
+}
+
+/**
+ * Runs [generating] (already saved as GENERATING) in the repository's app-lifetime scope and
+ * writes the outcome back to its row, so it completes even after the user leaves the screen.
+ */
+internal fun launchDivineGeneration(
+    creationRepository: DivineCreationRepository,
+    generator: DivineImageGenerator,
+    entitlementStore: EntitlementStore,
+    generating: DivineCreation,
+    failedMessage: String,
+    onSuccess: () -> Unit = {}
+) {
+    creationRepository.launchGeneration(generating.id) {
+        val result = generator.generate(
+            mode = generating.mode,
+            prompt = generating.inputPrompt,
+            inputImageUri = generating.inputImageUri?.let(Uri::parse)
+        )
+        val updatedCreation = result.fold(
+            onSuccess = { divineResult ->
+                generating.copy(
+                    status = CreationStatus.SUCCESS,
+                    outputImageUri = divineResult.uri.toString(),
+                    variant = divineResult.variant,
+                    requestId = divineResult.requestId,
+                    errorMessage = null
+                )
+            },
+            onFailure = { throwable ->
+                generating.copy(
+                    status = CreationStatus.FAILED,
+                    errorMessage = failedMessage,
+                    subscriptionRequired = throwable is SubscriptionRequiredException
+                )
+            }
+        )
+        creationRepository.upsertCreation(updatedCreation)
+        if (updatedCreation.status == CreationStatus.SUCCESS) {
+            // Only burn quota on a successful creation. Failures leave the
+            // counter alone so the user gets to retry without penalty.
+            entitlementStore.recordImageGenerated()
+            onSuccess()
+        }
     }
 }
 

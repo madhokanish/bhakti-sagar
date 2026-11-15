@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.graphics.Paint
 import android.net.Uri
 import android.util.Log
@@ -34,6 +36,13 @@ interface DivineImageGenerator {
         prompt: String,
         inputImageUri: Uri?
     ): Result<DivineImageResult>
+
+    /**
+     * Copies a picked photo into app storage, downsampled and upright, and returns its file
+     * URI — or null if it can't be read. A GetContent URI is only readable while the picking
+     * activity lives, so a later regenerate (or an app-scoped generation) could lose it.
+     */
+    suspend fun importInputPhoto(uri: Uri): Uri?
 }
 
 class RemoteDivineImageGenerator(
@@ -43,6 +52,7 @@ class RemoteDivineImageGenerator(
 ) : DivineImageGenerator {
     private companion object {
         const val TAG = "DivineImageGenerator"
+        const val INPUT_MAX_SIDE = 1536
     }
     private val appContext = context.applicationContext
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
@@ -131,6 +141,7 @@ class RemoteDivineImageGenerator(
         httpClient.newCall(request).execute().use { response ->
             val raw = response.body?.string().orEmpty()
             val json = raw.takeIf { it.isNotBlank() }?.let(::JSONObject) ?: JSONObject()
+            if (response.code == 402) throw SubscriptionRequiredException()
             if (!response.isSuccessful) {
                 val error = json.optString("error").ifBlank {
                     "Divine image request failed (${response.code})"
@@ -155,19 +166,10 @@ class RemoteDivineImageGenerator(
     }
 
     private fun encodeInputImageAsDataUrl(uri: Uri): String? {
-        val mimeType = appContext.contentResolver.getType(uri)?.ifBlank { null } ?: "image/jpeg"
-        val rawBytes = appContext.contentResolver.openInputStream(uri)?.use(InputStream::readBytes)
-            ?: return null
-
-        val decoded = BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size)
-        if (decoded != null) {
-            // Send a higher-fidelity reference so gpt-image-1's edit endpoint (with
-            // input_fidelity=high) has more facial detail to preserve → better likeness.
-            val outputBitmap = scaleDownToMaxSide(decoded, maxSide = 1536)
-            if (outputBitmap !== decoded) {
-                decoded.recycle()
-            }
-
+        // Send a higher-fidelity reference so gpt-image-1's edit endpoint (with
+        // input_fidelity=high) has more facial detail to preserve → better likeness.
+        val outputBitmap = decodeInputPhoto(uri, maxSide = INPUT_MAX_SIDE)
+        if (outputBitmap != null) {
             val outputStream = ByteArrayOutputStream()
             outputBitmap.compress(Bitmap.CompressFormat.JPEG, 92, outputStream)
             outputBitmap.recycle()
@@ -176,8 +178,65 @@ class RemoteDivineImageGenerator(
             return "data:image/jpeg;base64,$base64"
         }
 
+        // Not decodable here (unusual format) — pass the original bytes through as before.
+        val mimeType = appContext.contentResolver.getType(uri)?.ifBlank { null } ?: "image/jpeg"
+        val rawBytes = appContext.contentResolver.openInputStream(uri)?.use(InputStream::readBytes)
+            ?: return null
         val base64 = Base64.encodeToString(rawBytes, Base64.NO_WRAP)
         return "data:$mimeType;base64,$base64"
+    }
+
+    override suspend fun importInputPhoto(uri: Uri): Uri? = withContext(Dispatchers.IO) {
+        runCatching {
+            val bitmap = decodeInputPhoto(uri, maxSide = INPUT_MAX_SIDE) ?: return@runCatching null
+            // cacheDir, alongside the generated outputs in divine_images/: creations live only
+            // in memory, so nothing outlives the cache, and the OS can reclaim old photos.
+            val outputDir = File(appContext.cacheDir, "divine_inputs").apply { mkdirs() }
+            val file = File(outputDir, "input_${UUID.randomUUID()}.jpg")
+            FileOutputStream(file).use { output ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 92, output)
+            }
+            bitmap.recycle()
+            Uri.fromFile(file)
+        }.getOrNull()
+    }
+
+    /**
+     * Decodes [uri] subsampled (never at full camera resolution — 12MP+ photos OOM'd here),
+     * caps the long edge at [maxSide] and applies EXIF rotation so faces aren't sent sideways.
+     */
+    private fun decodeInputPhoto(uri: Uri, maxSide: Int): Bitmap? {
+        val resolver = appContext.contentResolver
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+
+        var sampleSize = 1
+        while (maxOf(bounds.outWidth, bounds.outHeight) / (sampleSize * 2) >= maxSide) {
+            sampleSize *= 2
+        }
+        val sampled = resolver.openInputStream(uri)?.use {
+            BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sampleSize })
+        } ?: return null
+        val scaled = scaleDownToMaxSide(sampled, maxSide)
+        if (scaled !== sampled) sampled.recycle()
+
+        val rotation = runCatching {
+            resolver.openInputStream(uri)?.use { stream ->
+                when (ExifInterface(stream).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+                    ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                    ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                    ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                    else -> 0f
+                }
+            }
+        }.getOrNull() ?: 0f
+        if (rotation == 0f) return scaled
+        val rotated = Bitmap.createBitmap(
+            scaled, 0, 0, scaled.width, scaled.height, Matrix().apply { postRotate(rotation) }, true
+        )
+        if (rotated !== scaled) scaled.recycle()
+        return rotated
     }
 
     private fun scaleDownToMaxSide(bitmap: Bitmap, maxSide: Int): Bitmap {

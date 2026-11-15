@@ -28,6 +28,7 @@ class BhaktiChatApplication : Application() {
         private set
     private var activeContainer: AppContainer? = null
     private var activeUserId: String? = null
+    private var activeUserIsGuest = false
 
     val container: AppContainer
         get() = checkNotNull(activeContainer) { "No app container is active (guest or account)" }
@@ -95,19 +96,31 @@ class BhaktiChatApplication : Application() {
      * account if they later sign in to subscribe.
      */
     @Synchronized
-    fun activateGuest(): AppContainer = activateUser(AppContainer.guestUserId(this))
+    fun activateGuest(): AppContainer = activateUser(AppContainer.guestUserId(this), isGuest = true)
 
+    /**
+     * @param isGuest true for the account-less container and for a silent checkout account.
+     *   Moving from one of those to an account carries the guest's conversations across.
+     */
     @Synchronized
-    fun activateUser(userId: String): AppContainer {
+    fun activateUser(userId: String, isGuest: Boolean = false): AppContainer {
         if (activeUserId == userId) return checkNotNull(activeContainer)
+        // Leaving a guest for an account: the file move below only happens when the account
+        // has no database yet, and never from a guest checkout account, so the guest's
+        // conversations are merged in by the new container instead of being left behind.
+        // Not when going back to the account-less guest, e.g. after signing out.
+        val guestDatabaseToAdopt = activeUserId
+            ?.takeIf { activeUserIsGuest && userId != AppContainer.guestUserId(this) }
+            ?.let(AppContainer::accountDatabaseName)
         deactivateUser()
         authRepository.currentSession?.user?.let { user ->
             Analytics.identify(userId = user.id, email = user.email, name = user.name, phone = user.phone)
         }
         AppContainer.migrateLegacyDatabaseIfNeeded(this, userId)
-        return AppContainer(this, userId, authRepository, languageStore).also { created ->
+        return AppContainer(this, userId, authRepository, languageStore, guestDatabaseToAdopt).also { created ->
             activeContainer = created
             activeUserId = userId
+            activeUserIsGuest = isGuest
             // Tracks accumulated foreground time for review-prompt eligibility.
             ProcessLifecycleOwner.get().lifecycle.addObserver(created.reviewPromptStore)
         }
@@ -121,6 +134,7 @@ class BhaktiChatApplication : Application() {
         }
         activeContainer = null
         activeUserId = null
+        activeUserIsGuest = false
     }
 
     suspend fun signOut() {

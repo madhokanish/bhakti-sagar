@@ -161,16 +161,20 @@ fun HomeScreen(
         // Lightweight Home preview — always the recommended city. The full Choghadiya screen
         // lets the user pick/detect a specific city; this teaser just needs *a* live "what's
         // auspicious right now" value, not a personalized one.
-        val slots = runCatching {
+        suspend fun loadSlots() = runCatching {
             choghadiyaRepository.loadToday(ChoghadiyaCities.recommendedCity()).slots
         }.getOrDefault(emptyList())
+        var slots = loadSlots()
         choghadiyaIsLoading = false
         isRefreshing = false
 
-        // Keep the active slot and its progress live while Home remains open. A new network
-        // request is unnecessary: today's response already contains the complete sun cycle.
+        // Keep the active slot and its progress live while Home remains open. The response
+        // covers a full sun cycle, so only refetch once that cycle ends at the next sunrise.
         while (slots.isNotEmpty()) {
             val now = System.currentTimeMillis()
+            if (now >= slots.last().endEpochMillis) {
+                slots = loadSlots().ifEmpty { slots }
+            }
             val slot = slots.firstOrNull { now in it.startEpochMillis until it.endEpochMillis }
                 ?: slots.firstOrNull { it.endEpochMillis > now }
             choghadiyaPreview = slot

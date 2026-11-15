@@ -59,7 +59,9 @@ import com.bhaktichat.app.domain.VoiceCallState
 @Composable
 fun VoiceModeScreen(
     viewModel: VoiceConversationViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    /** The server refused the session with 402 (members only). Defaulted until wired. */
+    onSubscriptionRequired: () -> Unit = {}
 ) {
     val micRequiredMessage = t("voice_mic_required")
     val uiState by viewModel.uiState.collectAsState()
@@ -118,6 +120,16 @@ fun VoiceModeScreen(
 
     LaunchedEffect(uiState.callState) {
         if (uiState.callState is VoiceCallState.Ended) leave()
+    }
+
+    LaunchedEffect(viewModel) {
+        // Leaves the screen too (the caller pops it), so it shares the once-only guard.
+        viewModel.subscriptionRequiredEvents.collect {
+            if (!hasLeft) {
+                hasLeft = true
+                onSubscriptionRequired()
+            }
+        }
     }
 
     Box(

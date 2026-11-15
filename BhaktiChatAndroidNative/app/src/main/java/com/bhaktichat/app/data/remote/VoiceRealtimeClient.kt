@@ -146,8 +146,24 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
                 teardownAudio()
             }
 
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                // The server is closing (e.g. the session hit its time limit). Answer the close
+                // frame so the socket actually shuts, and end the call rather than leave it
+                // "Listening" on a dead connection. Also fires for the echo of our own close.
+                webSocket.close(1000, null)
+                if (socket == null) return // we started this close (endCall / fatal error)
+                socket = null
+                teardownAudio()
+                _state.value = if (code == 1000) {
+                    VoiceCallState.Ended
+                } else {
+                    VoiceCallState.Error(reason.ifBlank { "Connection closed ($code)" })
+                }
+            }
+
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                _state.value = VoiceCallState.Ended
+                // Keep an Error visible — Ended makes the screen leave immediately.
+                if (_state.value !is VoiceCallState.Error) _state.value = VoiceCallState.Ended
                 teardownAudio()
             }
         })
@@ -316,15 +332,33 @@ class VoiceRealtimeClient(private val httpClient: OkHttpClient) {
             }
 
             "error" -> {
-                val message = json.optJSONObject("error")?.optString("message") ?: "Voice session error"
-                Log.e(TAG, "Voice realtime error event: $message")
+                val error = json.optJSONObject("error")
+                val message = error?.optString("message") ?: "Voice session error"
+                if (!isFatalRealtimeError(error)) {
+                    // Per-response problems (cancelling a response that already finished, one
+                    // rate-limited response, …) don't end the session. The server still sends
+                    // response.done for a failed response, which hands the turn back to the mic.
+                    Log.w(TAG, "Non-fatal realtime error (${error?.optString("code")}): $message")
+                    return
+                }
+                Log.e(TAG, "Fatal realtime error (${error?.optString("code")}): $message")
                 _state.value = VoiceCallState.Error(message)
+                socket?.close(1000, "fatal error")
+                socket = null
+                teardownAudio()
             }
 
             else -> {
                 Log.d(TAG, "Unhandled realtime event type: ${json.optString("type")}")
             }
         }
+    }
+
+    /** Only auth/session failures kill the call; everything else is scoped to one response. */
+    private fun isFatalRealtimeError(error: JSONObject?): Boolean {
+        val type = error?.optString("type").orEmpty()
+        val code = error?.optString("code").orEmpty()
+        return type == "authentication_error" || code == "invalid_api_key" || code.startsWith("session_")
     }
 
     fun endCall() {

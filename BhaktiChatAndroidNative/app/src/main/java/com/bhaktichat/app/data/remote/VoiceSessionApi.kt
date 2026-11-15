@@ -44,6 +44,7 @@ class VoiceSessionApi(
                 .build()
             httpClient.newCall(request).execute().use { response ->
                 val body = response.body?.string().orEmpty()
+                if (response.code == 402) throw SubscriptionRequiredException()
                 if (!response.isSuccessful) {
                     val message = runCatching { JSONObject(body).optString("error") }.getOrNull()
                     error(message?.takeIf { it.isNotBlank() } ?: "Voice session request failed (${response.code})")

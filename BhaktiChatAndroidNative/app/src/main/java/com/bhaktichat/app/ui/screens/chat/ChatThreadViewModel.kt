@@ -106,6 +106,10 @@ class ChatThreadViewModel(
         _uiState.update { it.copy(inputText = value) }
     }
 
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
+    }
+
     /**
      * @param isRegenerate true when re-asking the previous question. It is not a new message,
      *   so it neither counts toward nor is stopped by the daily free cap — regenerate has
@@ -159,6 +163,16 @@ class ChatThreadViewModel(
             typingMessageId = typingMessage.id
             messagesRepository.addMessage(typingMessage)
             threadsRepository.touchThread(thread.id, typingMessage.createdAt)
+
+            // A send started outside this screen (launchThread, from Home or History) finishes
+            // after init read the thread. The stored row holds the latest server conversation;
+            // continuing on the stale id init saw would lose that first exchange.
+            threadsRepository.getThread(thread.id)?.let { stored ->
+                if (stored.remoteConversationId != remoteConversationId) {
+                    remoteConversationId = stored.remoteConversationId
+                    conversationState = ChatConversationState.fromStoredPayload(stored.statePayload)
+                }
+            }
 
             val sendResult = withContext(Dispatchers.IO) {
                 ChatTurnProcessor.generateReply(

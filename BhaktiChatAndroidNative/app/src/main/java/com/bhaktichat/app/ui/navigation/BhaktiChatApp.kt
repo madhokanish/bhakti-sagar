@@ -3,6 +3,7 @@ import com.bhaktichat.app.domain.displayTitle
 import com.bhaktichat.app.domain.displayCaption
 import com.bhaktichat.app.ui.i18n.t
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -241,6 +242,7 @@ fun BhaktiChatApp(
     var requestedReelId by rememberSaveable { mutableStateOf<String?>(null) }
     val shouldShowReviewPrompt by appContainer.reviewPromptStore.shouldShowPrompt.collectAsStateWithLifecycle()
     val appScope = rememberCoroutineScope()
+    var threadLaunchInFlight by remember { mutableStateOf(false) }
     val aartiPlayerState by appContainer.aartiPlayerController.state.collectAsStateWithLifecycle()
 
     // One-time launch work: ad consent (only if ads are on), daily-darshan streak, player init.
@@ -256,6 +258,8 @@ fun BhaktiChatApp(
         }
         appContainer.streakStore.recordVisit()
         appContainer.aartiPlayerController.initialize()
+        // Just signed in from a guest: bring the guest's conversations along (no-op otherwise).
+        appContainer.adoptGuestHistoryIfNeeded()
         // BhaktiChat 2.0: one conversation per guide. Collapses any pre-2.0 duplicate
         // threads down to one visible row per guide (archived, not deleted). Idempotent —
         // safe to run on every launch.
@@ -289,7 +293,12 @@ fun BhaktiChatApp(
         }
         delay(5000)
         membershipPromoEvaluated = true
-        if (!isPro) {
+        // Not over checkout: someone already on चढ़ावा (or back from the UPI app) would get
+        // the same offer stacked on the payment they are in the middle of. Skipping leaves the
+        // cooldown untouched, so it simply shows on a later launch.
+        val onCheckout = navController.currentBackStackEntry?.destination?.route.orEmpty()
+            .startsWith(NavDestinations.CHADHAAVA_BASE) || quickCheckoutFor != null
+        if (!isPro && !onCheckout) {
             showMembershipPromo = true
             membershipPromoStore.markShown()
             Analytics.screen("membership_promo")
@@ -328,14 +337,19 @@ fun BhaktiChatApp(
         includeOpener: Boolean,
         popUpRoute: String? = null
     ) {
+        // A quick second tap would otherwise start a second send and push the thread twice.
+        // Held only until the thread is on screen; the reply itself streams on afterwards.
+        if (threadLaunchInFlight) return
         // A pre-filled question counts against the daily free chat like a typed one.
         if (!initialPrompt.isNullOrBlank() && entitlementStore.isOverChatLimit) {
             entitlementStore.reportQuotaReached("chat")
             openGate(BLOCKED_CHAT_QUOTA)
             return
         }
+        threadLaunchInFlight = true
         appScope.launch {
-            val guide = appContainer.guidesRepository.getGuide(guideId) ?: return@launch
+            val guide = appContainer.guidesRepository.getGuide(guideId)
+                ?: run { threadLaunchInFlight = false; return@launch }
             Analytics.guideSelected(guideId = guide.id)
             // One conversation per guide (BhaktiChat 2.0) — reuse the existing thread rather
             // than creating a new one every time this is called.
@@ -394,6 +408,7 @@ fun BhaktiChatApp(
                     popUpTo(popUpRoute) { inclusive = true }
                 }
             }
+            threadLaunchInFlight = false
 
             if (typingMessageId != null) {
                 val typingId = typingMessageId
@@ -677,6 +692,7 @@ fun BhaktiChatApp(
                     },
                     onInputChange = vm::onInputChanged,
                     onSend = vm::sendMessage,
+                    onDismissError = vm::clearError,
                     onRegenerate = vm::regenerateLastReply,
                     onOpenVoiceMode = { guideId, conversationId ->
                         if (isPro) {
@@ -753,7 +769,12 @@ fun BhaktiChatApp(
                     )
                     VoiceModeScreen(
                         viewModel = vm,
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        // The server refused the session (402): leave the call, offer चढ़ावा.
+                        onSubscriptionRequired = {
+                            navController.popBackStack()
+                            openGate(BLOCKED_VOICE)
+                        }
                     )
                 }
             }
@@ -879,8 +900,16 @@ fun BhaktiChatApp(
                 // Funnel source: the gate that sent them, or "tab" for the चढ़ावा tab itself.
                 val source = rawBlocked ?: "tab"
 
-                val resumeCheckout = backStackEntry.arguments
-                    ?.getString(NavDestinations.CHADHAAVA_RESUME_ARG) == "1"
+                // resume=1 is part of the route, so it comes back after process death. Acting
+                // on it again would open a second checkout tab when the user returns from the
+                // UPI app; the entry's saved state remembers that it was already used.
+                val resumeCheckout = remember(backStackEntry) {
+                    val requested = backStackEntry.arguments
+                        ?.getString(NavDestinations.CHADHAAVA_RESUME_ARG) == "1"
+                    val consumed = backStackEntry.savedStateHandle.get<Boolean>(RESUME_CONSUMED_KEY) == true
+                    backStackEntry.savedStateHandle[RESUME_CONSUMED_KEY] = true
+                    requested && !consumed
+                }
                 // A resumed arrival already counted its view (and its checkout tap) wherever
                 // the offer was made, so only a plain visit counts as a paywall view here.
                 var viewCounted by rememberSaveable { mutableStateOf(false) }
@@ -1057,7 +1086,8 @@ fun BhaktiChatApp(
                     onShareToInstagram = vm::shareToInstagram,
                     onShareToWhatsApp = vm::shareToWhatsApp,
                     onShareWithSystem = vm::share,
-                    onFeedback = vm::onFeedback
+                    onFeedback = vm::onFeedback,
+                    onSubscriptionRequired = { openGate(BLOCKED_IMAGE_QUOTA) }
                 )
             }
 
@@ -1175,7 +1205,9 @@ fun BhaktiChatApp(
     }
 
     // Topmost child of the root Box, so it floats over the whole app.
-    if (showMembershipPromo && !isPro) {
+    if (showMembershipPromo && !isPro && !route.startsWith(NavDestinations.CHADHAAVA_BASE)) {
+        // Without this, back went to the screen underneath and left the promo on top.
+        BackHandler { showMembershipPromo = false }
         MembershipInterstitial(
             onClose = { showMembershipPromo = false },
             onGetMembership = {
@@ -1473,6 +1505,8 @@ private fun blockedFeatureFor(raw: String): BlockedFeature? = when (raw) {
     // Chat cards carry their own source ("chat_aarti", …) so the funnel reads separately.
     else -> ChatContentRequest.fromSource(raw)?.blockedFeature
 }
+/** Saved on a चढ़ावा back-stack entry once its resume=1 has started checkout. */
+private const val RESUME_CONSUMED_KEY = "chadhaava_resume_consumed"
 internal const val BLOCKED_IMAGE_QUOTA = "image_quota"
 internal const val BLOCKED_REELS = "reels"
 internal const val BLOCKED_AARTIS = "aartis"

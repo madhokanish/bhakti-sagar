@@ -61,11 +61,9 @@ val discoveryGuideCatalog = listOf(
 )
 
 val discoverySituations = listOf(
-    // Hinglish by design (app default voice) — key nouns stay in English (matches
-    // promptIcon's keyword matching in BhaktiChatHubScreen.kt) while grammar/connectors
-    // are Hindi, same code-mixing pattern real Hinglish speech uses. Also ensures each
-    // prompt contains a recognized Hinglish marker (see AddressingEngine.hinglishMarkers)
-    // so the model actually replies in Hinglish instead of defaulting to English.
+    // Each situation's title and starter prompt come from the translation table
+    // (situation_title_<id> / situation_prompt_<id>, rendered in DiscoveryScreen); the icon
+    // is set explicitly here rather than derived from the prompt text.
     SituationConfig(
         id = "money_stress",
         icon = Icons.Outlined.AccountBalanceWallet,

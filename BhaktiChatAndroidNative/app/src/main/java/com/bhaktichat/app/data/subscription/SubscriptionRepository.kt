@@ -10,6 +10,7 @@ import com.bhaktichat.app.util.EntitlementStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,9 +40,6 @@ class SubscriptionRepository(
     private val _state = MutableStateFlow(SubscriptionSummary.NONE)
     val state: StateFlow<SubscriptionSummary> = _state.asStateFlow()
 
-    private val _syncing = MutableStateFlow(false)
-    val syncing: StateFlow<Boolean> = _syncing.asStateFlow()
-
     // Serializes refreshes so a resume-triggered sync and a post-payment poll can't
     // interleave and write stale state over fresh state.
     private val refreshLock = Mutex()
@@ -51,11 +49,14 @@ class SubscriptionRepository(
             authRepository.state.collect { auth ->
                 when (auth) {
                     is AuthState.Authenticated -> refresh()
-                    // Guest and SignedOut both mean "no account on this device right now".
                     // Entitlement is per-account, so it must not survive into a guest
                     // session — otherwise signing out would leave the next person holding
                     // someone else's चढ़ावा.
-                    AuthState.Guest, is AuthState.SignedOut -> clearLocalEntitlement()
+                    AuthState.Guest -> clearLocalEntitlement()
+                    // SignedOut is only the sign-in screen, and a paying guest account can
+                    // open it. It always ends in Guest (cleared above) or Authenticated
+                    // (refreshed), so clearing here just took their access away meanwhile —
+                    // for good if "Not now" was tapped offline.
                     else -> Unit
                 }
             }
@@ -73,14 +74,11 @@ class SubscriptionRepository(
     suspend fun refresh(reconcileWithGateway: Boolean = false) {
         val token = authRepository.currentSession?.accessToken ?: return
         refreshLock.withLock {
-            _syncing.value = true
             try {
                 apply(api.status(token, refresh = reconcileWithGateway))
             } catch (_: Exception) {
                 // Offline or a backend blip must not revoke a paying user's access. Keep the
                 // last known state; the next successful refresh corrects it.
-            } finally {
-                _syncing.value = false
             }
         }
     }
@@ -132,5 +130,10 @@ class SubscriptionRepository(
     private fun clearLocalEntitlement() {
         _state.value = SubscriptionSummary.NONE
         entitlementStore.setServerPro(false)
+    }
+
+    /** Stops the auth-state collector. Called when the owning AppContainer is torn down. */
+    fun close() {
+        scope.cancel()
     }
 }

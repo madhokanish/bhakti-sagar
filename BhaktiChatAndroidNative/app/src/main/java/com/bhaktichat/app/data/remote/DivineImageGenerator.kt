@@ -4,20 +4,20 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.graphics.Paint
 import android.net.Uri
 import android.util.Log
 import android.util.Base64
 import androidx.core.content.FileProvider
 import com.bhaktichat.app.BuildConfig
-import com.bhaktichat.app.R
 import com.bhaktichat.app.domain.DIVINE_IDENTITY_REALISM_PREFIX
 import com.bhaktichat.app.domain.DivineImageResult
 import com.bhaktichat.app.domain.DivineMode
 import com.bhaktichat.app.util.AnonUserKey
 import com.bhaktichat.app.util.decodeSampledBitmapFromBytes
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -27,9 +27,10 @@ import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.File
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import java.io.FileOutputStream
 import java.util.UUID
-import kotlin.random.Random
 
 interface DivineImageGenerator {
     suspend fun generate(
@@ -37,6 +38,13 @@ interface DivineImageGenerator {
         prompt: String,
         inputImageUri: Uri?
     ): Result<DivineImageResult>
+
+    /**
+     * Copies a picked photo into app storage, downsampled and upright, and returns its file
+     * URI — or null if it can't be read. A GetContent URI is only readable while the picking
+     * activity lives, so a later regenerate (or an app-scoped generation) could lose it.
+     */
+    suspend fun importInputPhoto(uri: Uri): Uri?
 }
 
 class RemoteDivineImageGenerator(
@@ -46,10 +54,26 @@ class RemoteDivineImageGenerator(
 ) : DivineImageGenerator {
     private companion object {
         const val TAG = "DivineImageGenerator"
+        const val INPUT_MAX_SIDE = 1536
     }
     private val appContext = context.applicationContext
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
     private val endpoint = baseUrl.trimEnd('/') + "/api/bhaktigpt/divine-image"
+
+    init {
+        // Creations live only in memory, so every photo and result already on disk when a
+        // container starts belongs to a creation that no longer exists. Each result is a
+        // multi-megabyte PNG; without this the cache only ever grew. The hour of grace is for
+        // a file another app may still be reading from a share.
+        thread(name = "divine-cache-prune") {
+            val cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1)
+            listOf("divine_images", "divine_inputs").forEach { dir ->
+                File(appContext.cacheDir, dir).listFiles()
+                    ?.filter { it.isFile && it.lastModified() < cutoff }
+                    ?.forEach { it.delete() }
+            }
+        }
+    }
 
     override suspend fun generate(
         mode: DivineMode,
@@ -95,8 +119,10 @@ class RemoteDivineImageGenerator(
             val sourceBitmap = decodeSampledBitmapFromBytes(imageBytes, maxDimensionPx = 2048)
                 ?: error("Failed to decode generated image.")
             val bitmap = sourceBitmap.copy(Bitmap.Config.ARGB_8888, true)
+            sourceBitmap.recycle()
             applyWatermark(bitmap)
             val savedUri = saveBitmapToCache(bitmap)
+            bitmap.recycle()
 
             val variant = responseJson.optString("variant").takeIf { it.isNotBlank() }
             val responseRequestId = responseJson.optString("requestId").takeIf { it.isNotBlank() }
@@ -132,6 +158,8 @@ class RemoteDivineImageGenerator(
             .build()
 
         httpClient.newCall(request).execute().use { response ->
+            // Before parsing: a 402 whose body isn't JSON must still read as "needs membership".
+            if (response.code == 402) throw SubscriptionRequiredException()
             val raw = response.body?.string().orEmpty()
             val json = raw.takeIf { it.isNotBlank() }?.let(::JSONObject) ?: JSONObject()
             if (!response.isSuccessful) {
@@ -158,19 +186,10 @@ class RemoteDivineImageGenerator(
     }
 
     private fun encodeInputImageAsDataUrl(uri: Uri): String? {
-        val mimeType = appContext.contentResolver.getType(uri)?.ifBlank { null } ?: "image/jpeg"
-        val rawBytes = appContext.contentResolver.openInputStream(uri)?.use(InputStream::readBytes)
-            ?: return null
-
-        val decoded = BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size)
-        if (decoded != null) {
-            // Send a higher-fidelity reference so gpt-image-1's edit endpoint (with
-            // input_fidelity=high) has more facial detail to preserve → better likeness.
-            val outputBitmap = scaleDownToMaxSide(decoded, maxSide = 1536)
-            if (outputBitmap !== decoded) {
-                decoded.recycle()
-            }
-
+        // Send a higher-fidelity reference so gpt-image-1's edit endpoint (with
+        // input_fidelity=high) has more facial detail to preserve → better likeness.
+        val outputBitmap = decodeInputPhoto(uri, maxSide = INPUT_MAX_SIDE)
+        if (outputBitmap != null) {
             val outputStream = ByteArrayOutputStream()
             outputBitmap.compress(Bitmap.CompressFormat.JPEG, 92, outputStream)
             outputBitmap.recycle()
@@ -179,8 +198,65 @@ class RemoteDivineImageGenerator(
             return "data:image/jpeg;base64,$base64"
         }
 
+        // Not decodable here (unusual format) — pass the original bytes through as before.
+        val mimeType = appContext.contentResolver.getType(uri)?.ifBlank { null } ?: "image/jpeg"
+        val rawBytes = appContext.contentResolver.openInputStream(uri)?.use(InputStream::readBytes)
+            ?: return null
         val base64 = Base64.encodeToString(rawBytes, Base64.NO_WRAP)
         return "data:$mimeType;base64,$base64"
+    }
+
+    override suspend fun importInputPhoto(uri: Uri): Uri? = withContext(Dispatchers.IO) {
+        runCatching {
+            val bitmap = decodeInputPhoto(uri, maxSide = INPUT_MAX_SIDE) ?: return@runCatching null
+            // cacheDir, alongside the generated outputs in divine_images/: creations live only
+            // in memory, so nothing outlives the cache, and the OS can reclaim old photos.
+            val outputDir = File(appContext.cacheDir, "divine_inputs").apply { mkdirs() }
+            val file = File(outputDir, "input_${UUID.randomUUID()}.jpg")
+            FileOutputStream(file).use { output ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 92, output)
+            }
+            bitmap.recycle()
+            Uri.fromFile(file)
+        }.getOrNull()
+    }
+
+    /**
+     * Decodes [uri] subsampled (never at full camera resolution — 12MP+ photos OOM'd here),
+     * caps the long edge at [maxSide] and applies EXIF rotation so faces aren't sent sideways.
+     */
+    private fun decodeInputPhoto(uri: Uri, maxSide: Int): Bitmap? {
+        val resolver = appContext.contentResolver
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+
+        var sampleSize = 1
+        while (maxOf(bounds.outWidth, bounds.outHeight) / (sampleSize * 2) >= maxSide) {
+            sampleSize *= 2
+        }
+        val sampled = resolver.openInputStream(uri)?.use {
+            BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sampleSize })
+        } ?: return null
+        val scaled = scaleDownToMaxSide(sampled, maxSide)
+        if (scaled !== sampled) sampled.recycle()
+
+        val rotation = runCatching {
+            resolver.openInputStream(uri)?.use { stream ->
+                when (ExifInterface(stream).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+                    ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                    ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                    ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                    else -> 0f
+                }
+            }
+        }.getOrNull() ?: 0f
+        if (rotation == 0f) return scaled
+        val rotated = Bitmap.createBitmap(
+            scaled, 0, 0, scaled.width, scaled.height, Matrix().apply { postRotate(rotation) }, true
+        )
+        if (rotated !== scaled) scaled.recycle()
+        return rotated
     }
 
     private fun scaleDownToMaxSide(bitmap: Bitmap, maxSide: Int): Bitmap {
@@ -206,82 +282,6 @@ class RemoteDivineImageGenerator(
             "${BuildConfig.APPLICATION_ID}.fileprovider",
             file
         )
-    }
-
-    private fun applyWatermark(bitmap: Bitmap) {
-        val canvas = Canvas(bitmap)
-        val textSize = bitmap.width * 0.045f
-        val padding = bitmap.width * 0.04f
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = android.graphics.Color.argb(205, 255, 255, 255)
-            this.textSize = textSize
-            textAlign = Paint.Align.RIGHT
-            setShadowLayer(textSize * 0.18f, 0f, 0f, android.graphics.Color.argb(120, 0, 0, 0))
-        }
-        canvas.drawText(
-            "BhaktiChat",
-            bitmap.width - padding,
-            bitmap.height - padding,
-            paint
-        )
-    }
-}
-
-class FakeDivineImageGenerator(
-    context: Context
-) : DivineImageGenerator {
-    private val appContext = context.applicationContext
-
-    override suspend fun generate(
-        mode: DivineMode,
-        prompt: String,
-        inputImageUri: Uri?
-    ): Result<DivineImageResult> = withContext(Dispatchers.IO) {
-        runCatching {
-            val start = System.currentTimeMillis()
-            delay(Random.nextLong(from = 2_000, until = 4_001))
-
-            val drawableRes = resolvePlaceholder(mode = mode, prompt = prompt)
-            val sourceBitmap = BitmapFactory.decodeResource(appContext.resources, drawableRes)
-                ?: error("Could not decode placeholder image.")
-            val bitmap = sourceBitmap.copy(Bitmap.Config.ARGB_8888, true)
-            applyWatermark(bitmap)
-
-            val outputDir = File(appContext.cacheDir, "divine_images").apply { mkdirs() }
-            val file = File(outputDir, "divine_${System.currentTimeMillis()}.png")
-            FileOutputStream(file).use { output ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
-            }
-
-            val uri = FileProvider.getUriForFile(
-                appContext,
-                "${BuildConfig.APPLICATION_ID}.fileprovider",
-                file
-            )
-            DivineImageResult(
-                uri = uri,
-                variant = "fake",
-                requestId = UUID.randomUUID().toString(),
-                durationMs = System.currentTimeMillis() - start
-            )
-        }
-    }
-
-    private fun resolvePlaceholder(
-        mode: DivineMode,
-        prompt: String
-    ): Int {
-        val normalized = prompt.lowercase()
-        return when (mode) {
-            DivineMode.PHOTO_WITH_GOD -> when {
-                "hanuman" in normalized -> R.drawable.hanumanji
-                "shiv" in normalized || "shiva" in normalized -> R.drawable.shivji
-                "lakshmi" in normalized -> R.drawable.card_lakshmi
-                else -> R.drawable.card_krishna
-            }
-
-            DivineMode.PHOTO_AT_TEMPLE -> R.drawable.aarti_sangreh
-        }
     }
 
     private fun applyWatermark(bitmap: Bitmap) {

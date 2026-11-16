@@ -40,6 +40,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Call
@@ -52,8 +54,10 @@ import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.offset
@@ -80,6 +84,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -87,6 +92,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
@@ -111,6 +117,8 @@ import com.bhaktichat.app.domain.ChatRole
 import com.bhaktichat.app.ui.components.GuideAvatar
 import com.bhaktichat.app.ui.theme.BhaktiThemeTokens
 import com.bhaktichat.app.util.SpeechInputManager
+import com.bhaktichat.app.util.AartiSpeechPlayer
+import com.bhaktichat.app.util.Analytics
 import com.bhaktichat.app.util.formatTime
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -122,7 +130,8 @@ import java.util.Locale
 
 sealed class ChatListItem {
     data class MessageItem(val message: MessageEntity) : ChatListItem()
-    data class DateSeparator(val label: String) : ChatListItem()
+    // Keyed by the message it precedes: the label has no year, so "5 Nov" can repeat.
+    data class DateSeparator(val label: String, val firstMessageId: String) : ChatListItem()
 }
 
 @Composable
@@ -132,6 +141,9 @@ fun buildChatListItems(messages: List<MessageEntity>): List<ChatListItem> {
     val result = mutableListOf<ChatListItem>()
     var lastDateLabel: String? = null
 
+    val monthLocale = Locale.forLanguageTag(
+        if (LocalAppLanguage.current == AppLanguage.HINDI) "hi-IN" else "en-IN"
+    )
     val todayCal = Calendar.getInstance()
     val yesterdayCal = Calendar.getInstance().also { it.add(Calendar.DAY_OF_YEAR, -1) }
 
@@ -143,14 +155,14 @@ fun buildChatListItems(messages: List<MessageEntity>): List<ChatListItem> {
             isSameDay(msgCal, yesterdayCal) -> t("date_yesterday")
             else -> {
                 val day = msgCal.get(Calendar.DAY_OF_MONTH)
-                val month = msgCal.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.forLanguageTag("hi-IN"))
+                val month = msgCal.getDisplayName(Calendar.MONTH, Calendar.SHORT, monthLocale)
                     ?: ""
                 "$day $month"
             }
         }
 
         if (label != lastDateLabel) {
-            result.add(ChatListItem.DateSeparator(label))
+            result.add(ChatListItem.DateSeparator(label, message.id))
             lastDateLabel = label
         }
         result.add(ChatListItem.MessageItem(message))
@@ -174,6 +186,7 @@ fun ChatThreadScreen(
     onBack: () -> Unit,
     onInputChange: (String) -> Unit,
     onSend: (String) -> Unit,
+    onDismissError: () -> Unit = {},
     onRegenerate: () -> Unit = {},
     onClearChat: (() -> Unit)? = null,
     onOpenVoiceMode: (guideId: String, conversationId: String?) -> Unit = { _, _ -> },
@@ -182,7 +195,10 @@ fun ChatThreadScreen(
     onToggleLanguage: () -> Unit = {},
     // Off for subscribers: the card is an offer, and they already have all of it on Home.
     showContentCards: Boolean = false,
-    onOpenContent: (ChatContentRequest) -> Unit = {}
+    onOpenContent: (ChatContentRequest) -> Unit = {},
+    // A free user's first bhajan ask of the day plays the guide's aarti instead of a lock.
+    freeAartiAvailable: Boolean = false,
+    onPlayFreeAarti: () -> Unit = {}
 ) {
     val guide = uiState.guide
     val listState = rememberLazyListState()
@@ -195,6 +211,23 @@ fun ChatThreadScreen(
     val context = LocalContext.current
     var showThreadMenu by remember { mutableStateOf(false) }
     var selectedMessageId by remember { mutableStateOf<String?>(null) }
+
+    // "Suniye": reads a guide reply aloud with the phone's own speech engine (free, offline),
+    // for users who can't read the reply. A free user who listens to the end is offered the
+    // real thing — talking to the guide out loud — which is चढ़ावा.
+    var speakingReplyId by remember { mutableStateOf<String?>(null) }
+    var listenedReplyIds by remember { mutableStateOf(setOf<String>()) }
+    val replySpeech = remember(context) {
+        AartiSpeechPlayer(context, onCompleted = {
+            ContextCompat.getMainExecutor(context).execute {
+                speakingReplyId?.let { listenedReplyIds = listenedReplyIds + it }
+                speakingReplyId = null
+            }
+        })
+    }
+    DisposableEffect(replySpeech) {
+        onDispose { replySpeech.shutdown() }
+    }
 
     // Voice input wiring (Feature 2) — prefix-strip delta merge mirrors iOS so we
     // don't duplicate text when partial transcripts grow.
@@ -210,6 +243,10 @@ fun ChatThreadScreen(
         ) }
     val voiceState by speechManager.state.collectAsState()
     var lastTranscript by remember { mutableStateOf("") }
+    // The recognizer holds on to the callback it was started with, so the callback must read
+    // the box as it is now. Reading uiState directly appended each partial result to the
+    // text from before recording started, dropping every word but the last.
+    val currentInputText by rememberUpdatedState(uiState.inputText)
     val applyTranscriptDelta: (String) -> Unit = { newTranscript ->
         if (newTranscript.isNotEmpty() && newTranscript != lastTranscript) {
             val delta = if (newTranscript.startsWith(lastTranscript)) {
@@ -218,7 +255,7 @@ fun ChatThreadScreen(
                 newTranscript
             }
             if (delta.isNotEmpty()) {
-                onInputChange(uiState.inputText + delta)
+                onInputChange(currentInputText + delta)
             }
             lastTranscript = newTranscript
         }
@@ -289,7 +326,10 @@ fun ChatThreadScreen(
 
     val isSendEnabled = uiState.inputText.isNotBlank()
 
-    LaunchedEffect(uiState.messages.map { Triple(it.id, it.content, it.isTypingIndicator) }) {
+    // Keyed on message ids only: re-anchoring on every streamed token yanked the list back
+    // each time, so nobody could scroll up while a reply was still coming in. The anchor is
+    // the user's own message, so a growing reply doesn't need the list to move anyway.
+    LaunchedEffect(uiState.messages.map { it.id }) {
         if (uiState.messages.isNotEmpty()) {
             val anchorIndex = anchoredMessageIndex(uiState.messages)
             // Offset by date separators that were inserted before this message index
@@ -458,7 +498,43 @@ fun ChatThreadScreen(
                 shadowElevation = 4.dp
             ) {
                 Column(modifier = Modifier.imePadding()) {
-                // Free-message quota hint removed — ad-based model, chat is free for all.
+                // A failed send leaves the fallback reply in the thread; this says it plainly
+                // and stays until dismissed or the next send clears it.
+                uiState.error?.let { error ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 12.dp, end = 4.dp, top = 6.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(BhaktiThemeTokens.AccentError.copy(alpha = 0.08f))
+                            .padding(start = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ErrorOutline,
+                            contentDescription = null,
+                            tint = BhaktiThemeTokens.AccentError,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = error,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = BhaktiThemeTokens.AccentError,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = onDismissError) {
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = t("promo_close"),
+                                tint = BhaktiThemeTokens.AccentError,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+                // No quota hint here: free chat is capped daily (EntitlementStore.DAILY_CHAT_LIMIT)
+                // and an over-limit send goes straight to चढ़ावा instead.
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -588,7 +664,7 @@ fun ChatThreadScreen(
                         key = { item ->
                             when (item) {
                                 is ChatListItem.MessageItem -> item.message.id
-                                is ChatListItem.DateSeparator -> "separator_${item.label}"
+                                is ChatListItem.DateSeparator -> "separator_${item.firstMessageId}"
                             }
                         }
                     ) { item ->
@@ -611,15 +687,47 @@ fun ChatThreadScreen(
                                         Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
                                         selectedMessageId = null
                                     },
-                                    onRegenerate = onRegenerate
+                                    onRegenerate = onRegenerate,
+                                    isSpeaking = speakingReplyId == item.message.id,
+                                    onListen = {
+                                        if (speakingReplyId == item.message.id) {
+                                            replySpeech.stop()
+                                            speakingReplyId = null
+                                        } else {
+                                            val text = speakableReply(item.message.content)
+                                            val hindiScript = DEVANAGARI.containsMatchIn(text)
+                                            speakingReplyId = item.message.id
+                                            replySpeech.speak(
+                                                text = text,
+                                                locale = Locale.forLanguageTag(if (hindiScript) "hi-IN" else "en-IN"),
+                                                pitch = guidePitch(guide?.serverPromptKey)
+                                            )
+                                            Analytics.capture(
+                                                "chat_reply_listened",
+                                                mapOf("guide_id" to guide?.serverPromptKey.orEmpty(), "is_pro" to !showContentCards)
+                                            )
+                                        }
+                                    },
+                                    callUpsellLabel = if (item.message.id in listenedReplyIds && guide != null) {
+                                        t("chat_listen_call").format(guide.displayName(LocalAppLanguage.current))
+                                    } else null,
+                                    onCallUpsell = {
+                                        if (showContentCards) {
+                                            onOpenContent(ChatContentRequest.VOICE)
+                                        } else if (guide != null) {
+                                            onOpenVoiceMode(guide.serverPromptKey, uiState.thread?.remoteConversationId)
+                                        }
+                                    }
                                 )
                                 if (showContentCards) {
                                     contentRequestByReplyId[item.message.id]?.let { request ->
+                                        val isFreeTaste = request == ChatContentRequest.AARTI && freeAartiAvailable
                                         ContentRequestCard(
                                             request = request,
                                             guideName = guide?.displayName(LocalAppLanguage.current).orEmpty(),
                                             guideImageRes = guide?.profileImageRes,
-                                            onClick = { onOpenContent(request) }
+                                            isFreeTaste = isFreeTaste,
+                                            onClick = { if (isFreeTaste) onPlayFreeAarti() else onOpenContent(request) }
                                         )
                                     }
                                 }
@@ -712,9 +820,10 @@ private fun ContentRequestCard(
     request: ChatContentRequest,
     guideName: String,
     guideImageRes: Int?,
+    isFreeTaste: Boolean = false,
     onClick: () -> Unit
 ) {
-    val (titleKey, icon) = when (request) {
+    val (titleKey, icon) = if (isFreeTaste) "chat_card_aarti_free" to Icons.Filled.MusicNote else when (request) {
         ChatContentRequest.AARTI -> "chat_card_aarti" to Icons.Filled.MusicNote
         ChatContentRequest.RINGTONE -> "chat_card_bhajan" to Icons.Filled.NotificationsActive
         ChatContentRequest.WALLPAPER -> "chat_card_wallpaper" to Icons.Filled.Wallpaper
@@ -806,20 +915,20 @@ private fun ContentRequestCard(
                             .padding(horizontal = 10.dp, vertical = 5.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.LockOpen,
+                            imageVector = if (isFreeTaste) Icons.Filled.PlayArrow else Icons.Filled.LockOpen,
                             contentDescription = null,
                             tint = BhaktiThemeTokens.AccentPrimary,
                             modifier = Modifier.size(13.dp)
                         )
                         Text(
-                            text = t("chat_card_cta"),
+                            text = t(if (isFreeTaste) "chat_card_free_cta" else "chat_card_cta"),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = BhaktiThemeTokens.AccentPrimary
                         )
                     }
                     Text(
-                        text = t("chat_card_included"),
+                        text = t(if (isFreeTaste) "chat_card_free_note" else "chat_card_included"),
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.White.copy(alpha = 0.9f),
                         maxLines = 1,
@@ -846,7 +955,11 @@ private fun ThreadMessageItem(
     isLastAssistant: Boolean = false,
     onTapBubble: () -> Unit,
     onCopyMessage: () -> Unit,
-    onRegenerate: () -> Unit = {}
+    onRegenerate: () -> Unit = {},
+    isSpeaking: Boolean = false,
+    onListen: () -> Unit = {},
+    callUpsellLabel: String? = null,
+    onCallUpsell: () -> Unit = {}
 ) {
     val role = ChatRole.fromWire(message.role)
     val isUser = role == ChatRole.USER
@@ -972,39 +1085,39 @@ private fun ThreadMessageItem(
                 }
             }
 
-            // Regenerate button is shown only beneath the latest assistant reply.
-            if (!isUser && isLastAssistant && !message.isTypingIndicator) {
+            // Under every guide reply: "Suniye" (read aloud). Regenerate only under the latest.
+            val isErrorReply = message.content.trimStart().startsWith("Error:", ignoreCase = true)
+            if (!isUser && !message.isTypingIndicator && !isErrorReply) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.Start,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(
-                        onClick = onRegenerate,
-                        shape = RoundedCornerShape(999.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(1.dp, BhaktiThemeTokens.BorderSubtle)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Refresh,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = BhaktiThemeTokens.TextSecondary
-                            )
-                            Text(
-                                text = t("chat_regenerate"),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = BhaktiThemeTokens.TextSecondary
-                            )
-                        }
+                    ReplyActionChip(
+                        icon = if (isSpeaking) Icons.Filled.Stop else Icons.AutoMirrored.Filled.VolumeUp,
+                        label = t(if (isSpeaking) "chat_listen_stop" else "chat_listen"),
+                        onClick = onListen,
+                        highlighted = true
+                    )
+                    if (isLastAssistant) {
+                        ReplyActionChip(
+                            icon = Icons.Filled.Refresh,
+                            label = t("chat_regenerate"),
+                            onClick = onRegenerate
+                        )
                     }
+                }
+                // Offered once they have listened to a whole reply: the guide's real voice.
+                if (callUpsellLabel != null) {
+                    ReplyActionChip(
+                        icon = Icons.Filled.Call,
+                        label = callUpsellLabel,
+                        onClick = onCallUpsell,
+                        highlighted = true,
+                        modifier = Modifier.padding(top = 6.dp)
+                    )
                 }
             }
 
@@ -1035,6 +1148,60 @@ private fun ThreadMessageItem(
 
 // ---------------------------------------------------------------------------
 // Guide reply formatter — splits one long reply into several short bubbles.
+@Composable
+private fun ReplyActionChip(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    highlighted: Boolean = false
+) {
+    val tint = if (highlighted) BhaktiThemeTokens.AccentPrimary else BhaktiThemeTokens.TextSecondary
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, if (highlighted) tint.copy(alpha = 0.5f) else BhaktiThemeTokens.BorderSubtle),
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = tint
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = tint
+            )
+        }
+    }
+}
+
+private val DEVANAGARI = Regex("[\\u0900-\\u097F]")
+
+// Emoji, markdown marks and joiners would otherwise be read out ("asterisk", "folded hands").
+private val UNSPEAKABLE = Regex("[\\p{So}\\p{Sk}\\x{1F000}-\\x{1FAFF}\\x{2600}-\\x{27BF}\\uFE0F\\u200D*_#>`]")
+
+private fun speakableReply(content: String): String =
+    GuideReplyFormatter.format(content).replace(UNSPEAKABLE, "").replace(Regex("\\s+"), " ").trim()
+
+/** A slightly different voice per guide from the one phone voice: deeper for Shani and Shiv ji. */
+private fun guidePitch(guideKey: String?): Float = when (guideKey) {
+    "shani" -> 0.8f
+    "shiv" -> 0.85f
+    "hanuman" -> 0.9f
+    "krishna" -> 0.95f
+    "lakshmi" -> 1.1f
+    else -> 1f
+}
+
 // Mirrors iOS's GuideReplyFormatter in ChatThreadScreen.swift — keep both in sync.
 // ---------------------------------------------------------------------------
 

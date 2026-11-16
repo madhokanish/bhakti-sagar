@@ -6,14 +6,18 @@ import android.media.AudioManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.bhaktichat.app.data.remote.SubscriptionRequiredException
 import com.bhaktichat.app.data.remote.VoiceRealtimeClient
 import com.bhaktichat.app.data.remote.VoiceSessionApi
 import com.bhaktichat.app.domain.AppLanguage
 import com.bhaktichat.app.domain.Guide
 import com.bhaktichat.app.domain.VoiceCallState
 import com.bhaktichat.app.util.VoiceAudioFocusManager
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -47,6 +51,11 @@ class VoiceConversationViewModel(
         VoiceUiState(guideName = guide.displayName(language), guideProfileImageRes = guide.profileImageRes)
     )
     val uiState: StateFlow<VoiceUiState> = _uiState.asStateFlow()
+
+    /** One-shot: the session was refused with 402 (members only). An event, not state, so
+     *  coming back to this screen from membership doesn't re-open membership. */
+    private val _subscriptionRequiredEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val subscriptionRequiredEvents: SharedFlow<Unit> = _subscriptionRequiredEvents.asSharedFlow()
 
     private var callStartMillis = 0L
     private var hasStarted = false
@@ -120,10 +129,21 @@ class VoiceConversationViewModel(
                 lang = if (language == AppLanguage.HINDI) "hi" else "en"
             )
                 .onSuccess { session ->
+                    // The call was ended while the session was being set up (End tapped, or a
+                    // phone call took audio focus). Connecting now would open the mic with
+                    // nothing left to close it: endCall() is a no-op once hasStarted is false.
+                    if (!hasStarted) return@onSuccess
                     realtimeClient.connect(session.ephemeralKey, session.model, guide.openingScene(language))
                 }
-                .onFailure {
-                    _uiState.update { it.copy(errorMessage = translate("voice_call_start_failed", language)) }
+                .onFailure { error ->
+                    if (error is SubscriptionRequiredException) {
+                        // No call is coming; don't keep other audio ducked while membership shows.
+                        audioFocusManager.release()
+                        _uiState.update { it.copy(errorMessage = translate("subscription_required_message", language)) }
+                        _subscriptionRequiredEvents.tryEmit(Unit)
+                    } else {
+                        _uiState.update { it.copy(errorMessage = translate("voice_call_start_failed", language)) }
+                    }
                 }
         }
     }

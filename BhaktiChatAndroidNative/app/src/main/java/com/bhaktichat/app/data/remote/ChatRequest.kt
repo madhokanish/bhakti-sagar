@@ -18,15 +18,3 @@ data class SendChatRequest(
     val secondaryGuard: String? = null,
     val optionalRewriteDirective: String? = null
 )
-
-data class RemoteChatMessage(
-    val id: String,
-    val role: String,
-    val content: String,
-    val createdAt: String?
-)
-
-data class LoadConversationResult(
-    val conversationId: String?,
-    val messages: List<RemoteChatMessage>
-)

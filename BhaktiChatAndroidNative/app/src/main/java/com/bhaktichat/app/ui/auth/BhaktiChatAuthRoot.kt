@@ -30,6 +30,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -76,81 +77,101 @@ fun BhaktiChatAuthRoot() {
         repository.restoreSession()
     }
 
-    when (val current = state) {
-        AuthState.Checking -> AuthLoadingScreen(languageStore.str("auth_loading"))
+    // Sign-in is drawn over the app rather than in place of it, so "Not now" (or back) puts
+    // the user exactly where they were — Settings, say — with the navigation stack intact,
+    // instead of rebuilding the whole tree on Home. This is the app the screen sits over.
+    // A plain holder, not snapshot state: the auth StateFlow already drives recomposition.
+    val shownApp = remember { object { var state: AuthState? = null } }
+    val current = state
+    if (current is AuthState.Guest || current is AuthState.Authenticated) shownApp.state = current
 
-        AuthState.Guest -> {
-            val container = remember { application.activateGuest() }
-            // Pay failed for want of a connection (AuthRepository.startGuestCheckout): say so
-            // here, where they tapped, rather than on a sign-in screen that would fail too.
-            val checkoutError by repository.checkoutError.collectAsStateWithLifecycle()
-            LaunchedEffect(checkoutError) {
-                val message = checkoutError ?: return@LaunchedEffect
-                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                repository.clearCheckoutError()
+    Box(modifier = Modifier.fillMaxSize()) {
+        when (val app = shownApp.state) {
+            AuthState.Guest -> {
+                val container = remember { application.activateGuest() }
+                // Pay failed for want of a connection (AuthRepository.startGuestCheckout): say so
+                // here, where they tapped, rather than on a sign-in screen that would fail too.
+                val checkoutError by repository.checkoutError.collectAsStateWithLifecycle()
+                LaunchedEffect(checkoutError) {
+                    val message = checkoutError ?: return@LaunchedEffect
+                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                    repository.clearCheckoutError()
+                }
+                BhaktiChatApp(
+                    appContainer = container,
+                    currentUser = null,
+                    // Paying needs no sign-in: checkout gets a silent guest account instead.
+                    onRequestSignIn = { forCheckout ->
+                        if (forCheckout) actionScope.launch { repository.startGuestCheckout() }
+                        else repository.requestSignIn(false)
+                    },
+                    onSignOut = { application.signOut() },
+                    onDeleteAccount = { application.deleteAccountAndLocalData() }
+                )
             }
-            BhaktiChatApp(
-                appContainer = container,
-                currentUser = null,
-                // Paying needs no sign-in: checkout gets a silent guest account instead.
-                onRequestSignIn = { forCheckout ->
-                    if (forCheckout) actionScope.launch { repository.startGuestCheckout() }
-                    else repository.requestSignIn(false)
-                },
-                onSignOut = { application.signOut() },
-                onDeleteAccount = { application.deleteAccountAndLocalData() }
-            )
+
+            // Keyed on the user: a different account is a different container, and nothing
+            // remembered under the previous one (back stack, view models) may carry over.
+            is AuthState.Authenticated -> key(app.session.user.id) {
+                val container = remember {
+                    application.activateUser(app.session.user.id, isGuest = app.session.user.isGuest)
+                }
+                BhaktiChatApp(
+                    appContainer = container,
+                    currentUser = app.session.user,
+                    // A no-op for a real account; a guest account may still sign in to keep its
+                    // membership on any device.
+                    onRequestSignIn = { forCheckout -> repository.requestSignIn(forCheckout) },
+                    // If this session started with a tap on subscribe, the app picks checkout
+                    // back up on its own rather than dropping the user on Home.
+                    consumePendingCheckout = repository::consumePendingCheckout,
+                    onSignOut = { application.signOut() },
+                    onDeleteAccount = { application.deleteAccountAndLocalData() }
+                )
+            }
+
+            else -> Unit
         }
 
-        is AuthState.SigningIn -> SignInScreen(
-            isLoading = true,
-            loadingMessage = current.message,
-            errorMessage = null,
-            reason = languageStore.str("auth_sign_in_reason"),
-            dismissLabel = languageStore.str("auth_not_now"),
-            onGoogle = {},
-            onAccess = { _, _ -> },
-            onDismiss = null
-        )
+        when (current) {
+            AuthState.Checking -> AuthLoadingScreen(languageStore.str("auth_loading"))
 
-        is AuthState.SignedOut -> {
-            LaunchedEffect(Unit) { Analytics.screen("sign_in") }
-            // Backing out returns to browsing, never to a blank screen — this is a step
-            // inside checkout now, not the front door.
-            BackHandler { repository.dismissSignIn() }
-            SignInScreen(
-                isLoading = false,
-                loadingMessage = null,
-                errorMessage = current.message,
+            is AuthState.SigningIn -> SignInScreen(
+                isLoading = true,
+                loadingMessage = current.message,
+                errorMessage = null,
                 reason = languageStore.str("auth_sign_in_reason"),
                 dismissLabel = languageStore.str("auth_not_now"),
-                onGoogle = {
-                    val host = activity ?: return@SignInScreen
-                    actionScope.launch { repository.signInWithGoogle(host, explicitButton = true) }
-                },
-                onAccess = { login, password ->
-                    actionScope.launch { repository.signInWithAccess(login, password) }
-                },
-                onDismiss = { repository.dismissSignIn() }
+                googleLabel = languageStore.str("auth_continue_google"),
+                onGoogle = {},
+                onAccess = { _, _ -> },
+                onDismiss = null
             )
-        }
 
-        is AuthState.Authenticated -> {
-            val container = remember(current.session.user.id) {
-                application.activateUser(current.session.user.id)
+            is AuthState.SignedOut -> {
+                LaunchedEffect(Unit) { Analytics.screen("sign_in") }
+                // Backing out returns to browsing, never to a blank screen — this is a step
+                // inside checkout now, not the front door.
+                BackHandler { repository.dismissSignIn() }
+                SignInScreen(
+                    isLoading = false,
+                    loadingMessage = null,
+                    errorMessage = current.message,
+                    reason = languageStore.str("auth_sign_in_reason"),
+                    dismissLabel = languageStore.str("auth_not_now"),
+                googleLabel = languageStore.str("auth_continue_google"),
+                    onGoogle = {
+                        val host = activity ?: return@SignInScreen
+                        actionScope.launch { repository.signInWithGoogle(host, explicitButton = true) }
+                    },
+                    onAccess = { login, password ->
+                        actionScope.launch { repository.signInWithAccess(login, password) }
+                    },
+                    onDismiss = { repository.dismissSignIn() }
+                )
             }
-            BhaktiChatApp(
-                appContainer = container,
-                currentUser = current.session.user,
-                // A no-op for a real account; a guest account may still sign in to keep its
-                // membership on any device.
-                onRequestSignIn = { forCheckout -> repository.requestSignIn(forCheckout) },
-                // If this session started with a tap on subscribe, the app picks checkout
-                // back up on its own rather than dropping the user on Home.
-                consumePendingCheckout = repository::consumePendingCheckout,
-                onSignOut = { application.signOut() },
-                onDeleteAccount = { application.deleteAccountAndLocalData() }
-            )
+
+            else -> Unit
         }
     }
 }
@@ -184,6 +205,7 @@ private fun SignInScreen(
     errorMessage: String?,
     reason: String,
     dismissLabel: String,
+    googleLabel: String,
     onGoogle: () -> Unit,
     onAccess: (String, String) -> Unit,
     onDismiss: (() -> Unit)?
@@ -241,7 +263,7 @@ private fun SignInScreen(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.size(10.dp))
-                Text("Continue with Google", fontWeight = FontWeight.Medium)
+                Text(googleLabel, fontWeight = FontWeight.Medium)
             }
 
             Spacer(Modifier.height(10.dp))

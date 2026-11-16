@@ -2,12 +2,14 @@ package com.bhaktichat.app.data.remote
 
 import com.bhaktichat.app.domain.StreamEvent
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -21,66 +23,6 @@ class OkHttpChatApi(
 
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
     private val chatEndpoint = baseUrl.trimEnd('/') + "/api/bhaktigpt/chat"
-
-    override suspend fun loadConversation(
-        guideId: String,
-        conversationId: String?,
-        forceNewConversation: Boolean,
-        chatLang: String
-    ): LoadConversationResult = withContext(Dispatchers.IO) {
-        val urlBuilder = chatEndpoint.toHttpUrl().newBuilder()
-            .addQueryParameter("guideId", guideId)
-            .addQueryParameter("chatLang", chatLang)
-        if (!conversationId.isNullOrBlank()) {
-            urlBuilder.addQueryParameter("conversationId", conversationId)
-        }
-        if (forceNewConversation) {
-            urlBuilder.addQueryParameter("new", "1")
-        }
-
-        val req = Request.Builder()
-            .url(urlBuilder.build())
-            .get()
-            .addHeader("Accept", "application/json")
-            .build()
-
-        httpClient.newCall(req).execute().use { response ->
-            val rawBody = response.body?.string().orEmpty()
-            val json = rawBody.toJsonObject()
-            if (!response.isSuccessful) {
-                val errorMessage = json?.optString("error").orEmpty().ifBlank {
-                    "Unable to load chat (${response.code})"
-                }
-                throw IllegalStateException(errorMessage)
-            }
-            if (json == null) {
-                return@use LoadConversationResult(
-                    conversationId = null,
-                    messages = emptyList()
-                )
-            }
-            val responseConversationId = json.optString("conversationId").takeIf { it.isNotBlank() }
-            val messagesArray = json.optJSONArray("messages")
-            val messages = buildList {
-                if (messagesArray == null) return@buildList
-                for (index in 0 until messagesArray.length()) {
-                    val item = messagesArray.optJSONObject(index) ?: continue
-                    add(
-                        RemoteChatMessage(
-                            id = item.optString("id").ifBlank { "server_${System.currentTimeMillis()}_$index" },
-                            role = item.optString("role"),
-                            content = item.optString("content"),
-                            createdAt = item.optString("createdAt").ifBlank { null }
-                        )
-                    )
-                }
-            }
-            LoadConversationResult(
-                conversationId = responseConversationId,
-                messages = messages
-            )
-        }
-    }
 
     override fun streamChat(request: SendChatRequest): Flow<StreamEvent> = channelFlow {
         val payload = JSONObject().apply {
@@ -131,9 +73,22 @@ class OkHttpChatApi(
             .addHeader("Accept", "text/event-stream")
             .build()
 
+        // execute() blocks an IO thread and ignores coroutine cancellation, so without this a
+        // closed screen would leave the socket reading until the server finished. This child is
+        // cancelled the moment the collector goes away and aborts the call, which unblocks the
+        // read. UNDISPATCHED so it is armed before execute() starts.
+        val call = httpClient.newCall(req)
+        val cancelOnClose = launch(start = CoroutineStart.UNDISPATCHED) {
+            try {
+                awaitCancellation()
+            } finally {
+                call.cancel()
+            }
+        }
+
         withContext(Dispatchers.IO) {
             try {
-                httpClient.newCall(req).execute().use { response ->
+                call.execute().use { response ->
                     if (!response.isSuccessful) {
                         val raw = response.body?.string().orEmpty()
                         val errorMessage = raw.toJsonObject()?.optString("error").orEmpty().ifBlank {
@@ -166,6 +121,9 @@ class OkHttpChatApi(
                 send(StreamEvent.Error(throwable.message ?: "Network error"))
             }
         }
+        // channelFlow waits for its children, so release the watcher once the stream ends.
+        // (Any failure above cancels the producer scope, which cancels it anyway.)
+        cancelOnClose.cancel()
     }
 
     private suspend fun readSse(
@@ -185,8 +143,10 @@ class OkHttpChatApi(
             val payload = dataText.toJsonObject()
             when (eventName) {
                 "token" -> {
-                    val tokenText = payload?.optString("text").orEmpty().ifBlank { dataText }
-                    if (tokenText.isNotBlank()) emit(StreamEvent.Token(tokenText))
+                    // A whitespace-only token (e.g. a lone space between words) is real
+                    // content; only fall back to the raw data when it isn't JSON at all.
+                    val tokenText = payload?.optString("text") ?: dataText
+                    if (tokenText.isNotEmpty()) emit(StreamEvent.Token(tokenText))
                 }
 
                 "meta", "done" -> {

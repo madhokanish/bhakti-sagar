@@ -77,7 +77,9 @@ import com.bhaktichat.app.domain.CreationStatus
 import com.bhaktichat.app.ui.components.ads.findActivity
 import com.bhaktichat.app.ui.components.shell.AppTopBar
 import com.bhaktichat.app.ui.theme.BhaktiThemeTokens
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 
@@ -94,7 +96,9 @@ fun DivineImageResultScreen(
     onShareToInstagram: () -> Unit,
     onShareToWhatsApp: () -> Unit,
     onShareWithSystem: () -> Unit,
-    onFeedback: (String) -> Unit = {}
+    onFeedback: (String) -> Unit = {},
+    /** The server refused the generation with 402 (members only). Defaulted until wired. */
+    onSubscriptionRequired: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val creation = uiState.creation
@@ -124,9 +128,14 @@ fun DivineImageResultScreen(
         uiEvents.collect { event ->
             when (event) {
                 DivineImageResultUiEvent.NavigateHome -> onBackToHome()
+                DivineImageResultUiEvent.SubscriptionRequired -> onSubscriptionRequired()
                 is DivineImageResultUiEvent.SaveImage -> {
-                    saveImageToDevice(context, Uri.parse(event.uri), saveFailedMessage)
-                    Toast.makeText(context, savedMessage, Toast.LENGTH_SHORT).show()
+                    val saved = saveImageToDevice(context, Uri.parse(event.uri))
+                    Toast.makeText(
+                        context,
+                        if (saved) savedMessage else saveFailedMessage,
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
                 is DivineImageResultUiEvent.ShareImage -> {
                     shareImage(
@@ -258,16 +267,21 @@ fun DivineImageResultScreen(
                         }
                     }
 
-                    // Quota note removed — ad-based model, no image limit.
+                    // No quota note: divine image is subscriber-only, so there is no free allowance.
                 }
             }
 
             CreationStatus.FAILED,
             CreationStatus.IDLE -> {
                 item("failed") {
-                    val failureMessage = creation?.errorMessage
-                        ?.takeIf { it.isNotBlank() }
-                        ?: t("di_err_generate_failed")
+                    val subscriptionRequired = creation?.subscriptionRequired == true
+                    val failureMessage = if (subscriptionRequired) {
+                        t("subscription_required_message")
+                    } else {
+                        creation?.errorMessage
+                            ?.takeIf { it.isNotBlank() }
+                            ?: t("di_err_generate_failed")
+                    }
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = DivineImagePalette.Card,
@@ -288,11 +302,12 @@ fun DivineImageResultScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
+                                // Retrying a 402 just fails again — offer membership instead.
                                 GradientActionButton(
-                                    label = t("di_try_again"),
-                                    icon = Icons.Filled.Refresh,
+                                    label = if (subscriptionRequired) t("subscription_required_cta") else t("di_try_again"),
+                                    icon = if (subscriptionRequired) null else Icons.Filled.Refresh,
                                     modifier = Modifier.weight(1f),
-                                    onClick = onRegenerate
+                                    onClick = if (subscriptionRequired) onSubscriptionRequired else onRegenerate
                                 )
                                 OutlineActionButton(
                                     label = t("go_back"),
@@ -602,16 +617,19 @@ private fun TextIconAction(
 
 // Copy is passed in already resolved: these run outside composition, and the caller is a
 // composable that can read the current language.
-private fun saveImageToDevice(
+
+/** Copies the image into the gallery off the main thread. Returns false if it did not land. */
+private suspend fun saveImageToDevice(
     context: Context,
-    sourceUri: Uri,
-    saveFailedMessage: String
-) {
+    sourceUri: Uri
+): Boolean = withContext(Dispatchers.IO) {
     val resolver = context.contentResolver
     val fileName = "bhakti_divine_${System.currentTimeMillis()}.png"
+    var pendingUri: Uri? = null
 
     runCatching {
-        resolver.openInputStream(sourceUri)?.use { inputStream ->
+        val inputStream = resolver.openInputStream(sourceUri) ?: error("source unreadable")
+        inputStream.use {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val contentValues = ContentValues().apply {
                     put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
@@ -620,13 +638,14 @@ private fun saveImageToDevice(
                     put(MediaStore.Images.Media.IS_PENDING, 1)
                 }
                 val outputUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-                    ?: error(saveFailedMessage)
-                resolver.openOutputStream(outputUri)?.use { output ->
-                    inputStream.copyTo(output)
-                }
+                    ?: error("insert failed")
+                pendingUri = outputUri
+                val output = resolver.openOutputStream(outputUri) ?: error("output unavailable")
+                output.use { inputStream.copyTo(it) }
                 contentValues.clear()
                 contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
                 resolver.update(outputUri, contentValues, null, null)
+                pendingUri = null
             } else {
                 val outputDir = File(
                     context.getExternalFilesDir(Environment.DIRECTORY_PICTURES),
@@ -640,14 +659,9 @@ private fun saveImageToDevice(
             }
         }
     }.onFailure {
-        val fallbackDir = File(context.cacheDir, "saved_divine").apply { mkdirs() }
-        val fallbackFile = File(fallbackDir, fileName)
-        FileOutputStream(fallbackFile).use { output ->
-            resolver.openInputStream(sourceUri)?.use { fallbackInput ->
-                fallbackInput.copyTo(output)
-            }
-        }
-    }
+        // Don't leave a half-written, still-pending row behind in the gallery.
+        pendingUri?.let { uri -> runCatching { resolver.delete(uri, null, null) } }
+    }.isSuccess
 }
 
 private fun shareImage(
@@ -675,6 +689,8 @@ private fun shareImage(
             return
         }
         Toast.makeText(context, noAppMessage, Toast.LENGTH_SHORT).show()
+        // Fall back to the ordinary share sheet, not one still limited to the missing app.
+        sendIntent.setPackage(null)
     }
 
     context.startActivity(

@@ -32,6 +32,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +51,9 @@ import com.bhaktichat.app.domain.Wallpapers
 import com.bhaktichat.app.ui.i18n.t
 import java.io.File
 import java.io.FileOutputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun WallpaperDetailScreen(
@@ -56,16 +61,25 @@ fun WallpaperDetailScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val wallpaper = Wallpapers.byId(wallpaperId) ?: run {
-        onBack()
+    val wallpaper = Wallpapers.byId(wallpaperId)
+    if (wallpaper == null) {
+        // Navigate away once, as an effect — calling onBack() during composition can pop twice.
+        LaunchedEffect(Unit) { onBack() }
         return
     }
     val savedToPhotosText = t("saved_to_photos")
+    val saveFailedText = t("di_save_failed")
     val shareWallpaperTitle = t("share_wallpaper")
     val setAsWallpaperTitle = t("set_as_wallpaper")
     val noWallpaperAppMessage = t("no_wallpaper_app_found")
     val wallpaperTitle = t("wallpaper_title_${wallpaper.id}")
     val wallpaperSubtitle = t("wallpaper_subtitle_${wallpaper.id}")
+    // Decoding the wallpaper and writing it out as a PNG takes a second or more, so the
+    // three actions do that work off the main thread instead of freezing the screen.
+    val scope = rememberCoroutineScope()
+    suspend fun wallpaperUri(): Uri = withContext(Dispatchers.IO) {
+        drawableToCacheUri(context, wallpaper.imageRes, "wallpaper_${wallpaper.id}")
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         Image(
@@ -111,9 +125,17 @@ fun WallpaperDetailScreen(
                     label = t("save"),
                     modifier = Modifier.weight(1f),
                     onClick = {
-                        val uri = drawableToCacheUri(context, wallpaper.imageRes, "wallpaper_${wallpaper.id}")
-                        saveImageToDevice(context, uri)
-                        Toast.makeText(context, savedToPhotosText, Toast.LENGTH_SHORT).show()
+                        scope.launch {
+                            val saved = runCatching {
+                                val uri = wallpaperUri()
+                                withContext(Dispatchers.IO) { saveImageToDevice(context, uri) }
+                            }.getOrDefault(false)
+                            Toast.makeText(
+                                context,
+                                if (saved) savedToPhotosText else saveFailedText,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                 )
                 WallpaperAction(
@@ -121,8 +143,10 @@ fun WallpaperDetailScreen(
                     label = t("share"),
                     modifier = Modifier.weight(1f),
                     onClick = {
-                        val uri = drawableToCacheUri(context, wallpaper.imageRes, "wallpaper_${wallpaper.id}")
-                        shareImage(context, uri, shareWallpaperTitle)
+                        scope.launch {
+                            runCatching { wallpaperUri() }
+                                .onSuccess { uri -> shareImage(context, uri, shareWallpaperTitle) }
+                        }
                     }
                 )
                 WallpaperAction(
@@ -130,8 +154,11 @@ fun WallpaperDetailScreen(
                     label = t("set_wallpaper_button"),
                     modifier = Modifier.weight(1f),
                     onClick = {
-                        val uri = drawableToCacheUri(context, wallpaper.imageRes, "wallpaper_${wallpaper.id}")
-                        setAsWallpaper(context, uri, setAsWallpaperTitle, noWallpaperAppMessage)
+                        scope.launch {
+                            runCatching { wallpaperUri() }.onSuccess { uri ->
+                                setAsWallpaper(context, uri, setAsWallpaperTitle, noWallpaperAppMessage)
+                            }
+                        }
                     }
                 )
             }
@@ -167,18 +194,22 @@ private fun WallpaperAction(
 private fun drawableToCacheUri(context: Context, drawableRes: Int, fileNamePrefix: String): Uri {
     val bitmap = BitmapFactory.decodeResource(context.resources, drawableRes)
     val outputDir = File(context.cacheDir, "wallpapers").apply { mkdirs() }
-    val file = File(outputDir, "${fileNamePrefix}_${System.currentTimeMillis()}.png")
+    // One file per wallpaper, overwritten each time: a timestamped name left a new
+    // multi-megabyte PNG in the cache on every tap.
+    val file = File(outputDir, "$fileNamePrefix.png")
     FileOutputStream(file).use { output ->
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
     }
+    bitmap.recycle()
     return FileProvider.getUriForFile(context, "${BuildConfig.APPLICATION_ID}.fileprovider", file)
 }
 
-private fun saveImageToDevice(context: Context, sourceUri: Uri) {
+/** Copies the image into the device gallery. Returns true only if the copy completed. */
+private fun saveImageToDevice(context: Context, sourceUri: Uri): Boolean {
     val resolver = context.contentResolver
     val fileName = "bhakti_wallpaper_${System.currentTimeMillis()}.png"
 
-    runCatching {
+    return runCatching {
         resolver.openInputStream(sourceUri)?.use { inputStream ->
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val contentValues = ContentValues().apply {
@@ -190,6 +221,7 @@ private fun saveImageToDevice(context: Context, sourceUri: Uri) {
                 val outputUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
                     ?: error("Unable to create MediaStore entry.")
                 resolver.openOutputStream(outputUri)?.use { output -> inputStream.copyTo(output) }
+                    ?: error("Unable to open MediaStore output stream.")
                 contentValues.clear()
                 contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
                 resolver.update(outputUri, contentValues, null, null)
@@ -200,8 +232,9 @@ private fun saveImageToDevice(context: Context, sourceUri: Uri) {
                 FileOutputStream(outputFile).use { output -> inputStream.copyTo(output) }
                 MediaScannerConnection.scanFile(context, arrayOf(outputFile.absolutePath), null, null)
             }
-        }
-    }
+            true
+        } ?: false
+    }.getOrDefault(false)
 }
 
 private const val SHARE_CAPTION =

@@ -41,7 +41,9 @@ data class DivineCreation(
     val errorMessage: String? = null,
     val variant: String? = null,
     val requestId: String? = null,
-    val feedbackRating: String? = null
+    val feedbackRating: String? = null,
+    /** FAILED because the server answered 402 — the fix is membership, not "try again". */
+    val subscriptionRequired: Boolean = false
 )
 
 data class DivineImageResult(

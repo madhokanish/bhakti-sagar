@@ -18,31 +18,10 @@
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>
-        <!--
-          Package visibility for the direct `upi://mandate` intent (Android 11+). The app
-          receives the mandate URI from its server and lets Android open the customer's UPI
-          app; it does not use Razorpay Checkout for this flow.
-        -->
-        <package android:name="com.google.android.apps.nbu.paisa.user" /> <!-- Google Pay -->
-        <package android:name="com.phonepe.app" /> <!-- PhonePe -->
-        <package android:name="net.one97.paytm" /> <!-- Paytm -->
-        <package android:name="in.org.npci.upiapp" /> <!-- BHIM -->
-        <package android:name="in.amazon.mShop.android.shopping" /> <!-- Amazon Pay -->
-        <package android:name="com.whatsapp" /> <!-- WhatsApp Pay -->
-        <package android:name="com.dreamplug.androidapp" /> <!-- CRED -->
-        <package android:name="com.myairtelapp" /> <!-- Airtel Thanks -->
-        <package android:name="com.freecharge.android" /> <!-- Freecharge -->
-        <package android:name="com.mobikwik_new" /> <!-- MobiKwik -->
-        <!-- Catches any other UPI-capable app not named above. -->
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="upi" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="upi" android:host="mandate" />
-        </intent>
+        <!-- Divine image "share to WhatsApp / Instagram": on Android 11+ a targeted share
+             can only see a package that is declared here. -->
+        <package android:name="com.whatsapp" />
+        <package android:name="com.instagram.android" />
     </queries>
 
     <application
@@ -65,6 +44,7 @@
         <activity
             android:name="com.bhaktichat.app.MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -83,7 +63,7 @@
         </service>
 
         <receiver
-            android:name="com.bhaktichat.app.util.DailyReminderReceiver"
+            android:name="com.bhaktichat.app.util.notifications.NotificationReceiver"
             android:enabled="true"
             android:exported="false" />
 

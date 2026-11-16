@@ -3,6 +3,7 @@ import com.bhaktichat.app.domain.displayTitle
 import com.bhaktichat.app.domain.displayCaption
 import com.bhaktichat.app.ui.i18n.t
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -25,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -110,6 +112,14 @@ import com.bhaktichat.app.util.AnonUserKey
 import com.bhaktichat.app.util.EntitlementStore
 import com.bhaktichat.app.util.AdsConsentManager
 import com.bhaktichat.app.util.MembershipPromoStore
+import com.bhaktichat.app.ui.components.NotificationPrePromptDialog
+import com.bhaktichat.app.util.notifications.NotificationLaunch
+import com.bhaktichat.app.util.notifications.NotificationPlanner
+import com.bhaktichat.app.util.notifications.NotificationPrePrompt
+import com.bhaktichat.app.util.notifications.PrePromptTrigger
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -141,7 +151,7 @@ fun BhaktiChatApp(
         com.bhaktichat.app.ui.i18n.LocalAppLanguage provides language
     ) {
 
-    // Asked once, on first launch after sign-in — including for existing users, who have
+    // Asked once, on first launch (no sign-in needed) — including for existing users, who have
     // been on Hindi by fiat until now and have never been offered the choice.
     var languageChosen by rememberSaveable {
         mutableStateOf(appContainer.languageStore.hasChosenLanguage)
@@ -165,12 +175,21 @@ fun BhaktiChatApp(
     val backStack by navController.currentBackStackEntryAsState()
     val route = backStack?.destination?.route.orEmpty()
     val density = LocalDensity.current
-    val imeVisible = WindowInsets.ime.getBottom(density) > 0
+    val imeInsets = WindowInsets.ime
+    // derivedStateOf: only recompose the root when the keyboard shows/hides, not on every
+    // frame of the IME animation.
+    val imeVisible by remember(imeInsets, density) {
+        derivedStateOf { imeInsets.getBottom(density) > 0 }
+    }
     val showBottomBar = shouldShowBottomBar(route = route, imeVisible = imeVisible)
     val entitlementStore = appContainer.entitlementStore
     // Entitlement is server truth (Razorpay/Chadhaava), mirrored locally by
     // SubscriptionRepository. Grandfathered Play subscribers also read true here.
     val isPro by entitlementStore.isPro.collectAsStateWithLifecycle()
+    val freeChatAartiDay by entitlementStore.freeChatAartiDay.collectAsStateWithLifecycle()
+    val todayKey = remember(freeChatAartiDay) {
+        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+    }
 
     // The gate (a BLOCKED_* value) whose quick-checkout sheet is open, or null when closed.
     // Every gate opens the same sheet rather than the full चढ़ावा page; see QuickCheckoutSheet.
@@ -235,9 +254,10 @@ fun BhaktiChatApp(
     var requestedReelId by rememberSaveable { mutableStateOf<String?>(null) }
     val shouldShowReviewPrompt by appContainer.reviewPromptStore.shouldShowPrompt.collectAsStateWithLifecycle()
     val appScope = rememberCoroutineScope()
+    var threadLaunchInFlight by remember { mutableStateOf(false) }
     val aartiPlayerState by appContainer.aartiPlayerController.state.collectAsStateWithLifecycle()
 
-    // Record the daily-darshan streak on open. (Intro upsell removed — ad-based model.)
+    // One-time launch work: ad consent (only if ads are on), daily-darshan streak, player init.
     LaunchedEffect(Unit) {
         // Only when ads actually exist. With ADS_ENABLED false nothing ever requests an ad,
         // so gathering UMP consent asked a brand-new install to rule on 200+ ad vendors
@@ -250,6 +270,8 @@ fun BhaktiChatApp(
         }
         appContainer.streakStore.recordVisit()
         appContainer.aartiPlayerController.initialize()
+        // Just signed in from a guest: bring the guest's conversations along (no-op otherwise).
+        appContainer.adoptGuestHistoryIfNeeded()
         // BhaktiChat 2.0: one conversation per guide. Collapses any pre-2.0 duplicate
         // threads down to one visible row per guide (archived, not deleted). Idempotent —
         // safe to run on every launch.
@@ -283,7 +305,12 @@ fun BhaktiChatApp(
         }
         delay(5000)
         membershipPromoEvaluated = true
-        if (!isPro) {
+        // Not over checkout: someone already on चढ़ावा (or back from the UPI app) would get
+        // the same offer stacked on the payment they are in the middle of. Skipping leaves the
+        // cooldown untouched, so it simply shows on a later launch.
+        val onCheckout = navController.currentBackStackEntry?.destination?.route.orEmpty()
+            .startsWith(NavDestinations.CHADHAAVA_BASE) || quickCheckoutFor != null
+        if (!isPro && !onCheckout) {
             showMembershipPromo = true
             membershipPromoStore.markShown()
             Analytics.screen("membership_promo")
@@ -322,14 +349,19 @@ fun BhaktiChatApp(
         includeOpener: Boolean,
         popUpRoute: String? = null
     ) {
+        // A quick second tap would otherwise start a second send and push the thread twice.
+        // Held only until the thread is on screen; the reply itself streams on afterwards.
+        if (threadLaunchInFlight) return
         // A pre-filled question counts against the daily free chat like a typed one.
         if (!initialPrompt.isNullOrBlank() && entitlementStore.isOverChatLimit) {
             entitlementStore.reportQuotaReached("chat")
             openGate(BLOCKED_CHAT_QUOTA)
             return
         }
+        threadLaunchInFlight = true
         appScope.launch {
-            val guide = appContainer.guidesRepository.getGuide(guideId) ?: return@launch
+            val guide = appContainer.guidesRepository.getGuide(guideId)
+                ?: run { threadLaunchInFlight = false; return@launch }
             Analytics.guideSelected(guideId = guide.id)
             // One conversation per guide (BhaktiChat 2.0) — reuse the existing thread rather
             // than creating a new one every time this is called.
@@ -388,6 +420,7 @@ fun BhaktiChatApp(
                     popUpTo(popUpRoute) { inclusive = true }
                 }
             }
+            threadLaunchInFlight = false
 
             if (typingMessageId != null) {
                 val typingId = typingMessageId
@@ -398,18 +431,20 @@ fun BhaktiChatApp(
                     messages = appContainer.messagesRepository
                         .listMessages(thread.id)
                         .filterNot { it.isTypingIndicator },
-                    currentState = ChatConversationState(),
-                    remoteConversationId = null,
+                    // An existing thread is resumed, so the reply continues its server
+                    // conversation. A new or freshly reset thread has neither of these.
+                    currentState = ChatConversationState.fromStoredPayload(thread.statePayload),
+                    remoteConversationId = thread.remoteConversationId,
                     chatApiClient = appContainer.chatApiClient,
-                        userFirstName = currentUser?.name.orEmpty(),
+                    userFirstName = currentUser?.name.orEmpty(),
                     appLanguage = appContainer.languageStore.language.value,
                     onToken = { streamed ->
                         appContainer.messagesRepository.replaceTypingWithResponse(typingId, streamed)
                     }
                 )
                 if (sendResult.exceptionOrNull() is com.bhaktichat.app.data.remote.ChatLimitReachedException) {
-                    // Server free-limit reached → remove the pending bubble and show the
-                    // non-skippable Pro gate.
+                    // Server free-limit reached → remove the pending bubble rather than render
+                    // a fake reply. (The backend does not enforce a limit today.)
                     appContainer.messagesRepository.removeMessage(typingId)
                     entitlementStore.markChatLimitReached()
                     return@launch
@@ -471,7 +506,96 @@ fun BhaktiChatApp(
         }
     }
 
-    // Paywall removed (ad-based model). Features are free for all users.
+    // --- Notifications ---------------------------------------------------------------------
+    // The guide-voiced ask before Android 13's permission dialog: which moment, which guide.
+    var prePrompt by remember { mutableStateOf<Pair<PrePromptTrigger, String>?>(null) }
+    val notifPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        Analytics.capture("notif_permission_result", mapOf("granted" to granted))
+        if (granted) {
+            NotificationPlanner.setEnabled(context, true)
+            NotificationPlanner.replan(context)
+        }
+    }
+    LaunchedEffect(prePrompt) {
+        val (trigger, guideId) = prePrompt ?: return@LaunchedEffect
+        NotificationPrePrompt.markAsked(context, trigger)
+        Analytics.capture("notif_preprompt_shown", mapOf("trigger" to trigger.wire, "guide_id" to guideId))
+    }
+    // Second moment of value: an aarti just played to its end.
+    LaunchedEffect(Unit) {
+        appContainer.aartiPlayerController.finished.collect {
+            if (prePrompt == null && NotificationPrePrompt.shouldAsk(context, PrePromptTrigger.AARTI)) {
+                prePrompt = PrePromptTrigger.AARTI to
+                    NotificationPlanner.guideForDay(context, System.currentTimeMillis())
+            }
+        }
+    }
+
+    // "▶ Aarti suniye" on the 19:00 notification: today's free aarti (the same allowance as
+    // the chat card), else चढ़ावा, counted under its own source.
+    fun playNotificationAarti(guideId: String) {
+        // Aarti tags use "shiva"; guide ids use "shiv".
+        val tag = if (guideId == "shiv") "shiva" else guideId
+        appScope.launch {
+            if (!isPro && !entitlementStore.hasFreeChatAartiToday()) {
+                openGate(NOTIF_AARTI_SOURCE)
+                return@launch
+            }
+            // The bundled one first: it plays from the app, so 19:00 costs no bandwidth.
+            val aarti = appContainer.aartiRepository.loadAartis()
+                .filter { it.hasAudio && tag in it.tags }
+                .let { matches -> matches.firstOrNull { it.isBundled } ?: matches.firstOrNull() }
+            if (aarti == null) {
+                navigateToTopLevel(NavDestinations.HOME)
+                return@launch
+            }
+            if (!isPro) entitlementStore.recordFreeChatAartiPlayed()
+            Analytics.capture(
+                "notif_aarti_played",
+                mapOf("guide_id" to guideId, "aarti_id" to aarti.id, "is_pro" to isPro)
+            )
+            appContainer.aartiPlayerController.playQueue(listOf(aarti), aarti.id)
+            appContainer.aartiPlayerController.expandFullScreen()
+        }
+    }
+
+    // A notification was tapped (cold start or while open): land on what it was about.
+    val notificationTap by NotificationLaunch.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(notificationTap, languageChosen) {
+        if (notificationTap == null || !languageChosen) return@LaunchedEffect
+        val tap = NotificationLaunch.consume() ?: return@LaunchedEffect
+        Analytics.capture(
+            if (tap.isAction) "notif_action" else "notif_opened",
+            mapOf("type" to tap.type, "guide_id" to tap.guideId, "target" to tap.target)
+        )
+        when {
+            tap.target == NotificationLaunch.TARGET_AARTI -> playNotificationAarti(tap.guideId)
+            tap.target == NotificationLaunch.TARGET_CHAT && tap.guideId.isNotBlank() ->
+                launchThread(tap.guideId, includeOpener = true)
+            else -> navigateToTopLevel(NavDestinations.HOME)
+        }
+    }
+
+    // No blanket paywall: free chat is capped at 10 messages/day; images, voice, reels, aartis,
+    // festivals and wallpapers are चढ़ावा-only. Each gate opens the quick-checkout sheet (openGate).
+
+    prePrompt?.let { (trigger, guideId) ->
+        NotificationPrePromptDialog(
+            trigger = trigger,
+            guideId = guideId,
+            onAccept = {
+                prePrompt = null
+                Analytics.capture("notif_preprompt_answered", mapOf("trigger" to trigger.wire, "accepted" to true))
+                notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            },
+            onDecline = {
+                prePrompt = null
+                Analytics.capture("notif_preprompt_answered", mapOf("trigger" to trigger.wire, "accepted" to false))
+            }
+        )
+    }
 
     if (shouldShowReviewPrompt) {
         ReviewPromptDialog(
@@ -546,7 +670,11 @@ fun BhaktiChatApp(
                         appScope.launch {
                             val all = appContainer.aartiRepository.loadAartis()
                             val playable = all.filter { it.hasAudio }
-                            if (playable.any { it.id == aartiId }) {
+                            // Free users play only the bundled guide aartis; the rest stream
+                            // from bhaktichat.com and are चढ़ावा.
+                            if (!isPro && playable.none { it.id == aartiId && it.isBundled }) {
+                                openGate(BLOCKED_AARTIS)
+                            } else if (playable.any { it.id == aartiId }) {
                                 appContainer.aartiPlayerController.playQueue(
                                     aartis = playable,
                                     startId = aartiId,
@@ -559,14 +687,19 @@ fun BhaktiChatApp(
                             }
                         }
                     },
-                    onToggleAartiSpotlight = {
+                    onToggleAartiSpotlight = { displayedAartiId ->
                         if (aartiPlayerState.currentAartiId != null) {
                             appContainer.aartiPlayerController.togglePlayPause()
                         } else {
                             appScope.launch {
                                 val all = appContainer.aartiRepository.loadAartis()
-                                val start = all.firstOrNull { it.isTop } ?: all.firstOrNull()
-                                if (start != null) {
+                                // Start the aarti the card is showing, not a different top one.
+                                val start = all.firstOrNull { it.id == displayedAartiId }
+                                    ?: all.firstOrNull { it.isTop }
+                                    ?: all.firstOrNull()
+                                if (start != null && !isPro && !start.isBundled) {
+                                    openGate(BLOCKED_AARTIS)
+                                } else if (start != null) {
                                     appContainer.aartiPlayerController.playQueue(
                                         all.filter { it.hasAudio },
                                         start.id
@@ -656,6 +789,21 @@ fun BhaktiChatApp(
                         openGate(BLOCKED_CHAT_QUOTA)
                     }
                 }
+                // First moment of value: the guide has just answered. Ask after a beat, so
+                // they can read the reply first.
+                LaunchedEffect(uiState.messages, uiState.isSending) {
+                    val messages = uiState.messages
+                    val last = messages.lastOrNull() ?: return@LaunchedEffect
+                    val guideId = uiState.guide?.id ?: return@LaunchedEffect
+                    val replied = !uiState.isSending && !last.isTypingIndicator &&
+                        last.role == ChatRole.ASSISTANT.wire && last.content.isNotBlank() &&
+                        !last.content.trimStart().startsWith("Error:", ignoreCase = true) &&
+                        messages.any { it.role == ChatRole.USER.wire }
+                    if (!replied || prePrompt != null) return@LaunchedEffect
+                    if (!NotificationPrePrompt.shouldAsk(context, PrePromptTrigger.CHAT)) return@LaunchedEffect
+                    delay(2500)
+                    prePrompt = PrePromptTrigger.CHAT to guideId
+                }
                 ChatThreadScreen(
                     uiState = uiState,
                     onBack = {
@@ -667,6 +815,7 @@ fun BhaktiChatApp(
                     },
                     onInputChange = vm::onInputChanged,
                     onSend = vm::sendMessage,
+                    onDismissError = vm::clearError,
                     onRegenerate = vm::regenerateLastReply,
                     onOpenVoiceMode = { guideId, conversationId ->
                         if (isPro) {
@@ -700,6 +849,28 @@ fun BhaktiChatApp(
                             mapOf("source" to request.source, "guide_id" to uiState.guide?.id.orEmpty())
                         )
                         openGate(request.source)
+                    },
+                    freeAartiAvailable = !isPro && freeChatAartiDay != todayKey,
+                    onPlayFreeAarti = {
+                        val guideId = uiState.guide?.serverPromptKey.orEmpty()
+                        // Aarti tags use "shiva"; guide ids use "shiv".
+                        val tag = if (guideId == "shiv") "shiva" else guideId
+                        appScope.launch {
+                            val aarti = appContainer.aartiRepository.loadAartis()
+                                .filter { it.hasAudio }
+                                .let { all -> all.firstOrNull { it.tags.firstOrNull() == tag } ?: all.firstOrNull { tag in it.tags } }
+                            if (aarti == null) {
+                                openGate(ChatContentRequest.AARTI.source)
+                                return@launch
+                            }
+                            entitlementStore.recordFreeChatAartiPlayed()
+                            Analytics.capture(
+                                "chat_free_aarti_played",
+                                mapOf("guide_id" to guideId, "aarti_id" to aarti.id)
+                            )
+                            appContainer.aartiPlayerController.playQueue(listOf(aarti), aarti.id)
+                            appContainer.aartiPlayerController.expandFullScreen()
+                        }
                     }
                 )
             }
@@ -743,7 +914,12 @@ fun BhaktiChatApp(
                     )
                     VoiceModeScreen(
                         viewModel = vm,
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        // The server refused the session (402): leave the call, offer चढ़ावा.
+                        onSubscriptionRequired = {
+                            navController.popBackStack()
+                            openGate(BLOCKED_VOICE)
+                        }
                     )
                 }
             }
@@ -869,8 +1045,16 @@ fun BhaktiChatApp(
                 // Funnel source: the gate that sent them, or "tab" for the चढ़ावा tab itself.
                 val source = rawBlocked ?: "tab"
 
-                val resumeCheckout = backStackEntry.arguments
-                    ?.getString(NavDestinations.CHADHAAVA_RESUME_ARG) == "1"
+                // resume=1 is part of the route, so it comes back after process death. Acting
+                // on it again would open a second checkout tab when the user returns from the
+                // UPI app; the entry's saved state remembers that it was already used.
+                val resumeCheckout = remember(backStackEntry) {
+                    val requested = backStackEntry.arguments
+                        ?.getString(NavDestinations.CHADHAAVA_RESUME_ARG) == "1"
+                    val consumed = backStackEntry.savedStateHandle.get<Boolean>(RESUME_CONSUMED_KEY) == true
+                    backStackEntry.savedStateHandle[RESUME_CONSUMED_KEY] = true
+                    requested && !consumed
+                }
                 // A resumed arrival already counted its view (and its checkout tap) wherever
                 // the offer was made, so only a plain visit counts as a paywall view here.
                 var viewCounted by rememberSaveable { mutableStateOf(false) }
@@ -1047,7 +1231,8 @@ fun BhaktiChatApp(
                     onShareToInstagram = vm::shareToInstagram,
                     onShareToWhatsApp = vm::shareToWhatsApp,
                     onShareWithSystem = vm::share,
-                    onFeedback = vm::onFeedback
+                    onFeedback = vm::onFeedback,
+                    onSubscriptionRequired = { openGate(BLOCKED_IMAGE_QUOTA) }
                 )
             }
 
@@ -1104,6 +1289,7 @@ fun BhaktiChatApp(
                 AartiDetailScreen(
                     aartiId = aartiId,
                     repository = appContainer.aartiRepository,
+                    savedStore = appContainer.savedAartisStore,
                     onBack = { navController.popBackStack() },
                     onAskKrishna = { prefill ->
                         launchThread(
@@ -1164,7 +1350,9 @@ fun BhaktiChatApp(
     }
 
     // Topmost child of the root Box, so it floats over the whole app.
-    if (showMembershipPromo && !isPro) {
+    if (showMembershipPromo && !isPro && !route.startsWith(NavDestinations.CHADHAAVA_BASE)) {
+        // Without this, back went to the screen underneath and left the promo on top.
+        BackHandler { showMembershipPromo = false }
         MembershipInterstitial(
             onClose = { showMembershipPromo = false },
             onGetMembership = {
@@ -1195,9 +1383,10 @@ fun BhaktiChatApp(
 }
 
 /**
- * A dismissable ("crossable") full-screen promo for BhaktiChat Pro. The X or a tap outside the
- * card closes it; the CTA routes to the चढ़ावा subscription screen. Deliberately soft-sell —
- * one appearance per launch, non-subscribers only (gated at the call site).
+ * A dismissable ("crossable") full-screen promo for the चढ़ावा membership. The X or a tap outside
+ * the card closes it; the CTA routes to the चढ़ावा subscription screen. Deliberately soft-sell —
+ * at most once per MembershipPromoStore cooldown (3 days), non-subscribers only (gated at the
+ * call site).
  */
 @Composable
 private fun MembershipInterstitial(
@@ -1458,11 +1647,16 @@ private fun blockedFeatureFor(raw: String): BlockedFeature? = when (raw) {
     BLOCKED_AARTIS -> BlockedFeature.AARTIS
     BLOCKED_VOICE -> BlockedFeature.VOICE
     BLOCKED_FESTIVALS -> BlockedFeature.FESTIVALS
+    NOTIF_AARTI_SOURCE -> BlockedFeature.AARTIS
     // Chat cards carry their own source ("chat_aarti", …) so the funnel reads separately.
     else -> ChatContentRequest.fromSource(raw)?.blockedFeature
 }
+/** Saved on a चढ़ावा back-stack entry once its resume=1 has started checkout. */
+private const val RESUME_CONSUMED_KEY = "chadhaava_resume_consumed"
 internal const val BLOCKED_IMAGE_QUOTA = "image_quota"
 internal const val BLOCKED_REELS = "reels"
 internal const val BLOCKED_AARTIS = "aartis"
 internal const val BLOCKED_VOICE = "voice"
 internal const val BLOCKED_FESTIVALS = "festivals"
+/** Paywall source for the 19:00 aarti notification once today's free aarti is used. */
+internal const val NOTIF_AARTI_SOURCE = "notif_aarti"

@@ -54,8 +54,8 @@ object ChoghadiyaCalculator {
                 add(
                     ChoghadiyaSlot(
                         label = name,
-                        start = HindiTimeFormatter.format(start),
-                        end = HindiTimeFormatter.format(end),
+                        start = HindiTimeFormatter.format(start, language),
+                        end = HindiTimeFormatter.format(end, language),
                         quality = qualityText(name, language),
                         startEpochMillis = start.toInstant().toEpochMilli(),
                         endEpochMillis = end.toInstant().toEpochMilli(),
@@ -70,8 +70,8 @@ object ChoghadiyaCalculator {
                 add(
                     ChoghadiyaSlot(
                         label = "$name (${translate("chogh_night", language)})",
-                        start = HindiTimeFormatter.format(start),
-                        end = HindiTimeFormatter.format(end),
+                        start = HindiTimeFormatter.format(start, language),
+                        end = HindiTimeFormatter.format(end, language),
                         quality = qualityText(name, language),
                         startEpochMillis = start.toInstant().toEpochMilli(),
                         endEpochMillis = end.toInstant().toEpochMilli(),

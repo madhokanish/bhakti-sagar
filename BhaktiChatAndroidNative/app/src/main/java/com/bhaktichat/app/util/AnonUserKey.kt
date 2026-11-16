@@ -4,8 +4,10 @@ import android.content.Context
 import java.util.UUID
 
 /**
- * Stable anonymous user key used for A/B testing the Divine Image experience.
- * Generated once per install and persisted in SharedPreferences.
+ * Stable per-install guest identity. It keys the guest's container and database
+ * (AppContainer.guestUserId) and is sent as the anon-id header that ties a guest to their
+ * server-side conversations. Generated once per install and persisted in SharedPreferences,
+ * so clearing app data starts a genuinely new guest.
  */
 object AnonUserKey {
     private const val PREFS_NAME = "bhakti_anon"

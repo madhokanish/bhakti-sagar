@@ -64,7 +64,6 @@ import com.bhaktichat.app.data.auth.MobileUser
 import com.bhaktichat.app.ui.components.shell.AppTopBar
 import com.bhaktichat.app.ui.components.shell.BhaktiBottomNavBarDefaults
 import com.bhaktichat.app.ui.i18n.t
-import com.bhaktichat.app.ui.theme.BhaktiThemeTokens
 import com.bhaktichat.app.util.DailyReminderScheduler
 import com.bhaktichat.app.util.ThemePreferences
 import kotlinx.coroutines.launch
@@ -89,7 +88,7 @@ fun ProfileScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = t("back"),
-                            tint = BhaktiThemeTokens.TextPrimary
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 },
@@ -98,7 +97,7 @@ fun ProfileScreen(
                         text = t("settings_title"),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = BhaktiThemeTokens.TextPrimary
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 },
                 rightContent = { Spacer(modifier = Modifier.size(42.dp)) }
@@ -491,6 +490,10 @@ private fun NotificationsSection() {
             DailyReminderScheduler.schedule(context, hour, minute)
             enabled = true
         } else {
+            // Persist the denial exactly like switching reminders off, so the permission
+            // isn't requested again on every Settings visit. The switch re-asks.
+            DailyReminderScheduler.setEnabled(context, false)
+            DailyReminderScheduler.cancel(context)
             enabled = false
         }
     }
@@ -498,9 +501,9 @@ private fun NotificationsSection() {
     // Enabled defaults to true, but that alone doesn't get the reminder actually posting:
     // Android 13+ still needs an explicit POST_NOTIFICATIONS grant, and even pre-13 the
     // alarm itself only gets registered here (setEnabled(true) alone doesn't schedule it).
-    // Runs once per visit rather than gating on a "first launch ever" flag, so it also
-    // catches a user who denied the permission earlier and later granted it in system
-    // Settings without ever touching this switch.
+    // Runs once per visit while reminders are on (re-registers the alarm). A denial turns
+    // reminders off (persisted above), so a denied user isn't re-prompted here; turning the
+    // switch back on asks again.
     LaunchedEffect(Unit) {
         if (!enabled) return@LaunchedEffect
         val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&

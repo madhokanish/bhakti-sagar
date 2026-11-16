@@ -1,5 +1,3 @@
-# No custom ProGuard rules needed for MVP.
-
 # --- Razorpay Checkout ---------------------------------------------------------------
 # Release builds are minified (isMinifyEnabled = true), and the SDK drives its checkout
 # through a WebView JavaScript bridge plus reflective onPayment* callbacks. Without these

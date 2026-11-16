@@ -25,15 +25,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Everything the paywall needs to render prices — sourced here so the UI never hardcodes
- * amounts. On launch the mock defaults are shown; once the BillingClient connects and
- * queries [ProductDetails], [pricing] is updated with Play's per-country, already
- * localized strings (e.g. "£1.99" for a UK account, "₹99" for India), so the paywall
- * becomes correct in every country with no UI change.
+ * Play's localized price for the legacy Play subscription. Still refreshed from
+ * [ProductDetails] on connect, but nothing in the UI reads it any more — the current
+ * चढ़ावा subscription is sold via Razorpay web checkout (SubscriptionRepository).
  *
- * [anchorPrice] is a cosmetic struck-through reference only (there is no Play-side
- * discount). If you want a real per-country discount, configure a Play intro offer and
- * read its two pricing phases instead of setting this by hand.
+ * [anchorPrice] is a cosmetic struck-through reference only (there is no Play-side discount).
  */
 data class PricingInfo(
     val price: String,            // ongoing localized price — "₹99" / "£1.99"
@@ -42,24 +38,19 @@ data class PricingInfo(
     val freeTrialLabel: String?   // trial length — "3 days" (or null when no trial)
 )
 
-// REVIEW: existing subscriber handling — decide before removing.
-// The app has pivoted to an ad-based model; the paywall and all purchase entry points
-// have been removed, so [purchase] is no longer reachable from the UI. This whole class
-// is intentionally KEPT so that:
-//   1. users who already bought the subscription are still reconciled against Play on
-//      launch ([reconcileEntitlement]) and keep [EntitlementStore.isPro] = true, and
-//   2. you retain a working restore/reconcile path while you decide whether to honor
-//      existing subscriptions until they lapse or refund/notify those users.
-// [purchase]/[restorePurchases] are now dead UI paths — remove them (and the billing-ktx
-// dependency) only once you've decided how to treat existing subscribers.
+// REVIEW: grandfathered-subscriber handling — decide before removing.
+// New चढ़ावा subscriptions go through Razorpay (SubscriptionRepository); there is no Play
+// purchase entry point in the UI, so [purchase]/[restorePurchases]/[pricing] are unreachable.
+// This class is KEPT only so users who bought the Play subscription before the switch are
+// still reconciled against Play on launch ([reconcileEntitlement]) and keep the Play rail of
+// [EntitlementStore.isPro]. Remove it (and the billing dependency) once you've decided how to
+// treat those subscribers.
 /**
- * Wraps Google Play Billing for the single "Monthly Chadhawa" subscription.
+ * Wraps Google Play Billing for the legacy "Monthly Chadhawa" Play subscription.
  *
- * Purchases resolve asynchronously through [PurchasesUpdatedListener]; a completed,
- * acknowledged purchase flips [EntitlementStore.grantPro], which dismisses the paywall.
- * On every connect we also reconcile against Play (the source of truth) so a user who
- * subscribed on another device — or whose local flag drifted — is granted/revoked
- * correctly.
+ * On every connect it reconciles against Play (the source of truth for this rail): an active
+ * purchase calls [EntitlementStore.grantPro], none calls [EntitlementStore.revokePro]. Both
+ * touch only the Play flag, so a Razorpay subscriber is never revoked by this.
  *
  * NOTE (security): this grants entitlement client-side after acknowledge. For hardened
  * anti-fraud, POST `purchase.purchaseToken` to the backend and verify it with the Google
@@ -267,6 +258,11 @@ class SubscriptionManager(
         }
         entitlementStore.grantPro()
         _purchaseInFlight.value = false
+    }
+
+    /** Releases the Play connection. Called when the owning AppContainer is torn down. */
+    fun close() {
+        billingClient.endConnection()
     }
 
     companion object {

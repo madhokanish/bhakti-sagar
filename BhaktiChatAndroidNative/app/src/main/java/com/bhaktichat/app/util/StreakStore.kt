@@ -22,17 +22,6 @@ class StreakStore(context: Context) {
     private val _longestStreak = MutableStateFlow(prefs.getInt(KEY_LONGEST, 0))
     val longestStreak: StateFlow<Int> = _longestStreak.asStateFlow()
 
-    private val _isBannerDismissedToday =
-        MutableStateFlow(prefs.getLong(KEY_DISMISSED_DAY, Long.MIN_VALUE) == todayEpochDay())
-    /** True once the user has closed today's streak banner; resets automatically the next day. */
-    val isBannerDismissedToday: StateFlow<Boolean> = _isBannerDismissedToday.asStateFlow()
-
-    /** Hides the streak banner for the rest of today only — reappears on the next day's visit. */
-    fun dismissBannerForToday() {
-        prefs.edit().putLong(KEY_DISMISSED_DAY, todayEpochDay()).apply()
-        _isBannerDismissedToday.value = true
-    }
-
     /**
      * Call once per app open. First visit of a new day increments the streak; a visit the
      * day after the last counts as consecutive, a longer gap resets to 1. Same-day repeat
@@ -68,6 +57,5 @@ class StreakStore(context: Context) {
         private const val KEY_LAST_DAY = "last_visit_epoch_day"
         private const val KEY_CURRENT = "current_streak"
         private const val KEY_LONGEST = "longest_streak"
-        private const val KEY_DISMISSED_DAY = "banner_dismissed_epoch_day"
     }
 }

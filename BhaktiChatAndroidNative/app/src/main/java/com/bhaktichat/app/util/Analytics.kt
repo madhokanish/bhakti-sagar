@@ -96,9 +96,9 @@ object Analytics {
     /**
      * Ties subsequent events to a persistent person profile. Call once per successful auth.
      *
-     * [phone] is the E.164 number for phone-OTP accounts (null for Google/access). Without it,
-     * phone sign-ups show up as "Anonymous user (UUID)" in PostHog — identified by user id but
-     * with nothing human-readable attached. (PII — must be covered by consent + privacy policy.)
+     * [phone] is only set for legacy accounts created via the since-removed phone-OTP sign-in
+     * (Google accounts have none); it is the only human-readable handle those people have in
+     * PostHog. (PII — must be covered by consent + privacy policy.)
      */
     fun identify(userId: String, email: String?, name: String?, phone: String? = null) {
         if (!enabled) return
@@ -112,15 +112,20 @@ object Analytics {
         )
     }
 
+    /**
+     * Unlinks this device from the identified person, so events after sign-out or account
+     * deletion are not attributed to the previous account.
+     */
+    fun reset() {
+        if (!enabled) return
+        PostHog.reset()
+    }
+
     // --- Semantic helpers (keep event names in one place) -----------------
 
-    /** [method] is "google", "access" (email/username + password), or "phone". [phone] is the
-     *  E.164 number for phone sign-ins (null otherwise). */
-    fun authSucceeded(method: String, phone: String? = null) =
-        capture("auth_succeeded", buildMap {
-            put("method", method)
-            phone?.let { put("phone", it) }
-        })
+    /** [method] is "google" or "access" (email/username + password). */
+    fun authSucceeded(method: String) =
+        capture("auth_succeeded", mapOf("method" to method))
 
     /** [reason] is a short machine code, e.g. "network_error", "no_credential", or the API's error code. */
     fun authFailed(method: String, reason: String) =

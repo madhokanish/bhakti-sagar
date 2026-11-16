@@ -4,6 +4,7 @@ import androidx.media3.datasource.RawResourceDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.common.Player
 import androidx.media3.common.MediaItem
+import androidx.media3.common.util.UnstableApi
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.Lifecycle
@@ -56,6 +57,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
@@ -354,7 +356,13 @@ private fun OfferState(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .then(if (dimmed) Modifier.background(Color(0x6B2A1C15)) else Modifier)
+            // Scrim drawn over the content; a background modifier would sit behind the cards.
+            .then(
+                if (dimmed) Modifier.drawWithContent {
+                    drawContent()
+                    drawRect(Color(0x6B2A1C15))
+                } else Modifier
+            )
     ) {
         Column(
             modifier = Modifier
@@ -379,11 +387,6 @@ private fun OfferState(
             Spacer(Modifier.height(18.dp))
             PolicyBlock()
 
-            // DEBUG-ONLY. Opens Checkout against a one-time order instead of a
-            // subscription so we can see whether UPI is missing for subscriptions
-            // specifically, or for this app in general. Never present in release.
-
-
             Spacer(Modifier.height(14.dp))
             PolicyLinksRow(onOpenUrl = onOpenUrl)
             Spacer(Modifier.height(22.dp))
@@ -402,6 +405,7 @@ private fun OfferState(
  * backgrounded rather than burning battery behind a lock screen, and the player is
  * released on dispose.
  */
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 private fun HeroVideo(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -418,7 +422,7 @@ private fun HeroVideo(modifier: Modifier = Modifier) {
             // instead — ExoPlayer buffers the next entry while the current one is still
             // playing, so a decoded frame is always ready.
             //
-            // Ten entries at 15s is 2.5 minutes before the playlist wraps; REPEAT_MODE_ALL
+            // Ten entries at ~17s is ~2.8 minutes before the playlist wraps; REPEAT_MODE_ALL
             // then handles the wrap. They all reference the same file, so the extra entries
             // cost nothing.
             val uri = RawResourceDataSource.buildRawResourceUri(R.raw.chadhaava_hero)
@@ -483,15 +487,16 @@ private fun Hero() {
         // behind it, so a static image there showed through as a flicker. The clip is a
         // bundled resource, so there is no load failure to guard against.
         //
-        // No headline either: the footage already carries "SiRF 5" and "OFFER", so an
-        // overlay duplicated its message and sat unreadably across the subject once the
-        // scrim behind it was removed. The offer is restated in full on the price card
-        // directly below.
+        // No headline either: the footage already carries "सिर्फ़ ₹5 में" and "₹5 भी वापस",
+        // so an overlay duplicated its message and sat unreadably across the subject once
+        // the scrim behind it was removed. The offer, including ₹199/month, is stated in
+        // full on the price card directly below; the clip deliberately leaves billing to it.
+        // Source and renderer: BhaktiChat repo, output/chadhaava-hero/.
         //
         // Rendered at the clip's exact native ratio (1280x720) rather than filling the
         // 190dp box directly. resize_mode="zoom" in view_hero_video.xml crops to fill —
         // at this box's aspect ratio that cropped symmetrically off the top and bottom,
-        // slicing through the BhaktiChat mark sitting right at the top of frame. Full,
+        // slicing through Meera's head and the "AI character" tag at the top of frame. Full,
         // uncropped height plus TopCenter alignment on the surrounding box means any crop
         // now falls only at the bottom, where there's nothing worth keeping.
         HeroVideo(
@@ -732,45 +737,6 @@ private fun CheckCircle(size: androidx.compose.ui.unit.Dp) {
             tint = Color.White,
             modifier = Modifier.size(size * 0.62f)
         )
-    }
-}
-
-/**
- * The differentiator card: a weekly puja performed in the subscriber's name at two named
- * temples, with photo/video sent back.
- *
- * This is a promise about a real-world religious service, not a software feature. Every
- * claim here must actually be fulfilled each week for real subscribers — the named temples,
- * the sankalp, and the photos. The header image is a placeholder and should be replaced
- * with documentary photography of the actual puja; a stock temple shot undercuts the one
- * claim on this screen that cannot be verified in-app.
- */
-
-@Composable
-private fun TempleRow(name: String, place: String) {
-    Row(
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(9.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .padding(top = 5.dp)
-                .size(7.dp)
-                .background(ChadhaavaPalette.Accent, CircleShape)
-        )
-        Column {
-            Text(
-                text = name,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = ChadhaavaPalette.TextPrimary
-            )
-            Text(
-                text = place,
-                fontSize = 11.sp,
-                color = ChadhaavaPalette.TextSecondary
-            )
-        }
     }
 }
 

@@ -24,7 +24,13 @@ object ReelStatusExporter {
                 val outputDir = File(context.cacheDir, "reel_export").apply { mkdirs() }
                 val ext = urlString.substringAfterLast('.', "mp4").substringBefore('?')
                 val file = File(outputDir, "${reel.slug}.$ext")
-                URL(urlString).openStream().use { input ->
+                // Bundled media (asset:///…) is copied out of the APK; URL() can't open it.
+                val source = if (reel.isBundled) {
+                    context.assets.open(urlString.removePrefix("asset:///"))
+                } else {
+                    URL(urlString).openStream()
+                }
+                source.use { input ->
                     file.outputStream().use { output -> input.copyTo(output) }
                 }
                 FileProvider.getUriForFile(context, "${BuildConfig.APPLICATION_ID}.fileprovider", file)
@@ -34,7 +40,11 @@ object ReelStatusExporter {
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
             // The Aarti feed is audio-only; sharing it as video/mp4 made Android offer the
             // wrong targets. Reel status exports remain video, while Aarti sharing is audio.
-            type = if (reel.hasVideoTrack) "video/mp4" else "audio/mpeg"
+            type = when {
+                reel.hasVideoTrack -> "video/mp4"
+                reel.videoUrl?.endsWith(".m4a") == true -> "audio/mp4"
+                else -> "audio/mpeg"
+            }
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }

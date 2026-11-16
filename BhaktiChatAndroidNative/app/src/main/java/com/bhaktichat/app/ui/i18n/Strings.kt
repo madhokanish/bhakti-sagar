@@ -41,11 +41,6 @@ private val table: Map<String, Entry> = mapOf(
 
     // --- चढ़ावा / subscription screen -------------------------------------------------
     "chadhaava_title" to Entry("Chadhava", "चढ़ावा", "Chadhava"),
-    "chadhaava_headline" to Entry(
-        "Unlock all features for just ₹5",
-        "सिर्फ़ ₹5 में अनलॉक कीजिए सारे फ़ीचर्स",
-        "Unlock all features for just ₹5"
-    ),
     "chadhaava_price_amount" to Entry("₹5", "₹5", "₹5"),
     "chadhaava_price_now" to Entry("now", "अभी", "now"),
     "chadhaava_price_sub" to Entry(
@@ -65,6 +60,13 @@ private val table: Map<String, Entry> = mapOf(
     ),
     "chadhaava_plan_price" to Entry("₹199/month after 3 days", "3 दिन बाद ₹199/महीना", "₹199/month after 3 days"),
     "chadhaava_plan_starts" to Entry("Cancel anytime", "कभी भी कैंसल करें", "Cancel anytime"),
+    // Shown when the server refuses a members-only feature (divine image, voice) with 402.
+    "subscription_required_message" to Entry(
+        "Yeh चढ़ावा members ke liye hai.",
+        "यह चढ़ावा सदस्यों के लिए है।",
+        "This is for Chadhava members."
+    ),
+    "subscription_required_cta" to Entry("Member baniye", "सदस्य बनें", "Become a member"),
 
     "chadhaava_timeline_title" to Entry(
         "What happens next, clearly",
@@ -113,12 +115,12 @@ private val table: Map<String, Entry> = mapOf(
         "What you get"
     ),
     "chadhaava_benefit_voice" to Entry(
-        "Phone jaisi baatcheet",
+        "Talk like a phone call",
         "फ़ोन जैसी बातचीत",
         "Talk like a phone call"
     ),
     "chadhaava_benefit_voice_sub" to Entry(
-        "Bolkar poochhiye, turant awaaz mein jawaab paaiye",
+        "Speak your question, hear the answer right away",
         "बोलकर पूछें, तुरंत आवाज़ में जवाब पाएँ",
         "Speak your question, hear the answer right away"
     ),
@@ -128,29 +130,19 @@ private val table: Map<String, Entry> = mapOf(
         "Divine images"
     ),
     "chadhaava_benefit_image_sub" to Entry(
-        "Bhagwan ke saath apni photo banaiye",
+        "Create your photo with the deities",
         "भगवान के साथ अपनी फ़ोटो बनाएँ",
         "Create your photo with the deities"
     ),
     "chadhaava_benefit_wallpaper" to Entry(
-        "Wallpapers aur status",
+        "Wallpapers and status",
         "वॉलपेपर और स्टेटस",
         "Wallpapers and status"
     ),
     "chadhaava_benefit_wallpaper_sub" to Entry(
-        "25 wallpapers, download aur share kijiye",
+        "25 wallpapers, download and share",
         "25 वॉलपेपर, डाउनलोड और शेयर करें",
         "25 wallpapers, download and share"
-    ),
-    "chadhaava_benefit_adfree" to Entry(
-        "Ad-free experience",
-        "विज्ञापन-मुक्त अनुभव",
-        "Ad-free experience"
-    ),
-    "chadhaava_benefit_adfree_sub" to Entry(
-        "No banners, no interruptions",
-        "कोई बैनर नहीं, कोई रुकावट नहीं",
-        "No banners, no interruptions"
     ),
     "chadhaava_badge_popular" to Entry("Most popular", "सबसे लोकप्रिय", "Most popular"),
     "chadhaava_badge_here" to Entry("You stopped here", "आप यहीं रुके थे", "You stopped here"),
@@ -203,17 +195,17 @@ private val table: Map<String, Entry> = mapOf(
 
     // The one call to action on every चढ़ावा surface (see ChadhaavaPayButton).
     "chadhaava_cta_line1" to Entry(
-        "₹5 mein 3 din free shuru kijiye",
+        "Start 3 days free for ₹5",
         "₹5 में 3 दिन मुफ़्त शुरू कीजिए",
         "Start 3 days free for ₹5"
     ),
     "chadhaava_cta_line2" to Entry(
-        "₹5 turant wapas • phir ₹199/mahina • kabhi bhi cancel",
+        "₹5 back right away • then ₹199/month • cancel anytime",
         "₹5 तुरंत वापस • फिर ₹199/महीना • कभी भी कैंसल",
         "₹5 back right away • then ₹199/month • cancel anytime"
     ),
     "chadhaava_see_all_benefits" to Entry(
-        "Saare fayde dekhiye",
+        "See all benefits",
         "सारे फ़ायदे देखिए",
         "See all benefits"
     ),
@@ -221,12 +213,12 @@ private val table: Map<String, Entry> = mapOf(
     "chadhaava_link_terms" to Entry("Terms", "शर्तें", "Terms"),
 
     "chadhaava_blocked_wallpaper_title" to Entry(
-        "Yeh wallpaper Chadhava mein shaamil hai",
+        "This wallpaper is part of Chadhava",
         "यह वॉलपेपर चढ़ावा में शामिल है",
         "This wallpaper is part of Chadhava"
     ),
     "chadhaava_blocked_wallpaper_sub" to Entry(
-        "Yeh wallpaper aur 24 aur, 3 din bilkul free",
+        "This wallpaper and 24 more, free for 3 days",
         "यह वॉलपेपर और 24 अन्य, 3 दिन बिल्कुल मुफ़्त",
         "This wallpaper and 24 more, free for 3 days"
     ),
@@ -236,12 +228,12 @@ private val table: Map<String, Entry> = mapOf(
     // messages are finished" so that a future re-route cannot resurrect a claim that is no
     // longer true. Leads with voice, which is what चढ़ावा actually adds to a conversation.
     "chadhaava_blocked_chat_title" to Entry(
-        "Aaj ke 10 free sandesh poore hue",
+        "You've used today's 10 free messages",
         "आज के 10 मुफ़्त संदेश पूरे हुए",
         "You've used today's 10 free messages"
     ),
     "chadhaava_blocked_chat_sub" to Entry(
-        "Chadhava se guruon se jitni chaahein baat kijiye, 3 din bilkul free. Free sandesh kal phir milenge.",
+        "Chadhava gives you unlimited chat with the guides, free for 3 days. Free messages return tomorrow.",
         "चढ़ावा से गुरुओं से जितनी चाहें बात कीजिए, 3 दिन बिल्कुल मुफ़्त। मुफ़्त संदेश कल फिर मिलेंगे।",
         "Chadhava gives you unlimited chat with the guides, free for 3 days. Free messages return tomorrow."
     ),
@@ -249,12 +241,12 @@ private val table: Map<String, Entry> = mapOf(
     // images are a चढ़ावा feature, and the offer should say so plainly rather than imply the
     // user spent something they never had.
     "chadhaava_blocked_image_title" to Entry(
-        "Divine images Chadhava mein shaamil hain",
+        "Divine images are part of Chadhava",
         "दिव्य छवियाँ चढ़ावा में शामिल हैं",
         "Divine images are part of Chadhava"
     ),
     "chadhaava_blocked_image_sub" to Entry(
-        "Jitni chaahein divine images banaiye, 3 din bilkul free",
+        "Create as many divine images as you like, free for 3 days",
         "जितनी चाहें दिव्य छवियाँ बनाइए, 3 दिन बिल्कुल मुफ़्त",
         "Create as many divine images as you like, free for 3 days"
     ),
@@ -262,42 +254,42 @@ private val table: Map<String, Entry> = mapOf(
     // Locked-content surfaces. Copy sells continued access only — never an outcome in the
     // user's life, which is what keeps this the right side of Play's purchase policy.
     "chadhaava_blocked_reels_title" to Entry(
-        "Yeh reel Chadhava mein shaamil hai",
+        "This reel is part of Chadhava",
         "यह रील चढ़ावा में शामिल है",
         "This reel is part of Chadhava"
     ),
     "chadhaava_blocked_reels_sub" to Entry(
-        "Har reel bina rok-tok, 3 din bilkul free",
+        "Every reel without limit, free for 3 days",
         "हर रील बिना रोक-टोक, 3 दिन बिल्कुल मुफ़्त",
         "Every reel without limit, free for 3 days"
     ),
     "chadhaava_blocked_aartis_title" to Entry(
-        "Yeh aarti Chadhava mein shaamil hai",
+        "This aarti is part of Chadhava",
         "यह आरती चढ़ावा में शामिल है",
         "This aarti is part of Chadhava"
     ),
     "chadhaava_blocked_aartis_sub" to Entry(
-        "Saari 22 aartiyan jab chaahein suniye, 3 din bilkul free",
+        "All 22 aartis to play anytime, free for 3 days",
         "सभी 22 आरतियाँ जब चाहें सुनिए, 3 दिन बिल्कुल मुफ़्त",
         "All 22 aartis to play anytime, free for 3 days"
     ),
     "chadhaava_blocked_voice_title" to Entry(
-        "Awaaz mein baatcheet Chadhava mein shaamil hai",
+        "Voice conversation is part of Chadhava",
         "आवाज़ में बातचीत चढ़ावा में शामिल है",
         "Voice conversation is part of Chadhava"
     ),
     "chadhaava_blocked_voice_sub" to Entry(
-        "Guruon se bolkar baat kijiye, 3 din bilkul free",
+        "Speak with the guides out loud, free for 3 days",
         "गुरुओं से बोलकर बात कीजिए, 3 दिन बिल्कुल मुफ़्त",
         "Speak with the guides out loud, free for 3 days"
     ),
     "chadhaava_blocked_festivals_title" to Entry(
-        "Tyohaar calendar Chadhava mein shaamil hai",
+        "Festival calendar is part of Chadhava",
         "त्योहार कैलेंडर चढ़ावा में शामिल है",
         "Festival calendar is part of Chadhava"
     ),
     "chadhaava_blocked_festivals_sub" to Entry(
-        "Har tyohaar ki tithi aur vidhi, 3 din bilkul free",
+        "Every festival date and vidhi, free for 3 days",
         "हर त्योहार की तिथि और विधि, 3 दिन बिल्कुल मुफ़्त",
         "Every festival date and vidhi, free for 3 days"
     ),
@@ -308,7 +300,7 @@ private val table: Map<String, Entry> = mapOf(
         "Reels"
     ),
     "chadhaava_benefit_reels_sub" to Entry(
-        "Aseemit bhakti reels",
+        "Unlimited devotional reels",
         "असीमित भक्ति रील्स",
         "Unlimited devotional reels"
     ),
@@ -318,7 +310,7 @@ private val table: Map<String, Entry> = mapOf(
         "Aarti sangrah"
     ),
     "chadhaava_benefit_aartis_sub" to Entry(
-        "22 aartiyan, jab chaahein suniye",
+        "22 aartis, play anytime",
         "22 आरतियाँ, जब चाहें सुनिए",
         "22 aartis, play anytime"
     ),
@@ -332,7 +324,7 @@ private val table: Map<String, Entry> = mapOf(
         "Keep the conversation going"
     ),
     "chat_nudge_body" to Entry(
-        "Chadhava se khulti hai awaaz mein baatcheet, har reel aur aarti, wallpapers aur divine images. 3 din bilkul free.",
+        "Chadhava opens voice conversation, every reel and aarti, wallpapers and divine images. Free for 3 days.",
         "चढ़ावा से खुलती है आवाज़ में बातचीत, हर रील और आरती, वॉलपेपर और दिव्य छवियाँ। 3 दिन बिल्कुल मुफ़्त।",
         "Chadhava opens voice conversation, every reel and aarti, wallpapers and divine images. Free for 3 days."
     ),
@@ -350,44 +342,44 @@ private val table: Map<String, Entry> = mapOf(
     // Home-screen चढ़ावा card. Every line describes what the subscription actually contains.
     // No outcome claims — see the note in ChadhaavaBenefitsCard.kt.
     "chadhaava_card_title" to Entry(
-        "Chadhava ke laabh",
+        "Benefits of Chadhava",
         "चढ़ावा के लाभ",
         "Benefits of Chadhava"
     ),
     // Not "unlimited conversations": chat is free for everyone, and a paid card must only
     // list what चढ़ावा actually unlocks.
     "chadhaava_card_benefit_1" to Entry(
-        "Bina kisi vigyapan ke",
+        "No ads, no interruptions",
         "बिना किसी विज्ञापन के",
         "No ads, no interruptions"
     ),
     "chadhaava_card_benefit_2" to Entry(
-        "Saari 22 aartiyan, jab man chaahe",
+        "All 22 aartis, whenever you need them",
         "सभी 22 आरतियाँ, जब मन चाहे",
         "All 22 aartis, whenever you need them"
     ),
     "chadhaava_card_benefit_3" to Entry(
-        "Har reel, wallpaper aur divine image",
+        "Every reel, wallpaper and divine image",
         "हर रील, वॉलपेपर और दिव्य छवि",
         "Every reel, wallpaper and divine image"
     ),
     "chadhaava_card_benefit_4" to Entry(
-        "Phone jaisi awaaz mein baatcheet",
+        "Voice conversation, like a phone call",
         "फ़ोन जैसी आवाज़ में बातचीत",
         "Voice conversation, like a phone call"
     ),
     "chadhaava_card_footnote" to Entry(
-        "3 din bilkul free, kabhi bhi cancel kijiye",
+        "3 days free, cancel anytime",
         "3 दिन बिल्कुल मुफ़्त, कभी भी रद्द कीजिए",
         "3 days free, cancel anytime"
     ),
     "chadhaava_card_cta" to Entry(
-        "3 din bilkul free shuru kijiye",
+        "Start 3 days free",
         "3 दिन बिल्कुल मुफ़्त शुरू कीजिए",
         "Start 3 days free"
     ),
     "chadhaava_banner_line" to Entry(
-        "Aapki bhakti, har din ke saath",
+        "Your devotion, every single day",
         "आपकी भक्ति, हर दिन के साथ",
         "Your devotion, every single day"
     ),
@@ -402,17 +394,6 @@ private val table: Map<String, Entry> = mapOf(
         "अपने UPI ऐप में ₹5 के ऑटो-पे को मंज़ूरी दें, इसमें एक मिनट तक लग सकता है।",
         "Approve the ₹5 auto-pay in your UPI app, this can take up to a minute."
     ),
-    "chadhaava_processing_step1" to Entry("UPI app opened", "UPI ऐप खुला", "UPI app opened"),
-    "chadhaava_processing_step2" to Entry(
-        "Waiting for auto-pay approval",
-        "ऑटो-पे मंज़ूरी का इंतज़ार",
-        "Waiting for auto-pay approval"
-    ),
-    "chadhaava_processing_step3" to Entry(
-        "₹5 refunded · Chadhava active",
-        "₹5 वापस भेजे जाएँगे · चढ़ावा चालू",
-        "₹5 refunded · Chadhava active"
-    ),
     "chadhaava_processing_check" to Entry(
         "I've approved, check now",
         "मैंने मंज़ूरी दे दी, जाँचें",
@@ -425,7 +406,7 @@ private val table: Map<String, Entry> = mapOf(
     ),
 
     "chadhaava_error_title" to Entry(
-        "Chadhava didn't go through",
+        "The offering didn't go through",
         "चढ़ावा पूरा नहीं हुआ",
         "The offering didn't go through"
     ),
@@ -441,7 +422,7 @@ private val table: Map<String, Entry> = mapOf(
     "chadhaava_trial_remaining" to Entry("left", "बाकी", "left"),
     "chadhaava_days" to Entry("days", "दिन", "days"),
     "chadhaava_active_title" to Entry(
-        "Your Chadhava is accepted",
+        "Your offering is accepted",
         "आपका चढ़ावा स्वीकार है",
         "Your offering is accepted"
     ),
@@ -459,7 +440,7 @@ private val table: Map<String, Entry> = mapOf(
         "Keep your membership safe"
     ),
     "chadhaava_save_body" to Entry(
-        "Link Google so your चढ़ावा stays with you if you change phones or reinstall.",
+        "Link Google so your Chadhava stays with you if you change phones or reinstall.",
         "Google से जोड़ें, ताकि फ़ोन बदलने या ऐप दोबारा इंस्टॉल करने पर भी आपका चढ़ावा आपके साथ रहे।",
         "Link Google so your Chadhava stays with you if you change phones or reinstall."
     ),
@@ -477,68 +458,63 @@ private val table: Map<String, Entry> = mapOf(
     // Cancellation is a deliberate two-step confirmation now — the old one-tap cancel gave no
     // feedback, so people tapped it repeatedly, unsure it worked.
     "chadhaava_cancel_c1_title" to Entry(
-        "Membership cancel karein?", "सदस्यता कैंसल करें?", "Cancel your membership?"
+        "Cancel your membership?", "सदस्यता कैंसल करें?", "Cancel your membership?"
     ),
     "chadhaava_cancel_c1_body" to Entry(
-        "Current period khatam hone tak Pro aapke paas rahega, uske baad renew nahi hoga.",
+        "You'll keep Pro until your current period ends, then it won't renew.",
         "मौजूदा अवधि समाप्त होने तक Pro आपके पास रहेगा, उसके बाद यह रिन्यू नहीं होगा।",
         "You'll keep Pro until your current period ends, then it won't renew."
     ),
     "chadhaava_cancel_keep" to Entry(
-        "Membership rakhein", "सदस्यता रखें", "Keep membership"
+        "Keep membership", "सदस्यता रखें", "Keep membership"
     ),
-    "chadhaava_cancel_continue" to Entry("Aage badhein", "आगे बढ़ें", "Continue"),
+    "chadhaava_cancel_continue" to Entry("Continue", "आगे बढ़ें", "Continue"),
     "chadhaava_cancel_c2_title" to Entry(
-        "Kya aap poori tarah sure hain?", "क्या आप पूरी तरह निश्चित हैं?", "Are you absolutely sure?"
+        "Are you absolutely sure?", "क्या आप पूरी तरह निश्चित हैं?", "Are you absolutely sure?"
     ),
     "chadhaava_cancel_c2_body" to Entry(
-        "Yeh final hai — aapki membership renew nahi hogi aur aap free limits par wapas aa jayenge.",
+        "This is final — your membership won't renew and you'll go back to the free limits.",
         "यह अंतिम है — आपकी सदस्यता रिन्यू नहीं होगी और आप फिर से मुफ़्त सीमाओं पर आ जाएंगे।",
         "This is final — your membership won't renew and you'll go back to the free limits."
     ),
-    "chadhaava_cancel_confirm" to Entry("Haan, cancel karein", "हाँ, कैंसल करें", "Yes, cancel"),
-    "chadhaava_cancelling" to Entry("Cancel ho raha hai…", "कैंसल हो रहा है…", "Cancelling…"),
+    "chadhaava_cancel_confirm" to Entry("Yes, cancel", "हाँ, कैंसल करें", "Yes, cancel"),
+    "chadhaava_cancelling" to Entry("Cancelling…", "कैंसल हो रहा है…", "Cancelling…"),
     "chadhaava_cancel_scheduled_title" to Entry(
         "Cancellation scheduled", "कैंसिलेशन शेड्यूल हो गया", "Cancellation scheduled"
     ),
     "chadhaava_cancel_scheduled_body" to Entry(
-        "%s tak Pro aapke paas rahega, uske baad renew nahi hoga. Aage koi charge nahi.",
+        "You'll keep Pro until %s, then it won't renew. No further charges.",
         "%s तक Pro आपके पास रहेगा, उसके बाद रिन्यू नहीं होगा। आगे कोई शुल्क नहीं।",
         "You'll keep Pro until %s, then it won't renew. No further charges."
     ),
     "chadhaava_cancel_scheduled_body_nodate" to Entry(
-        "Aapki membership renew nahi hogi. Aage koi charge nahi.",
+        "Your membership won't renew. No further charges.",
         "आपकी सदस्यता रिन्यू नहीं होगी। आगे कोई शुल्क नहीं।",
         "Your membership won't renew. No further charges."
     ),
     "chadhaava_cancel_error_title" to Entry(
-        "Cancel nahi ho paya", "कैंसल नहीं हो सका", "Couldn't cancel"
+        "Couldn't cancel", "कैंसल नहीं हो सका", "Couldn't cancel"
     ),
     "chadhaava_cancel_error_body" to Entry(
-        "Kuch galat ho gaya. Kripya dobara koshish karein.",
+        "Something went wrong. Please try again.",
         "कुछ गड़बड़ हो गई। कृपया फिर से प्रयास करें।",
         "Something went wrong. Please try again."
     ),
-    "chadhaava_cancel_retry" to Entry("Dobara koshish karein", "फिर से प्रयास करें", "Try again"),
-    "chadhaava_dialog_ok" to Entry("Theek hai", "ठीक है", "OK"),
+    "chadhaava_cancel_retry" to Entry("Try again", "फिर से प्रयास करें", "Try again"),
+    "chadhaava_dialog_ok" to Entry("OK", "ठीक है", "OK"),
     // Membership promo interstitial (dismissable; CTA opens the चढ़ावा screen).
-    "promo_badge" to Entry("3 DIN FREE", "3 दिन मुफ़्त", "3 DAYS FREE"),
+    "promo_badge" to Entry("3 DAYS FREE", "3 दिन मुफ़्त", "3 DAYS FREE"),
     "promo_title" to Entry(
-        "FREE trial paayein", "मुफ़्त ट्रायल पाएं", "Get a FREE trial"
+        "Get a FREE trial", "मुफ़्त ट्रायल पाएं", "Get a FREE trial"
     ),
     // Leads with voice rather than chat: everyone gets 10 free messages a day, so voice is
     // the clearer reason to subscribe.
     "promo_subtitle" to Entry(
-        "Awaaz mein baatcheet, divine images, aartiyan, wallpapers — sab unlock.",
+        "Voice conversation, divine images, aartis, wallpapers — all unlocked.",
         "आवाज़ में बातचीत, दिव्य तस्वीरें, आरतियाँ, वॉलपेपर — सब अनलॉक।",
         "Voice conversation, divine images, aartis, wallpapers — all unlocked."
     ),
-    "promo_close" to Entry("Band karein", "बंद करें", "Close"),
-    "chadhaava_resubscribe" to Entry(
-        "Restart membership",
-        "सदस्यता फिर से शुरू करें",
-        "Restart membership"
-    ),
+    "promo_close" to Entry("Close", "बंद करें", "Close"),
     "chadhaava_loading" to Entry("One moment…", "एक पल…", "One moment…"),
 
     // Home screen
@@ -904,9 +880,6 @@ private val table: Map<String, Entry> = mapOf(
         "इस डिवाइस पर वॉलपेपर लगाने वाला कोई ऐप नहीं मिला।",
         "No wallpaper app found on this device."
     ),
-    "unable_to_create_mediastore_entry" to Entry(
-        "Unable to create MediaStore entry.", "फ़ोटो सहेजने की जगह नहीं बन सकी।", "Unable to create MediaStore entry."
-    ),
 
     // Wallpaper catalog (Wallpapers.all) — titles reuse guide_title_* translations where the
     // same deity appears, for consistency across Home/Guide Picker/Wallpapers.
@@ -988,7 +961,6 @@ private val table: Map<String, Entry> = mapOf(
     "theme_system_default" to Entry("System default", "सिस्टम डिफ़ॉल्ट", "System default"),
     "theme_light" to Entry("Light", "हल्की थीम", "Light"),
     "theme_dark" to Entry("Dark", "गहरी थीम", "Dark"),
-    "language_section_title" to Entry("Language", "भाषा", "Language"),
     "daily_reminder" to Entry("Daily reminder", "रोज़ की याद", "Daily reminder"),
     "daily_reminder_subtitle" to Entry(
         "Pick a time and BhaktiChat will gently nudge you each day.",
@@ -996,11 +968,6 @@ private val table: Map<String, Entry> = mapOf(
         "Pick a time and BhaktiChat will gently nudge you each day."
     ),
     "reminder_time" to Entry("Reminder time", "याद दिलाने का समय", "Reminder time"),
-    "language_section_subtitle" to Entry(
-        "How your guides speak, and how BhaktiChat reads throughout the app.",
-        "आपके गुरु किस भाषा में बात करें और पूरे ऐप की भाषा कैसी हो।",
-        "How your guides speak, and how BhaktiChat reads throughout the app."
-    ),
 
     // Choghadiya screen — location dialogs
     "choghadiya_enable_location_title" to Entry(
@@ -1297,11 +1264,6 @@ private val table: Map<String, Entry> = mapOf(
 
 
     // --- Auth (non-composable: resolved via LanguageStore.str) ---
-    "auth_session_expired" to Entry(
-        "Your session has expired. Please sign in again.",
-        "आपका सत्र समाप्त हो गया है। कृपया फिर से साइन इन करें।",
-        "Your session has expired. Please sign in again."
-    ),
     "auth_google_not_configured" to Entry(
         "Google sign-in is not configured yet.", "Google साइन-इन अभी कॉन्फ़िगर नहीं है।",
         "Google sign-in is not configured yet."
@@ -1360,6 +1322,7 @@ private val table: Map<String, Entry> = mapOf(
         "Sign in to continue to Chadhava"
     ),
     "auth_not_now" to Entry("Not now", "अभी नहीं", "Not now"),
+    "auth_continue_google" to Entry("Continue with Google", "Google से जारी रखें", "Continue with Google"),
 
     // --- Billing (non-composable) ---
     "billing_checkout_failed" to Entry(
@@ -1607,20 +1570,18 @@ private val table: Map<String, Entry> = mapOf(
     "chat_card_reels" to Entry("%s ki bhakti reels", "%s की भक्ति रील्स", "%s devotional reels"),
     "chat_card_festivals" to Entry("Tyohaar calendar: tithi aur vidhi", "त्योहार कैलेंडर: तिथि और विधि", "Festival calendar: dates and vidhi"),
     "chat_card_included" to Entry("Chadhava mein shaamil", "चढ़ावा में शामिल", "Included in Chadhava"),
-    "chat_card_cta" to Entry("3 din free", "3 दिन फ्री", "3 days free"),
+    "chat_card_cta" to Entry("3 days free", "3 दिन फ्री", "3 days free"),
+    "chat_card_aarti_free" to Entry("%s ki aarti suniye", "%s की आरती सुनिए", "Listen to %s's aarti"),
+    "chat_card_free_cta" to Entry("Abhi suniye", "अभी सुनिए", "Play now"),
+    "chat_card_free_note" to Entry("Aaj ek baar muft", "आज एक बार मुफ़्त", "Free once today"),
+    "chat_listen" to Entry("Suniye", "सुनिए", "Listen"),
+    "chat_listen_stop" to Entry("Rokiye", "रोकिए", "Stop"),
+    "chat_listen_call" to Entry("%s se awaaz mein baat karein", "%s से आवाज़ में बात करें", "Talk to %s out loud"),
     "chat_delete" to Entry("Chat delete kijiye", "बातचीत मिटाएँ", "Chat delete kijiye"),
     "chat_loading" to Entry("Chat load ho rahi hai…", "बातचीत लोड हो रही है…", "Chat load ho rahi hai…"),
     "chat_scroll_bottom" to Entry("Sabse neeche jaiye", "सबसे नीचे जाएँ", "Sabse neeche jaiye"),
     "chat_share_mind" to Entry("Apne mann ki baat likhiye...", "अपने मन की बात लिखें...", "Apne mann ki baat likhiye..."),
-    "chat_guru_available" to Entry("Online", "ऑनलाइन", "Online"),
-    "chat_change_guru" to Entry("Guru badliye", "गुरु बदलें", "Guru badliye"),
-    "chat_new" to Entry("Nayi chat", "नई बातचीत", "Nayi chat"),
     "chat_start_new" to Entry("Nayi chat shuru kijiye", "नई बातचीत शुरू करें", "Nayi chat shuru kijiye"),
-    "chat_more_options" to Entry("Aur options", "अधिक विकल्प", "Aur options"),
-    "chat_ask_also" to Entry("Yeh bhi poochhiye", "यह भी पूछें", "Yeh bhi poochhiye"),
-    "chat_chip_mantra" to Entry("Aaj ke liye chhota mantra bataiye", "आज के लिए छोटा मंत्र बताइए", "Aaj ke liye chhota mantra bataiye"),
-    "chat_chip_gita" to Entry("Gita ki katha se samjhaiye", "गीता की कथा से समझाइए", "Gita ki katha se samjhaiye"),
-    "chat_chip_step" to Entry("Mujhe ek practical step bataiye", "मुझे एक व्यावहारिक कदम बताइए", "Mujhe ek practical step bataiye"),
     "voice_starting" to Entry("Shuru ho raha hai...", "शुरू हो रहा है...", "Shuru ho raha hai..."),
     "voice_connecting" to Entry("Connect ho raha hai...", "जुड़ रहा है...", "Connect ho raha hai..."),
     "voice_listening" to Entry("Sun rahe hain", "सुन रहे हैं", "Sun rahe hain"),
@@ -1686,8 +1647,6 @@ private val table: Map<String, Entry> = mapOf(
     "di_needs_work" to Entry("Behtar ho sakta hai", "सुधार चाहिए", "Behtar ho sakta hai"),
     "common_cancelled" to Entry("Cancel kar diya gaya", "रद्द किया गया", "Cancel kar diya gaya"),
     "di_one_tap" to Entry("Ek tap ›", "एक टैप ›", "Ek tap ›"),
-    "chat_hindi_script_failed" to Entry("Maaf kijiye, jawaab Hindi mein taiyaar nahi ho saka. Ek baar phir poochhiye.", "क्षमा करें, उत्तर हिंदी लिपि में तैयार नहीं हो सका। कृपया एक बार फिर पूछें।", "Maaf kijiye, jawaab Hindi mein taiyaar nahi ho saka. Ek baar phir poochhiye."),
-    "chat_summary_failed" to Entry("Main abhi chhota jawaab nahi de paya. Ek baar phir likhiye.", "मैं अभी संक्षेप में उत्तर नहीं दे पाया। कृपया एक बार फिर लिखें।", "Main abhi chhota jawaab nahi de paya. Ek baar phir likhiye."),
     "chat_you" to Entry("Aap", "आप", "Aap"),
     "common_something_wrong" to Entry("Kuch gadbad hui. Phir try kijiye.", "कुछ गड़बड़ हुई। कृपया फिर प्रयास करें।", "Kuch gadbad hui. Phir try kijiye."),
     "chat_send_failed" to Entry("Message bheja nahi ja saka. Phir try kijiye.", "संदेश भेजा नहीं जा सका। कृपया फिर प्रयास करें।", "Message bheja nahi ja saka. Phir try kijiye."),
@@ -1696,32 +1655,145 @@ private val table: Map<String, Entry> = mapOf(
     "voice_call_start_failed" to Entry("Voice call shuru nahi ho saki. Phir try kijiye.", "आवाज़ से बातचीत शुरू नहीं हो सकी। कृपया फिर प्रयास करें।", "Voice call shuru nahi ho saki. Phir try kijiye."),
     "aarti" to Entry("Aarti", "आरती", "Aarti"),
     "di_made_with" to Entry("Divine Image se banaya gaya", "दिव्य छवि से निर्मित", "Divine Image se banaya gaya"),
-    "aarti_collection" to Entry("Aarti sangrah", "आरती संग्रह", "Aarti sangrah"),
-    "common_open" to Entry("Kholiye", "खोलें", "Kholiye"),
-    "common_play" to Entry("Chalaiye", "चलाएँ", "Chalaiye"),
-    "aarti_blurb" to Entry("Pavitra shikshaon se inspired, shaant chintan ke liye.", "पवित्र शिक्षाओं से प्रेरित, शांत चिंतन के लिए निर्मित।", "Pavitra shikshaon se inspired, shaant chintan ke liye."),
-    "featured_pick" to Entry("Khaas chunav", "विशेष चयन", "Khaas chunav"),
-    "see_all" to Entry("Sabhi dekhiye", "सभी देखें", "Sabhi dekhiye"),
-    "talk_now" to Entry("Baat kijiye", "बात करें", "Baat kijiye"),
-    "start_talking" to Entry("Baat shuru kijiye", "बात शुरू करें", "Baat shuru kijiye"),
-    "krishna_image_desc" to Entry("Shri Krishna ki tasveer", "श्री कृष्ण की छवि", "Shri Krishna ki tasveer"),
-    "guide_blurb_shani" to Entry("Mushkil waqt mein discipline", "कठिन समय में अनुशासन", "Mushkil waqt mein discipline"),
-    "guide_blurb_lakshmi" to Entry("Samruddhi ke liye shaant margdarshan", "समृद्धि के लिए शांत मार्गदर्शन", "Samruddhi ke liye shaant margdarshan"),
-    "guide_blurb_generic" to Entry("Sneh bhara spiritual margdarshan", "स्नेहपूर्ण आध्यात्मिक मार्गदर्शन", "Sneh bhara spiritual margdarshan"),
-    "guide_blurb_krishna" to Entry("Clarity ke liye Gita gyaan", "स्पष्टता के लिए गीता ज्ञान", "Clarity ke liye Gita gyaan"),
-    "today_guidance" to Entry("Aaj ka margdarshan", "आज का मार्गदर्शन", "Aaj ka margdarshan"),
-    "one_minute_reflection" to Entry("Ek minute ka chintan", "एक मिनट का चिंतन", "Ek minute ka chintan"),
-    "choghadiya_glance" to Entry("Choghadiya ki jhalak", "चौघड़िया की झलक", "Choghadiya ki jhalak"),
-    "common_view" to Entry("Dekhiye", "देखें", "Dekhiye"),
-    "auspicious_time" to Entry("Shubh samay", "शुभ समय", "Shubh samay"),
-    "common_voice" to Entry("Awaaz", "आवाज़", "Awaaz"),
-    "common_add" to Entry("Add", "जोड़ें", "Add"),
     "reminder_channel" to Entry("Daily chintan", "दैनिक चिंतन", "Daily chintan"),
     "reminder_channel_desc" to Entry("Chintan ke liye ek pyaara daily reminder.", "चिंतन के लिए स्नेहपूर्ण दैनिक स्मरण।", "Chintan ke liye ek pyaara daily reminder."),
     "reminder_title" to Entry("🕉️ Daily chintan ka samay", "🕉️ दैनिक चिंतन का समय", "🕉️ Daily chintan ka samay"),
     "reminder_body" to Entry("BhaktiChat ke saath kuch pal shaant bitaiye.", "BhaktiChat के साथ कुछ पल शांत होकर बिताएँ।", "BhaktiChat ke saath kuch pal shaant bitaiye."),
+
+    // --- Notifications (planned on the phone; see util/notifications) ----------------------
+    "notif_channel_morning" to Entry("Subah ka aashirwad", "सुबह का आशीर्वाद", "Morning blessing"),
+    "notif_channel_morning_desc" to Entry("Roz subah din ke devta ka aashirwad.", "रोज़ सुबह दिन के देवता का आशीर्वाद।", "A blessing each morning from the day's deity."),
+    "notif_channel_aarti" to Entry("Aarti", "आरती", "Aarti"),
+    "notif_channel_aarti_desc" to Entry("Shaam 7 baje sandhya aarti ka samay.", "शाम 7 बजे संध्या आरती का समय।", "Evening aarti time at 7 pm."),
+    "notif_channel_guide" to Entry("Guide ke sandesh", "मार्गदर्शक के संदेश", "Messages from your guide"),
+    "notif_channel_guide_desc" to Entry("Jab aapki baat adhoori reh jaaye.", "जब आपकी बात अधूरी रह जाए।", "When your conversation was left unfinished."),
+    "notif_aarti_body" to Entry(
+        "🪔 Aarti ka samay ho gaya. %s ki aarti aapka intezaar kar rahi hai.",
+        "🪔 आरती का समय हो गया। %s की आरती आपका इंतज़ार कर रही है।",
+        "🪔 It's aarti time. %s's aarti is waiting for you."
+    ),
+    "notif_aarti_action" to Entry("▶ Aarti suniye", "▶ आरती सुनिए", "▶ Play aarti"),
+    "notif_preprompt_chat" to Entry(
+        "Kya %s aapko roz subah ek aashirwad bhejein? 🙏",
+        "क्या %s आपको रोज़ सुबह एक आशीर्वाद भेजें? 🙏",
+        "Would you like %s to send you a blessing every morning? 🙏"
+    ),
+    "notif_preprompt_aarti" to Entry(
+        "Roz shaam 7 baje aarti ke samay yaad dilaayein? 🪔",
+        "क्या रोज़ शाम 7 बजे आरती के समय याद दिलाएँ? 🪔",
+        "Shall we remind you at aarti time, 7 pm every evening? 🪔"
+    ),
+    "notif_preprompt_note" to Entry(
+        "Din mein zyada se zyada 2 sandesh. Profile mein kabhi bhi band kar sakte hain.",
+        "दिन में ज़्यादा से ज़्यादा 2 संदेश। प्रोफ़ाइल में कभी भी बंद कर सकते हैं।",
+        "At most 2 a day. You can turn them off in Profile anytime."
+    ),
+    "notif_preprompt_yes" to Entry("Haan, bhejiye", "हाँ, भेजिए", "Yes, please"),
+    "notif_preprompt_no" to Entry("Abhi nahi", "अभी नहीं", "Not now"),
+
+    // Morning blessings: Mon Shiv Ji, Tue Hanuman Ji, Wed/Thu Shri Krishna, Fri Lakshmi Ji,
+    // Sat Shani Dev, Sun the user's own guide. One line a day, rotating, so none repeats soon.
+    "notif_morning_shiv_1" to Entry(
+        "Om Namah Shivay 🔱 Aaj ka din aapke liye shaant rahe. Bhole aapke saath hain.",
+        "ॐ नमः शिवाय 🔱 आज का दिन आपके लिए शांत रहे। भोले आपके साथ हैं।",
+        "Om Namah Shivay 🔱 May today be peaceful for you. Bhole is with you."
+    ),
+    "notif_morning_shiv_2" to Entry(
+        "Har Har Mahadev 🔱 Jo badal nahi sakte, use chhod dijiye. Mann halka rahega.",
+        "हर हर महादेव 🔱 जो बदल नहीं सकते, उसे छोड़ दीजिए। मन हल्का रहेगा।",
+        "Har Har Mahadev 🔱 Let go of what you cannot change. Your mind will feel lighter."
+    ),
+    "notif_morning_shiv_3" to Entry(
+        "Om Namah Shivay 🔱 Aaj ek pal aankhein band karke saans par dhyaan dijiye.",
+        "ॐ नमः शिवाय 🔱 आज एक पल आँखें बंद करके साँस पर ध्यान दीजिए।",
+        "Om Namah Shivay 🔱 Close your eyes for a moment today and notice your breath."
+    ),
+    "notif_morning_shiv_4" to Entry(
+        "Bhole ka aashirwad 🔱 Gussa aaye to ruk jaana. Shaanti mein hi shakti hai.",
+        "भोले का आशीर्वाद 🔱 क्रोध आए तो रुक जाइए। शांति में ही शक्ति है।",
+        "Bhole's blessing 🔱 If anger comes, pause. There is strength in calm."
+    ),
+    "notif_morning_hanuman_1" to Entry(
+        "Jai Bajrangbali 🚩 Aaj jo bhi dar ho, mujhe bata dena.",
+        "जय बजरंगबली 🚩 आज जो भी डर हो, मुझे बता देना।",
+        "Jai Bajrangbali 🚩 Whatever you fear today, tell me."
+    ),
+    "notif_morning_hanuman_2" to Entry(
+        "Jai Shri Ram 🚩 Himmat rakhiye. Aaj ka kaam mann lagaakar kijiye.",
+        "जय श्री राम 🚩 हिम्मत रखिए। आज का काम मन लगाकर कीजिए।",
+        "Jai Shri Ram 🚩 Keep your courage. Give today's work your whole heart."
+    ),
+    "notif_morning_hanuman_3" to Entry(
+        "Bajrangbali ka aashirwad 🚩 Sankat jitna bhi bada ho, aap usse bade hain.",
+        "बजरंगबली का आशीर्वाद 🚩 संकट कितना भी बड़ा हो, आप उससे बड़े हैं।",
+        "Bajrangbali's blessing 🚩 However big the trouble, you are bigger."
+    ),
+    "notif_morning_hanuman_4" to Entry(
+        "Jai Bajrangbali 🚩 Aaj kisi ki madad zaroor kijiye. Seva hi bhakti hai.",
+        "जय बजरंगबली 🚩 आज किसी की मदद ज़रूर कीजिए। सेवा ही भक्ति है।",
+        "Jai Bajrangbali 🚩 Help someone today. Service is devotion."
+    ),
+    "notif_morning_krishna_1" to Entry(
+        "Radhe Radhe 🦚 Aaj mann halka rakhna. Main yahin hoon.",
+        "राधे राधे 🦚 आज मन हल्का रखना। मैं यहीं हूँ।",
+        "Radhe Radhe 🦚 Keep your heart light today. I am right here."
+    ),
+    "notif_morning_krishna_2" to Entry(
+        "Aaj ka aashirwad 🙏 Aaj ek accha kaam zaroor karna.",
+        "आज का आशीर्वाद 🙏 आज एक अच्छा काम ज़रूर करना।",
+        "Today's blessing 🙏 Do one good deed today."
+    ),
+    "notif_morning_krishna_3" to Entry(
+        "Radhe Radhe 🦚 Karm kijiye, phal ki chinta mujh par chhod dijiye.",
+        "राधे राधे 🦚 कर्म कीजिए, फल की चिंता मुझ पर छोड़ दीजिए।",
+        "Radhe Radhe 🦚 Do your work, and leave the worry about results to me."
+    ),
+    "notif_morning_krishna_4" to Entry(
+        "Jai Shri Krishna 🦚 Aaj muskura kar shuru kijiye. Baaki main sambhaal loonga.",
+        "जय श्री कृष्ण 🦚 आज मुस्कुराकर शुरू कीजिए। बाकी मैं संभाल लूँगा।",
+        "Jai Shri Krishna 🦚 Start today with a smile. I'll take care of the rest."
+    ),
+    "notif_morning_lakshmi_1" to Entry(
+        "Shubh prabhaat 🪷 Ghar mein sukh-samriddhi bani rahe.",
+        "शुभ प्रभात 🪷 घर में सुख-समृद्धि बनी रहे।",
+        "Good morning 🪷 May your home stay happy and prosperous."
+    ),
+    "notif_morning_lakshmi_2" to Entry(
+        "Jai Maa Lakshmi 🪷 Aaj jo hai uske liye dhanyavaad kahiye. Wahi aur laata hai.",
+        "जय माँ लक्ष्मी 🪷 आज जो है उसके लिए धन्यवाद कहिए। वही और लाता है।",
+        "Jai Maa Lakshmi 🪷 Give thanks today for what you have. Gratitude brings more."
+    ),
+    "notif_morning_lakshmi_3" to Entry(
+        "Jai Maa Lakshmi 🪷 Ghar mein ek diya jalaiye. Roshni ke saath shubh aata hai.",
+        "जय माँ लक्ष्मी 🪷 घर में एक दीया जलाइए। रोशनी के साथ शुभ आता है।",
+        "Jai Maa Lakshmi 🪷 Light a diya at home. Good things come with light."
+    ),
+    "notif_morning_lakshmi_4" to Entry(
+        "Jai Maa Lakshmi 🪷 Chinta mat kijiye. Mehnat ka phal zaroor milega.",
+        "जय माँ लक्ष्मी 🪷 चिंता मत कीजिए। मेहनत का फल ज़रूर मिलेगा।",
+        "Jai Maa Lakshmi 🪷 Don't worry. Honest effort is always rewarded."
+    ),
+    "notif_morning_shani_1" to Entry(
+        "Shani Dev ka sandesh 🪔 Aaj dhairya rakhein, mehnat ka phal milega.",
+        "शनि देव का संदेश 🪔 आज धैर्य रखें, मेहनत का फल मिलेगा।",
+        "A message from Shani Dev 🪔 Be patient today; your effort will bear fruit."
+    ),
+    "notif_morning_shani_2" to Entry(
+        "Shani Dev ka aashirwad 🪔 Sach ka saath dijiye. Wahi raasta saaf karta hai.",
+        "शनि देव का आशीर्वाद 🪔 सच का साथ दीजिए। वही रास्ता साफ़ करता है।",
+        "Shani Dev's blessing 🪔 Stand by the truth. It is what clears the path."
+    ),
+    "notif_morning_shani_3" to Entry(
+        "Shani Dev ka sandesh 🪔 Aaj kisi zarooratmand ko kuch dijiye. Karm laut kar aata hai.",
+        "शनि देव का संदेश 🪔 आज किसी ज़रूरतमंद को कुछ दीजिए। कर्म लौटकर आता है।",
+        "A message from Shani Dev 🪔 Give something to someone in need today. Karma returns."
+    ),
+    "notif_morning_shani_4" to Entry(
+        "Jai Shani Dev 🪔 Deri ka matlab inkaar nahi. Apna kaam kijiye, samay aayega.",
+        "जय शनि देव 🪔 देरी का मतलब इनकार नहीं। अपना काम कीजिए, समय आएगा।",
+        "Jai Shani Dev 🪔 A delay is not a no. Keep at your work; your time will come."
+    ),
     "voice_mic_unavailable" to Entry("Microphone available nahi hai. Baat phir shuru kijiye.", "माइक्रोफ़ोन उपलब्ध नहीं है। कृपया बातचीत फिर शुरू करें।", "Microphone available nahi hai. Baat phir shuru kijiye."),
-    "sub_service_error" to Entry("Membership service mein dikkat (%1\$s).", "सदस्यता सेवा में समस्या (\${response.code})।", "Membership service mein dikkat (%1\$s)."),
     "please_sign_in" to Entry("Pehle sign in kijiye.", "कृपया पहले साइन इन करें।", "Pehle sign in kijiye."),
     "voice_not_heard" to Entry("Aapki awaaz sunai nahi de rahi, microphone shaant lag raha hai. ", "आपकी आवाज़ सुनाई नहीं दे रही है, माइक्रोफ़ोन शांत लग रहा है। ", "Aapki awaaz sunai nahi de rahi, microphone shaant lag raha hai. "),
     "voice_try_bluetooth" to Entry("Bluetooth hata kar ya baat phir shuru karke dekhiye.", "ब्लूटूथ हटाकर या बातचीत फिर शुरू करके देखें।", "Bluetooth hata kar ya baat phir shuru karke dekhiye."),
@@ -1841,7 +1913,6 @@ private val toneWords: Map<String, Entry> = mapOf(
     "auspicious" to Entry("auspicious", "शुभ", "auspicious"),
     "neutral" to Entry("neutral", "सामान्य", "neutral"),
     "caution" to Entry("caution", "सावधानी", "caution"),
-    "tone_neutral_fallback" to Entry("neutral", "सामान्य", "neutral")
 )
 
 private fun Entry.forLanguage(language: AppLanguage): String = when (language) {
@@ -1869,7 +1940,7 @@ fun translate(key: String, language: AppLanguage): String {
 }
 
 fun translateTone(key: String, language: AppLanguage): String =
-    toneWords[key]?.forLanguage(language) ?: translate("tone_neutral_fallback", language)
+    (toneWords[key] ?: toneWords.getValue("neutral")).forLanguage(language)
 
 /**
  * The in-composition translator. Reads [LocalAppLanguage], so every call site recomposes
@@ -1878,10 +1949,6 @@ fun translateTone(key: String, language: AppLanguage): String =
 @Composable
 @ReadOnlyComposable
 fun t(key: String): String = translate(key, LocalAppLanguage.current)
-
-@Composable
-@ReadOnlyComposable
-fun tTone(key: String): String = translateTone(key, LocalAppLanguage.current)
 
 /**
  * Shorthand for the many non-composable call sites (repositories, managers, ViewModels)

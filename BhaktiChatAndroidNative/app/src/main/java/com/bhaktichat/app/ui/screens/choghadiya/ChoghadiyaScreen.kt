@@ -393,7 +393,7 @@ private fun HeroSummaryCard(uiState: ChoghadiyaUiState) {
     val current = uiState.currentKaal
     val tone = current?.tone ?: KaalTone.NEUTRAL
     val colors = heroGradientFor(tone)
-    val icon = iconFor(current?.displayLabel.orEmpty())
+    val icon = iconFor(current?.baseLabel.orEmpty())
 
     Card(
         shape = RoundedCornerShape(24.dp),
@@ -723,7 +723,7 @@ private fun TimelineRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        imageVector = iconFor(item.title),
+                        imageVector = iconFor(item.baseLabel),
                         contentDescription = item.title,
                         tint = accent
                     )

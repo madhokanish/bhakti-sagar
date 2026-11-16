@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.bhaktichat.app.data.repo.ChoghadiyaDayData
 import com.bhaktichat.app.data.repo.ChoghadiyaRepository
+import com.bhaktichat.app.domain.AppLanguage
 import com.bhaktichat.app.domain.ChoghadiyaCities
 import com.bhaktichat.app.domain.ChoghadiyaCity
 import com.bhaktichat.app.domain.ChoghadiyaSlot
@@ -42,6 +43,8 @@ fun kaalToneFor(baseLabel: String): KaalTone = when (baseLabel) {
 
 data class CurrentKaalUi(
     val displayLabel: String,
+    /** Untranslated slot name ("Amrit", "Shubh", …) — for icon lookup, not display. */
+    val baseLabel: String,
     val timeRange: String,
     val guidanceKey: String,
     val tone: KaalTone,
@@ -59,6 +62,8 @@ data class NextGoodKaalUi(
 data class TimelineItemUi(
     val id: String,
     val title: String,
+    /** Untranslated slot name ("Amrit", "Shubh", …) — for icon lookup, not display. */
+    val baseLabel: String,
     val timeRange: String,
     val meaningKey: String,
     val tone: KaalTone,
@@ -166,6 +171,11 @@ class ChoghadiyaViewModel(
     private fun startTicker() {
         viewModelScope.launch {
             while (isActive) {
+                // The loaded cycle ends at the next sunrise; fetch the new day once it's over.
+                val cycleEnd = latestDayData?.slots?.lastOrNull()?.endEpochMillis
+                if (cycleEnd != null && System.currentTimeMillis() >= cycleEnd && loadJob?.isActive != true) {
+                    loadForSelectedCity()
+                }
                 publishState()
                 delay(millisUntilNextMinute())
             }
@@ -197,6 +207,7 @@ class ChoghadiyaViewModel(
             TimelineItemUi(
                 id = "${slot.label}_${slot.startEpochMillis}",
                 title = slot.displayLabel(languageStore.language.value),
+                baseLabel = slot.baseLabel,
                 timeRange = translate("chogh_time_range", languageStore.language.value).format(slot.start, slot.end),
                 meaningKey = timelineMeaningKey(slot),
                 tone = toneFor(slot),
@@ -219,10 +230,14 @@ class ChoghadiyaViewModel(
             sunset = dayData?.sunset ?: "--",
             nextSunrise = dayData?.nextSunrise ?: "--",
             todayLabel = LocalDate.now(ZoneId.of(selectedCity.tz))
-                .format(DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.forLanguageTag("hi-IN"))),
+                .format(DateTimeFormatter.ofPattern("EEEE, d MMMM", dateLocale())),
             isCitySheetOpen = isCitySheetOpen
         )
     }
+
+    private fun dateLocale(): Locale = Locale.forLanguageTag(
+        if (languageStore.language.value == AppLanguage.HINDI) "hi-IN" else "en-IN"
+    )
 
     private fun filterCities(query: String): List<ChoghadiyaCity> {
         if (query.isBlank()) return ChoghadiyaCities.all
@@ -236,6 +251,7 @@ class ChoghadiyaViewModel(
         val elapsed = (now - startEpochMillis).coerceAtLeast(0L).coerceAtMost(totalDuration)
         return CurrentKaalUi(
             displayLabel = displayLabel(languageStore.language.value),
+            baseLabel = baseLabel,
             timeRange = translate("chogh_time_range", languageStore.language.value).format(start, end),
             guidanceKey = currentGuidanceKey(this),
             tone = toneFor(this),

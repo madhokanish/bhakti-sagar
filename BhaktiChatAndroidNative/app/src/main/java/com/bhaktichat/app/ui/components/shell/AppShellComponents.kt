@@ -28,15 +28,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.KeyboardVoice
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -48,12 +40,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.bhaktichat.app.ui.navigation.BottomNavItem
@@ -101,7 +91,8 @@ fun AppTopBar(
     }
 }
 
-// ProPillButton ("Get Pro" / "Try Pro free" / "PRO") removed — ad-based model, no paywall.
+// ProPillButton ("Get Pro" / "Try Pro free" / "PRO") removed — upgrades start from the
+// चढ़ावा tab or a feature gate's quick-checkout sheet instead.
 
 @Composable
 fun SectionHeaderRow(
@@ -127,264 +118,6 @@ fun SectionHeaderRow(
                 modifier = Modifier.clickable(onClick = onActionClick)
             )
         }
-    }
-}
-
-@Composable
-fun SegmentedControl(
-    options: List<String>,
-    selectedIndex: Int,
-    modifier: Modifier = Modifier,
-    onSelect: (Int) -> Unit
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, BhaktiThemeTokens.BorderSubtle)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(4.dp)
-        ) {
-            options.forEachIndexed { index, option ->
-                val selected = index == selectedIndex
-                Surface(
-                    modifier = Modifier.weight(1f),
-                    color = if (selected) {
-                        BhaktiThemeTokens.AccentPrimary.copy(alpha = 0.12f)
-                    } else {
-                        Color.Transparent
-                    },
-                    shape = RoundedCornerShape(14.dp),
-                    onClick = { onSelect(index) }
-                ) {
-                    Box(
-                        modifier = Modifier.padding(vertical = 10.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = option,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (selected) {
-                                BhaktiThemeTokens.AccentPrimary
-                            } else {
-                                BhaktiThemeTokens.TextSecondary
-                            },
-                            maxLines = 1
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun PersistentInputBar(
-    value: String,
-    modifier: Modifier = Modifier,
-    placeholder: String = "Type your message…",
-    readOnly: Boolean = false,
-    onValueChange: (String) -> Unit,
-    onPrimaryAction: () -> Unit,
-    onTap: (() -> Unit)? = null,
-    onAttachClick: () -> Unit = {},
-    onMicClick: () -> Unit = {}
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, BhaktiThemeTokens.BorderSubtle)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            IconButton(
-                onClick = onAttachClick
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = t("common_add"),
-                    tint = BhaktiThemeTokens.TextSecondary,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            if (readOnly) {
-                Text(
-                    text = value.ifBlank { placeholder },
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (value.isBlank()) BhaktiThemeTokens.TextTertiary else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { onTap?.invoke() }
-                )
-            } else {
-                BasicTextField(
-                    value = value,
-                    onValueChange = onValueChange,
-                    modifier = Modifier.weight(1f),
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(onSend = { onPrimaryAction() }),
-                    decorationBox = { innerTextField ->
-                        if (value.isBlank()) {
-                            Text(
-                                text = placeholder,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = BhaktiThemeTokens.TextTertiary
-                            )
-                        }
-                        innerTextField()
-                    }
-                )
-            }
-
-            InputActionCircle(
-                onClick = onMicClick,
-                contentDescription = t("common_voice"),
-                shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.KeyboardVoice,
-                    contentDescription = null,
-                    tint = BhaktiThemeTokens.TextSecondary
-                )
-            }
-            InputActionCircle(
-                onClick = onPrimaryAction,
-                contentDescription = t("chat_send"),
-                shape = CircleShape,
-                containerColor = BhaktiThemeTokens.AccentPrimary
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Send,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun InputActionCircle(
-    onClick: () -> Unit,
-    contentDescription: String,
-    shape: Shape,
-    containerColor: Color,
-    content: @Composable RowScope.() -> Unit
-) {
-    // Outer 48dp box provides Material-spec touch target; inner Surface keeps the 36dp visual circle.
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Surface(
-            modifier = Modifier.size(36.dp),
-            shape = shape,
-            color = containerColor
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-                content = content
-            )
-        }
-    }
-}
-
-@Composable
-fun GuideAvatarItem(
-    title: String,
-    imageRes: Int?,
-    fallbackLetter: String,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    badgeLabel: String? = null,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = modifier
-            .width(104.dp)
-            .clickable(enabled = enabled, onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Box {
-            // Image fills the full circle; border sits ON the image edge as
-            // an overlay rather than around an inset image, so there's no
-            // visible "framed" gap around the artwork.
-            Surface(
-                modifier = Modifier.size(64.dp),
-                shape = CircleShape,
-                color = Color.Transparent,
-                border = BorderStroke(
-                    1.dp,
-                    if (enabled) {
-                        BhaktiThemeTokens.BorderSubtle.copy(alpha = 0.5f)
-                    } else {
-                        BhaktiThemeTokens.BorderSubtle
-                    }
-                )
-            ) {
-                if (imageRes != null) {
-                    Image(
-                        painter = painterResource(id = imageRes),
-                        contentDescription = title,
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop,
-                        alpha = if (enabled) 1f else 0.6f
-                    )
-                } else {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = fallbackLetter,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
-            if (!badgeLabel.isNullOrBlank()) {
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 2.dp),
-                    shape = RoundedCornerShape(999.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    border = BorderStroke(1.dp, BhaktiThemeTokens.BorderSubtle)
-                ) {
-                    Text(
-                        text = badgeLabel,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodySmall,
-            color = if (enabled) MaterialTheme.colorScheme.onBackground else BhaktiThemeTokens.TextSecondary,
-            maxLines = 2
-        )
     }
 }
 
@@ -706,7 +439,7 @@ private fun isBottomNavSelected(item: BottomNavItem, currentRoute: String): Bool
                 currentRoute.startsWith("thread/")
         }
         // Explore is the hub for everything ancillary — Aartis, Choghadiya, Festivals,
-        // Panchang, and the Divine Image flow all select the Explore tab.
+        // Panchang, Wallpapers and the Divine Image flow all select the Explore tab.
         NavDestinations.EXPLORE -> {
             currentRoute == NavDestinations.EXPLORE ||
                 currentRoute == NavDestinations.AARTIS ||
@@ -714,6 +447,8 @@ private fun isBottomNavSelected(item: BottomNavItem, currentRoute: String): Bool
                 currentRoute == NavDestinations.CHOGHADIYA ||
                 currentRoute == NavDestinations.FESTIVALS ||
                 currentRoute == NavDestinations.PANCHANG ||
+                currentRoute == NavDestinations.WALLPAPERS ||
+                currentRoute.startsWith("wallpaper/") ||
                 currentRoute.startsWith(NavDestinations.DIVINE_IMAGE_ROUTE_PREFIX)
         }
         else -> currentRoute.startsWith(item.route)

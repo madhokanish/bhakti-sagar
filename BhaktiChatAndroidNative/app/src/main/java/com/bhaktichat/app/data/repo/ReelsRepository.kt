@@ -8,13 +8,17 @@ import com.bhaktichat.app.domain.ReelFeed
 import com.bhaktichat.app.ui.screens.aartis.components.aartiImageRes
 
 /** Devotional video feed — mirrors iOS's ReelsRepository. The `top` clips are the user's own
- * uploaded videos, streamed from the same CDN the web app serves them from (no bundled video
- * assets on Android either); `aartis` projects the existing aarti library into Reels shape. */
+ * uploaded videos, streamed from the same CDN the web app serves them from, except the few in
+ * [bundledSlugs] that ship in the app for free users; `aartis` projects the existing aarti library into Reels shape. */
 class ReelsRepository(
     private val context: Context,
     private val aartiRepository: AartiRepository
 ) {
     private val mediaBaseUrl = "https://bhaktichat.com/reels"
+
+    // Shipped inside the app (assets/reels) so free users can watch them without streaming:
+    // one each for Krishna, Mahadev and Hanuman, all under 2 MB.
+    private val bundledSlugs = setOf("stare-five-seconds-krishna", "mahadev-sabko-bhula", "hanuman-ji-animation")
 
     private val topReels: List<Reel> = listOf(
         reel(
@@ -173,7 +177,7 @@ class ReelsRepository(
         audioTitle = "",
         durationSeconds = durationSeconds,
         likeCount = likeCount,
-        videoUrl = "$mediaBaseUrl/$slug.mp4",
+        videoUrl = if (slug in bundledSlugs) "asset:///reels/$slug.mp4" else "$mediaBaseUrl/$slug.mp4",
         hasVideoTrack = true,
         posterRes = posterRes,
         feed = ReelFeed.TOP

@@ -446,6 +446,8 @@ Keep responses respectful, concise, and mobile-friendly.
 }
 
 object ChatTurnProcessor {
+    private const val STREAM_UPDATE_INTERVAL_MS = 250L
+
     suspend fun generateReply(
         threadId: String,
         guide: Guide,
@@ -454,8 +456,8 @@ object ChatTurnProcessor {
         currentState: ChatConversationState,
         remoteConversationId: String?,
         chatApiClient: ChatApiClient,
-        // Sign-in is mandatory now, so the guide can address the user by name. Blank falls
-        // back to AddressingEngine's devotional tokens (priye / vatsa / karmayogi).
+        // Signed-in users are addressed by name. Blank (guests, or no name on the account)
+        // falls back to AddressingEngine's devotional tokens (priye / vatsa / karmayogi).
         userFirstName: String = "",
         // The language the user actually picked. It is the fallback when a message carries no
         // script signal of its own, so "ok" or an emoji no longer forces Devanagari on someone
@@ -491,11 +493,22 @@ object ChatTurnProcessor {
             firstName = ""
         )
 
-        val streamCallback = if (messageContext.detectedLanguage == ConversationLanguage.HINDI) {
-            null
-        } else {
-            onToken
-        }
+        // Every token used to be a Room write and a full chat-list recomposition. A few
+        // updates a second still reads as live; the first token goes through at once, and
+        // callers write the finished reply themselves, so nothing is lost at the end.
+        var lastStreamedAt = 0L
+        val streamCallback: (suspend (String) -> Unit)? =
+            if (messageContext.detectedLanguage == ConversationLanguage.HINDI || onToken == null) {
+                null
+            } else {
+                { streamed ->
+                    val now = System.currentTimeMillis()
+                    if (now - lastStreamedAt >= STREAM_UPDATE_INTERVAL_MS) {
+                        lastStreamedAt = now
+                        onToken(streamed)
+                    }
+                }
+            }
 
         return chatApiClient.sendMessage(
             ChatApiClientRequest(

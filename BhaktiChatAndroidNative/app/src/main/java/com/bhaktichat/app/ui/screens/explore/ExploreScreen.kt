@@ -61,12 +61,6 @@ object ExplorePalette {
     val TextSecondary = Color(0xFF8A6F5C)
     val TextMuted = Color(0xFFBDA491)
     val DeepAccent = Color(0xFFC2410C)
-    val Accent = Color(0xFFEA580C)
-    val GradStart = Color(0xFFFB923C)
-    val GradEnd = Color(0xFFEA580C)
-    val Success = Color(0xFF57A075)
-    val Warn = Color(0xFFD97706)
-    val Avoid = Color(0xFFDC2626)
 
     // Service icon-tile gradients
     val AartiGrad = listOf(Color(0xFFFCA5A5), Color(0xFFDC2626))

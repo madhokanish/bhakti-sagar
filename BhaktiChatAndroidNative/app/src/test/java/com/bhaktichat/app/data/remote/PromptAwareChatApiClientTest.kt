@@ -15,15 +15,6 @@ class PromptAwareChatApiClientTest {
     fun retriesWithoutPromptFieldsWhenPrimaryAttemptFails() = runBlocking {
         val observedRequests = mutableListOf<SendChatRequest>()
         val api = object : ChatApi {
-            override suspend fun loadConversation(
-                guideId: String,
-                conversationId: String?,
-                forceNewConversation: Boolean,
-                chatLang: String
-            ): LoadConversationResult {
-                error("Not used in this test")
-            }
-
             override fun streamChat(request: SendChatRequest): Flow<StreamEvent> = flow {
                 observedRequests += request
                 if (observedRequests.size == 1) {
@@ -75,15 +66,6 @@ class PromptAwareChatApiClientTest {
     fun sendsPlainRequestForHanumanGuide() = runBlocking {
         val observedRequests = mutableListOf<SendChatRequest>()
         val api = object : ChatApi {
-            override suspend fun loadConversation(
-                guideId: String,
-                conversationId: String?,
-                forceNewConversation: Boolean,
-                chatLang: String
-            ): LoadConversationResult {
-                error("Not used in this test")
-            }
-
             override fun streamChat(request: SendChatRequest): Flow<StreamEvent> = flow {
                 observedRequests += request
                 emit(StreamEvent.ConversationId("hanuman-conversation"))

@@ -61,8 +61,19 @@ class AartiSpeechPlayer(
         }
     }
 
-    fun speak(text: String) {
+    /**
+     * Also reads guide replies aloud in chat. [locale] switches voice for that reply (Hinglish
+     * is Latin script, which a hi-IN voice spells out badly, so chat passes en-IN for it), and
+     * [pitch] gives each guide a slightly different voice. Both are free: it is the phone's
+     * own speech engine, with no network call.
+     */
+    fun speak(text: String, locale: Locale? = null, pitch: Float = 1f) {
         if (!isReady || text.isBlank()) return
+        if (locale != null) {
+            val available = tts?.isLanguageAvailable(locale) ?: TextToSpeech.LANG_NOT_SUPPORTED
+            if (available >= TextToSpeech.LANG_AVAILABLE) tts?.language = locale
+        }
+        tts?.setPitch(pitch)
         val params = Bundle()
         _isSpeaking.value = true
         tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, UTTERANCE_ID)

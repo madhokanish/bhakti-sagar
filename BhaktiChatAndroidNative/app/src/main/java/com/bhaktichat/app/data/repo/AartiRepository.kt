@@ -42,13 +42,8 @@ class AartiRepository(private val context: Context,
                     val isTop = item.optBoolean("isTop", false)
 
                     val lyricsObj = item.optJSONObject("lyrics")
-                    val englishLyrics = lyricsObj.optStringArray("english")
-                    val hindiLyrics = lyricsObj.optStringArray("hindi")
-                    val selectedLyrics = when {
-                        hindiLyrics.isNotEmpty() -> hindiLyrics
-                        englishLyrics.isNotEmpty() -> emptyList()
-                        else -> emptyList()
-                    }
+                    // Only the Devanagari lyrics are shown; the romanised set is not used yet.
+                    val selectedLyrics = lyricsObj.optStringArray("hindi")
 
                     val rawTags = item.optStringArray("tags")
                     val deity = resolveDeity(
@@ -89,7 +84,8 @@ class AartiRepository(private val context: Context,
                             Deity.OTHER -> Unit
                         }
 
-                        if (displayTitle.contains("vrat", ignoreCase = true) || rawTags.any {
+                        // The English title: the displayed one is Devanagari and can't match.
+                        if (catalogTitle.contains("vrat", ignoreCase = true) || rawTags.any {
                                 it.contains("ekadashi", ignoreCase = true) || it.contains("vrat", ignoreCase = true)
                             }
                         ) {
@@ -109,7 +105,10 @@ class AartiRepository(private val context: Context,
                             ?: estimateDurationMinutes(selectedLyrics),
                         tags = tags,
                         youtubeVideoId = extractYouTubeVideoId(item.optStringOrNull("youtubeUrl")),
-                        audioUrl = item.optStringOrNull("audioUrl"),
+                        // The 5 guide aartis ship inside the app and play from there, for
+                        // everyone; only subscribers ever stream the rest from bhaktichat.com.
+                        audioUrl = item.optStringOrNull("bundledAudio")?.let { "asset:///$it" }
+                            ?: item.optStringOrNull("audioUrl"),
                         popularityCount = item.optLong("popularityCount").takeIf { it > 0L },
                         isTop = isTop,
                         lyrics = selectedLyrics,

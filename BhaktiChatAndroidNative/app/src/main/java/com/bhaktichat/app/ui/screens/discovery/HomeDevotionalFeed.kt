@@ -42,6 +42,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,10 +58,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -102,7 +107,9 @@ internal fun buildHomeFeedBatch(
     batchNumber: Int
 ): List<HomeFeedEntry> {
     if (videoReels.isEmpty()) return emptyList()
-    val videos = videoReels.shuffled()
+    // Reels that can play lead each batch, so a free user's feed opens on the bundled ones
+    // rather than on a still poster. For subscribers every reel plays, so this is a shuffle.
+    val videos = videoReels.shuffled().sortedByDescending { !it.videoUrl.isNullOrBlank() }
     val aartis = aartiReels.shuffled()
     var videoIndex = 0
     var aartiIndex = 0
@@ -162,6 +169,23 @@ internal fun rememberHomeFeedPlayback(
         onDispose { player.release() }
     }
 
+    // Pause when the app goes to the background (ON_STOP); resume on return only if a post is
+    // still active. Mirrors ChadhaavaScreen's HeroVideo.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val currentActiveEntry by rememberUpdatedState(activeEntry)
+    DisposableEffect(lifecycleOwner, player) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START ->
+                    if (!currentActiveEntry?.reel?.videoUrl.isNullOrBlank()) player.play()
+                Lifecycle.Event.ON_STOP -> player.pause()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     LaunchedEffect(isMuted) {
         player.volume = if (isMuted) 0f else 1f
     }
@@ -199,6 +223,7 @@ internal fun rememberHomeFeedPlayback(
     return HomeFeedPlayback(player = player, progress = progress)
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 internal fun HomeDevotionalFeedPost(
     entry: HomeFeedEntry,
@@ -287,7 +312,8 @@ internal fun HomeDevotionalFeedPost(
             // Gated posts autoplay too. What plays here is a short clipped preview, not the
             // full reel, so it teases rather than gives the content away — and a feed where
             // most tiles sit frozen is a feed people scroll past.
-            if (isActive && entry.reel.hasVideoTrack) {
+            // No media (a free user's non-bundled reel): stay on the poster, no player.
+            if (isActive && entry.reel.hasVideoTrack && !entry.reel.videoUrl.isNullOrBlank()) {
                 AndroidView(
                     factory = { ctx ->
                         PlayerView(ctx).apply {

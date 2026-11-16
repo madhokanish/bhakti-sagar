@@ -1,7 +1,7 @@
 package com.bhaktichat.app.domain
 
-/** The Android interface is always Hindi in Devanagari. The other values remain only for
- * chat reply matching when a user deliberately writes using the Latin alphabet. */
+/** The app language the user picked — Hindi (Devanagari), Hinglish or English. It drives
+ * the UI strings and the language guides reply in. [default] is Hindi. */
 enum class AppLanguage(val wireValue: String) {
     HINGLISH("hinglish"),
     HINDI("hi"),

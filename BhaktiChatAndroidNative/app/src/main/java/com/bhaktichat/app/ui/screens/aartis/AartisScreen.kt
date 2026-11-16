@@ -495,6 +495,9 @@ private fun matchesQuery(aarti: Aarti, query: String): Boolean {
     val normalized = query.trim().lowercase()
     return aarti.title.lowercase().contains(normalized) ||
         aarti.titleHi.lowercase().contains(normalized) ||
+        // Both titles are Devanagari, so a search typed in Latin letters ("ganesh ji ki
+        // aarti") could only ever hit a deity name or tag. The slug is the English title.
+        aarti.slug.replace('-', ' ').contains(normalized) ||
         aarti.deity.name.lowercase().contains(normalized) ||
         aarti.tags.any { it.contains(normalized, ignoreCase = true) }
 }

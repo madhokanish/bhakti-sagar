@@ -86,7 +86,6 @@ import com.bhaktichat.app.ui.theme.BhaktiThemeTokens
 import com.bhaktichat.app.domain.Guides
 import com.bhaktichat.app.ui.components.shell.AppTopBar
 import com.bhaktichat.app.ui.components.shell.BhaktiBottomNavBarDefaults
-import com.bhaktichat.app.ui.components.shell.GuideAvatarItem
 import com.bhaktichat.app.ui.components.shell.SectionHeaderRow
 import com.bhaktichat.app.ui.components.shell.SituationCard
 import com.bhaktichat.app.ui.navigation.DiscoveryGuideConfig
@@ -111,7 +110,7 @@ fun HomeScreen(
     onOpenReels: (String?) -> Unit = {},
     onOpenWallpapers: () -> Unit = {},
     onPlayAartiFromFeed: (String, Long) -> Unit = { _, _ -> },
-    onToggleAartiSpotlight: () -> Unit = {},
+    onToggleAartiSpotlight: (displayedAartiId: String?) -> Unit = {},
     reelsRepository: ReelsRepository,
     aartiRepository: AartiRepository,
     choghadiyaRepository: ChoghadiyaRepository,
@@ -143,16 +142,23 @@ fun HomeScreen(
     // refresh. Existing content remains visible if an individual source is temporarily unavailable.
     LaunchedEffect(refreshGeneration) {
         activeHomeFeedId = null
+        // A free user's feed still shows every reel, but only the ones bundled in the app have
+        // media: the rest are posters that never stream, and a tap on them opens चढ़ावा.
         val topReels = runCatching { reelsRepository.reels(ReelFeed.TOP) }
             .getOrDefault(homeFeedVideoReels)
+            .map { if (isPro || it.isBundled) it else it.copy(videoUrl = null) }
         if (topReels.isNotEmpty()) reelsPreview = topReels.shuffled().take(8)
+        // Free users only ever see and hear the aartis bundled in the app; streaming the
+        // others from bhaktichat.com is for subscribers.
         val aartis = runCatching { aartiRepository.loadAartis() }.getOrDefault(emptyList())
+            .filter { isPro || it.isBundled }
         if (aartis.isNotEmpty()) {
             aartiSpotlightFallback = aartis.shuffled().firstOrNull { it.isTop }
                 ?: aartis.shuffled().firstOrNull()
         }
         val aartiReels = runCatching { reelsRepository.reels(ReelFeed.AARTIS) }
             .getOrDefault(homeFeedAartiReels)
+            .filter { isPro || it.isBundled }
         if (topReels.isNotEmpty()) homeFeedVideoReels = topReels
         if (aartiReels.isNotEmpty()) homeFeedAartiReels = aartiReels
         if (topReels.isNotEmpty()) {
@@ -162,16 +168,22 @@ fun HomeScreen(
         // Lightweight Home preview — always the recommended city. The full Choghadiya screen
         // lets the user pick/detect a specific city; this teaser just needs *a* live "what's
         // auspicious right now" value, not a personalized one.
-        val slots = runCatching {
+        suspend fun loadSlots() = runCatching {
             choghadiyaRepository.loadToday(ChoghadiyaCities.recommendedCity()).slots
         }.getOrDefault(emptyList())
+        var slots = loadSlots()
         choghadiyaIsLoading = false
         isRefreshing = false
 
-        // Keep the active slot and its progress live while Home remains open. A new network
-        // request is unnecessary: today's response already contains the complete sun cycle.
-        while (slots.isNotEmpty()) {
+        // Keep the active slot and its progress live while Home remains open. The response
+        // covers a full sun cycle, so only refetch once that cycle ends at the next sunrise —
+        // or when there is nothing yet: a first load that failed offline used to leave the
+        // row empty until a manual refresh.
+        while (true) {
             val now = System.currentTimeMillis()
+            if (slots.isEmpty() || now >= slots.last().endEpochMillis) {
+                slots = loadSlots().ifEmpty { slots }
+            }
             val slot = slots.firstOrNull { now in it.startEpochMillis until it.endEpochMillis }
                 ?: slots.firstOrNull { it.endEpochMillis > now }
             choghadiyaPreview = slot
@@ -361,7 +373,7 @@ fun HomeScreen(
                 playerState = aartiPlayerState,
                 fallback = aartiSpotlightFallback,
                 onOpenAartis = onOpenAartis,
-                onToggle = onToggleAartiSpotlight
+                onToggle = { onToggleAartiSpotlight(aartiSpotlightFallback?.id) }
             )
         }
 
@@ -401,10 +413,9 @@ fun HomeScreen(
                 key = ::homeFeedItemKey,
                 contentType = { "home-devotional-feed-post" }
             ) { entry ->
-                // Every post browses and previews normally. Gating is tap-only: nothing here
-                // looks withheld, and the चढ़ावा screen appears when the user reaches for the
-                // full reel. The first post is ungated so a tap there still plays.
-                val gated = !isPro && entry.instanceId != homeFeedEntries.first().instanceId
+                // Gating is tap-only: nothing here looks withheld, and the चढ़ावा screen appears
+                // when the user reaches for a reel. What ships in the app is free to open.
+                val gated = !isPro && !entry.reel.isBundled
                 HomeDevotionalFeedPost(
                     entry = entry,
                     player = homeFeedPlayback.player,
@@ -922,7 +933,7 @@ private fun deityRingGradient(guideId: String): List<Color> {
 
 /**
  * Large, gradient-ringed guide avatar — the visual centrepiece of Home
- * (design_handoff_bhaktichat_ia). Notably bigger than the shared GuideAvatarItem.
+ * (design_handoff_bhaktichat_ia). Notably bigger than the guide avatars elsewhere in the app.
  */
 @Composable
 private fun HomeGuideTile(

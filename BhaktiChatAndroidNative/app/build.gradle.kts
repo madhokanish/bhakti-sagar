@@ -67,8 +67,8 @@ android {
         applicationId = "com.anish.bhaktichat"
         minSdk = 24
         targetSdk = 36
-        versionCode = 55
-        versionName = "3.1.0"
+        versionCode = 58
+        versionName = "3.1.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -131,6 +131,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // minSdk is 24 but Choghadiya, Discovery and chat timestamps use java.time (API 26+).
+        // Desugaring backports it so those screens don't crash on Android 7.x.
+        isCoreLibraryDesugaringEnabled = true
     }
     buildFeatures {
         compose = true
@@ -179,6 +182,7 @@ ksp {
 }
 
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -209,7 +213,6 @@ dependencies {
 
     implementation(libs.play.services.ads)
     implementation(libs.user.messaging.platform)
-    implementation(libs.play.review.ktx)
     implementation(libs.androidx.lifecycle.process)
     // Razorpay Checkout — UPI AutoPay mandate registration for चढ़ावा.
     implementation(libs.razorpay.checkout)
@@ -226,7 +229,6 @@ dependencies {
 
     implementation(libs.okhttp)
     implementation("com.squareup.okhttp3:okhttp-urlconnection:4.12.0")
-    implementation(libs.moshi.kotlin)
     testImplementation("junit:junit:4.13.2")
 
     debugImplementation(platform(libs.androidx.compose.bom))

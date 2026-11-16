@@ -2,6 +2,7 @@ package com.bhaktichat.app
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.withTransaction
 import com.bhaktichat.app.data.auth.AuthRepository
 import com.bhaktichat.app.data.subscription.SubscriptionRepository
 import com.bhaktichat.app.data.billing.SubscriptionManager
@@ -18,7 +19,6 @@ import com.bhaktichat.app.data.remote.RemoteDivineImageGenerator
 import com.bhaktichat.app.data.remote.VoiceSessionApi
 import com.bhaktichat.app.data.repo.AartiRepository
 import com.bhaktichat.app.data.repo.ReelsRepository
-import com.bhaktichat.app.data.repo.ChatRepository
 import com.bhaktichat.app.data.repo.ChoghadiyaRepository
 import com.bhaktichat.app.data.repo.DefaultGuidesRepository
 import com.bhaktichat.app.data.repo.DivineCreationRepository
@@ -33,7 +33,6 @@ import com.bhaktichat.app.data.repo.ThreadsRepository
 import com.bhaktichat.app.util.AnonUserKey
 import com.bhaktichat.app.util.BookmarkStore
 import com.bhaktichat.app.util.EntitlementStore
-import com.bhaktichat.app.util.GuidePreferences
 import com.bhaktichat.app.util.ChatNudgeStore
 import com.bhaktichat.app.util.ReviewPromptStore
 import com.bhaktichat.app.util.LanguageStore
@@ -44,12 +43,16 @@ import java.net.CookieManager
 import java.net.CookiePolicy
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class AppContainer(
     context: Context,
     val userId: String,
     private val authRepository: AuthRepository,
-    val languageStore: LanguageStore
+    val languageStore: LanguageStore,
+    /** A guest's database to fold into this one; see [adoptGuestHistoryIfNeeded]. */
+    private var guestDatabaseToAdopt: String? = null
 ) {
     private val appContext = context.applicationContext
     private val cookieManager = CookieManager().apply {
@@ -57,18 +60,7 @@ class AppContainer(
     }
 
     private val databaseName = accountDatabaseName(userId)
-    private val db: AppDatabase = Room.databaseBuilder(
-        appContext,
-        AppDatabase::class.java,
-        databaseName
-    )
-        // Never silently wipe user data (threads + chat history) on an upgrade. With no
-        // migration for a version bump, Room will now throw instead of destroying the DB,
-        // forcing a real Migration to be added via .addMigrations(...) before release.
-        // Destroying is only tolerated on a downgrade, which shouldn't reach production.
-        .addMigrations(MIGRATION_3_4)
-        .fallbackToDestructiveMigrationOnDowngrade()
-        .build()
+    private val db: AppDatabase = openDatabase(appContext, databaseName)
 
     // Bounded client for ordinary request/response calls (image, feedback, choghadiya).
     private val baseHttpClient: OkHttpClient = OkHttpClient.Builder()
@@ -99,10 +91,11 @@ class AppContainer(
         }
         .build()
 
-    // Streaming chat holds the SSE connection open for the whole response, so it needs
-    // no read timeout. Kept separate so a stalled non-streaming call can't hang forever.
+    // Streaming chat holds the SSE connection open for the whole response. The read timeout
+    // is an idle timeout between chunks, and the server sends `meta` immediately, so a
+    // generous bound only trips on a genuinely stalled stream instead of hanging forever.
     private val streamingHttpClient: OkHttpClient = httpClient.newBuilder()
-        .readTimeout(0, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
         .build()
 
     // Divine-image generation is a long server-side job (~60–90s), so the 30s read
@@ -130,7 +123,6 @@ class AppContainer(
         httpClient = httpClient
     )
 
-    val guidePreferences = GuidePreferences(appContext)
     val savedAartisStore = SavedAartisStore(appContext)
     val bookmarkStore = BookmarkStore(appContext)
     val entitlementStore = EntitlementStore(appContext)
@@ -153,7 +145,6 @@ class AppContainer(
     val threadsRepository: ThreadsRepository = RoomThreadsRepository(db.threadDao())
     val messagesRepository: MessagesRepository = RoomMessagesRepository(db.messageDao())
     val chatApiClient: ChatApiClient = PromptAwareChatApiClient(chatApi)
-    val chatRepository = ChatRepository(db.messageDao(), chatApi)
     val aartiRepository = AartiRepository(appContext, languageStore)
     val reelsRepository = ReelsRepository(appContext, aartiRepository)
     val choghadiyaRepository = ChoghadiyaRepository(
@@ -180,9 +171,56 @@ class AppContainer(
 
     // Continuous aarti player (Media3 MediaController bound to AartiPlaybackService). App-scoped
     // so playback + the mini-player survive navigation between screens.
-    val aartiPlayerController = com.bhaktichat.app.playback.AartiPlayerController(appContext, languageStore)
+    val aartiPlayerController = com.bhaktichat.app.playback.AartiPlayerController(appContext, languageStore) {
+        entitlementStore.isPro.value
+    }
+
+    /**
+     * Folds a guest's conversations into this account's database, then empties the guest's
+     * so a later sign-in cannot import them twice.
+     *
+     * [migrateLegacyDatabaseIfNeeded] only hands over the guest's file when the account has
+     * no database yet. A guest who paid (silent checkout account) and then signed in to an
+     * existing Google account would otherwise lose their chats to an orphaned file. One
+     * conversation per guide: a guest thread for a guide the account already talks to is
+     * merged into that thread (messages interleave by time); the rest are copied as they are.
+     */
+    suspend fun adoptGuestHistoryIfNeeded() {
+        val sourceName = guestDatabaseToAdopt ?: return
+        withContext(Dispatchers.IO) {
+            if (!appContext.getDatabasePath(sourceName).exists()) return@withContext
+            val guestDb = openDatabase(appContext, sourceName)
+            try {
+                val guestThreads = guestDb.threadDao().listAllThreadsIncludingArchived()
+                db.withTransaction {
+                    for (thread in guestThreads) {
+                        val existing = if (thread.isArchived) null
+                        else db.threadDao().getActiveThreadForGuide(thread.guideId)
+                        val targetId = if (existing != null) {
+                            db.threadDao().updateUpdatedAt(existing.id, maxOf(existing.updatedAt, thread.updatedAt))
+                            existing.id
+                        } else {
+                            db.threadDao().insert(thread)
+                            thread.id
+                        }
+                        guestDb.messageDao().listMessagesForThread(thread.id)
+                            // A typing row left by an interrupted reply would spin forever.
+                            .filterNot { it.isTypingIndicator }
+                            .forEach { message -> db.messageDao().insert(message.copy(threadId = targetId)) }
+                    }
+                }
+                guestDb.messageDao().deleteAll()
+                guestDb.threadDao().deleteAllThreads()
+            } finally {
+                guestDb.close()
+            }
+        }
+        guestDatabaseToAdopt = null
+    }
 
     fun close() {
+        subscriptionRepository.close()
+        subscriptionManager.close()
         aartiPlayerController.release()
         db.close()
     }
@@ -200,6 +238,19 @@ class AppContainer(
          * hashing as a real account id.
          */
         fun guestUserId(context: Context): String = "guest_" + AnonUserKey.get(context)
+
+        private fun openDatabase(context: Context, name: String): AppDatabase =
+            Room.databaseBuilder(context, AppDatabase::class.java, name)
+                // Never silently wipe user data (threads + chat history) on an upgrade. With no
+                // migration for a version bump, Room will now throw instead of destroying the DB,
+                // forcing a real Migration to be added via .addMigrations(...) before release.
+                // Destroying is only tolerated on a downgrade, which shouldn't reach production, and
+                // for v1/v2 files (e.g. an adopted pre-accounts bhaktichat.db) that no migration path
+                // reaches — those would otherwise throw on open and crash the container.
+                .addMigrations(MIGRATION_3_4)
+                .fallbackToDestructiveMigrationFrom(dropAllTables = true, 1, 2)
+                .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
+                .build()
 
         fun accountDatabaseName(userId: String): String {
             val digest = MessageDigest.getInstance("SHA-256")

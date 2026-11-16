@@ -6,6 +6,6 @@ sealed class StreamEvent {
     data object Done : StreamEvent()
     data class Error(val message: String) : StreamEvent()
 
-    /** Server signalled the free-tier message limit is exhausted (a hard, non-skippable gate). */
+    /** Server signalled the free-tier message limit is exhausted. See ChatLimitReachedException. */
     data object LimitReached : StreamEvent()
 }

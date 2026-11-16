@@ -6,10 +6,10 @@ import android.content.res.Configuration
 import android.os.LocaleList
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.bhaktichat.app.data.auth.AuthRepository
-import com.bhaktichat.app.data.subscription.preloadRazorpay
 import com.bhaktichat.app.domain.AppLanguage
 import com.bhaktichat.app.util.Analytics
 import com.bhaktichat.app.util.LanguageStore
+import com.bhaktichat.app.util.notifications.AppVisibilityObserver
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
 import java.util.Locale
@@ -17,10 +17,10 @@ import kotlin.concurrent.thread
 
 class BhaktiChatApplication : Application() {
     /**
-     * Owned here rather than by [AppContainer] because the container only exists once a user
-     * is authenticated, while the locale and AuthRepository both need the language earlier —
-     * attachBaseContext runs before onCreate, and sign-in errors are produced before anyone
-     * has signed in. One instance process-wide keeps its StateFlow authoritative.
+     * Owned here rather than by [AppContainer] because containers are swapped per identity
+     * (guest ↔ account) and only exist once one is activated, while the locale and
+     * AuthRepository both need the language earlier — attachBaseContext runs before onCreate.
+     * One instance process-wide keeps its StateFlow authoritative across container switches.
      */
     lateinit var languageStore: LanguageStore
         private set
@@ -29,9 +29,11 @@ class BhaktiChatApplication : Application() {
         private set
     private var activeContainer: AppContainer? = null
     private var activeUserId: String? = null
+    private var activeUserIsGuest = false
+    private var visibilityObserver: AppVisibilityObserver? = null
 
     val container: AppContainer
-        get() = checkNotNull(activeContainer) { "Authenticated app container is not active" }
+        get() = checkNotNull(activeContainer) { "No app container is active (guest or account)" }
 
     override fun attachBaseContext(base: Context) {
         // Follows the user's choice instead of pinning Hindi. This drives the surfaces the
@@ -56,8 +58,6 @@ class BhaktiChatApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // Keep SDK-owned surfaces (for example Google's consent form) in the same
-        // Devanagari Hindi experience as the rest of the application.
         // Analytics first, so early lifecycle events are captured. No-op if no key is set.
         Analytics.init(
             context = this,
@@ -65,11 +65,6 @@ class BhaktiChatApplication : Application() {
             host = BuildConfig.POSTHOG_HOST,
             debug = BuildConfig.DEBUG
         )
-        // Razorpay preload fetches checkout preferences and enumerates installed UPI apps.
-        // Started here (on a background thread — doing it on the main thread previously
-        // caused a startup ANR) so it has the whole session to finish rather than the few
-        // seconds between opening चढ़ावा and tapping pay.
-        preloadRazorpay(this)
 
         authRepository = AuthRepository(
             context = this,
@@ -103,21 +98,36 @@ class BhaktiChatApplication : Application() {
      * account if they later sign in to subscribe.
      */
     @Synchronized
-    fun activateGuest(): AppContainer = activateUser(AppContainer.guestUserId(this))
+    fun activateGuest(): AppContainer = activateUser(AppContainer.guestUserId(this), isGuest = true)
 
+    /**
+     * @param isGuest true for the account-less container and for a silent checkout account.
+     *   Moving from one of those to an account carries the guest's conversations across.
+     */
     @Synchronized
-    fun activateUser(userId: String): AppContainer {
+    fun activateUser(userId: String, isGuest: Boolean = false): AppContainer {
         if (activeUserId == userId) return checkNotNull(activeContainer)
+        // Leaving a guest for an account: the file move below only happens when the account
+        // has no database yet, and never from a guest checkout account, so the guest's
+        // conversations are merged in by the new container instead of being left behind.
+        // Not when going back to the account-less guest, e.g. after signing out.
+        val guestDatabaseToAdopt = activeUserId
+            ?.takeIf { activeUserIsGuest && userId != AppContainer.guestUserId(this) }
+            ?.let(AppContainer::accountDatabaseName)
         deactivateUser()
         authRepository.currentSession?.user?.let { user ->
             Analytics.identify(userId = user.id, email = user.email, name = user.name, phone = user.phone)
         }
         AppContainer.migrateLegacyDatabaseIfNeeded(this, userId)
-        return AppContainer(this, userId, authRepository, languageStore).also { created ->
+        return AppContainer(this, userId, authRepository, languageStore, guestDatabaseToAdopt).also { created ->
             activeContainer = created
             activeUserId = userId
+            activeUserIsGuest = isGuest
             // Tracks accumulated foreground time for review-prompt eligibility.
             ProcessLifecycleOwner.get().lifecycle.addObserver(created.reviewPromptStore)
+            // Plans notifications on open, and the "unanswered question" when the user leaves.
+            visibilityObserver = AppVisibilityObserver(this, created.threadsRepository, created.messagesRepository)
+                .also { ProcessLifecycleOwner.get().lifecycle.addObserver(it) }
         }
     }
 
@@ -125,15 +135,19 @@ class BhaktiChatApplication : Application() {
     fun deactivateUser() {
         activeContainer?.let { current ->
             ProcessLifecycleOwner.get().lifecycle.removeObserver(current.reviewPromptStore)
+            visibilityObserver?.let { ProcessLifecycleOwner.get().lifecycle.removeObserver(it) }
+            visibilityObserver = null
             current.close()
         }
         activeContainer = null
         activeUserId = null
+        activeUserIsGuest = false
     }
 
     suspend fun signOut() {
         authRepository.signOut()
         deactivateUser()
+        Analytics.reset()
     }
 
     suspend fun deleteAccountAndLocalData(): Result<Unit> {
@@ -142,6 +156,7 @@ class BhaktiChatApplication : Application() {
         val result = authRepository.deleteAccount()
         if (result.isFailure) return Result.failure(checkNotNull(result.exceptionOrNull()))
         deactivateUser()
+        Analytics.reset()
         deleteDatabase(AppContainer.accountDatabaseName(userId))
         clearAccountPreferences()
         return Result.success(Unit)
@@ -155,7 +170,8 @@ class BhaktiChatApplication : Application() {
             "bhakti_anon",
             "bhakti_streak",
             "bhakti_review_prompt",
-            "bhaktichat_prefs",
+            "bhakti_chat_nudge",
+            "bhakti_membership_promo",
             "bhakti_notifications",
             "theme_prefs"
         ).forEach { name -> getSharedPreferences(name, MODE_PRIVATE).edit().clear().commit() }

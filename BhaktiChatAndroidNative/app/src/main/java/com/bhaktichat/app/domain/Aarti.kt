@@ -31,6 +31,10 @@ data class Aarti(
     /** True when a real recorded aarti track is available to stream (vs. lyrics-only / TTS). */
     val hasAudio: Boolean get() = !audioUrl.isNullOrBlank()
 
+    /** Audio packaged in the app (the 5 guide aartis). The only aartis a free user can play:
+     *  every other track streams from bhaktichat.com, and that bandwidth is for subscribers. */
+    val isBundled: Boolean get() = audioUrl?.startsWith("asset:///") == true
+
     val subtitle: String?
         get() = titleHi.takeIf { it.isNotBlank() && !it.equals(title, ignoreCase = true) }
 

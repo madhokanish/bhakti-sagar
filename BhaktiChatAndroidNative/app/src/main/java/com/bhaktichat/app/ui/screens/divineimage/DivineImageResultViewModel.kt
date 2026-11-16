@@ -15,7 +15,6 @@ import com.bhaktichat.app.data.repo.DivineTemplateRepository
 import com.bhaktichat.app.domain.CreationStatus
 import com.bhaktichat.app.domain.DivineCreation
 import com.bhaktichat.app.domain.DivineTemplate
-import com.bhaktichat.app.domain.DIVINE_IDENTITY_REALISM_PREFIX
 import com.bhaktichat.app.util.Analytics
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -36,6 +35,8 @@ data class DivineImageResultUiState(
 
 sealed interface DivineImageResultUiEvent {
     data object NavigateHome : DivineImageResultUiEvent
+    /** The generation this screen was watching got a 402 — open membership. */
+    data object SubscriptionRequired : DivineImageResultUiEvent
     data class SaveImage(val uri: String) : DivineImageResultUiEvent
     data class ShareImage(
         val uri: String,
@@ -69,6 +70,13 @@ class DivineImageResultViewModel(
     init {
         viewModelScope.launch {
             creationRepository.observeCreation(creationId).collectLatest { creation ->
+                // Only on the live GENERATING → 402 transition, not when opening an old
+                // failed creation from history (its failed card has its own button).
+                if (_uiState.value.creation?.status == CreationStatus.GENERATING &&
+                    creation?.subscriptionRequired == true
+                ) {
+                    _uiEvents.tryEmit(DivineImageResultUiEvent.SubscriptionRequired)
+                }
                 _uiState.update { current ->
                     current.copy(
                         creation = creation,
@@ -84,6 +92,9 @@ class DivineImageResultViewModel(
     fun cancel() {
         val creation = _uiState.value.creation ?: return
         if (creation.status != CreationStatus.GENERATING) return
+        // The generation runs in an app-lifetime scope now, so stop it explicitly — otherwise
+        // its result would overwrite this cancelled row.
+        creationRepository.cancelGeneration(creation.id)
         viewModelScope.launch {
             creationRepository.upsertCreation(
                 creation.copy(
@@ -108,51 +119,27 @@ class DivineImageResultViewModel(
         }
         Analytics.divineImageRegenerated(mode = creation.mode.name)
         viewModelScope.launch {
-            val template = templateRepository.getTemplate(creation.templateId)
-            val refreshedPrompt = template
-                ?.let { buildPromptForRegenerate(template = it, creation = creation) }
-                ?: creation.inputPrompt
+            // Reuse the exact prompt the creation was made with. Rebuilding it from
+            // templateTitle broke for Hindi users: that title is translated display copy, so
+            // the English deity lookup missed and the prompt lost the deity entirely.
             val generatingCreation = creation.copy(
                 status = CreationStatus.GENERATING,
                 outputImageUri = null,
                 errorMessage = null,
-                inputPrompt = refreshedPrompt,
                 variant = null,
                 requestId = null,
-                feedbackRating = null
+                feedbackRating = null,
+                subscriptionRequired = false
             )
             creationRepository.upsertCreation(generatingCreation)
             _uiState.update { state -> state.copy(feedbackSubmitted = false) }
-
-            val result = generator.generate(
-                mode = creation.mode,
-                prompt = refreshedPrompt,
-                inputImageUri = creation.inputImageUri?.let(android.net.Uri::parse)
+            launchDivineGeneration(
+                creationRepository = creationRepository,
+                generator = generator,
+                entitlementStore = entitlementStore,
+                generating = generatingCreation,
+                failedMessage = translate("di_err_generate_failed", languageStore.language.value)
             )
-
-            val updatedCreation = result.fold(
-                onSuccess = { divineResult ->
-                    generatingCreation.copy(
-                        status = CreationStatus.SUCCESS,
-                        outputImageUri = divineResult.uri.toString(),
-                        variant = divineResult.variant,
-                        requestId = divineResult.requestId,
-                        errorMessage = null
-                    )
-                },
-                onFailure = { throwable ->
-                    generatingCreation.copy(
-                        status = CreationStatus.FAILED,
-                        errorMessage = translate("di_err_generate_failed", languageStore.language.value)
-                    )
-                }
-            )
-            creationRepository.upsertCreation(updatedCreation)
-            if (updatedCreation.status == CreationStatus.SUCCESS) {
-                // Only a successful regeneration burns quota — a failure must not cost the
-                // user an image, same rule as the create path.
-                entitlementStore.recordImageGenerated()
-            }
         }
     }
 
@@ -173,65 +160,6 @@ class DivineImageResultViewModel(
                 mode = creation.mode.name,
                 userKey = anonUserKey
             )
-        }
-    }
-
-    private fun buildPromptForRegenerate(
-        template: DivineTemplate,
-        creation: DivineCreation
-    ): String {
-        val templatePrompt = when (creation.mode) {
-            com.bhaktichat.app.domain.DivineMode.PHOTO_WITH_GOD -> {
-                val scene = creation.templateTitle.ifBlank { template.sceneName.orEmpty() }
-                val deity = deityNameForPrompt(extractDeityFromScene(scene) ?: template.deityTag)
-                template.promptSkeleton
-                    .replace("[DEITY NAME]", deity)
-                    .replace("[SCENE NAME]", scene)
-            }
-
-            com.bhaktichat.app.domain.DivineMode.PHOTO_AT_TEMPLE -> {
-                val (moment, temple) = parseTempleMomentAndName(creation = creation, template = template)
-                template.promptSkeleton
-                    .replace("[TEMPLE NAME]", temple)
-                    .replace("[SCENE NAME]", moment)
-            }
-        }
-
-        return if (templatePrompt.startsWith(DIVINE_IDENTITY_REALISM_PREFIX)) {
-            templatePrompt
-        } else {
-            "$DIVINE_IDENTITY_REALISM_PREFIX\n\n$templatePrompt"
-        }
-    }
-
-    private fun parseTempleMomentAndName(
-        creation: DivineCreation,
-        template: DivineTemplate
-    ): Pair<String, String> {
-        val parts = creation.templateTitle
-            .split("·")
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
-        val moment = parts.firstOrNull().orEmpty().ifBlank { template.sceneName.orEmpty() }
-        val temple = parts.getOrNull(1).orEmpty().ifBlank { template.templeName.orEmpty() }
-        return moment to temple
-    }
-
-    private fun extractDeityFromScene(scene: String): String? {
-        val normalized = scene.lowercase()
-        return when {
-            "krishna" in normalized -> "Krishna"
-            "hanuman" in normalized -> "Hanuman Ji"
-            "shiv" in normalized || "shiva" in normalized -> "Shiv Ji"
-            "lakshmi" in normalized -> "Lakshmi Ji"
-            else -> null
-        }
-    }
-
-    private fun deityNameForPrompt(displayName: String?): String {
-        return when (displayName.orEmpty().trim()) {
-            "Lord Krishna" -> "Krishna"
-            else -> displayName.orEmpty().trim()
         }
     }
 

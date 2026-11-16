@@ -9,6 +9,7 @@ import com.bhaktichat.app.data.auth.AuthRepository
 import com.bhaktichat.app.domain.AppLanguage
 import com.bhaktichat.app.util.Analytics
 import com.bhaktichat.app.util.LanguageStore
+import com.bhaktichat.app.util.notifications.AppVisibilityObserver
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
 import java.util.Locale
@@ -29,6 +30,7 @@ class BhaktiChatApplication : Application() {
     private var activeContainer: AppContainer? = null
     private var activeUserId: String? = null
     private var activeUserIsGuest = false
+    private var visibilityObserver: AppVisibilityObserver? = null
 
     val container: AppContainer
         get() = checkNotNull(activeContainer) { "No app container is active (guest or account)" }
@@ -123,6 +125,9 @@ class BhaktiChatApplication : Application() {
             activeUserIsGuest = isGuest
             // Tracks accumulated foreground time for review-prompt eligibility.
             ProcessLifecycleOwner.get().lifecycle.addObserver(created.reviewPromptStore)
+            // Plans notifications on open, and the "unanswered question" when the user leaves.
+            visibilityObserver = AppVisibilityObserver(this, created.threadsRepository, created.messagesRepository)
+                .also { ProcessLifecycleOwner.get().lifecycle.addObserver(it) }
         }
     }
 
@@ -130,6 +135,8 @@ class BhaktiChatApplication : Application() {
     fun deactivateUser() {
         activeContainer?.let { current ->
             ProcessLifecycleOwner.get().lifecycle.removeObserver(current.reviewPromptStore)
+            visibilityObserver?.let { ProcessLifecycleOwner.get().lifecycle.removeObserver(it) }
+            visibilityObserver = null
             current.close()
         }
         activeContainer = null

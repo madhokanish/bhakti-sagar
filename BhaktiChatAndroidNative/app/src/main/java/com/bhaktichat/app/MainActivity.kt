@@ -1,5 +1,6 @@
 package com.bhaktichat.app
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -16,6 +17,7 @@ import com.bhaktichat.app.data.subscription.PaymentOutcome
 import com.bhaktichat.app.ui.auth.BhaktiChatAuthRoot
 import com.bhaktichat.app.ui.theme.BhaktiChatTheme
 import com.bhaktichat.app.util.ThemePreferences
+import com.bhaktichat.app.util.notifications.NotificationLaunch
 import com.razorpay.PaymentData
 import com.razorpay.PaymentResultWithDataListener
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -54,6 +56,8 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // A notification tap that started the app; a fresh launch after a recreation has none.
+        if (savedInstanceState == null) NotificationLaunch.offer(intent)
         // App forces a light theme regardless of system dark mode (see themes.xml), so status/
         // nav bar icons must always render dark — explicit here now instead of via the theme's
         // deprecated android:statusBarColor/navigationBarColor/windowLightStatusBar attributes,
@@ -75,5 +79,12 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
                 }
             }
         }
+    }
+
+    /** A notification tapped while the app is already open (launchMode singleTop). */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        NotificationLaunch.offer(intent)
     }
 }

@@ -16,8 +16,11 @@ import androidx.media3.session.SessionToken
 import com.bhaktichat.app.domain.Aarti
 import com.bhaktichat.app.domain.Deity
 import com.bhaktichat.app.util.Analytics
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
@@ -67,15 +70,27 @@ class AartiPlayerController(private val context: Context,
     private var currentTrackId: String? = null
     private var trackStartedAtMillis: Long = 0L
 
+    // Emits an aarti's id each time one plays through to its end (the moment to ask for
+    // notification permission: "Roz shaam 7 baje aarti ke samay yaad dilaayein?").
+    private val _finished = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val finished: SharedFlow<String> = _finished.asSharedFlow()
+
     private val listener = object : Player.Listener {
-        override fun onEvents(player: Player, events: Player.Events) = updateState()
+        override fun onEvents(player: Player, events: Player.Events) {
+            if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) && player.playbackState == Player.STATE_ENDED) {
+                player.currentMediaItem?.mediaId?.let { _finished.tryEmit(it) }
+            }
+            updateState()
+        }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             currentTrackId?.let { previousId ->
                 val elapsedSeconds = (System.currentTimeMillis() - trackStartedAtMillis) / 1000
                 when (reason) {
-                    Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ->
+                    Player.MEDIA_ITEM_TRANSITION_REASON_AUTO -> {
                         Analytics.aartiPlayCompleted(previousId, elapsedSeconds)
+                        _finished.tryEmit(previousId)
+                    }
                     Player.MEDIA_ITEM_TRANSITION_REASON_SEEK ->
                         Analytics.aartiSkipped(previousId, elapsedSeconds)
                 }

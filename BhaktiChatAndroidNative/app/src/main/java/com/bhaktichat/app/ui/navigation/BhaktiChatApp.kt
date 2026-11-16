@@ -112,6 +112,14 @@ import com.bhaktichat.app.util.AnonUserKey
 import com.bhaktichat.app.util.EntitlementStore
 import com.bhaktichat.app.util.AdsConsentManager
 import com.bhaktichat.app.util.MembershipPromoStore
+import com.bhaktichat.app.ui.components.NotificationPrePromptDialog
+import com.bhaktichat.app.util.notifications.NotificationLaunch
+import com.bhaktichat.app.util.notifications.NotificationPlanner
+import com.bhaktichat.app.util.notifications.NotificationPrePrompt
+import com.bhaktichat.app.util.notifications.PrePromptTrigger
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -498,8 +506,96 @@ fun BhaktiChatApp(
         }
     }
 
+    // --- Notifications ---------------------------------------------------------------------
+    // The guide-voiced ask before Android 13's permission dialog: which moment, which guide.
+    var prePrompt by remember { mutableStateOf<Pair<PrePromptTrigger, String>?>(null) }
+    val notifPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        Analytics.capture("notif_permission_result", mapOf("granted" to granted))
+        if (granted) {
+            NotificationPlanner.setEnabled(context, true)
+            NotificationPlanner.replan(context)
+        }
+    }
+    LaunchedEffect(prePrompt) {
+        val (trigger, guideId) = prePrompt ?: return@LaunchedEffect
+        NotificationPrePrompt.markAsked(context, trigger)
+        Analytics.capture("notif_preprompt_shown", mapOf("trigger" to trigger.wire, "guide_id" to guideId))
+    }
+    // Second moment of value: an aarti just played to its end.
+    LaunchedEffect(Unit) {
+        appContainer.aartiPlayerController.finished.collect {
+            if (prePrompt == null && NotificationPrePrompt.shouldAsk(context, PrePromptTrigger.AARTI)) {
+                prePrompt = PrePromptTrigger.AARTI to
+                    NotificationPlanner.guideForDay(context, System.currentTimeMillis())
+            }
+        }
+    }
+
+    // "▶ Aarti suniye" on the 19:00 notification: today's free aarti (the same allowance as
+    // the chat card), else चढ़ावा, counted under its own source.
+    fun playNotificationAarti(guideId: String) {
+        // Aarti tags use "shiva"; guide ids use "shiv".
+        val tag = if (guideId == "shiv") "shiva" else guideId
+        appScope.launch {
+            if (!isPro && !entitlementStore.hasFreeChatAartiToday()) {
+                openGate(NOTIF_AARTI_SOURCE)
+                return@launch
+            }
+            // The bundled one first: it plays from the app, so 19:00 costs no bandwidth.
+            val aarti = appContainer.aartiRepository.loadAartis()
+                .filter { it.hasAudio && tag in it.tags }
+                .let { matches -> matches.firstOrNull { it.isBundled } ?: matches.firstOrNull() }
+            if (aarti == null) {
+                navigateToTopLevel(NavDestinations.HOME)
+                return@launch
+            }
+            if (!isPro) entitlementStore.recordFreeChatAartiPlayed()
+            Analytics.capture(
+                "notif_aarti_played",
+                mapOf("guide_id" to guideId, "aarti_id" to aarti.id, "is_pro" to isPro)
+            )
+            appContainer.aartiPlayerController.playQueue(listOf(aarti), aarti.id)
+            appContainer.aartiPlayerController.expandFullScreen()
+        }
+    }
+
+    // A notification was tapped (cold start or while open): land on what it was about.
+    val notificationTap by NotificationLaunch.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(notificationTap, languageChosen) {
+        if (notificationTap == null || !languageChosen) return@LaunchedEffect
+        val tap = NotificationLaunch.consume() ?: return@LaunchedEffect
+        Analytics.capture(
+            if (tap.isAction) "notif_action" else "notif_opened",
+            mapOf("type" to tap.type, "guide_id" to tap.guideId, "target" to tap.target)
+        )
+        when {
+            tap.target == NotificationLaunch.TARGET_AARTI -> playNotificationAarti(tap.guideId)
+            tap.target == NotificationLaunch.TARGET_CHAT && tap.guideId.isNotBlank() ->
+                launchThread(tap.guideId, includeOpener = true)
+            else -> navigateToTopLevel(NavDestinations.HOME)
+        }
+    }
+
     // No blanket paywall: free chat is capped at 10 messages/day; images, voice, reels, aartis,
     // festivals and wallpapers are चढ़ावा-only. Each gate opens the quick-checkout sheet (openGate).
+
+    prePrompt?.let { (trigger, guideId) ->
+        NotificationPrePromptDialog(
+            trigger = trigger,
+            guideId = guideId,
+            onAccept = {
+                prePrompt = null
+                Analytics.capture("notif_preprompt_answered", mapOf("trigger" to trigger.wire, "accepted" to true))
+                notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            },
+            onDecline = {
+                prePrompt = null
+                Analytics.capture("notif_preprompt_answered", mapOf("trigger" to trigger.wire, "accepted" to false))
+            }
+        )
+    }
 
     if (shouldShowReviewPrompt) {
         ReviewPromptDialog(
@@ -692,6 +788,21 @@ fun BhaktiChatApp(
                     vm.paywallEvents.collect {
                         openGate(BLOCKED_CHAT_QUOTA)
                     }
+                }
+                // First moment of value: the guide has just answered. Ask after a beat, so
+                // they can read the reply first.
+                LaunchedEffect(uiState.messages, uiState.isSending) {
+                    val messages = uiState.messages
+                    val last = messages.lastOrNull() ?: return@LaunchedEffect
+                    val guideId = uiState.guide?.id ?: return@LaunchedEffect
+                    val replied = !uiState.isSending && !last.isTypingIndicator &&
+                        last.role == ChatRole.ASSISTANT.wire && last.content.isNotBlank() &&
+                        !last.content.trimStart().startsWith("Error:", ignoreCase = true) &&
+                        messages.any { it.role == ChatRole.USER.wire }
+                    if (!replied || prePrompt != null) return@LaunchedEffect
+                    if (!NotificationPrePrompt.shouldAsk(context, PrePromptTrigger.CHAT)) return@LaunchedEffect
+                    delay(2500)
+                    prePrompt = PrePromptTrigger.CHAT to guideId
                 }
                 ChatThreadScreen(
                     uiState = uiState,
@@ -1536,6 +1647,7 @@ private fun blockedFeatureFor(raw: String): BlockedFeature? = when (raw) {
     BLOCKED_AARTIS -> BlockedFeature.AARTIS
     BLOCKED_VOICE -> BlockedFeature.VOICE
     BLOCKED_FESTIVALS -> BlockedFeature.FESTIVALS
+    NOTIF_AARTI_SOURCE -> BlockedFeature.AARTIS
     // Chat cards carry their own source ("chat_aarti", …) so the funnel reads separately.
     else -> ChatContentRequest.fromSource(raw)?.blockedFeature
 }
@@ -1546,3 +1658,5 @@ internal const val BLOCKED_REELS = "reels"
 internal const val BLOCKED_AARTIS = "aartis"
 internal const val BLOCKED_VOICE = "voice"
 internal const val BLOCKED_FESTIVALS = "festivals"
+/** Paywall source for the 19:00 aarti notification once today's free aarti is used. */
+internal const val NOTIF_AARTI_SOURCE = "notif_aarti"

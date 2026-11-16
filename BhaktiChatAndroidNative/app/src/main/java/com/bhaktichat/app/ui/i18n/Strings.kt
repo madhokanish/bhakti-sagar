@@ -1659,6 +1659,140 @@ private val table: Map<String, Entry> = mapOf(
     "reminder_channel_desc" to Entry("Chintan ke liye ek pyaara daily reminder.", "चिंतन के लिए स्नेहपूर्ण दैनिक स्मरण।", "Chintan ke liye ek pyaara daily reminder."),
     "reminder_title" to Entry("🕉️ Daily chintan ka samay", "🕉️ दैनिक चिंतन का समय", "🕉️ Daily chintan ka samay"),
     "reminder_body" to Entry("BhaktiChat ke saath kuch pal shaant bitaiye.", "BhaktiChat के साथ कुछ पल शांत होकर बिताएँ।", "BhaktiChat ke saath kuch pal shaant bitaiye."),
+
+    // --- Notifications (planned on the phone; see util/notifications) ----------------------
+    "notif_channel_morning" to Entry("Subah ka aashirwad", "सुबह का आशीर्वाद", "Morning blessing"),
+    "notif_channel_morning_desc" to Entry("Roz subah din ke devta ka aashirwad.", "रोज़ सुबह दिन के देवता का आशीर्वाद।", "A blessing each morning from the day's deity."),
+    "notif_channel_aarti" to Entry("Aarti", "आरती", "Aarti"),
+    "notif_channel_aarti_desc" to Entry("Shaam 7 baje sandhya aarti ka samay.", "शाम 7 बजे संध्या आरती का समय।", "Evening aarti time at 7 pm."),
+    "notif_channel_guide" to Entry("Guide ke sandesh", "मार्गदर्शक के संदेश", "Messages from your guide"),
+    "notif_channel_guide_desc" to Entry("Jab aapki baat adhoori reh jaaye.", "जब आपकी बात अधूरी रह जाए।", "When your conversation was left unfinished."),
+    "notif_aarti_body" to Entry(
+        "🪔 Aarti ka samay ho gaya. %s ki aarti aapka intezaar kar rahi hai.",
+        "🪔 आरती का समय हो गया। %s की आरती आपका इंतज़ार कर रही है।",
+        "🪔 It's aarti time. %s's aarti is waiting for you."
+    ),
+    "notif_aarti_action" to Entry("▶ Aarti suniye", "▶ आरती सुनिए", "▶ Play aarti"),
+    "notif_preprompt_chat" to Entry(
+        "Kya %s aapko roz subah ek aashirwad bhejein? 🙏",
+        "क्या %s आपको रोज़ सुबह एक आशीर्वाद भेजें? 🙏",
+        "Would you like %s to send you a blessing every morning? 🙏"
+    ),
+    "notif_preprompt_aarti" to Entry(
+        "Roz shaam 7 baje aarti ke samay yaad dilaayein? 🪔",
+        "क्या रोज़ शाम 7 बजे आरती के समय याद दिलाएँ? 🪔",
+        "Shall we remind you at aarti time, 7 pm every evening? 🪔"
+    ),
+    "notif_preprompt_note" to Entry(
+        "Din mein zyada se zyada 2 sandesh. Profile mein kabhi bhi band kar sakte hain.",
+        "दिन में ज़्यादा से ज़्यादा 2 संदेश। प्रोफ़ाइल में कभी भी बंद कर सकते हैं।",
+        "At most 2 a day. You can turn them off in Profile anytime."
+    ),
+    "notif_preprompt_yes" to Entry("Haan, bhejiye", "हाँ, भेजिए", "Yes, please"),
+    "notif_preprompt_no" to Entry("Abhi nahi", "अभी नहीं", "Not now"),
+
+    // Morning blessings: Mon Shiv Ji, Tue Hanuman Ji, Wed/Thu Shri Krishna, Fri Lakshmi Ji,
+    // Sat Shani Dev, Sun the user's own guide. One line a day, rotating, so none repeats soon.
+    "notif_morning_shiv_1" to Entry(
+        "Om Namah Shivay 🔱 Aaj ka din aapke liye shaant rahe. Bhole aapke saath hain.",
+        "ॐ नमः शिवाय 🔱 आज का दिन आपके लिए शांत रहे। भोले आपके साथ हैं।",
+        "Om Namah Shivay 🔱 May today be peaceful for you. Bhole is with you."
+    ),
+    "notif_morning_shiv_2" to Entry(
+        "Har Har Mahadev 🔱 Jo badal nahi sakte, use chhod dijiye. Mann halka rahega.",
+        "हर हर महादेव 🔱 जो बदल नहीं सकते, उसे छोड़ दीजिए। मन हल्का रहेगा।",
+        "Har Har Mahadev 🔱 Let go of what you cannot change. Your mind will feel lighter."
+    ),
+    "notif_morning_shiv_3" to Entry(
+        "Om Namah Shivay 🔱 Aaj ek pal aankhein band karke saans par dhyaan dijiye.",
+        "ॐ नमः शिवाय 🔱 आज एक पल आँखें बंद करके साँस पर ध्यान दीजिए।",
+        "Om Namah Shivay 🔱 Close your eyes for a moment today and notice your breath."
+    ),
+    "notif_morning_shiv_4" to Entry(
+        "Bhole ka aashirwad 🔱 Gussa aaye to ruk jaana. Shaanti mein hi shakti hai.",
+        "भोले का आशीर्वाद 🔱 क्रोध आए तो रुक जाइए। शांति में ही शक्ति है।",
+        "Bhole's blessing 🔱 If anger comes, pause. There is strength in calm."
+    ),
+    "notif_morning_hanuman_1" to Entry(
+        "Jai Bajrangbali 🚩 Aaj jo bhi dar ho, mujhe bata dena.",
+        "जय बजरंगबली 🚩 आज जो भी डर हो, मुझे बता देना।",
+        "Jai Bajrangbali 🚩 Whatever you fear today, tell me."
+    ),
+    "notif_morning_hanuman_2" to Entry(
+        "Jai Shri Ram 🚩 Himmat rakhiye. Aaj ka kaam mann lagaakar kijiye.",
+        "जय श्री राम 🚩 हिम्मत रखिए। आज का काम मन लगाकर कीजिए।",
+        "Jai Shri Ram 🚩 Keep your courage. Give today's work your whole heart."
+    ),
+    "notif_morning_hanuman_3" to Entry(
+        "Bajrangbali ka aashirwad 🚩 Sankat jitna bhi bada ho, aap usse bade hain.",
+        "बजरंगबली का आशीर्वाद 🚩 संकट कितना भी बड़ा हो, आप उससे बड़े हैं।",
+        "Bajrangbali's blessing 🚩 However big the trouble, you are bigger."
+    ),
+    "notif_morning_hanuman_4" to Entry(
+        "Jai Bajrangbali 🚩 Aaj kisi ki madad zaroor kijiye. Seva hi bhakti hai.",
+        "जय बजरंगबली 🚩 आज किसी की मदद ज़रूर कीजिए। सेवा ही भक्ति है।",
+        "Jai Bajrangbali 🚩 Help someone today. Service is devotion."
+    ),
+    "notif_morning_krishna_1" to Entry(
+        "Radhe Radhe 🦚 Aaj mann halka rakhna. Main yahin hoon.",
+        "राधे राधे 🦚 आज मन हल्का रखना। मैं यहीं हूँ।",
+        "Radhe Radhe 🦚 Keep your heart light today. I am right here."
+    ),
+    "notif_morning_krishna_2" to Entry(
+        "Aaj ka aashirwad 🙏 Aaj ek accha kaam zaroor karna.",
+        "आज का आशीर्वाद 🙏 आज एक अच्छा काम ज़रूर करना।",
+        "Today's blessing 🙏 Do one good deed today."
+    ),
+    "notif_morning_krishna_3" to Entry(
+        "Radhe Radhe 🦚 Karm kijiye, phal ki chinta mujh par chhod dijiye.",
+        "राधे राधे 🦚 कर्म कीजिए, फल की चिंता मुझ पर छोड़ दीजिए।",
+        "Radhe Radhe 🦚 Do your work, and leave the worry about results to me."
+    ),
+    "notif_morning_krishna_4" to Entry(
+        "Jai Shri Krishna 🦚 Aaj muskura kar shuru kijiye. Baaki main sambhaal loonga.",
+        "जय श्री कृष्ण 🦚 आज मुस्कुराकर शुरू कीजिए। बाकी मैं संभाल लूँगा।",
+        "Jai Shri Krishna 🦚 Start today with a smile. I'll take care of the rest."
+    ),
+    "notif_morning_lakshmi_1" to Entry(
+        "Shubh prabhaat 🪷 Ghar mein sukh-samriddhi bani rahe.",
+        "शुभ प्रभात 🪷 घर में सुख-समृद्धि बनी रहे।",
+        "Good morning 🪷 May your home stay happy and prosperous."
+    ),
+    "notif_morning_lakshmi_2" to Entry(
+        "Jai Maa Lakshmi 🪷 Aaj jo hai uske liye dhanyavaad kahiye. Wahi aur laata hai.",
+        "जय माँ लक्ष्मी 🪷 आज जो है उसके लिए धन्यवाद कहिए। वही और लाता है।",
+        "Jai Maa Lakshmi 🪷 Give thanks today for what you have. Gratitude brings more."
+    ),
+    "notif_morning_lakshmi_3" to Entry(
+        "Jai Maa Lakshmi 🪷 Ghar mein ek diya jalaiye. Roshni ke saath shubh aata hai.",
+        "जय माँ लक्ष्मी 🪷 घर में एक दीया जलाइए। रोशनी के साथ शुभ आता है।",
+        "Jai Maa Lakshmi 🪷 Light a diya at home. Good things come with light."
+    ),
+    "notif_morning_lakshmi_4" to Entry(
+        "Jai Maa Lakshmi 🪷 Chinta mat kijiye. Mehnat ka phal zaroor milega.",
+        "जय माँ लक्ष्मी 🪷 चिंता मत कीजिए। मेहनत का फल ज़रूर मिलेगा।",
+        "Jai Maa Lakshmi 🪷 Don't worry. Honest effort is always rewarded."
+    ),
+    "notif_morning_shani_1" to Entry(
+        "Shani Dev ka sandesh 🪔 Aaj dhairya rakhein, mehnat ka phal milega.",
+        "शनि देव का संदेश 🪔 आज धैर्य रखें, मेहनत का फल मिलेगा।",
+        "A message from Shani Dev 🪔 Be patient today; your effort will bear fruit."
+    ),
+    "notif_morning_shani_2" to Entry(
+        "Shani Dev ka aashirwad 🪔 Sach ka saath dijiye. Wahi raasta saaf karta hai.",
+        "शनि देव का आशीर्वाद 🪔 सच का साथ दीजिए। वही रास्ता साफ़ करता है।",
+        "Shani Dev's blessing 🪔 Stand by the truth. It is what clears the path."
+    ),
+    "notif_morning_shani_3" to Entry(
+        "Shani Dev ka sandesh 🪔 Aaj kisi zarooratmand ko kuch dijiye. Karm laut kar aata hai.",
+        "शनि देव का संदेश 🪔 आज किसी ज़रूरतमंद को कुछ दीजिए। कर्म लौटकर आता है।",
+        "A message from Shani Dev 🪔 Give something to someone in need today. Karma returns."
+    ),
+    "notif_morning_shani_4" to Entry(
+        "Jai Shani Dev 🪔 Deri ka matlab inkaar nahi. Apna kaam kijiye, samay aayega.",
+        "जय शनि देव 🪔 देरी का मतलब इनकार नहीं। अपना काम कीजिए, समय आएगा।",
+        "Jai Shani Dev 🪔 A delay is not a no. Keep at your work; your time will come."
+    ),
     "voice_mic_unavailable" to Entry("Microphone available nahi hai. Baat phir shuru kijiye.", "माइक्रोफ़ोन उपलब्ध नहीं है। कृपया बातचीत फिर शुरू करें।", "Microphone available nahi hai. Baat phir shuru kijiye."),
     "please_sign_in" to Entry("Pehle sign in kijiye.", "कृपया पहले साइन इन करें।", "Pehle sign in kijiye."),
     "voice_not_heard" to Entry("Aapki awaaz sunai nahi de rahi, microphone shaant lag raha hai. ", "आपकी आवाज़ सुनाई नहीं दे रही है, माइक्रोफ़ोन शांत लग रहा है। ", "Aapki awaaz sunai nahi de rahi, microphone shaant lag raha hai. "),

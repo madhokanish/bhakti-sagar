@@ -100,29 +100,32 @@ fun ReelsScreen(
     val vm: ReelsViewModel = viewModel(factory = factory)
     val uiState by vm.uiState.collectAsStateWithLifecycle()
     var isMuted by rememberSaveable { mutableStateOf(false) }
+    // Free users only get what ships in the app (3 reels, 5 aartis); everything else streams
+    // from bhaktichat.com and is for subscribers. They watch all of it, then hit the paywall.
+    val reels = if (isPro) uiState.reels else uiState.reels.filter { it.isBundled }
 
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        if (uiState.reels.isEmpty()) {
+        if (reels.isEmpty()) {
             EmptyState()
         } else {
-            // Free users get FREE_REEL_COUNT reels and then the pager simply ends on a
+            // Free users get the bundled reels and then the pager simply ends on a
             // paywall page. Capping pageCount rather than intercepting the scroll means the
             // swipe resolves normally instead of fighting the user's gesture, and there is
             // no way to page past it.
-            val pageCount = if (isPro) uiState.reels.size else FREE_REEL_COUNT + 1
+            val pageCount = if (isPro) reels.size else reels.size + 1
             val pagerState = rememberPagerState(pageCount = { pageCount })
             VerticalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
-                if (!isPro && page >= FREE_REEL_COUNT) {
+                if (!isPro && page >= reels.size) {
                     ReelsPaywallPage(
                         isActive = pagerState.currentPage == page,
                         onSubscribe = onSubscribe
                     )
                     return@VerticalPager
                 }
-                val reel = uiState.reels[page]
+                val reel = reels[page]
                 ReelPage(
                     reel = reel,
                     feed = uiState.feed,
@@ -150,7 +153,6 @@ fun ReelsScreen(
 }
 
 /** Reels a non-subscriber may watch before the paywall page. */
-private const val FREE_REEL_COUNT = 1
 
 /**
  * Terminal page of the free reels feed. Deliberately styled like a reel rather than a dialog

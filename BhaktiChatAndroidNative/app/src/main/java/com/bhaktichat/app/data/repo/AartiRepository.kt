@@ -105,7 +105,10 @@ class AartiRepository(private val context: Context,
                             ?: estimateDurationMinutes(selectedLyrics),
                         tags = tags,
                         youtubeVideoId = extractYouTubeVideoId(item.optStringOrNull("youtubeUrl")),
-                        audioUrl = item.optStringOrNull("audioUrl"),
+                        // The 5 guide aartis ship inside the app and play from there, for
+                        // everyone; only subscribers ever stream the rest from bhaktichat.com.
+                        audioUrl = item.optStringOrNull("bundledAudio")?.let { "asset:///$it" }
+                            ?: item.optStringOrNull("audioUrl"),
                         popularityCount = item.optLong("popularityCount").takeIf { it > 0L },
                         isTop = isTop,
                         lyrics = selectedLyrics,

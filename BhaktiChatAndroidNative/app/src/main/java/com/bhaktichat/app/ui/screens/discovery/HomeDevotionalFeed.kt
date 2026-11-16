@@ -107,7 +107,9 @@ internal fun buildHomeFeedBatch(
     batchNumber: Int
 ): List<HomeFeedEntry> {
     if (videoReels.isEmpty()) return emptyList()
-    val videos = videoReels.shuffled()
+    // Reels that can play lead each batch, so a free user's feed opens on the bundled ones
+    // rather than on a still poster. For subscribers every reel plays, so this is a shuffle.
+    val videos = videoReels.shuffled().sortedByDescending { !it.videoUrl.isNullOrBlank() }
     val aartis = aartiReels.shuffled()
     var videoIndex = 0
     var aartiIndex = 0
@@ -310,7 +312,8 @@ internal fun HomeDevotionalFeedPost(
             // Gated posts autoplay too. What plays here is a short clipped preview, not the
             // full reel, so it teases rather than gives the content away — and a feed where
             // most tiles sit frozen is a feed people scroll past.
-            if (isActive && entry.reel.hasVideoTrack) {
+            // No media (a free user's non-bundled reel): stay on the poster, no player.
+            if (isActive && entry.reel.hasVideoTrack && !entry.reel.videoUrl.isNullOrBlank()) {
                 AndroidView(
                     factory = { ctx ->
                         PlayerView(ctx).apply {

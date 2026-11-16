@@ -27,6 +27,10 @@ data class Reel(
     val posterRes: Int?,
     val feed: ReelFeed
 ) {
+    /** Media packaged in the app (3 reels + the 5 guide aartis). The only reels a free user
+     *  plays: everything else streams from bhaktichat.com, which is for subscribers. */
+    val isBundled: Boolean get() = videoUrl?.startsWith("asset:///") == true
+
     /** Unit words come from the translation table, so counts read correctly in either script. */
     fun likeCountLabel(language: AppLanguage): String = when {
         likeCount >= 1_000_000 ->

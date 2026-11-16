@@ -171,7 +171,9 @@ class AppContainer(
 
     // Continuous aarti player (Media3 MediaController bound to AartiPlaybackService). App-scoped
     // so playback + the mini-player survive navigation between screens.
-    val aartiPlayerController = com.bhaktichat.app.playback.AartiPlayerController(appContext, languageStore)
+    val aartiPlayerController = com.bhaktichat.app.playback.AartiPlayerController(appContext, languageStore) {
+        entitlementStore.isPro.value
+    }
 
     /**
      * Folds a guest's conversations into this account's database, then empties the guest's

@@ -178,6 +178,10 @@ fun BhaktiChatApp(
     // Entitlement is server truth (Razorpay/Chadhaava), mirrored locally by
     // SubscriptionRepository. Grandfathered Play subscribers also read true here.
     val isPro by entitlementStore.isPro.collectAsStateWithLifecycle()
+    val freeChatAartiDay by entitlementStore.freeChatAartiDay.collectAsStateWithLifecycle()
+    val todayKey = remember(freeChatAartiDay) {
+        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+    }
 
     // The gate (a BLOCKED_* value) whose quick-checkout sheet is open, or null when closed.
     // Every gate opens the same sheet rather than the full चढ़ावा page; see QuickCheckoutSheet.
@@ -570,7 +574,11 @@ fun BhaktiChatApp(
                         appScope.launch {
                             val all = appContainer.aartiRepository.loadAartis()
                             val playable = all.filter { it.hasAudio }
-                            if (playable.any { it.id == aartiId }) {
+                            // Free users play only the bundled guide aartis; the rest stream
+                            // from bhaktichat.com and are चढ़ावा.
+                            if (!isPro && playable.none { it.id == aartiId && it.isBundled }) {
+                                openGate(BLOCKED_AARTIS)
+                            } else if (playable.any { it.id == aartiId }) {
                                 appContainer.aartiPlayerController.playQueue(
                                     aartis = playable,
                                     startId = aartiId,
@@ -593,7 +601,9 @@ fun BhaktiChatApp(
                                 val start = all.firstOrNull { it.id == displayedAartiId }
                                     ?: all.firstOrNull { it.isTop }
                                     ?: all.firstOrNull()
-                                if (start != null) {
+                                if (start != null && !isPro && !start.isBundled) {
+                                    openGate(BLOCKED_AARTIS)
+                                } else if (start != null) {
                                     appContainer.aartiPlayerController.playQueue(
                                         all.filter { it.hasAudio },
                                         start.id
@@ -728,6 +738,28 @@ fun BhaktiChatApp(
                             mapOf("source" to request.source, "guide_id" to uiState.guide?.id.orEmpty())
                         )
                         openGate(request.source)
+                    },
+                    freeAartiAvailable = !isPro && freeChatAartiDay != todayKey,
+                    onPlayFreeAarti = {
+                        val guideId = uiState.guide?.serverPromptKey.orEmpty()
+                        // Aarti tags use "shiva"; guide ids use "shiv".
+                        val tag = if (guideId == "shiv") "shiva" else guideId
+                        appScope.launch {
+                            val aarti = appContainer.aartiRepository.loadAartis()
+                                .filter { it.hasAudio }
+                                .let { all -> all.firstOrNull { it.tags.firstOrNull() == tag } ?: all.firstOrNull { tag in it.tags } }
+                            if (aarti == null) {
+                                openGate(ChatContentRequest.AARTI.source)
+                                return@launch
+                            }
+                            entitlementStore.recordFreeChatAartiPlayed()
+                            Analytics.capture(
+                                "chat_free_aarti_played",
+                                mapOf("guide_id" to guideId, "aarti_id" to aarti.id)
+                            )
+                            appContainer.aartiPlayerController.playQueue(listOf(aarti), aarti.id)
+                            appContainer.aartiPlayerController.expandFullScreen()
+                        }
                     }
                 )
             }

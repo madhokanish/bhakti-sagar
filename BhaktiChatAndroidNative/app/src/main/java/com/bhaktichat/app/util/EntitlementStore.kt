@@ -79,6 +79,20 @@ class EntitlementStore(context: Context) {
     fun messagesSentToday(): Int =
         if (prefs.getString(KEY_CHAT_DAY, null) == today()) prefs.getInt(KEY_CHAT_DAY_COUNT, 0) else 0
 
+    // A free user who asks a guide for a bhajan gets one play of that guide's aarti a day;
+    // after that the chat card opens चढ़ावा. Hearing it first sells better than a locked card.
+    private val _freeChatAartiDay = MutableStateFlow(prefs.getString(KEY_FREE_CHAT_AARTI_DAY, null))
+    val freeChatAartiDay: StateFlow<String?> = _freeChatAartiDay.asStateFlow()
+
+    /** True while a free user still has today's in-chat aarti play. */
+    fun hasFreeChatAartiToday(): Boolean = !_isPro.value && _freeChatAartiDay.value != today()
+
+    fun recordFreeChatAartiPlayed() {
+        val day = today()
+        prefs.edit().putString(KEY_FREE_CHAT_AARTI_DAY, day).apply()
+        _freeChatAartiDay.value = day
+    }
+
     private fun today(): String =
         java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
 
@@ -237,5 +251,6 @@ class EntitlementStore(context: Context) {
         private const val KEY_CHAT_DAY_COUNT = "bhakti_chat_day_count"
         const val DAILY_CHAT_LIMIT = 10
         private const val KEY_IMAGES_USED = "bhakti_free_images_used"
+        private const val KEY_FREE_CHAT_AARTI_DAY = "bhakti_free_chat_aarti_day"
     }
 }

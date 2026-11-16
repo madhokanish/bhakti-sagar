@@ -142,16 +142,23 @@ fun HomeScreen(
     // refresh. Existing content remains visible if an individual source is temporarily unavailable.
     LaunchedEffect(refreshGeneration) {
         activeHomeFeedId = null
+        // A free user's feed still shows every reel, but only the ones bundled in the app have
+        // media: the rest are posters that never stream, and a tap on them opens चढ़ावा.
         val topReels = runCatching { reelsRepository.reels(ReelFeed.TOP) }
             .getOrDefault(homeFeedVideoReels)
+            .map { if (isPro || it.isBundled) it else it.copy(videoUrl = null) }
         if (topReels.isNotEmpty()) reelsPreview = topReels.shuffled().take(8)
+        // Free users only ever see and hear the aartis bundled in the app; streaming the
+        // others from bhaktichat.com is for subscribers.
         val aartis = runCatching { aartiRepository.loadAartis() }.getOrDefault(emptyList())
+            .filter { isPro || it.isBundled }
         if (aartis.isNotEmpty()) {
             aartiSpotlightFallback = aartis.shuffled().firstOrNull { it.isTop }
                 ?: aartis.shuffled().firstOrNull()
         }
         val aartiReels = runCatching { reelsRepository.reels(ReelFeed.AARTIS) }
             .getOrDefault(homeFeedAartiReels)
+            .filter { isPro || it.isBundled }
         if (topReels.isNotEmpty()) homeFeedVideoReels = topReels
         if (aartiReels.isNotEmpty()) homeFeedAartiReels = aartiReels
         if (topReels.isNotEmpty()) {
@@ -406,10 +413,9 @@ fun HomeScreen(
                 key = ::homeFeedItemKey,
                 contentType = { "home-devotional-feed-post" }
             ) { entry ->
-                // Every post browses and previews normally. Gating is tap-only: nothing here
-                // looks withheld, and the चढ़ावा screen appears when the user reaches for the
-                // full reel. The first post is ungated so a tap there still plays.
-                val gated = !isPro && entry.instanceId != homeFeedEntries.first().instanceId
+                // Gating is tap-only: nothing here looks withheld, and the चढ़ावा screen appears
+                // when the user reaches for a reel. What ships in the app is free to open.
+                val gated = !isPro && !entry.reel.isBundled
                 HomeDevotionalFeedPost(
                     entry = entry,
                     player = homeFeedPlayback.player,

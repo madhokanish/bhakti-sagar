@@ -51,7 +51,9 @@ data class AartiPlayerState(
  * queue, which gives the "one aarti after another" continuous playback for free.
  */
 class AartiPlayerController(private val context: Context,
-    private val languageStore: LanguageStore
+    private val languageStore: LanguageStore,
+    /** True for subscribers. Everyone else only ever plays the aartis bundled in the app. */
+    private val canStream: () -> Boolean
 ) {
     private var controller: MediaController? = null
     private var isConnecting = false
@@ -103,8 +105,13 @@ class AartiPlayerController(private val context: Context,
 
     /** Plays the audio-having aartis as a queue, starting at [startId] (or the first one). */
     fun playQueue(aartis: List<Aarti>, startId: String?, startPositionMillis: Long = 0L) {
-        val playable = aartis.filter { it.hasAudio }
+        // The backstop for bandwidth: whatever a screen passes in, a free user's queue holds
+        // only bundled aartis, so nothing streams from bhaktichat.com for them. Callers gate
+        // to चढ़ावा first; a start that isn't playable plays nothing rather than another track.
+        val streamingAllowed = canStream()
+        val playable = aartis.filter { it.hasAudio && (streamingAllowed || it.isBundled) }
         if (playable.isEmpty()) return
+        if (startId != null && playable.none { it.id == startId }) return
         val c = controller
         if (c == null) {
             pendingPlayback = Triple(playable, startId, startPositionMillis.coerceAtLeast(0L))

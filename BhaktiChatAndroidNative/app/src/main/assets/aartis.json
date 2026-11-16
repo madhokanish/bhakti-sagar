@@ -309,7 +309,8 @@
       "aarti"
     ],
     "imageAsset": "avatar_krishna",
-    "audioUrl": "https://bhaktichat.com/aartis/shri-krishna-ji-ki-aarati.mp3"
+    "audioUrl": "https://bhaktichat.com/aartis/shri-krishna-ji-ki-aarati.mp3",
+    "bundledAudio": "aartis/krishna.m4a"
   },
   {
     "id": "aarti-06",
@@ -430,6 +431,7 @@
     },
     "youtubeUrl": "",
     "audioUrl": "https://bhaktichat.com/aartis/hanuman-aarti.mp3",
+    "bundledAudio": "aartis/hanuman.m4a",
     "tags": [
       "hanuman",
       "morning",
@@ -1106,7 +1108,8 @@
       "aarti"
     ],
     "imageAsset": "ic_lakshmi_top_aarti",
-    "audioUrl": "https://bhaktichat.com/aartis/shri-lakshmi-ji-ki-aarati.mp3"
+    "audioUrl": "https://bhaktichat.com/aartis/shri-lakshmi-ji-ki-aarati.mp3",
+    "bundledAudio": "aartis/lakshmi.m4a"
   },
   {
     "id": "aarti-19",
@@ -1266,7 +1269,8 @@
       "aarti"
     ],
     "imageAsset": "aarti_shri_shani_dev_ji_ki_aarati",
-    "audioUrl": "https://bhaktichat.com/aartis/shri-shani-dev-ji-ki-aarati.mp3"
+    "audioUrl": "https://bhaktichat.com/aartis/shri-shani-dev-ji-ki-aarati.mp3",
+    "bundledAudio": "aartis/shani.m4a"
   },
   {
     "id": "aarti-22",
@@ -1334,7 +1338,8 @@
       "mahashivratri"
     ],
     "imageAsset": "ic_shiv_top_aarti",
-    "audioUrl": "https://bhaktichat.com/aartis/shri-shiv-ji-ki-aarati.mp3"
+    "audioUrl": "https://bhaktichat.com/aartis/shri-shiv-ji-ki-aarati.mp3",
+    "bundledAudio": "aartis/shiv.m4a"
   },
   {
     "id": "aarti-23",

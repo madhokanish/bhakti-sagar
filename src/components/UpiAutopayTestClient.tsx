@@ -72,6 +72,11 @@ export default function UpiAutopayTestClient({ email, phone, lang }: Props) {
           ...(phone ? { contact: phone } : {})
         },
         theme: { color: "#c2410c" },
+        // The Android app may host this page in its own WebView instead of a Custom Tab.
+        // checkout.js hides UPI in a WebView unless asked to hand off to UPI apps via intents
+        // (the app routes those links). Browsers never carry the "; wv" marker, so this is
+        // off for everyone else.
+        ...(/; wv\)/.test(navigator.userAgent) ? { webview_intent: true } : {}),
         handler: async (response: unknown) => {
           const payload = response as RazorpayCheckoutSuccess;
           try {

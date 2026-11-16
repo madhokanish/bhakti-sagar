@@ -34,13 +34,19 @@ type RazorpayCheckoutSuccess = {
 };
 
 type Props = {
-  // Phone-OTP accounts have neither; at least one of email/phone is set, and it is used only
-  // to prefill Razorpay and to show who is being subscribed. Razorpay needs no email.
+  // The account's own email/phone, shown in "subscribing as". Not sent to Razorpay.
   email: string | null;
   phone: string | null;
   /** Carried over from the app so this page speaks the language they were just reading. */
   lang: CheckoutLang;
 };
+
+// Every checkout carries BhaktiChat support's contact, not the customer's. Razorpay demands a
+// phone and email for subscriptions, and asking for them was a whole extra screen before any
+// payment option. Customers also told us they don't want Razorpay's SMS and emails: these
+// now reach support, who track payments and talk to customers directly.
+const SUPPORT_CONTACT = "+918860192215";
+const SUPPORT_EMAIL = "support@bhaktichat.com";
 
 export default function UpiAutopayTestClient({ email, phone, lang }: Props) {
   const copy = CHADHAAVA_COPY[lang];
@@ -90,12 +96,10 @@ export default function UpiAutopayTestClient({ email, phone, lang }: Props) {
         subscription_id: createData.subscriptionId,
         name: "BhaktiChat",
         description: "Monthly membership",
-        // Prefill whatever the account has. A phone user's number goes straight into the UPI
-        // contact field so they don't retype it; email is included only when present.
-        prefill: {
-          ...(email ? { email } : {}),
-          ...(phone ? { contact: phone } : {})
-        },
+        // Prefilled and hidden, so Razorpay skips its contact screen and opens on payment.
+        prefill: { email: SUPPORT_EMAIL, contact: SUPPORT_CONTACT },
+        readonly: { email: true, contact: true },
+        hidden: { email: true, contact: true },
         theme: { color: "#c2410c" },
         // The Android app may host this page in its own WebView instead of a Custom Tab.
         // checkout.js hides UPI in a WebView unless asked to hand off to UPI apps via intents
@@ -146,7 +150,7 @@ export default function UpiAutopayTestClient({ email, phone, lang }: Props) {
       setLoading(false);
       window.BhaktiCheckout?.onResult("error");
     }
-  }, [email, phone, loading, scriptReady]);
+  }, [loading, scriptReady]);
 
   // Open checkout as soon as we can, rather than making the user tap again.
   //

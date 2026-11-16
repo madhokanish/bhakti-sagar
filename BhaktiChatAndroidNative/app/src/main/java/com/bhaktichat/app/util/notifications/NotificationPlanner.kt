@@ -62,6 +62,7 @@ object NotificationPlanner {
 
     const val EVENING_HOUR = 19
     private const val DEFAULT_MORNING_HOUR = 7
+    private const val EVENING_WINDOW_MS = 10 * 60 * 1000L
     private const val UNANSWERED_DELAY_MS = 3 * 60 * 60 * 1000L
     // An old question isn't worth bringing back; the user has moved on.
     private const val UNANSWERED_MAX_AGE_MS = 48 * 60 * 60 * 1000L
@@ -172,9 +173,11 @@ object NotificationPlanner {
                 if (canPost(context)) BhaktiNotifications.showMorning(context, guideForDay(context, now), now)
             }
             NotifType.AARTI -> {
-                // The evening slot belongs to the unanswered question when there is one today.
+                // The evening slot belongs to the unanswered question when it is due today —
+                // even at this same instant, or later because its alarm was shifted. The key
+                // is cleared once C posts or the user comes back.
                 val cAt = p.getLong(KEY_C_FIRE_AT, 0L)
-                val cPendingToday = cAt > now && dayKey(cAt) == today
+                val cPendingToday = cAt > 0L && dayKey(cAt) == today
                 if (canPost(context) && p.getString(KEY_EVENING_USED_DAY, null) != today && !cPendingToday) {
                     BhaktiNotifications.showAarti(context, guideForDay(context, now))
                     p.edit().putString(KEY_EVENING_USED_DAY, today).apply()
@@ -225,12 +228,16 @@ object NotificationPlanner {
         val pending = alarmIntent(context, type)
         runCatching {
             // Exact when the platform allows it without a special permission (below Android 12,
-            // or if the user granted it); otherwise inexact, which Android may shift a little.
+            // or if the user granted it). Otherwise Android may deliver up to an hour late:
+            // fine for the morning blessing, which must fire while the phone sleeps, but the
+            // evening slot is the 19:00 peak, so it gets a 10-minute window (the phone is
+            // awake then; a window alarm doesn't fire in Doze).
             val exact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
-            if (exact) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending)
-            } else {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending)
+            when {
+                exact -> alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending)
+                type == NotifType.MORNING ->
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending)
+                else -> alarmManager.setWindow(AlarmManager.RTC_WAKEUP, atMillis, EVENING_WINDOW_MS, pending)
             }
         }
         // Re-planning happens on every app open; only a new time counts as scheduled.

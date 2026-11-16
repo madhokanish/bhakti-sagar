@@ -113,14 +113,18 @@ export default async function RootLayout({
             </AuthModalProvider>
           </AuthSessionProvider>
         </NextIntlClientProvider>
-        <Script
-          id="Cookiebot"
-          src="https://consent.cookiebot.com/uc.js"
-          data-cbid="0ce4deed-b126-425c-81fe-4bdbc49013fd"
-          data-blockingmode="auto"
-          type="text/javascript"
-          strategy="beforeInteractive"
-        />
+        {/* Not on checkout: it is render-blocking, and the page there is a hand-off into
+            Razorpay (mostly from the app), so it only delayed the payment sheet. */}
+        {!requestPathname.startsWith("/subscribe") && (
+          <Script
+            id="Cookiebot"
+            src="https://consent.cookiebot.com/uc.js"
+            data-cbid="0ce4deed-b126-425c-81fe-4bdbc49013fd"
+            data-blockingmode="auto"
+            type="text/javascript"
+            strategy="beforeInteractive"
+          />
+        )}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
           strategy="afterInteractive"

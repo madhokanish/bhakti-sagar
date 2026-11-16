@@ -10,7 +10,21 @@ declare global {
       open: () => void;
       on: (event: string, handler: (response: unknown) => void) => void;
     };
+    /** Present only inside the Android app's checkout screen (InAppCheckoutActivity). */
+    BhaktiCheckout?: {
+      onOpened: () => void;
+      onResult: (result: "success" | "dismissed" | "error") => void;
+    };
   }
+}
+
+type CreatedSubscription = { subscriptionId?: string; error?: string; ok: boolean };
+
+function createSubscription(): Promise<CreatedSubscription> {
+  return fetch("/api/razorpay/subscription/create", { method: "POST" }).then(async (response) => ({
+    ...((await response.json()) as { subscriptionId?: string; error?: string }),
+    ok: response.ok
+  }));
 }
 
 type RazorpayCheckoutSuccess = {
@@ -38,6 +52,18 @@ export default function UpiAutopayTestClient({ email, phone, lang }: Props) {
   // itself (see the effect below). This guards against it firing twice -- on a re-render, or
   // after the user has dismissed it and is looking at the retry button.
   const autoOpenedRef = useRef(false);
+  // The first subscription is created while checkout.js is still downloading, so Razorpay can
+  // open the moment the script lands instead of after a second round trip. Single use: a
+  // retry after a dismissal creates a fresh one.
+  const prefetchRef = useRef<Promise<CreatedSubscription> | null>(null);
+  // Inside the Android app the site behind Razorpay is covered, and the app is told when
+  // Razorpay opens and closes so its checkout screen can appear and close in step.
+  const [inApp, setInApp] = useState(false);
+
+  useEffect(() => {
+    setInApp(Boolean(window.BhaktiCheckout));
+    prefetchRef.current = createSubscription().catch(() => ({ ok: false }));
+  }, []);
 
   const startSubscription = useCallback(async function startSubscription() {
     if (loading) return;
@@ -51,11 +77,10 @@ export default function UpiAutopayTestClient({ email, phone, lang }: Props) {
     setResult(null);
 
     try {
-      const createResponse = await fetch("/api/razorpay/subscription/create", {
-        method: "POST"
-      });
-      const createData = (await createResponse.json()) as { subscriptionId?: string; error?: string };
-      if (!createResponse.ok || !createData.subscriptionId) {
+      const pending = prefetchRef.current ?? createSubscription();
+      prefetchRef.current = null;
+      const createData = await pending;
+      if (!createData.ok || !createData.subscriptionId) {
         throw new Error(createData.error || "Unable to start subscription.");
       }
 
@@ -76,7 +101,7 @@ export default function UpiAutopayTestClient({ email, phone, lang }: Props) {
         // checkout.js hides UPI in a WebView unless asked to hand off to UPI apps via intents
         // (the app routes those links). Browsers never carry the "; wv" marker, so this is
         // off for everyone else.
-        ...(/; wv\)/.test(navigator.userAgent) ? { webview_intent: true } : {}),
+        ...(window.BhaktiCheckout || /; wv\)/.test(navigator.userAgent) ? { webview_intent: true } : {}),
         handler: async (response: unknown) => {
           const payload = response as RazorpayCheckoutSuccess;
           try {
@@ -90,8 +115,11 @@ export default function UpiAutopayTestClient({ email, phone, lang }: Props) {
               throw new Error(verifyData.error || "Verification failed.");
             }
             setResult({ status: verifyData.status });
+            window.BhaktiCheckout?.onResult("success");
           } catch (verifyError) {
             setError(verifyError instanceof Error ? verifyError.message : "Verification failed.");
+            // Paid but not verified here: the app reconciles with Razorpay itself on return.
+            window.BhaktiCheckout?.onResult("success");
           } finally {
             setLoading(false);
           }
@@ -100,6 +128,7 @@ export default function UpiAutopayTestClient({ email, phone, lang }: Props) {
           ondismiss: () => {
             setError("Payment cancelled.");
             setLoading(false);
+            window.BhaktiCheckout?.onResult("dismissed");
           }
         }
       });
@@ -111,9 +140,11 @@ export default function UpiAutopayTestClient({ email, phone, lang }: Props) {
       });
 
       razorpay.open();
+      window.BhaktiCheckout?.onOpened();
     } catch (startError) {
       setError(startError instanceof Error ? startError.message : "Unable to start subscription.");
       setLoading(false);
+      window.BhaktiCheckout?.onResult("error");
     }
   }, [email, phone, loading, scriptReady]);
 
@@ -136,6 +167,14 @@ export default function UpiAutopayTestClient({ email, phone, lang }: Props) {
     // "pay" one screen ago, so this should read as that screen continuing rather than a
     // different site asking them to start over.
     <div className="mx-auto max-w-lg">
+      <link rel="preconnect" href="https://checkout.razorpay.com" />
+      <link rel="preconnect" href="https://api.razorpay.com" />
+      {inApp && (
+        // Covers the site's header and page so the app only ever shows Razorpay itself.
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-[#FFF8F1]">
+          <span className="h-8 w-8 animate-spin rounded-full border-4 border-[#EA580C] border-t-transparent" />
+        </div>
+      )}
       <Script
         src="https://checkout.razorpay.com/v1/checkout.js"
         strategy="afterInteractive"
